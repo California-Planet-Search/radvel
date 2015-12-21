@@ -18,24 +18,22 @@ errvel = np.array( vst.errvel )
 planet = pd.read_hdf('planet-parameters.hdf','planet')
 
 def initialize_model():
-    mod = radvel.model.Model_logK(2, time_base=time_base)
-    mod.params0['P1'].value = planet.ix['P','b']
-    mod.params0['tc1'].value = planet.ix['t0','b']
-    mod.params0['sqrtecosom1'].value = 0.01
-    mod.params0['sqrtesinom1'].value = 0.01
-    mod.params0['logk1'].value = 0.0
-    mod.params0['P2'].value = planet.ix['P','c']
-    mod.params0['tc2'].value = planet.ix['t0','c']
-    mod.params0['sqrtecosom2'].value = 0.01
-    mod.params0['sqrtesinom2'].value = 0.01
-    mod.params0['logk2'].value = 0.0
-    mod.params0['gamma'].value = 2
-    mod.params0['dvdt'].value = 0.1
-    mod.params0['logjitter'].value = np.log10(3)
-    mod.params0['P1'].vary = False
-    mod.params0['tc1'].vary = False
-    mod.params0['P2'].vary = False
-    mod.params0['tc2'].vary = False
+    mod = radvel.model.RVModelA(2, time_base=time_base)
+    mod.params['per1'].value = planet.ix['P','b']
+    mod.params['tc1'].value = planet.ix['t0','b']
+    mod.params['secosw1'].value = 0.01
+    mod.params['sesinw1'].value = 0.01
+    mod.params['logk1'].value = 0.0
+    mod.params['per2'].value = planet.ix['P','c']
+    mod.params['tc2'].value = planet.ix['t0','c']
+    mod.params['secosw2'].value = 0.01
+    mod.params['sesinw2'].value = 0.01
+    mod.params['logk2'].value = 0.0
+    mod.params['dvdt'].value = 0.1
+    mod.params['per1'].vary = False
+    mod.params['tc1'].vary = False
+    mod.params['per2'].vary = False
+    mod.params['tc2'].vary = False
     return mod
 
 rc('lines',linewidth=1.5)
@@ -44,11 +42,10 @@ rc('axes',linewidth=1.0)
 print "\n" * 5
 print "Circular orbit with variable jitter"
 mod = initialize_model()
-mod.params0['sqrtecosom1'].vary = False
-mod.params0['sqrtesinom1'].vary = False
-mod.params0['sqrtecosom2'].vary = False
-mod.params0['sqrtesinom2'].vary = False
-mod.set_vary_parameters()
+mod.params['secosw1'].vary = False
+mod.params['sesinw1'].vary = False
+mod.params['secosw2'].vary = False
+mod.params['sesinw2'].vary = False
 params_maxlike, maxlnlike = radvel.fitting.maxlike_fitting(mod, t, vel, errvel)
 radvel.plotting.rvplot(mod, params_maxlike , t, vel, errvel)
 fig = gcf()
@@ -65,7 +62,7 @@ sca(axL[2])
 title('Planet c')
 
 # Start MCMC near the best fit
-#mod.params0 = params_maxlike
+#mod.params = params_maxlike
 #chain = rv.mcmc.mcmc(
 #   mod, t, vel, errvel, nwalkers=100, nburn=1000, nrun=2000, threads=8
 #   )
@@ -74,14 +71,13 @@ title('Planet c')
 print "\n" * 5
 print "Eccentric orbit with variable jitter"
 mod = initialize_model()
-mod.set_vary_parameters()
 params_maxlike, maxlnlike = radvel.fitting.maxlike_fitting(mod, t, vel, errvel)
 sca(axL[0])
 radvel.plotting.plotfit(mod, params_maxlike, t, vel, errvel,linestyle='--',zorder=1.95,color='RoyalBlue')
 fig.set_tight_layout(True)
 #fig.savefig('/Users/petigura/Research/K2/Papers/EPIC2037/EPIC2037/fig_rv.pdf')
 # Start MCMC near the best fit
-# mod.params0 = mod.array_to_params(p1)
+# mod.params = mod.array_to_params(p1)
 # chain = rv.model.mcmc(
 #    mod, t, vel, errvel, nwalkers=100, nburn=1000, nrun=2000, threads=8
 #    )
@@ -91,21 +87,20 @@ fig.set_tight_layout(True)
 print "\n" * 5
 print "Circular orbit with fixed jitter"
 mod = initialize_model()
-mod.params0['sqrtecosom1'].vary = False
-mod.params0['sqrtesinom1'].vary = False
-mod.params0['sqrtecosom2'].vary = False
-mod.params0['sqrtesinom2'].vary = False
-mod.params0['logjitter'].vary = False 
-mod.params0['logjitter'].value = params_maxlike['logjitter'].value
-mod.set_vary_parameters()
+mod.params['secosw1'].vary = False
+mod.params['sesinw1'].vary = False
+mod.params['secosw2'].vary = False
+mod.params['sesinw2'].vary = False
+mod.params['logjitter'].vary = False 
+mod.params['logjitter'].value = params_maxlike['logjitter'].value
 params_maxlike, maxlnlike = radvel.fitting.maxlike_fitting(mod, t, vel, errvel)
 
 print "\n" * 5
 print "Eccentric orbit with fixed jitter "
 mod = initialize_model()
 mod.set_vary_parameters()
-mod.params0['logjitter'].vary = False 
-mod.params0['logjitter'].value = params_maxlike['logjitter'].value
+mod.params['logjitter'].vary = False 
+mod.params['logjitter'].value = params_maxlike['logjitter'].value
 mod.set_vary_parameters()
 params_maxlike, maxlnlike = radvel.fitting.maxlike_fitting(mod, t, vel, errvel)
 
