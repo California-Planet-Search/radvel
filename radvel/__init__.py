@@ -4,3 +4,7 @@ from .likelihood import *
 from .posterior import *
 from .mcmc import *
 from .prior import *
+import os 
+
+MODULEDIR, filename = os.path.split(__file__)
+DATADIR = os.path.join(MODULEDIR,'data')
