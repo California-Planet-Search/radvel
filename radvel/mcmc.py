@@ -3,16 +3,16 @@ import pandas as pd
 import numpy as np
 from scipy import optimize
 
-def mcmc(mod, t, vel, errvel, nwalkers=200, nburn=100, nrun=200, threads=8):
-    p0 = mod.params_to_array(mod.params0)
+def mcmc(likelihood, nwalkers=200, nburn=100, nrun=200, threads=8):
+    # Get an initial array value
+    p0 = likelihood.get_vary_params()
     ndim = p0.size
     p0 = np.vstack([p0]*nwalkers)
     p0 += [np.random.rand(ndim)*0.0001 for i in range(nwalkers)]
     sampler = emcee.EnsembleSampler( 
         nwalkers, 
         ndim, 
-        mod.lnprob_array, 
-        args=(t, vel, errvel,),
+        likelihood.logprob_array, 
         threads=threads
         )
 
@@ -21,7 +21,9 @@ def mcmc(mod, t, vel, errvel, nwalkers=200, nburn=100, nrun=200, threads=8):
     sampler.reset()
     pos, prob, state = sampler.run_mcmc(pos, nrun)
 
-    df = pd.DataFrame(sampler.flatchain,columns=mod.vary_parameters)
+    df = pd.DataFrame(
+        sampler.flatchain,columns=likelihood.list_vary_params()
+        )
     df['lnprobability'] = sampler.flatlnprobability
     return df
 
@@ -66,7 +68,7 @@ def test_mcmc():
     p1 = p1[0]
     mod.params0 = mod.array_to_params(p1)
 
-    df = mcmc(mod, t, vel, errvel, nwalkers=200, nburn=200, nrun=200, threads=8)
+    df = mcmc(mod, t, vel, errvel, nwalkers=200, nburn=200, nrun=200, threads=1)
 
     corner.corner(
         df[mod.vary_parameters],

@@ -1,17 +1,58 @@
 import numpy as np
-from model import GenericModel
 
-class GenericLikelihood(GenericModel):
+class Likelihood(object):
+    """
+    Generic Likelihood
+    """
     def __init__(self, model, x, y, yerr, extra_params=[]):
         self.model = model
+        self.params = model.params
         self.x = x
         self.y = y
         self.yerr = yerr
         self.params = model.params
-        
         for key in extra_params:
-            self.params.add(key, vary=True)
+            self.params[key] = None
+
+        vary = {}
+        for key in self.params.keys():
+            vary[key] = True
+        self.vary = vary
         
+    def __repr__(self):
+        s = ""
+        s +=  "{:<10s}{:>20s} {:>10s}\n".format(
+            'parameter', 'value', 'vary'
+            )
+        keys = self.params.keys()
+        keys.sort()
+        for key in keys:
+            s +=  "{:10s}{:20g} {:>10s}\n".format(
+                key, self.params[key], str(self.vary[key])
+                 )
+#        s+="{}".format(self.logprob())
+        return s
+
+    def set_vary_params(self, params_array):
+        i = 0
+        for key in self.params.keys():
+            if self.vary[key]:
+                self.params[key] = params_array[i]
+                i+=1
+        assert i==len(params_array), \
+            "length of array must match number of varied parameters"
+
+    def get_vary_params(self):
+        params_array = []
+        for key in self.params.keys():
+            if self.vary[key]:
+                params_array += [ self.params[key] ] 
+        params_array = np.array(params_array)
+        return params_array
+
+    def list_vary_params(self):
+        return [key for key in self.params if self.vary[key] ]
+
     def residuals(self):
         return self.y - self.model(self.x) 
 
@@ -22,7 +63,11 @@ class GenericLikelihood(GenericModel):
         self.set_vary_params(params_array)
         return self.neglogprob()
 
-class RVLikelihood(GenericLikelihood):
+    def logprob_array(self, params_array):
+        self.set_vary_params(params_array)
+        return self.logprob()
+
+class RVLikelihood(Likelihood):
     def __init__(self, model, t, vel, errvel, suffix=''):
         self.gamma_param = 'gamma'+suffix
         self.logjit_param = 'logjit'+suffix
@@ -42,9 +87,10 @@ class RVLikelihood(GenericLikelihood):
         -------
         loglike : Natural log of likelihood
         """
-        sigma_jit = 10**self.params[self.logjit_param].value
+        sigma_jit = np.exp( self.params[self.logjit_param] )
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
+        
         return loglike
 
 def loglike_jitter(residuals, sigma, sigma_jit):
@@ -67,3 +113,5 @@ def loglike_jitter(residuals, sigma, sigma_jit):
     chi2 = np.sum(residuals**2 / sum_sig_quad)
     loglike = -0.5 * chi2 - penalty 
     return loglike
+
+
