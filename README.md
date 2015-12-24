@@ -20,8 +20,8 @@ Note: Erik is still working on skeleton functionaliy. Afterwhich, BJ will take t
 - Rewrite `rv_drive` in C (for fun)
 - Release publically (future) 
 
-## Tutorial
+## Tutorials 
 
-Use follow the `radvel/tests/SyntheticData.ipynb`
+Follow examples in `radvel/tests/SyntheticData.ipynb`
 
 
