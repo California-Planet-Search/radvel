@@ -37,10 +37,14 @@ class RVParameters(dict):
             
             # transform into CPS basis
             k = np.exp(logk)
-            ecc = secosw**2 + sesinw**2
-            w = np.arctan2( sesinw , secosw ) / pi * 180
-            orbel = np.array([per, tc, ecc, w, k, 0, 0, 0])
-            return orbel
+            e = secosw**2 + sesinw**2
+            se = np.sqrt(e)
+            ecosw = se*secosw
+            esinw = se*sesinw
+            orbel_tcecos = np.array([per, tc, ecosw, esinw, k, 0, 0, 0])
+            orbel_cps = basis_tcecos2cps(orbel_tcecos)
+            return orbel_cps
+
 
         if self.basis=='per tc secosw sesinw k':
             # pull out parameters
@@ -51,11 +55,17 @@ class RVParameters(dict):
             k = _getpar('k')
             
             # transform into CPS basis
-            ecc = secosw**2 + sesinw**2
-            w = np.arctan2( sesinw , secosw ) / pi * 180
-            orbel = np.array([per, tc, ecc, w, k, 0, 0, 0])
-            return orbel
+            e = secosw**2 + sesinw**2
+            se = np.sqrt(e)
+            ecosw = se*secosw
+            esinw = se*sesinw
 
+            w = np.arctan2( sesinw , secosw ) / pi * 180
+
+            orbel_tcecos = np.array([per, tc, ecosw, esinw, k, 0, 0, 0])
+            orbel_cps = basis_tcecos2cps(orbel_tcecos)
+            
+            return orbel_cps
             
 class RVModel(object):
     """
@@ -90,6 +100,41 @@ class RVModel(object):
         orbel_cps = self.params.to_cps(num_planet)
         vel = rvkep.rv_drive(t, orbel_cps, time_base=0 )
         return vel 
+
+def basis_tcecos2cps(parin):
+    # convert Keplerian parameters from the 'tcecos' basis:
+    # [P, tc, e*cos(om), e*sin(om), K, gamma, dvdt, curv]  (allowing for multiple planets)
+    # to the 'cps' basis:
+    # [P, tp, e, om, K, gamma, dvdt, curv]  (allowing for multiple planets)
+
+    from numpy import arange, pi, sqrt, arctan2, tan, arctan, sin
+    par = parin
+    parout = par
+    np = len(par)/7
+    for p in arange(np):
+        # converting ecosom, esinom to e, omega (degrees)
+        ecc = sqrt((par[p*7+2])**2 + (par[p*7+3])**2)
+        if ecc >= 1.0:
+            ecc = 0.99
+        
+        om = arctan2( par[p*7+3] , parin[p*7+2] ) / pi * 180
+
+        while om < 0.:
+             om += 360
+        parout[p*7+2] = ecc
+        parout[p*7+3] = om
+        # om in [0.,360)
+
+        f = pi/2 - parout[p*7+3]/180*pi 
+        # true anomaly during conjunction
+        EE = 2 * arctan( tan(f/2) * sqrt((1-parout[p*7+2])/(1.+parout[p*7+2]))) 
+
+        # eccentric anomaly
+        parout[p*7+1] = par[p*7+1] - par[p*7+0]/(2*pi) * (EE - parout[p*7+2]*sin(EE)) # tc (transit time)
+
+    return parout
+
+
 
 # I had to add these methods to get the model object to be
 # pickle-able, so we could run the mcmc in as a in multi-threaded

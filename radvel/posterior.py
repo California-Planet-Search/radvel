@@ -19,6 +19,7 @@ class Posterior(Likelihood):
         _logprob = self.likelihood.logprob()
         for prior in self.priors:
             _logprob += prior( self.params )
+
         return _logprob
 
     def logprob_array(self, params_array):

@@ -65,7 +65,8 @@ class Likelihood(object):
 
     def logprob_array(self, params_array):
         self.set_vary_params(params_array)
-        return self.logprob()
+        _logprob = self.logprob()
+        return _logprob
 
 class RVLikelihood(Likelihood):
     def __init__(self, model, t, vel, errvel, suffix=''):
