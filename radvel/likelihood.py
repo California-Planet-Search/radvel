@@ -7,30 +7,27 @@ class Likelihood(object):
     def __init__(self, model, x, y, yerr, extra_params=[]):
         self.model = model
         self.params = model.params
-        self.x = x
-        self.y = y
-        self.yerr = yerr
-        self.params = model.params
-        for key in extra_params:
-            self.params[key] = None
 
-        vary = {}
-        for key in self.params.keys():
-            vary[key] = True
+        self.x = np.array(x) # Variables must be arrays.
+        self.y = np.array(y) # Pandas data structures lead to problems.
+        self.yerr = np.array(yerr)
+        self.params = model.params
+        self.params.update({}.fromkeys(extra_params, None) )
+
+        vary = {}.fromkeys(self.params.keys(), True)
         self.vary = vary
-        
+
     def __repr__(self):
         s = ""
-        s +=  "{:<10s}{:>20s} {:>10s}\n".format(
+        s +=  "{:<20s}{:>20s} {:>10s}\n".format(
             'parameter', 'value', 'vary'
             )
         keys = self.params.keys()
         keys.sort()
         for key in keys:
-            s +=  "{:10s}{:20g} {:>10s}\n".format(
+            s +=  "{:20s}{:20g} {:>10s}\n".format(
                 key, self.params[key], str(self.vary[key])
                  )
-#        s+="{}".format(self.logprob())
         return s
 
     def set_vary_params(self, params_array):
@@ -66,6 +63,34 @@ class Likelihood(object):
     def logprob_array(self, params_array):
         self.set_vary_params(params_array)
         _logprob = self.logprob()
+        return _logprob
+
+class CompositeLikelihood(Likelihood):
+    def __init__(self, like_list):
+        self.nlike = len(like_list)
+
+        like0 = like_list[0]
+        params = like0.params
+        for i in range(1,self.nlike):
+            like = like_list[i]
+            assert like.model is like0.model, \
+                "Likelihoods must use the same model"
+
+            for k in like.params:
+                if params.has_key(k):
+                    assert like.params[k] is params[k]
+                else:
+                    params[k] = like.params[k]
+
+
+        self.params = params
+        self.vary = {}.fromkeys(params.keys(),True)
+        self.like_list = like_list
+
+    def logprob(self):
+        _logprob = 0
+        for like in self.like_list:
+            _logprob += like.logprob()
         return _logprob
 
 class RVLikelihood(Likelihood):
@@ -108,7 +133,6 @@ def loglike_jitter(residuals, sigma, sigma_jit):
     sigma : float "measurement errors"
     sigma_jit : float "jitter"
     """
-
     sum_sig_quad = sigma**2 + sigma_jit**2
     penalty = np.sum( np.log( np.sqrt( 2 * np.pi * sum_sig_quad ) ) )
     chi2 = np.sum(residuals**2 / sum_sig_quad)

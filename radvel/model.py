@@ -10,7 +10,23 @@ from matplotlib.pylab import *
 import copy_reg
 import types
 import numpy as np
+
 class RVParameters(dict):
+    """
+    Object to store the physical parameters of the transit.
+
+    :param num_planets: Number of planets in model
+    :type num_planets: int
+
+    :param basis: parameterization of orbital parameters    
+    :type basis: str
+
+    .. doctest::
+	
+       >>> import radvel
+       >>> params = radvel.RVParameters(2)
+
+    """
     def __init__(self, num_planets, basis='per tc secosw sesinw logk'):
         self.basis = basis
         self.planet_parameters = basis.split()
@@ -24,6 +40,9 @@ class RVParameters(dict):
         return '{0}{1}'.format(parameter, num_planet)
 
     def to_cps(self, num_planet):
+        """
+        test
+        """
         def _getpar(key):
             return self['{}{}'.format(key,num_planet)]
 
@@ -44,7 +63,6 @@ class RVParameters(dict):
             orbel_tcecos = np.array([per, tc, ecosw, esinw, k, 0, 0, 0])
             orbel_cps = basis_tcecos2cps(orbel_tcecos)
             return orbel_cps
-
 
         if self.basis=='per tc secosw sesinw k':
             # pull out parameters
@@ -133,8 +151,6 @@ def basis_tcecos2cps(parin):
         parout[p*7+1] = par[p*7+1] - par[p*7+0]/(2*pi) * (EE - parout[p*7+2]*sin(EE)) # tc (transit time)
 
     return parout
-
-
 
 # I had to add these methods to get the model object to be
 # pickle-able, so we could run the mcmc in as a in multi-threaded
