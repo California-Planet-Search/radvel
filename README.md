@@ -11,17 +11,20 @@ Note: Erik is still working on skeleton functionaliy. Afterwhich, BJ will take t
 - Easily plugs in to the the suite of `scipy.optimize` routines for max-likelihood fitting 
 - Works with `emcee` MCMC
 - parameters are represented as dicts not arrays
+- Can handle data from multiple telescopes
+- Easily convert between different parameterizations
 
 ## To Do
 
+- Flesh out documentation
 - Bundle up examples in convenient test cases
-- Make likelihoods additive
-- Test on data from multiple telescopes
 - Rewrite `rv_drive` in C (for fun)
 - Release publically (future) 
 
 ## Tutorials 
 
-Follow examples in `radvel/tests/SyntheticData.ipynb`
+Follow examples in
 
-
+- `radvel/tests/SyntheticData.ipynb`
+- `radvel/tests/EPIC-2037_Fitting+MCMC.ipynb`
+- `radvel/tests/164922_Fitting+MCMC.ipynb`
