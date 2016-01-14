@@ -5,7 +5,7 @@ import pandas as pd
 BASIS_NAMES = [
 'per tc secosw sesinw logk',
 'per tc secosw sesinw k',
-'cps tc'
+'per tc e w k'
 ]
     
 def _print_valid_basis():
@@ -68,7 +68,9 @@ class Basis(object):
                 params_out['{}{}'.format(key,num_planet)] = value
 
             # transform into CPS basis
-            if self.name == 'cps tc':
+            if self.name == 'per tc e w k':
+                per = _getpar('per')
+                tc = _getpar('tc')
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')

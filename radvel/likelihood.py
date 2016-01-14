@@ -12,7 +12,7 @@ class Likelihood(object):
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.params = model.params
-        self.params.update({}.fromkeys(extra_params, None) )
+        #self.params.update({}.fromkeys(extra_params, None) )   # I don't understand why we set all extra_params == None
 
         vary = {}.fromkeys(self.params.keys(), True)
         self.vary = vary
@@ -95,8 +95,8 @@ class CompositeLikelihood(Likelihood):
 
 class RVLikelihood(Likelihood):
     def __init__(self, model, t, vel, errvel, suffix=''):
-        self.gamma_param = 'gamma'+suffix
-        self.logjit_param = 'logjit'+suffix
+        self.gamma_param = 'gamma_'+suffix
+        self.logjit_param = 'logjit_'+suffix
         extra_params = [self.gamma_param, self.logjit_param]
         super(RVLikelihood, self).__init__(
             model, t, vel, errvel, extra_params=extra_params
@@ -113,6 +113,7 @@ class RVLikelihood(Likelihood):
         -------
         loglike : Natural log of likelihood
         """
+        
         sigma_jit = np.exp( self.params[self.logjit_param] )
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)

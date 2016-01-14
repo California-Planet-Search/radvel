@@ -13,7 +13,7 @@ ntels = len(instnames)       # number of instruments with unique velocity zero-p
 
 
 # Define prior centers (initial guesses) here.
-params = radvel.RVParameters(nplanets,basis='cps tc')    # initialize RVparameters object
+params = radvel.RVParameters(nplanets,basis='per tc e w k')    # initialize RVparameters object
 
 params['per1'] = 1206.3      # period of 1st planet
 params['tc1'] = 2456779.     # time of inferior conjunction of 1st planet
@@ -31,12 +31,12 @@ params['dvdt'] = 0.0         # slope
 params['curv'] = 0.0         # curvature
 
 params['gamma_hires_rk'] = 0 # velocity zero-point for hires_rk
-params['gamma_hires_rk'] = 0 # "                   "   hires_rj
+params['gamma_hires_rj'] = 0 # "                   "   hires_rj
 params['gamma_apf'] = 0      # "                   "   hires_apf
 
-params['jit_hires_rk'] = 1   # jitter for hires_rk
-params['jit_hires_rk'] = 1   # "      "   hires_rj
-params['jit_apf'] = 1        # "      "   hires_apf
+params['logjit_hires_rk'] = np.log(1)   # jitter for hires_rk
+params['logjit_hires_rj'] = np.log(1)   # "      "   hires_rj
+params['logjit_apf'] = np.log(1)        # "      "   hires_apf
 
 mod = radvel.RVModel(params, time_base=time_base)    # initialize RVmodel object
 
@@ -53,15 +53,16 @@ tel = data['tel']
 dlike = {}
 for suffix in instnames:
     dlike[suffix] = radvel.likelihood.RVLikelihood(mod, time, vel, err,suffix=suffix)
+    #print dlike[suffix].params
 like = radvel.likelihood.CompositeLikelihood(dlike.values())
 
 
 # Set parameters to be held constant (default is for all parameters to vary)
 like.vary['dvdt'] = False
 like.vary['curv'] = False
-like.vary['jit_hires_rk'] = False
-like.vary['jit_hires_rj'] = False
-like.vary['jit_apf'] = False
+like.vary['logjit_hires_rk'] = False
+like.vary['logjit_hires_rj'] = False
+like.vary['logjit_apf'] = False
 
 
 # Initialize Posterior object
@@ -72,4 +73,3 @@ post = radvel.posterior.Posterior(like)
 post.priors += [radvel.prior.EccentricityPrior( nplanets )]          # Keeps eccentricity < 1
 post.priors += [radvel.prior.Gaussian('tc1', params['tc1'], 300.0)]   # Gaussian prior on tc1 with center at tc1 and width 300 days
 
-print "Initial loglikelihood = %f" % post.logprob()

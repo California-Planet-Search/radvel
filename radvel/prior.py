@@ -25,10 +25,14 @@ class EccentricityPrior(Prior):
             return params['{}{}'.format(key,num_planet)]
 
         for num_planet in range(1,self.num_planets+1):
-            secosw = _getpar('secosw',num_planet)
-            sesinw = _getpar('sesinw',num_planet)
-            ecc = secosw**2 + sesinw**2 
-            if ecc > .99:
+            try:
+                ecc = _getpar('e', num_planet)
+            except KeyError:
+                secosw = _getpar('secosw',num_planet)
+                sesinw = _getpar('sesinw',num_planet)
+                ecc = secosw**2 + sesinw**2 
+
+            if ecc > 1.0:     # This was ecc > 0.99. We should probably allow for eccentricities as high as 0.99
                 return -1e25
         return 0
         
