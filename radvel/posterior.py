@@ -26,5 +26,3 @@ class Posterior(Likelihood):
         self.likelihood.set_vary_params(params_array)
         _logprob = self.logprob()
         return _logprob
-
-import numpy as np

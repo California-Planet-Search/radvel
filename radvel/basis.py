@@ -4,7 +4,8 @@ import pandas as pd
 # List of available bases
 BASIS_NAMES = [
 'per tc secosw sesinw logk',
-'per tc secosw sesinw k'
+'per tc secosw sesinw k',
+'cps tc'
 ]
     
 def _print_valid_basis():
@@ -67,6 +68,15 @@ class Basis(object):
                 params_out['{}{}'.format(key,num_planet)] = value
 
             # transform into CPS basis
+            if self.name == 'cps tc':
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                
+                ecosw = e*np.cos(w)
+                esinw = e*np.sin(w)
+                tp, e, w = _tcecos2cps(per, tc, ecosw, esinw)
+            
             if self.name=='per tc secosw sesinw logk':
                 # pull out parameters
                 per = _getpar('per')
@@ -97,6 +107,7 @@ class Basis(object):
                 esinw = se*sesinw
                 tp, e, w = _tcecos2cps(per, tc, ecosw, esinw)
 
+               
             # shoves cps parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
