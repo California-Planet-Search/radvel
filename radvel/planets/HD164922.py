@@ -50,11 +50,10 @@ tel = data['tel']
 
 
 # initialize RVlikelihood objects for each instrument
-dlike = {}
-for suffix in instnames:
-    dlike[suffix] = radvel.likelihood.RVLikelihood(mod, time, vel, err,suffix=suffix)
-    #print dlike[suffix].params
-like = radvel.likelihood.CompositeLikelihood(dlike.values())
+like_rk = radvel.likelihood.RVLikelihood(mod, time, vel, err,suffix='hires_rk')
+like_rj = radvel.likelihood.RVLikelihood(mod, time, vel, err,suffix='hires_rj')
+like_apf = radvel.likelihood.RVLikelihood(mod, time, vel, err,suffix='apf')
+like = radvel.likelihood.CompositeLikelihood([like_rk, like_rj, like_apf])
 
 
 # Set parameters to be held constant (default is for all parameters to vary)
