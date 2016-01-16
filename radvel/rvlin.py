@@ -24,6 +24,7 @@ def calcnu(P, tp, e, t):
   
     return nu
 
+
 if __name__ == '__main__':
     import pylab as pl
     t = np.arange(50.)

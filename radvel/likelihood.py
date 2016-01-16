@@ -43,7 +43,8 @@ class Likelihood(object):
         params_array = []
         for key in self.params.keys():
             if self.vary[key]:
-                params_array += [ self.params[key] ] 
+                params_array += [ self.params[key] ]
+                
         params_array = np.array(params_array)
         return params_array
 

@@ -24,7 +24,7 @@ params['k1'] = 10.0          # velocity semi-amplitude for 1st planet
 params['per2'] = 75.771      # same parameters for 2nd planet ...
 params['tc2'] = 2456277.6
 params['e2'] = 0.01
-params['w2'] = 0.01
+params['w2'] = np.pi/2.
 params['k2'] = 1
 
 time_base = 2457000          # abscissa for slope and curvature terms (should be near mid-point of time baseline)

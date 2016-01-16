@@ -22,14 +22,14 @@ def args():
     import argparse
 
     parser = argparse.ArgumentParser(description='Fit an RV dataset')
-    parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',default='HD164922',type=str)
+    parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',type=str)
     parser.add_argument('--nsteps', dest='steps',action='store',help='Number of steps per chain',default=1000,type=float)
     parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers.',default=40,type=int)
     #parser.add_argument('--thin', dest='thin',action='store',help='Record only every Nth link in chain. (saves memory)',default=1,type=int)
     #parser.add_argument('--plot', dest='plot',action='store_true',help='Plot in real time? (Very slow)',default=False)
     
     opt = parser.parse_args()
-    opt.planet = import_string('planets.'+opt.planet)    
+    opt.planet = import_string('radvel.planets.'+opt.planet)    
 
     return opt
 
@@ -41,7 +41,14 @@ if __name__ == '__main__':
 
     post0 = copy.deepcopy(P.post)
 
-    print P.post.params.basis
+    #print P.post.params.basis
+    #P.post.params = P.like.params = P.post.params.basis.to_cps(P.post.params)
+    #print P.post.params.basis.to_cps(P.post.params)
+    #P.post.vary = {}
+    #for k in P.post.params.keys():
+    #    if k in P.like.vary.keys(): P.post.vary[k] = P.like.vary[k]
+    #    else: P.post.vary[k] = True
+    
         
     print "Initial loglikelihood = %f" % post0.logprob()
     print "Performing maximum likelihood fit..."
