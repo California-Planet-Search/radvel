@@ -2,6 +2,7 @@
 
 # Required packages for setup
 import radvel
+from radvel.utils import bintels
 import os
 import numpy as np
 
@@ -34,9 +35,9 @@ params['gamma_hires_rk'] = 0 # velocity zero-point for hires_rk
 params['gamma_hires_rj'] = 0 # "                   "   hires_rj
 params['gamma_apf'] = 0      # "                   "   hires_apf
 
-params['logjit_hires_rk'] = np.log(1)   # jitter for hires_rk
-params['logjit_hires_rj'] = np.log(1)   # "      "   hires_rj
-params['logjit_apf'] = np.log(1)        # "      "   hires_apf
+params['logjit_hires_rk'] = np.log(2.6)   # jitter for hires_rk
+params['logjit_hires_rj'] = np.log(2.6)   # "      "   hires_rj
+params['logjit_apf'] = np.log(2.6)        # "      "   hires_apf
 
 mod = radvel.RVModel(params, time_base=time_base)    # initialize RVmodel object
 
@@ -48,20 +49,39 @@ vel = data['mnvel']
 err = data['errvel']
 tel = data['tel']
 
+time_bin, vel_bin, err_bin, tel_bin = bintels(time, vel, err, tel, binsize=0.5)   # Bin together data taken within 0.5 days on a single instrument 
+
+# Separate data by insturment to construct RVlikelihood objects
+rk = tel_bin == 'k'
+rj = tel_bin == 'j'
+apf = tel_bin == 'a'
+
+t_rk = time_bin[rk]
+v_rk = vel_bin[rk]
+e_rk = err_bin[rk]
+
+t_rj = time_bin[rj]
+v_rj = vel_bin[rj]
+e_rj = err_bin[rj]
+
+t_apf = time_bin[apf]
+v_apf = vel_bin[apf]
+e_apf = err_bin[apf]
+
 
 # initialize RVlikelihood objects for each instrument
-like_rk = radvel.likelihood.RVLikelihood(mod, time, vel, err,suffix='hires_rk')
-like_rj = radvel.likelihood.RVLikelihood(mod, time, vel, err,suffix='hires_rj')
-like_apf = radvel.likelihood.RVLikelihood(mod, time, vel, err,suffix='apf')
+like_rk = radvel.likelihood.RVLikelihood(mod, t_rk, v_rk, e_rk,suffix='_hires_rk')
+like_rj = radvel.likelihood.RVLikelihood(mod, t_rj, v_rj, e_rj,suffix='_hires_rj')
+like_apf = radvel.likelihood.RVLikelihood(mod, t_apf, v_apf, e_apf,suffix='_apf')
 like = radvel.likelihood.CompositeLikelihood([like_rk, like_rj, like_apf])
 
 
 # Set parameters to be held constant (default is for all parameters to vary)
 like.vary['dvdt'] = False
 like.vary['curv'] = False
-like.vary['logjit_hires_rk'] = False
-like.vary['logjit_hires_rj'] = False
-like.vary['logjit_apf'] = False
+#like.vary['logjit_hires_rk'] = False
+#like.vary['logjit_hires_rj'] = False
+#like.vary['logjit_apf'] = False
 
 
 # Initialize Posterior object
@@ -71,4 +91,3 @@ post = radvel.posterior.Posterior(like)
 # Define prior shapes and widths here
 post.priors += [radvel.prior.EccentricityPrior( nplanets )]          # Keeps eccentricity < 1
 post.priors += [radvel.prior.Gaussian('tc1', params['tc1'], 300.0)]   # Gaussian prior on tc1 with center at tc1 and width 300 days
-

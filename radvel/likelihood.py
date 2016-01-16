@@ -95,8 +95,8 @@ class CompositeLikelihood(Likelihood):
 
 class RVLikelihood(Likelihood):
     def __init__(self, model, t, vel, errvel, suffix=''):
-        self.gamma_param = 'gamma_'+suffix
-        self.logjit_param = 'logjit_'+suffix
+        self.gamma_param = 'gamma'+suffix
+        self.logjit_param = 'logjit'+suffix
         extra_params = [self.gamma_param, self.logjit_param]
         super(RVLikelihood, self).__init__(
             model, t, vel, errvel, extra_params=extra_params
