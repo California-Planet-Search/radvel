@@ -32,3 +32,13 @@ Follow examples in
 - `radvel/tests/SyntheticData.ipynb`
 - `radvel/tests/EPIC-2037_Fitting+MCMC.ipynb`
 - `radvel/tests/164922_Fitting+MCMC.ipynb`
+
+You'll need the following dependencies
+
+- emcee
+- corner
+- pandas (to read in hdf5)
+
+
+
+
