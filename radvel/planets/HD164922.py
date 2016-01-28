@@ -49,24 +49,22 @@ vel = data['mnvel']
 err = data['errvel']
 tel = data['tel']
 
-time_bin, vel_bin, err_bin, tel_bin = bintels(time, vel, err, tel, binsize=0.5)   # Bin together data taken within 0.5 days on a single instrument 
-
 # Separate data by insturment to construct RVlikelihood objects
-rk = tel_bin == 'k'
-rj = tel_bin == 'j'
-apf = tel_bin == 'a'
+rk = tel == 'k'
+rj = tel == 'j'
+apf = tel == 'a'
 
-t_rk = time_bin[rk]
-v_rk = vel_bin[rk]
-e_rk = err_bin[rk]
+t_rk = time[rk]
+v_rk = vel[rk]
+e_rk = err[rk]
 
-t_rj = time_bin[rj]
-v_rj = vel_bin[rj]
-e_rj = err_bin[rj]
+t_rj = time[rj]
+v_rj = vel[rj]
+e_rj = err[rj]
 
-t_apf = time_bin[apf]
-v_apf = vel_bin[apf]
-e_apf = err_bin[apf]
+t_apf = time[apf]
+v_apf = vel[apf]
+e_apf = err[apf]
 
 
 # initialize RVlikelihood objects for each instrument

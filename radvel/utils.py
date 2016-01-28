@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import *
 
 def timebin(time, meas, meas_err, binsize):
 #  This routine bins a set of times, measurements, and measurement errors 
