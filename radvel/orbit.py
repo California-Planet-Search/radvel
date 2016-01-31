@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.optimize import  brentq
-from rvlin.kepler import kepler
 from astropy.time import Time
 from astropy import constants as c
 from astropy import units as u
