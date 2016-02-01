@@ -1,6 +1,8 @@
 import numpy as np        
 import copy
 import pandas as pd
+from orbit import timeperi_to_timetrans
+
 # List of available bases
 BASIS_NAMES = [
 'per tp e w k',         # The CPS basis
@@ -151,8 +153,6 @@ class Basis(object):
         :param newbasis: string corresponding to basis to switch into
         :type newbasis: string
         """
-
-        from utils import Tp2Tc
         
         if newbasis not in BASIS_NAMES:
             print "{} not valid basis".format(newbasis)
@@ -191,7 +191,7 @@ class Basis(object):
                 _setpar('secosw', np.sqrt(e)*np.cos(w) )
                 _setpar('sesinw', np.sqrt(e)*np.sin(w) )
                 _setpar('logk', np.log(k) )
-                _setpar('tc', Tp2Tc(per, tp, e, w) )
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
 
                 if not kwargs.get('keep', True):
                     _delpar('tp')

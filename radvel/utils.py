@@ -56,15 +56,3 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
         newtelvec = np.hstack((newtelvec, np.array([tel]*len(t_bin))))
         
     return rvtimes, rvdat, rverr, newtelvec
-
-def Tp2Tc(per, tp, ecc, omega, secondary=0):
-    # calculate a transit time from orbital parameters in the 'cps' basis
-
-    if secondary:
-        f = 3*pi/2 - omega/360*2*pi                      # true anomaly during secondary eclipse
-    else:
-        f = pi/2   - omega/360*2*pi                      # true anomaly during transit
-    EE = 2 * arctan( tan(f/2) * sqrt((1-ecc)/(1+ecc)) )  # eccentric anomaly
-    tc = tp + per/(2*pi) * (EE - ecc*sin(EE))         # time of conjunction
-
-    return tc
