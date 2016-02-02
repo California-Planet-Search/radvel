@@ -1,17 +1,20 @@
 import numpy as np
 from scipy.optimize import  brentq
+from rvkep import kepler
 from astropy.time import Time
 from astropy import constants as c
 from astropy import units as u
-def timetrans_to_timeperi(tt, P, e, w):
+
+
+def timetrans_to_timeperi(tc, per, ecc, w):
     """
     Convert Time of Transit to Time of Periastron Passage
 
     Parameters
     ----------
-    tt : time of transit
-    P : period [days]
-    e : eccecntricity
+    tc : time of transit
+    per : period [days]
+    ecc : eccecntricity
     w : longitude of peri (radians)
     
     Returns
@@ -20,12 +23,39 @@ def timetrans_to_timeperi(tt, P, e, w):
     """
 
     # Angular distance between true anomaly and peri as a function of time
-    diff = lambda t : true_anomaly(t, P, e) + w - 2*np.pi
+    diff = lambda t : true_anomaly(t, per, ecc) + w - 2*np.pi
     a = 0
-    b = (1-1e-9) * P
+    b = (1-1e-9) * per
     t_diff = brentq(diff,a,b) # time of transit occurs t_diff after tp
-    tp = tt - t_diff + P
+    tp = tc - t_diff + per
     return tp
+
+
+def timeperi_to_timetrans(tp, per, ecc, omega, secondary=0):
+    """
+    Convert Time of Periastron to Time of Transit
+
+    Paramters
+    ---------
+    tp: time of periastron
+    P: period [days]
+    e: eccentricity
+    w: argument of peri (radians)
+
+    Returns
+    -------
+    tc: time of inferior conjuntion (time of transit if system is transiting)
+    """
+
+    if secondary:
+        f = 3*np.pi/2 - omega/360*2*np.pi                      # true anomaly during secondary eclipse
+    else:
+        f = np.pi/2   - omega/360*2*np.pi                      # true anomaly during transit
+    EE = 2 * np.arctan( np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)) )  # eccentric anomaly
+    tc = tp + per/(2*np.pi) * (EE - ecc*np.sin(EE))         # time of conjunction
+
+    return tc
+
 
 def true_anomaly(t, P, e):
     # f in Murray and Dermott p. 27

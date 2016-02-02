@@ -1,10 +1,15 @@
 import numpy as np        
 import copy
 import pandas as pd
+from orbit import timeperi_to_timetrans
+
 # List of available bases
 BASIS_NAMES = [
+'per tp e w k',         # The CPS basis
 'per tc secosw sesinw logk',
-'per tc secosw sesinw k'
+'per tc secosw sesinw k',
+'per tc e w k'
+
 ]
     
 def _print_valid_basis():
@@ -37,19 +42,23 @@ class Basis(object):
 
     def __repr__(self):
         return "Basis Object <{}>".format(self.name)
-
-    def to_cps(self, params_in):
+    
+    # Testing to remove this wrapper function
+    """
+    def to_cps(self, params_in, **kwargs):
         if isinstance(params_in,dict):
-            return self._to_cps(params_in)
+            new = self._to_cps(params_in, **kwargs)
+            return new
         if isinstance(params_in,pd.core.frame.DataFrame):
             params_out = []
             for i,row in params_in.iterrows():
                 row = dict(row)
-                params_out += [self._to_cps(row)]
+                params_out += [self._to_cps(row, **kwargs)]
             params_out = pd.DataFrame(params_out)
             return params_out
-
-    def _to_cps(self, params_in):
+    """
+    
+    def to_cps(self, params_in, **kwargs):
         """
         Convert to CPS basis
 
@@ -65,8 +74,32 @@ class Basis(object):
                 return params_out['{}{}'.format(key,num_planet)]
             def _setpar(key, value):
                 params_out['{}{}'.format(key,num_planet)] = value
+            def _delpar(key):
+                if isinstance(params_in,dict):
+                    del params_out['{}{}'.format(key,num_planet)]
+                elif isinstance(params_in,pd.core.frame.DataFrame):
+                    params_out.drop('{}{}'.format(key,num_planet))
 
             # transform into CPS basis
+            if self.name == 'per tp e w k':
+                # already in the CPS basis
+                per = _getpar('per')
+                tp = _getpar('tp')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                
+            if self.name == 'per tc e w k':
+                per = _getpar('per')
+                tc = _getpar('tc')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                
+                ecosw = e*np.cos(w)
+                esinw = e*np.sin(w)
+                tp, e, w = _tcecos2cps(per, tc, ecosw, esinw)
+            
             if self.name=='per tc secosw sesinw logk':
                 # pull out parameters
                 per = _getpar('per')
@@ -97,6 +130,7 @@ class Basis(object):
                 esinw = se*sesinw
                 tp, e, w = _tcecos2cps(per, tc, ecosw, esinw)
 
+               
             # shoves cps parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
@@ -107,15 +141,73 @@ class Basis(object):
         return params_out
 
 
-    def from_cps(self, params):
+    def from_cps(self, params_in, newbasis, **kwargs):
         """
-        Convert from CPS basis
+        Convert from CPS basis into another basis
 
         Convert a dictionary with parameters of a given basis into the cps basis
 
         :param params: planet parameters expressed in cps basis
         :type params: dict
+
+        :param newbasis: string corresponding to basis to switch into
+        :type newbasis: string
         """
+        
+        if newbasis not in BASIS_NAMES:
+            print "{} not valid basis".format(newbasis)
+            _print_valid_basis()
+            return None
+        
+        params_out = copy.copy(params_in)
+        for num_planet in range(1,1+self.num_planets):
+            def _getpar(key):
+                return params_out['{}{}'.format(key,num_planet)]
+            def _setpar(key, value):
+                params_out['{}{}'.format(key,num_planet)] = value
+            def _delpar(key):
+                if isinstance(params_in,dict):
+                    del params_out['{}{}'.format(key,num_planet)]
+                elif isinstance(params_in,pd.core.frame.DataFrame):
+                    params_out.drop('{}{}'.format(key,num_planet))
+            
+
+            if newbasis == 'per tc e w k':
+                pass
+            
+            if newbasis == 'per tc secosw sesinw logk':
+                per = _getpar('per')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                try:
+                    tp = _getpar('tp')
+                except KeyError:
+                    ecosw = e*np.cos(w)
+                    esinw = e*np.sin(w)
+                    tp, e, w = _tcecos2cps(per, _getpar('tc'), ecosw, esinw)
+                    _setpar('tp', tp)
+                    
+                _setpar('secosw', np.sqrt(e)*np.cos(w) )
+                _setpar('sesinw', np.sqrt(e)*np.sin(w) )
+                _setpar('logk', np.log(k) )
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
+
+                if not kwargs.get('keep', True):
+                    _delpar('tp')
+                    _delpar('e')
+                    _delpar('w')
+                    _delpar('k')
+
+                self.name = newbasis
+                self.params = newbasis.split()
+
+                
+            if self.name=='per tc secosw sesinw k':
+                pass
+
+        return params_out
+                
 def _tcecos2cps(per, tc, ecosw, esinw):
     """
     Convert (per, tc, ecosw, esinw) to ( tp, e, w)
@@ -160,3 +252,4 @@ def _tcecos2cps(per, tc, ecosw, esinw):
 
     tp = tc - per / (2.0 * np.pi ) * (EE - e*np.sin(EE))
     return tp, e, w
+

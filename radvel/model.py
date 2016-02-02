@@ -71,7 +71,7 @@ class RVModel(object):
             orbel_cps = np.array([per, tp, e, w, k, 0, 0, 0])
             vel += rvkep.rv_drive(t, orbel_cps, time_base=0 )
 
-        vel += self.params['dvdt']*( t - self.time_base )
+        vel += self.params['dvdt']*( t - self.time_base ) + self.params['curv']*( t - self.time_base)**2
         return vel
 
 # I had to add these methods to get the model object to be
