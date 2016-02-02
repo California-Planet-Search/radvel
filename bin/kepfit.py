@@ -42,14 +42,11 @@ if __name__ == '__main__':
 
     post0 = copy.deepcopy(P.post)
 
-    print P.post.params.basis
-    P.post.params = P.like.params = P.post.params.basis.from_cps(P.post.params, 'per tc secosw sesinw logk', keep=False)
-    print P.post.params.basis
+    P.post.params = P.like.params = P.mod.params = P.post.params.basis.from_cps(P.post.params, 'per tc secosw sesinw logk', keep=False)
     P.post.vary = {}
     for k in P.post.params.keys():
         if k in P.like.vary.keys(): P.post.vary[k] = P.like.vary[k]
         else: P.post.vary[k] = True
-    print P.post.vary
         
     print "Initial loglikelihood = %f" % post0.logprob()
     print "Performing maximum likelihood fit..."
@@ -59,5 +56,7 @@ if __name__ == '__main__':
 
     print "Final loglikelihood = %f" % P.post.logprob()
     print "Best-fit parameters:"
+    P.post.params = P.post.params.basis.to_cps(P.post.params)
     print P.post
 
+    

@@ -31,9 +31,9 @@ time_base = 2457000          # abscissa for slope and curvature terms (should be
 params['dvdt'] = 0.0         # slope
 params['curv'] = 0.0         # curvature
 
-params['gamma_hires_rk'] = 0 # velocity zero-point for hires_rk
-params['gamma_hires_rj'] = 0 # "                   "   hires_rj
-params['gamma_apf'] = 0      # "                   "   hires_apf
+params['gamma_hires_rk'] = 0.0 # velocity zero-point for hires_rk
+params['gamma_hires_rj'] = 0.0 # "                   "   hires_rj
+params['gamma_apf'] = 0.0      # "                   "   hires_apf
 
 params['logjit_hires_rk'] = np.log(2.6)   # jitter for hires_rk
 params['logjit_hires_rj'] = np.log(2.6)   # "      "   hires_rj
@@ -77,9 +77,9 @@ like = radvel.likelihood.CompositeLikelihood([like_rk, like_rj, like_apf])
 # Set parameters to be held constant (default is for all parameters to vary)
 like.vary['dvdt'] = False
 like.vary['curv'] = False
-#like.vary['logjit_hires_rk'] = False
-#like.vary['logjit_hires_rj'] = False
-#like.vary['logjit_apf'] = False
+like.vary['logjit_hires_rk'] = False
+like.vary['logjit_hires_rj'] = False
+like.vary['logjit_apf'] = False
 
 
 # Initialize Posterior object
