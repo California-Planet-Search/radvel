@@ -44,7 +44,7 @@ params['logjit_a'] = np.log(2.6)        # "      "   hires_apf
 data = pd.read_csv(os.path.join(radvel.DATADIR,'164922_fixed.txt'), sep=' ')
 
 
-# Set parameters to be held constant (default is for all parameters to vary) should be in fitting basis
+# Set parameters to be held constant (default is for all parameters to vary). Must be defined in the fitting basis
 vary = dict(
     dvdt = False,
     curv = False,
