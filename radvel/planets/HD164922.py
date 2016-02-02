@@ -1,16 +1,16 @@
 # Example Keplerian fit configuration file
 
 # Required packages for setup
-import radvel
-from radvel.utils import bintels
 import os
+import pandas as pd
 import numpy as np
+import radvel
 
-
-# Define global planetary system parameters
+# Define global planetary system and dataset parameters
 nplanets = 2    # number of planets in the system
-instnames = ['hires_rk', 'hires_rj', 'apf']    # list of instrument names. Can be whatever you like, but should be kept consistent.
+instnames = ['k', 'j', 'a']    # list of instrument names. Can be whatever you like but should match 'tel' column in the input file.
 ntels = len(instnames)       # number of instruments with unique velocity zero-points
+fitting_basis = 'per tc secosw sesinw logk'    # Fitting basis, see radvel.basis.BASIS_NAMES for available basis names
 
 
 # Define prior centers (initial guesses) here.
@@ -27,65 +27,35 @@ params['e2'] = 0.01
 params['w2'] = np.pi/2.
 params['k2'] = 1
 
-time_base = 2457000          # abscissa for slope and curvature terms (should be near mid-point of time baseline)
+time_base = 2456778          # abscissa for slope and curvature terms (should be near mid-point of time baseline)
 params['dvdt'] = 0.0         # slope
 params['curv'] = 0.0         # curvature
 
-params['gamma_hires_rk'] = 0.0 # velocity zero-point for hires_rk
-params['gamma_hires_rj'] = 0.0 # "                   "   hires_rj
-params['gamma_apf'] = 0.0      # "                   "   hires_apf
+params['gamma_k'] = 0.0 # velocity zero-point for hires_rk
+params['gamma_j'] = 1.0 # "                   "   hires_rj
+params['gamma_a'] = 0.0      # "                   "   hires_apf
 
-params['logjit_hires_rk'] = np.log(2.6)   # jitter for hires_rk
-params['logjit_hires_rj'] = np.log(2.6)   # "      "   hires_rj
-params['logjit_apf'] = np.log(2.6)        # "      "   hires_apf
-
-mod = radvel.RVModel(params, time_base=time_base)    # initialize RVmodel object
+params['logjit_k'] = np.log(2.6)   # jitter for hires_rk
+params['logjit_j'] = np.log(2.6)   # "      "   hires_rj
+params['logjit_a'] = np.log(2.6)        # "      "   hires_apf
 
 
-# Load radial velocity data, in this example the data is contained in an ASCII file
-data = np.genfromtxt(os.path.join(radvel.DATADIR,'164922_fixed.txt'), names=True, dtype=None, usecols=(0,1,2,3))
-time = data['BJD_TDB']
-vel = data['mnvel']
-err = data['errvel']
-tel = data['tel']
-
-# Separate data by insturment to construct RVlikelihood objects
-rk = tel == 'k'
-rj = tel == 'j'
-apf = tel == 'a'
-
-t_rk = time[rk]
-v_rk = vel[rk]
-e_rk = err[rk]
-
-t_rj = time[rj]
-v_rj = vel[rj]
-e_rj = err[rj]
-
-t_apf = time[apf]
-v_apf = vel[apf]
-e_apf = err[apf]
+# Load radial velocity data, in this example the data is contained in an ASCII file, must have 'time', 'mnvel', 'errvel', and 'tel' keys
+data = pd.read_csv(os.path.join(radvel.DATADIR,'164922_fixed.txt'), sep=' ')
 
 
-# initialize RVlikelihood objects for each instrument
-like_rk = radvel.likelihood.RVLikelihood(mod, t_rk, v_rk, e_rk,suffix='_hires_rk')
-like_rj = radvel.likelihood.RVLikelihood(mod, t_rj, v_rj, e_rj,suffix='_hires_rj')
-like_apf = radvel.likelihood.RVLikelihood(mod, t_apf, v_apf, e_apf,suffix='_apf')
-like = radvel.likelihood.CompositeLikelihood([like_rk, like_rj, like_apf])
+# Set parameters to be held constant (default is for all parameters to vary) should be in fitting basis
+vary = dict(
+    dvdt = False,
+    curv = False,
+    logjit_k = False,
+    logjit_j = False,
+    logjit_a = False,
+)
 
 
-# Set parameters to be held constant (default is for all parameters to vary)
-like.vary['dvdt'] = False
-like.vary['curv'] = False
-like.vary['logjit_hires_rk'] = False
-like.vary['logjit_hires_rj'] = False
-like.vary['logjit_apf'] = False
-
-
-# Initialize Posterior object
-post = radvel.posterior.Posterior(like)
-
-
-# Define prior shapes and widths here
-post.priors += [radvel.prior.EccentricityPrior( nplanets )]          # Keeps eccentricity < 1
-post.priors += [radvel.prior.Gaussian('tc1', params['tc1'], 300.0)]   # Gaussian prior on tc1 with center at tc1 and width 300 days
+# Define prior shapes and widths here.
+priors = [
+    radvel.prior.EccentricityPrior( nplanets ),           # Keeps eccentricity < 1
+    radvel.prior.Gaussian('tc1', params['tc1'], 300.0)    # Gaussian prior on tc1 with center at tc1 and width 300 days
+]

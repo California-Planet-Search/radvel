@@ -40,23 +40,35 @@ if __name__ == '__main__':
 
     P = opt.planet
 
-    post0 = copy.deepcopy(P.post)
+    
+    params = P.params.basis.from_cps(P.params, P.fitting_basis, keep=False)
 
-    P.post.params = P.like.params = P.mod.params = P.post.params.basis.from_cps(P.post.params, 'per tc secosw sesinw logk', keep=False)
-    P.post.vary = {}
-    for k in P.post.params.keys():
-        if k in P.like.vary.keys(): P.post.vary[k] = P.like.vary[k]
-        else: P.post.vary[k] = True
-        
+    # initialize RVmodel object
+    mod = radvel.RVModel(params, time_base=P.time_base)   
+
+    # initialize RVlikelihood objects for each instrument
+    telgrps = P.data.groupby('tel').groups
+    likelist = [radvel.likelihood.RVLikelihood(mod, P.data.iloc[telgrps[inst]].time,
+                                               P.data.iloc[telgrps[inst]].mnvel,
+                                               P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst) for inst in P.instnames]
+    like = radvel.likelihood.CompositeLikelihood(likelist)
+
+    # Set fixed/vary parameters
+    like.vary.update(P.vary)
+    
+    # Initialize Posterior object
+    post = radvel.posterior.Posterior(like)
+    post.priors = P.priors
+    
+    post0 = copy.deepcopy(post)
     print "Initial loglikelihood = %f" % post0.logprob()
     print "Performing maximum likelihood fit..."
 
-    res  = optimize.minimize(P.post.neglogprob_array, P.post.get_vary_params(), method='Powell',
+    res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
                          options=dict(maxiter=100000,maxfev=100000,xtol=1e-8) )
 
-    print "Final loglikelihood = %f" % P.post.logprob()
+    print "Final loglikelihood = %f" % post.logprob()
     print "Best-fit parameters:"
-    P.post.params = P.post.params.basis.to_cps(P.post.params)
-    print P.post
+    print post
 
     

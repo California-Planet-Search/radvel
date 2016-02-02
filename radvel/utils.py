@@ -56,3 +56,7 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
         newtelvec = np.hstack((newtelvec, np.array([tel]*len(t_bin))))
         
     return rvtimes, rvdat, rverr, newtelvec
+
+def round_sig(x, sig=2):
+    if x == 0: return 0.0
+    return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
