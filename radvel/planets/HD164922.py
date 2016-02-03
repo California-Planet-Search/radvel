@@ -31,12 +31,12 @@ time_base = 2456778          # abscissa for slope and curvature terms (should be
 params['dvdt'] = 0.0         # slope
 params['curv'] = 0.0         # curvature
 
-params['gamma_k'] = 0.0 # velocity zero-point for hires_rk
-params['gamma_j'] = 1.0 # "                   "   hires_rj
+params['gamma_k'] = 0.0      # velocity zero-point for hires_rk
+params['gamma_j'] = 1.0      # "                   "   hires_rj
 params['gamma_a'] = 0.0      # "                   "   hires_apf
 
-params['logjit_k'] = np.log(2.6)   # jitter for hires_rk
-params['logjit_j'] = np.log(2.6)   # "      "   hires_rj
+params['logjit_k'] = np.log(2.6)        # jitter for hires_rk
+params['logjit_j'] = np.log(2.6)        # "      "   hires_rj
 params['logjit_a'] = np.log(2.6)        # "      "   hires_apf
 
 
