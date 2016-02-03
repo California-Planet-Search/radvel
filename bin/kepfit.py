@@ -11,14 +11,6 @@ import copy
 import radvel
 import radvel.likelihood
 
-
-def import_string(name):
-    mod = __import__(name)
-    components = name.split('.')
-    for comp in components[1:]:
-        mod = getattr(mod, comp)
-    return mod
-
 def args():
     import argparse
 
@@ -34,24 +26,31 @@ def args():
 
     return opt
 
+def import_string(name):
+    mod = __import__(name)
+    components = name.split('.')
+    for comp in components[1:]:
+        mod = getattr(mod, comp)
+    return mod
 
-if __name__ == '__main__':
-    opt = args()
-
-    P = opt.planet
-
-    
+def initialize_posterior(P):
     params = P.params.basis.from_cps(P.params, P.fitting_basis, keep=False)
+    iparams = params.copy()
 
     # initialize RVmodel object
     mod = radvel.RVModel(params, time_base=P.time_base)   
 
     # initialize RVlikelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
-    likelist = [radvel.likelihood.RVLikelihood(mod, P.data.iloc[telgrps[inst]].time,
+    likes = {}
+    for inst in P.instnames:
+        likes[inst] = radvel.likelihood.RVLikelihood(mod, P.data.iloc[telgrps[inst]].time,
                                                P.data.iloc[telgrps[inst]].mnvel,
-                                               P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst) for inst in P.instnames]
-    like = radvel.likelihood.CompositeLikelihood(likelist)
+                                               P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst)
+        likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
+        likes[inst].params['logjit_'+inst] = iparams['logjit_'+inst]
+        
+    like = radvel.likelihood.CompositeLikelihood(likes.values())
 
     # Set fixed/vary parameters
     like.vary.update(P.vary)
@@ -59,6 +58,15 @@ if __name__ == '__main__':
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors
+
+    return post
+
+if __name__ == '__main__':
+    opt = args()
+
+    P = opt.planet
+
+    post = initialize_posterior(P)
     
     post0 = copy.deepcopy(post)
     print "Initial loglikelihood = %f" % post0.logprob()
@@ -70,5 +78,3 @@ if __name__ == '__main__':
     print "Final loglikelihood = %f" % post.logprob()
     print "Best-fit parameters:"
     print post
-
-    
