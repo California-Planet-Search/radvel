@@ -235,15 +235,22 @@ def _tcecos2cps(per, tc, ecosw, esinw):
 
     # converting ecosom, esinom to e, omega (degrees)
     e = np.sqrt(ecosw**2 + esinw**2)
-    if e >= 1.0:
-        e = 0.99
-
+    if isinstance(e, float):
+        if e >= 1.0:
+            e = 0.99
+    else:
+        e[e > 1.0] = 0.99 
+            
     w = np.arctan2( esinw , ecosw ) / np.pi * 180
 
     # om in [0.,360)
-    while w < 0.:
-         w += 360.0
-
+    if isinstance(w, float):
+        while w < 0.:
+            w += 360.0
+    else:
+        while (w < 0).any():
+            w[w < 0] += 360.0
+            
     # true anomaly during conjunction
     f = np.pi / 2.0 - w / 180.0 * np.pi 
 
