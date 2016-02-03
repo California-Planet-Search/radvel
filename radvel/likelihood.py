@@ -11,8 +11,7 @@ class Likelihood(object):
         self.x = np.array(x) # Variables must be arrays.
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
-        self.params = model.params
-        #self.params.update({}.fromkeys(extra_params, None) )   # I don't understand why we set all extra_params == None
+        self.params.update({}.fromkeys(extra_params, np.nan) ) 
 
         vary = {}.fromkeys(self.params.keys(), True)
         self.vary = vary
