@@ -71,8 +71,20 @@ class CompositeLikelihood(Likelihood):
 
         like0 = like_list[0]
         params = like0.params
+        self.model = like0.model
+        self.x = like0.x
+        self.y = like0.y - params[like0.gamma_param]
+        self.yerr = np.sqrt(like0.yerr + np.exp(like0.params[like0.logjit_param])**2)
+        self.telvec = like0.telvec
+        
         for i in range(1,self.nlike):
             like = like_list[i]
+            
+            self.x = np.append(self.x,like.x)
+            self.y = np.append(self.y, like.y - like.params[like.gamma_param])
+            self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + np.exp(like.params[like.logjit_param])**2))
+            self.telvec = np.append(self.telvec, like.telvec)
+            
             assert like.model is like0.model, \
                 "Likelihoods must use the same model"
 
@@ -81,7 +93,7 @@ class CompositeLikelihood(Likelihood):
                     assert like.params[k] is params[k]
                 else:
                     params[k] = like.params[k]
-
+            
 
         self.params = params
         self.vary = {}.fromkeys(params.keys(),True)
@@ -93,10 +105,23 @@ class CompositeLikelihood(Likelihood):
             _logprob += like.logprob()
         return _logprob
 
+    def residuals(self):
+        res = self.like_list[0].residuals()
+        for like in self.like_list[1:]:
+            res = np.append(res,like.residuals())
+
+        return res
+
 class RVLikelihood(Likelihood):
     def __init__(self, model, t, vel, errvel, suffix=''):
         self.gamma_param = 'gamma'+suffix
         self.logjit_param = 'logjit'+suffix
+
+        if suffix.startswith('_'): self.suffix = suffix[1:]
+        else: self.suffix = suffix
+
+        self.telvec = np.array([self.suffix]*len(t))
+        
         extra_params = [self.gamma_param, self.logjit_param]
         super(RVLikelihood, self).__init__(
             model, t, vel, errvel, extra_params=extra_params
