@@ -11,8 +11,8 @@ from matplotlib import rcParams
 
 rcParams['font.size'] = 24
 
-telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd',
-           'hires_rj': 'ko', 'hires_rk': 'ks', 'apf': 'gd'}
+telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs',
+           'hires_rj': 'ko', 'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs'}
 teldecode = {'a': 'APF', 'k': 'HIRES_k', 'j': 'HIRES_j'}
 msize = 7
 elinecolor = '0.6'
@@ -105,6 +105,8 @@ def _mtelplot(x, y, e, tel, ax):
             if t == 'j' or t == 'k':
                 ax.errorbar(xt,yt,yerr=et,fmt=telfmts[t], ecolor=elinecolor, markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], markerfacecolor='none',
                             markeredgewidth=2)
+            elif t not in telfmts.keys():
+                ax.errorbar(xt,yt,yerr=et,fmt='o', ecolor=elinecolor, markersize=msize, capsize=0, markeredgewidth=0)
             else:
                 ax.errorbar(xt,yt,yerr=et,fmt=telfmts[t], ecolor=elinecolor, markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], markerfacecolor=telfmts[t][0],
                             markeredgewidth=3)
