@@ -248,7 +248,7 @@ def rv_multipanel_plot(post, saveplot=None):
         pltletter += 1
 
         _mtelplot(phase,rvdatcat,rverrcat, np.concatenate((post.likelihood.telvec,post.likelihood.telvec)), ax)
-        ax.errorbar(bint,bindat,yerr=binerr,fmt='ro', ecolor='r', markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2)
+        if len(rvdat) > 10: ax.errorbar(bint,bindat,yerr=binerr,fmt='ro', ecolor='r', markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2)
 
         pl.xlim(-0.5,0.5)
         meanlim = np.mean([-min(rvdat), max(rvdat)])
