@@ -73,8 +73,14 @@ if __name__ == '__main__':
     print "Performing maximum likelihood fit..."
 
     res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
-                         options=dict(maxiter=100000,maxfev=100000,xtol=1e-8) )
+                         options=dict(maxiter=10,maxfev=100000,xtol=1e-8) )
 
     print "Final loglikelihood = %f" % post.logprob()
     print "Best-fit parameters:"
     print post
+
+    cpsparams = post.params.basis.to_cps(post.params)
+
+    print post.likelihood.like_list
+
+    

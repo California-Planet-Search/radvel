@@ -54,7 +54,7 @@ class RVModel(object):
         self.params['dvdt'] = 0
         self.time_base = time_base
 
-    def __call__(self, t):
+    def __call__(self, t, planet_num=None):
         """
         Compute the radial velocity due to all Keplerians and
         additional trends.
@@ -62,7 +62,13 @@ class RVModel(object):
         vel = np.zeros(len(t))
 
         params_cps = self.params.basis.to_cps(self.params)
-        for num_planet in range(1, self.num_planets+1):
+
+        if planet_num == None:
+            planets = range(1, self.num_planets+1)
+        else:
+            planets = [planet_num]
+        
+        for num_planet in planets:
             per = params_cps['per{}'.format(num_planet)]
             tp = params_cps['tp{}'.format(num_planet)]
             e = params_cps['e{}'.format(num_planet)]
