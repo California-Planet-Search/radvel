@@ -139,6 +139,7 @@ def rv_multipanel_plot(post, saveplot=None):
     rvmodt = np.linspace(min(rvtimes)-0.05*dt,max(rvtimes)+0.05*dt+longp,resolution)
 
     rvmod2 = model(rvmodt)
+    rvmod = model(rvtimes)
 
     rawresid = post.likelihood.residuals()
     resid = rawresid + cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
@@ -159,7 +160,7 @@ def rv_multipanel_plot(post, saveplot=None):
     ax.plot(rvmodt-e,rvmod2,'b-',linewidth=1, rasterized=False)
     ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', fontsize=28, fontweight='bold')
     pltletter += 1
-    _mtelplot(rvtimes-e,rvdat,rverr,post.likelihood.telvec, ax)
+    _mtelplot(rvtimes-e,rawresid+rvmod,rverr,post.likelihood.telvec, ax)
     ax.set_xlim(min(rvtimes-e)-0.01*dt,max(rvtimes-e)+0.01*dt)
     
     pl.setp(axRV.get_xticklabels(), visible=False)
@@ -171,14 +172,16 @@ def rv_multipanel_plot(post, saveplot=None):
     yrticklocs = []
     yrticklabels = []
     for y in [1988,1992,1996,2000,2004,2008,2012,2016]:
-        jd = Time("%d-01-01T00:00:00" % y, format='isot').jd - e
+        jd = Time("%d-01-01T00:00:00" % y, format='isot', scale='utc').jd - e
         if jd > ax.get_xlim()[0] and jd < ax.get_xlim()[1]:
             yrticklocs.append(jd)
             yrticklabels.append("%d" % y)
     axyrs.set_xticks(yrticklocs)
-    axyrs.set_xticklabels(yrticklabels)
-    axyrs.grid(False)
-    pl.xlabel('Year')
+    axyrs.set_xticklabels(yrticklabels)    
+    if len(yrticklabels) > 0:
+        pl.xlabel('Year')
+        axyrs.grid(False)
+
     
     ax.set_ylabel('RV [m s$^{-1}$]')
     ticks = ax.yaxis.get_majorticklocs()
