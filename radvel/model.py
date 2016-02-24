@@ -52,6 +52,7 @@ class RVModel(object):
         self.num_planets = params.num_planets
         self.params = params
         self.params['dvdt'] = 0
+        self.params['curv'] = 0
         self.time_base = time_base
 
     def __call__(self, t, planet_num=None):

@@ -1,3 +1,5 @@
+import numpy as np
+
 class Prior(object):
     def __repr__(self):
         return "Generic Prior"
@@ -17,6 +19,9 @@ class Gaussian(Prior):
         return s 
 
 class EccentricityPrior(Prior):
+    def __repr__(self):
+        return "Eccentricity constrained to be < 1"
+    
     def __init__(self, num_planets):
         self.num_planets = num_planets
     
@@ -36,3 +41,23 @@ class EccentricityPrior(Prior):
                 return -1e25
         return 0
         
+class PositiveKPrior(Prior):
+    def __repr__(self):
+        return "K constrained to be > 0"
+    
+    def __init__(self, num_planets):
+        self.num_planets = num_planets
+    
+    def __call__(self, params):
+        def _getpar(key, num_planet):
+            return params['{}{}'.format(key,num_planet)]
+
+        for num_planet in range(1,self.num_planets+1):
+            try:
+                k = _getpar('k', num_planet)
+            except KeyError:
+                k = np.exp(_getpar('logk',num_planet))
+
+            if k < 0.0:     # This was ecc > 0.99. We should probably allow for eccentricities as high as 0.99
+                return -np.inf
+        return 0

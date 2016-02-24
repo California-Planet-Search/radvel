@@ -203,8 +203,32 @@ class Basis(object):
                 self.params = newbasis.split()
 
                 
-            if self.name=='per tc secosw sesinw k':
-                pass
+            if newbasis == 'per tc secosw sesinw k':
+                per = _getpar('per')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                try:
+                    tp = _getpar('tp')
+                except KeyError:
+                    ecosw = e*np.cos(w)
+                    esinw = e*np.sin(w)
+                    tp, e, w = _tcecos2cps(per, _getpar('tc'), ecosw, esinw)
+                    _setpar('tp', tp)
+                    
+                _setpar('secosw', np.sqrt(e)*np.cos(w) )
+                _setpar('sesinw', np.sqrt(e)*np.sin(w) )
+                _setpar('k', k )
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
+
+                if not kwargs.get('keep', True):
+                    _delpar('tp')
+                    _delpar('e')
+                    _delpar('w')
+
+                self.name = newbasis
+                self.params = newbasis.split()
+
 
         return params_out
                 
