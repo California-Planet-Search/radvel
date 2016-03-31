@@ -37,8 +37,9 @@ class EccentricityPrior(Prior):
                 sesinw = _getpar('sesinw',num_planet)
                 ecc = secosw**2 + sesinw**2 
 
-            if ecc > 1.0:     # This was ecc > 0.99. We should probably allow for eccentricities as high as 0.99
+            if ecc > 0.99 or ecc < 0.0:
                 return -1e25
+        
         return 0
         
 class PositiveKPrior(Prior):

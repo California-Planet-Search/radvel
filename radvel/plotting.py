@@ -95,7 +95,7 @@ def add_at(ax, t, loc=2):
     ax.add_artist(_at)
     return _at
 
-def _mtelplot(x, y, e, tel, ax):
+def _mtelplot(x, y, e, tel, ax, telfmts):
         utel = np.unique(tel)
         for t in utel:
             xt = x[tel == t]
@@ -111,8 +111,34 @@ def _mtelplot(x, y, e, tel, ax):
                 ax.errorbar(xt,yt,yerr=et,fmt=telfmts[t], ecolor=elinecolor, markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], markerfacecolor=telfmts[t][0],
                             markeredgewidth=3)
 
-def rv_multipanel_plot(post, saveplot=None):
+        ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
+        ax.xaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
 
+def rv_multipanel_plot(post, saveplot=None, **kwargs):
+
+    """
+    Multi-panel RV plot to display model using post.params orbital parameters.
+
+    Parameters:
+    post : radvel.posterior : Radvel posterior object. The model plotted will be generated from post.params
+
+    Optional:
+    nobin : bool : default=False : If True do not show binned data on phase plots
+    yscale_auto : bool : default=False : Use matplotlib auto y-axis scaling
+    yscale_sigma : float : default=3.0 : Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted)
+    telfmts : dict : dictionary mapping instrument code to plotting format code
+    nophase : bool : default=False : omit phase-folded plots
+    
+    Returns:
+    None
+    """
+
+    nobin = kwargs.pop('nobin', False)
+    yscale_sigma = kwargs.pop('yscale_sigma', 3.0)
+    yscale_auto = kwargs.pop('yscale_auto', False)
+    telfmts = kwargs.pop('telfmts', globals()['telfmts'])
+    nophase = kwargs.pop('nophase', False)
+    
     if saveplot != None: resolution = 1e4
     else: resolution = 2000
 
@@ -146,7 +172,8 @@ def rv_multipanel_plot(post, saveplot=None):
     slope = cpsparams['dvdt']*(rvmodt-model.time_base) + cpsparams['curv']*(rvmodt-model.time_base)**2
     slope_low = cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
 
-    if n == 1: fig = pl.figure(figsize=(19.0,16.0))
+    if nophase: fig = pl.figure(figsize=(19.0,23.0))
+    elif n == 1: fig = pl.figure(figsize=(19.0,16.0))
     else: fig = pl.figure(figsize=(19.0,16.0+4*n))        
     rect = [0.07, 0.64, 0.865, 1./(n+1)]
     axRV = pl.axes(rect)
@@ -160,7 +187,7 @@ def rv_multipanel_plot(post, saveplot=None):
     ax.plot(rvmodt-e,rvmod2,'b-',linewidth=1, rasterized=False)
     ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', fontsize=28, fontweight='bold')
     pltletter += 1
-    _mtelplot(rvtimes-e,rawresid+rvmod,rverr,post.likelihood.telvec, ax)
+    _mtelplot(rvtimes-e,rawresid+rvmod,rverr,post.likelihood.telvec, ax, telfmts)
     ax.set_xlim(min(rvtimes-e)-0.01*dt,max(rvtimes-e)+0.01*dt)
     
     pl.setp(axRV.get_xticklabels(), visible=False)
@@ -182,7 +209,7 @@ def rv_multipanel_plot(post, saveplot=None):
         pl.xlabel('Year')
         axyrs.grid(False)
 
-    
+    if not yscale_auto: ax.set_ylim(-yscale_sigma*np.std(rawresid+rvmod), yscale_sigma*np.std(rawresid+rvmod))
     ax.set_ylabel('RV [m s$^{-1}$]')
     ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks(ticks[1:])
@@ -196,8 +223,8 @@ def rv_multipanel_plot(post, saveplot=None):
     ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.80), xycoords='axes fraction', fontsize=28, fontweight='bold')
     pltletter += 1
 
-    _mtelplot(rvtimes-e,resid,rverr, post.likelihood.telvec,ax)
-    ax.set_ylim(-9,9)
+    _mtelplot(rvtimes-e,resid,rverr, post.likelihood.telvec,ax, telfmts)
+    if not yscale_auto: ax.set_ylim(-yscale_sigma*np.std(resid), yscale_sigma*np.std(resid))
     ax.set_xlim(min(rvtimes-e)-0.01*dt,max(rvtimes-e)+0.01*dt)
     ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
@@ -217,6 +244,8 @@ def rv_multipanel_plot(post, saveplot=None):
     
     #Phase plots
     for i in range(n):
+        if nophase: break
+        
         pnum = i+1
         print "Planet %d" % pnum
 
@@ -247,13 +276,14 @@ def rv_multipanel_plot(post, saveplot=None):
         ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', fontsize=28, fontweight='bold')
         pltletter += 1
 
-        _mtelplot(phase,rvdatcat,rverrcat, np.concatenate((post.likelihood.telvec,post.likelihood.telvec)), ax)
-        if len(rvdat) > 10: ax.errorbar(bint,bindat,yerr=binerr,fmt='ro', ecolor='r', markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2)
+        _mtelplot(phase,rvdatcat,rverrcat, np.concatenate((post.likelihood.telvec,post.likelihood.telvec)), ax, telfmts)
+        if not nobin and len(rvdat) > 10: ax.errorbar(bint,bindat,yerr=binerr,fmt='ro', ecolor='r', markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2)
 
         pl.xlim(-0.5,0.5)
-        meanlim = np.mean([-min(rvdat), max(rvdat)])
-        meanlim += 0.10*meanlim
-        pl.ylim(-meanlim, meanlim)
+        #meanlim = np.mean([-min(rvdat), max(rvdat)])
+        #meanlim += 0.10*meanlim
+        #pl.ylim(-meanlim, meanlim)
+        if not yscale_auto: pl.ylim(-yscale_sigma*np.std(rvdatcat), yscale_sigma*np.std(rvdatcat))
         
         letters = string.lowercase
         planetletter = letters[i+1]
