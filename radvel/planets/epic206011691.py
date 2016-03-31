@@ -11,7 +11,7 @@ from Evan_test import mkobsdb_keck
 from Evan_test import KECKVSTDIR
 
 # Define global planetary system and dataset parameters
-starname = 'epic204221263'
+starname = 'epic206011691'
 nplanets = 2    # number of planets in the system
 instnames = ['j']    # list of instrument names. Can be whatever you like but should match 'tel' column in the input file.
 ntels = len(instnames)       # number of instruments with unique velocity zero-points
@@ -21,24 +21,16 @@ bjd0 = 2454833
 # Define prior centers (initial guesses) here.
 params = radvel.RVParameters(nplanets,basis='per tc e w k')    # initialize RVparameters object
 
-params['per1'] = 4.01628     # period of 1st planet
-params['tc1'] = 2063.8753    # time of inferior conjunction of 1st planet
+params['per1'] = 9.32389     # period of 1st planet
+params['tc1'] = 2156.4247    # time of inferior conjunction of 1st planet
 params['e1'] = 0.01          # eccentricity of 'per tc secosw sesinw logk'1st planet
 params['w1'] = np.pi/2.      # argument of periastron of the star's orbit for 1st planet
-params['k1'] = 10.0          # velocity semi-amplitude for 1st planet
-params['per2'] = 10.56098      # same parameters for 2nd planet ...
-params['tc2'] = 2067.4746
+params['k1'] = 1.8         # velocity semi-amplitude for 1st planet
+params['per2'] = 15.50116      # same parameters for 2nd planet ...
+params['tc2'] = 2155.4715
 params['e2'] = 0.01
 params['w2'] = np.pi/2.
-params['k2'] = 1
-
-#params['per3'] = 400.0      # same parameters for 2nd planet ...
-#params['tc3'] = 2067.4746
-#params['e3'] = 0.01
-#params['w3'] = np.pi/2.
-#params['k3'] = 10.
-
-
+params['k2'] = 1.8
 
 params['dvdt'] = 0.0         # slope
 params['curv'] = 0.0         # curvature
@@ -67,7 +59,7 @@ data = data[0:17]
 
 # Set parameters to be held constant (default is for all parameters to vary). Must be defined in the fitting basis
 vary = dict(
-    dvdt = False,
+    dvdt = True,
     curv = True,
     logjit_k = False,
     logjit_j = False,
@@ -79,11 +71,7 @@ vary = dict(
     per2 = False,
     tc2 = False,
     secosw2 = False,
-    sesinw2 = False,
-#    per3 = True,
-#    tc3 = True,
-#    secosw3 = False,
-#    sesinw3 = False
+    sesinw2 = False
 )
 
 
@@ -94,8 +82,7 @@ priors = [
     radvel.prior.Gaussian('tc1', params['tc1'], 0.01), # Gaussian prior on tc1 with center at tc1 and width 0.01 days
     radvel.prior.Gaussian('per1', params['per1'], 0.01),
     radvel.prior.Gaussian('tc2', params['tc2'], 0.01),
-    radvel.prior.Gaussian('per2', params['per2'], 0.01),
-#radvel.prior.Gaussian('per3',600., 200.)
+    radvel.prior.Gaussian('per2', params['per2'], 0.01)
 
 ]
 
