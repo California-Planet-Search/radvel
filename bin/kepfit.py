@@ -166,5 +166,9 @@ if __name__ == '__main__':
         py.savefig(saveto, bbox_inches='tight', pad_inches=0.1)
         print '\n Plot of max likelihood fit saved: ', saveto, '\n' 
         py.close('all')
+        df_summary=df[labels].describe(percentiles=[.1587,.5,.8413])
         print '\n Posterior Summary...\n'
-        print df[labels].describe(percentiles=[.1587,.5,.8413])
+        print df_summary
+        saveto = writedir + P.starname + '_post_summary.txt'
+        df_summary.to_csv(saveto, sep=',')
+        print '\n Posterior Summary saved:' , saveto  
