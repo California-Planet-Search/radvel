@@ -1,10 +1,10 @@
-from matplotlib.pylab import *
+#from matplotlib.pylab import *
 import pylab as pl
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 from mpl_toolkits.axes_grid1 import make_axes_locatable,AxesGrid
 from matplotlib.ticker import NullFormatter
 import radvel
-from radvel.utils import *
+#from radvel.utils import *
 from astropy.time import Time
 import string
 from matplotlib import rcParams
@@ -115,22 +115,27 @@ def _mtelplot(x, y, e, tel, ax, telfmts):
         ax.xaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
 
 def rv_multipanel_plot(post, saveplot=None, **kwargs):
-
     """
     Multi-panel RV plot to display model using post.params orbital parameters.
 
-    Parameters:
-    post : radvel.posterior : Radvel posterior object. The model plotted will be generated from post.params
-
-    Optional:
-    nobin : bool : default=False : If True do not show binned data on phase plots
-    yscale_auto : bool : default=False : Use matplotlib auto y-axis scaling
-    yscale_sigma : float : default=3.0 : Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted)
-    telfmts : dict : dictionary mapping instrument code to plotting format code
-    nophase : bool : default=False : omit phase-folded plots
+    :param post: Radvel posterior object. The model plotted will be generated from post.params
+    :type post: radvel.Posterior
     
-    Returns:
-    None
+    :param nobin: (optional) If True do not show binned data on phase plots
+    :type nobin: bool
+    
+    :param yscale_auto: (optional) Use matplotlib auto y-axis scaling
+    :type yscale_auto: bool
+    
+    :param yscale_sigma: (optional) Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted)
+    :type yscale_sigma: float
+    
+    :param telfmts: (optional) dictionary mapping instrument code to plotting format code
+    :type telfmts: dict
+    
+    :param nophase: (optional) omit phase-folded plots
+    :type nophase: bool
+        
     """
 
     nobin = kwargs.pop('nobin', False)

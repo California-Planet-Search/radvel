@@ -7,4 +7,5 @@ API
 .. autoclass:: radvel.RVParameters
    :members:
 
-
+.. autoclass:: radvel.basis.Basis
+   :members:
