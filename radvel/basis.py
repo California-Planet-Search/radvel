@@ -19,6 +19,14 @@ def _print_valid_basis():
 class Basis(object):
     """
     Object that knows how to convert between the various Keplerian bases
+
+    Allowable basis strings:\n
+    'per tp e w k' \t <-- The 'CPS' basis\n
+    'per tc secosw sesinw logk' \n
+    'per tc secosw sesinw k' \n
+    'per tc e w k' \n
+
+    
     """
 
     cps_params = 'per tp e w k'.split()

@@ -5,6 +5,7 @@ import numpy as np
 import os
 import pylab as py
 import pdb
+import argparse
 
 from scipy import optimize
 import corner
@@ -13,26 +14,6 @@ import copy
 import radvel
 import radvel.likelihood
 import radvel.plotting
-
-def args():
-    import argparse
-
-    parser = argparse.ArgumentParser(description='Fit an RV dataset')
-    parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',type=str)
-    parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain',default=1000,type=float)
-    parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers.',default=40,type=int)
-    parser.add_argument('--nburns', dest='nburns',action='store',help='Number of burns.',default=1000,type=int)
-    parser.add_argument('--noplots', dest='noplot',action='store_true',help='No plots will be created or saved')
-    parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC?')
-    # parser.add_argument('--plot', dest='plot',action='store_true',help='Save plots?')
-    # parser.add_argument('--mcmc', dest='mcmc',action='store_true',help='Run MCMC?')
-    #parser.add_argument('--thin', dest='thin',action='store',help='Record only every Nth link in chain. (saves memory)',default=1,type=int)
-    #parser.add_argument('--plot', dest='plot',action='store_true',help='Plot in real time? (Very slow)',default=False)
-    
-    opt = parser.parse_args()
-    opt.planet = import_string('radvel.planets.'+opt.planet)    
-
-    return opt
 
 def import_string(name):
     mod = __import__(name)
@@ -111,11 +92,19 @@ def plot_maxlike(like, tel, bjd0, saveto):
     return
 
 
-    
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Fit an RV dataset')
+    parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',type=str)
+    parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain',default=1000,type=float)
+    parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers.',default=40,type=int)
+    parser.add_argument('--nburns', dest='nburns',action='store',help='Number of burns.',default=1000,type=int)
+    parser.add_argument('--noplots', dest='noplot',action='store_true',help='No plots will be created or saved')
+    parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC?')
+    parser.add_argument('--outputdir', dest='outputdir',action='store',help='Directory to save output files', default='.')
+    opt = parser.parse_args()
+    opt.planet = import_string('radvel.planets.'+opt.planet)    
 
-    opt = args()
-
+    
     P = opt.planet
     
     post = initialize_posterior(P)
@@ -137,7 +126,7 @@ if __name__ == '__main__':
     
     like = post.likelihood
 
-    writedir = radvel.DATADIR + '/output/'
+    writedir = opt.outputdir
     if not os.path.isdir(writedir):
         os.mkdir(writedir)
 
