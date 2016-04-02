@@ -1,13 +1,14 @@
-#from matplotlib.pylab import *
 import pylab as pl
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 from mpl_toolkits.axes_grid1 import make_axes_locatable,AxesGrid
 from matplotlib.ticker import NullFormatter
 import radvel
-#from radvel.utils import *
+from radvel.utils import t_to_phase, fastbin
 from astropy.time import Time
 import string
 from matplotlib import rcParams
+import numpy as np
+import matplotlib
 
 rcParams['font.size'] = 24
 
