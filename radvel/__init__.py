@@ -7,4 +7,4 @@ from .prior import *
 import os 
 
 MODULEDIR, filename = os.path.split(__file__)
-DATADIR = os.path.join(MODULEDIR,'../data')
+DATADIR = os.path.join(MODULEDIR,'../example_data')

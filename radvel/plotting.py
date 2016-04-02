@@ -117,7 +117,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts):
 
 def rv_multipanel_plot(post, saveplot=None, **kwargs):
     """
-    Multi-panel RV plot to display model using post.params orbital parameters.
+    Multi-panel RV plot to display model using post.params orbital paramters.
 
     :param post: Radvel posterior object. The model plotted will be generated from post.params
     :type post: radvel.Posterior
@@ -253,7 +253,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         if nophase: break
         
         pnum = i+1
-        print "Planet %d" % pnum
+        #print "Planet %d" % pnum
 
         rvdat = rvdat.copy()
 

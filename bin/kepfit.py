@@ -95,12 +95,12 @@ def plot_maxlike(like, tel, bjd0, saveto):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Fit an RV dataset')
     parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',type=str)
-    parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain',default=1000,type=float)
-    parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers.',default=40,type=int)
-    parser.add_argument('--nburns', dest='nburns',action='store',help='Number of burns.',default=1000,type=int)
-    parser.add_argument('--noplots', dest='noplot',action='store_true',help='No plots will be created or saved')
-    parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC?')
-    parser.add_argument('--outputdir', dest='outputdir',action='store',help='Directory to save output files', default='.')
+    parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain [1000]',default=1000,type=float)
+    parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers. [40]',default=40,type=int)
+    parser.add_argument('--nburns', dest='nburns',action='store',help='Number of burns. [1000]',default=1000,type=int)
+    parser.add_argument('--noplots', dest='noplot',action='store_true',help='No plots will be created or saved [False]')
+    parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC? [False]')
+    parser.add_argument('--outputdir', dest='outputdir',action='store',help='Directory to save output files [./]', default='./')
     opt = parser.parse_args()
     opt.planet = import_string('radvel.planets.'+opt.planet)    
 
@@ -131,10 +131,10 @@ if __name__ == '__main__':
         os.mkdir(writedir)
 
     if not opt.noplot:
-        saveto = writedir + P.starname + '_bestfit.pdf'
+        saveto = os.path.join(writedir, P.starname+'_bestfit.pdf')
         plot_maxlike(like, P.instnames, P.bjd0, saveto)
         py.close('all')
-        saveto = writedir + P.starname + '_rv_multipanel.pdf'
+        saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
         radvel.plotting.rv_multipanel_plot(post, saveplot=saveto)
         py.savefig(saveto, bbox_inches='tight', pad_inches=0.1)
         print '\n RV multipanel plot saved: ', saveto
@@ -151,13 +151,13 @@ if __name__ == '__main__':
                             plot_datapoints=False,
                             smooth=True,
                             bins=20, quantiles=[.16,.5,.84])
-        saveto = writedir + P.starname + '_corner.pdf'
+        saveto = os.path.join(writedir, P.starname+'_corner.pdf')
         py.savefig(saveto, bbox_inches='tight', pad_inches=0.1)
         print '\n Plot of max likelihood fit saved: ', saveto, '\n' 
         py.close('all')
-        df_summary=df[labels].describe(percentiles=[.1587,.5,.8413])
+        df_summary=df[labels].quantile([0.1587, 0.5, 0.8413])
         print '\n Posterior Summary...\n'
         print df_summary
-        saveto = writedir + P.starname + '_post_summary.txt'
+        saveto = os.path.join(writedir, P.starname+'_post_summary.txt')
         df_summary.to_csv(saveto, sep=',')
         print '\n Posterior Summary saved:' , saveto  
