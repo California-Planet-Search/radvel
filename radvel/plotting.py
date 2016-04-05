@@ -9,6 +9,7 @@ import string
 from matplotlib import rcParams
 import numpy as np
 import matplotlib
+import corner
 
 rcParams['font.size'] = 24
 
@@ -18,84 +19,7 @@ teldecode = {'a': 'APF', 'k': 'HIRES_k', 'j': 'HIRES_j'}
 msize = 7
 elinecolor = '0.6'
 
-
-def _errtot(params, errvel):
-    jitter = 10**params['logjitter']
-    return np.sqrt(jitter**2 + errvel**2)
-
-def plot_phasefolded(mod, params, num_planet, t, vel, errvel, extra=True):
-    phasei = np.linspace(-0.25,1.25,1000)
-    phase = t_to_phase(params, t, num_planet)
-    ti = phase_to_t(params, phasei, num_planet)
-    model = lambda t : mod.model_single_planet(params, t, num_planet)
-    resid = mod.residuals(params, t, vel)
     
-    errorbarkw = dict(yerr=errvel, fmt='o',capsize=0,ecolor='k',lw=0.5, ms=4, zorder=5)
-    errorbar( phase, resid + model(t), **errorbarkw )
-    plot(phasei, model(ti),zorder=6, color='Tomato')
-    xlabel('Orbital Phase')
-    
-    if extra:
-        errorbarkw['mfc'] = 'w'
-        errorbar( phase -1, resid + model(t), **errorbarkw )
-        errorbar( phase +1, resid + model(t), **errorbarkw )
-
-    grid(zorder=0)
-
-def plotfit(mod, params, t, vel, errvel, **kwargs):
-    pad = 30
-    nptsi = 1000
-    ti = np.linspace(t[0] - pad, t[-1] + pad, nptsi)
-    fit = mod.model(params, ti)
-    plot(ti, fit, **kwargs)
-
-    
-def rvplot(mod, params, t, vel, errvel):
-    """
-    Make a plot showing the best fit rv models
-    """
-    # Constants
-    phasepad = 0.25
-
-    fig = plt.figure(figsize=(7.5,5))
-    ax1 = plt.subplot2grid((2,2), (0,0), colspan=2)
-    ax2 = plt.subplot2grid((2,2), (1,0))
-    ax3 = plt.subplot2grid((2,2), (1,1), sharey=ax2, sharex=ax2)
-
-    # Full time-series
-    sca(ax1)
-    
-    resid = vel - mod.model(params, t)
-    errtotal = _errtot(params, errvel)
-    nresid = resid/errtotal
-    chi2 = np.sum(nresid**2 )
-    dof = vel.size - len(mod.vary_parameters) - 1
-    redchi2 = chi2 / dof
-
-    plotfit(mod, params, t, vel, errvel,color='Tomato')
-    errorbar( t, vel, yerr=errtotal, fmt='.', capsize=0, color='k',zorder=1.9,lw=0.5)
-    print "chi2 = %.1f" % redchi2
-
-    grid()
-
-    sca(ax2)
-    plot_phasefolded(mod, params, 1, t, vel, errvel)
-    ylabel('Radial Velocity (m/s)')
-    sca(ax3)
-    plot_phasefolded(mod, params, 2, t, vel, errvel)
-
-    ylim(-15,15)
-    xlim(0 - phasepad, 1 + phasepad)
-
-
-def add_at(ax, t, loc=2):
-    import matplotlib.patheffects as PathEffects
-    path_effects = [PathEffects.withStroke(linewidth=4,foreground="w")]
-    fp = dict(size=16, color='k', path_effects=path_effects)
-    _at = AnchoredText(t, loc=loc, prop=fp, frameon=False)
-    ax.add_artist(_at)
-    return _at
-
 def _mtelplot(x, y, e, tel, ax, telfmts):
         utel = np.unique(tel)
         for t in utel:
@@ -121,6 +45,9 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
 
     :param post: Radvel posterior object. The model plotted will be generated from post.params
     :type post: radvel.Posterior
+
+    :param saveplot: (optional) Name of output file, will show as interactive matplotlib window if not defined.
+    :type string:
     
     :param nobin: (optional) If True do not show binned data on phase plots
     :type nobin: bool
@@ -181,9 +108,9 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     if nophase: fig = pl.figure(figsize=(19.0,23.0))
     elif n == 1: fig = pl.figure(figsize=(19.0,16.0))
     else: fig = pl.figure(figsize=(19.0,16.0+4*n))        
-    rect = [0.07, 0.64, 0.865, 1./(n+1)]
+    rect = [0.07, 0.64, 0.865, 1./(n+1)-0.02]
     axRV = pl.axes(rect)
-    pl.subplots_adjust(left=0.1,top=0.95,right=0.95)
+    pl.subplots_adjust(left=0.1,top=0.865,right=0.95)
     plotindex = 1
     pltletter = ord('a')
     ax = axRV
@@ -315,8 +242,44 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         
 
     if saveplot != None:
-        fig = pl.gcf()
-        #fig.set_size_inches((10,8+1.5*n))
         pl.savefig(saveplot,dpi=150)
+        print "RV multi-panel plot saved to %s" % saveplot
     else: pl.show()
 
+def corner_plot(post, chains, saveplot=None):
+    """
+    Make a corner plot from the output MCMC chains and a posterior object.
+
+    :param post: Radvel posterior object
+    :type post: radvel.Posterior
+
+    :param chains: MCMC chains output by radvel.mcmc
+    :type chains: pandas.DataFrame
+    
+    :param saveplot: (optional) Name of output file, will show as interactive matplotlib window if not defined.
+    :type string:
+    
+    """
+
+    
+    labels = [k for k in post.vary.keys() if post.vary[k]]
+
+    f = rcParams['font.size']
+    rcParams['font.size'] = 12
+    
+    fig = corner.corner(chains[labels],
+                        labels=labels,
+                        label_kwargs={"fontsize": 14},
+                        plot_datapoints=False,
+                        bins=20,
+                        quantiles=[.16,.5,.84],
+                        show_titles = True,
+                        title_kwargs={"fontsize": 14})
+    
+    if saveplot != None:
+        pl.savefig(saveplot,dpi=150)
+        print "Corner plot saved to %s" % saveplot
+    else: pl.show()
+
+    rcParams['font.size'] = f
+    

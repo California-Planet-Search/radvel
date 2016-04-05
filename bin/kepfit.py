@@ -3,12 +3,9 @@
 import pandas as pd
 import numpy as np
 import os
-import pylab as py
-import pdb
 import argparse
 
 from scipy import optimize
-import corner
 import copy
 
 import radvel
@@ -51,47 +48,6 @@ def initialize_posterior(P):
     return post
 
 
-def plot_results(like,color,label,bjd0):
-    fig = py.gcf()
-    axL = fig.get_axes()
-    jit = np.exp(like.params[like.logjit_param])
-    yerr = np.sqrt(like.yerr**2 + jit**2)
-    ti = np.linspace(np.min(like.x), np.max(like.x), 1000)
-    py.sca(axL[0])
-    py.errorbar(
-        like.x-bjd0, like.model(like.x)+like.residuals(), 
-        yerr=yerr, fmt='o',color=color,label=label
-        )
-    py.plot(ti-bjd0, like.model(ti))
-    fig.set_tight_layout(True)
-    py.sca(axL[1])
-    py.errorbar(
-        like.x-bjd0, like.residuals(), 
-        yerr=yerr, fmt='o'
-        )
-    return
-
-
-def plot_maxlike(like, tel, bjd0, saveto):
-
-    py.close('all')
-    fig,axL = py.subplots(nrows=2,figsize=(12,8),sharex=True)
-    if 'j' in tel:
-        plot_results(like.like_list[np.where(np.array(tel)=='j')[0]],'black','hires_rj', bjd0) # plot best fit model
-    if 'k' in tel:
-        plot_results(like.like_list[np.where(np.array(tel)=='k')[0]],'Tomato','hires_rk', bjd0) # plot best fit model
-    if 'a' in tel:
-        plot_results(like.like_list[np.where(np.array(tel)=='a')[0]],'RoyalBlue','apf', bjd0) # plot best fit model
-        
-    axL[0].legend()
-    py.xlabel('BJD_TBD - %i' % bjd0)
-    py.ylabel('RV')
-    [ax.grid() for ax in axL]
-    py.savefig(saveto, bbox_inches='tight', pad_inches=0.1)
-    print '\n Plot of max likelihood fit saved: ', saveto 
-    return
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Fit an RV dataset')
     parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',type=str)
@@ -102,9 +58,8 @@ if __name__ == '__main__':
     parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC? [False]')
     parser.add_argument('--outputdir', dest='outputdir',action='store',help='Directory to save output files [./]', default='./')
     opt = parser.parse_args()
-    opt.planet = import_string('radvel.planets.'+opt.planet)    
+    opt.planet = import_string(opt.planet)    
 
-    
     P = opt.planet
     
     post = initialize_posterior(P)
@@ -121,43 +76,29 @@ if __name__ == '__main__':
     print post
 
     cpsparams = post.params.basis.to_cps(post.params)
-
-    print post.likelihood.like_list
     
     like = post.likelihood
 
-    writedir = opt.outputdir
+    writedir = os.path.join(opt.outputdir, P.starname)
     if not os.path.isdir(writedir):
         os.mkdir(writedir)
 
     if not opt.noplot:
-        saveto = os.path.join(writedir, P.starname+'_bestfit.pdf')
-        plot_maxlike(like, P.instnames, P.bjd0, saveto)
-        py.close('all')
         saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
         radvel.plotting.rv_multipanel_plot(post, saveplot=saveto)
-        py.savefig(saveto, bbox_inches='tight', pad_inches=0.1)
-        print '\n RV multipanel plot saved: ', saveto
-        py.close('all')
 
     if not opt.nomcmc:
         print '\n Running MCMC, nwalkers = %s, nsteps = %s, nburns = %s ...'  %(opt.nwalkers, opt.nsteps, opt.nburns)
-        df = radvel.mcmc(post,threads=1,nburn=opt.nburns,nwalkers=opt.nwalkers,nrun=opt.nsteps)
+        chains = radvel.mcmc(post,threads=1,nburn=opt.nburns,nwalkers=opt.nwalkers,nrun=opt.nsteps)
 
-        labels = [k for k in post.vary.keys() if post.vary[k]]
-        fig = corner.corner(df[labels],
-                            labels=labels,
-                            levels=[0.68,0.95],
-                            plot_datapoints=False,
-                            smooth=True,
-                            bins=20, quantiles=[.16,.5,.84])
         saveto = os.path.join(writedir, P.starname+'_corner.pdf')
-        py.savefig(saveto, bbox_inches='tight', pad_inches=0.1)
-        print '\n Plot of max likelihood fit saved: ', saveto, '\n' 
-        py.close('all')
-        df_summary=df[labels].quantile([0.1587, 0.5, 0.8413])
+        radvel.plotting.corner_plot(post, chains, saveplot=saveto)
+        
+        post_summary=chains.quantile([0.1587, 0.5, 0.8413])
         print '\n Posterior Summary...\n'
-        print df_summary
+        print post_summary
         saveto = os.path.join(writedir, P.starname+'_post_summary.txt')
-        df_summary.to_csv(saveto, sep=',')
+        post_summary.to_csv(saveto, sep=',')
         print '\n Posterior Summary saved:' , saveto  
+
+        chains.to_csv(os.path.join(writedir, P.starname+'_chains.csv.tar.bz2'), compression='bz2')
