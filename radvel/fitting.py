@@ -31,15 +31,3 @@ def maxlike_fitting(mod, t, vel, errvel):
         n, k, BIC(maxlnlike, k,  n) 
         )
     return params_maxlike, maxlnlike
-
-def BIC(maxlnlike, k, n):
-    """
-    Bayesian Information Criterion (BIC)
-    
-    Parameters
-    ----------
-    maxlnlike : natural log of likelihood at max value
-    k : number of free parameters 
-    n : number of data points
-    """
-    return -2.0 * maxlnlike + k*np.log(n)

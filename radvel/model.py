@@ -1,11 +1,4 @@
-"""
-RV Model
-
-Define a class that can do the following things:
-"""
-
 import rvkep
-from matplotlib.pylab import * 
 import copy_reg
 import types
 import numpy as np
@@ -13,14 +6,16 @@ from .basis import Basis
 
 class RVParameters(dict):
     """
-    Object to store the physical parameters of the transit.
+    Object to store the orbital parameters.
 
     :param num_planets: Number of planets in model
     :type num_planets: int
 
-    :param basis: parameterization of orbital parameters    
+    :param basis: parameterization of orbital parameters. See radvel.Basis._print_valid_basis() for a list of valid basis strings.
     :type basis: str
 
+    :Example:
+    
     .. doctest::
 	
        >>> import radvel
@@ -59,6 +54,16 @@ class RVModel(object):
         """
         Compute the radial velocity due to all Keplerians and
         additional trends.
+
+        :param t: Timestamps to calculate the RV model
+        :type t: float array
+
+        :param planet_num: (optional) calculate the RV model for a single planet within a multi-planet system
+        :type planet_num: int
+
+        :return vel: Radial velocity at each timestamp in the t input array
+        :type vel: float array
+        
         """
         vel = np.zeros(len(t))
 

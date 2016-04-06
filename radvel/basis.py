@@ -19,14 +19,6 @@ def _print_valid_basis():
 class Basis(object):
     """
     Object that knows how to convert between the various Keplerian bases
-
-    Allowable basis strings:\n
-    'per tp e w k' \t <-- The 'CPS' basis\n
-    'per tc secosw sesinw logk' \n
-    'per tc secosw sesinw k' \n
-    'per tc e w k' \n
-
-    
     """
 
     cps_params = 'per tp e w k'.split()
@@ -50,22 +42,8 @@ class Basis(object):
 
     def __repr__(self):
         return "Basis Object <{}>".format(self.name)
-    
-    # Testing to remove this wrapper function
-    """
-    def to_cps(self, params_in, **kwargs):
-        if isinstance(params_in,dict):
-            new = self._to_cps(params_in, **kwargs)
-            return new
-        if isinstance(params_in,pd.core.frame.DataFrame):
-            params_out = []
-            for i,row in params_in.iterrows():
-                row = dict(row)
-                params_out += [self._to_cps(row, **kwargs)]
-            params_out = pd.DataFrame(params_out)
-            return params_out
-    """
-    
+
+        
     def to_cps(self, params_in, **kwargs):
         """
         Convert to CPS basis

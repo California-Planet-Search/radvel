@@ -2,10 +2,18 @@
 
 API
 ===
-.. module:: radvel
 
-.. autoclass:: radvel.RVParameters
-   :members:
+.. toctree::
+   :maxdepth: 2
 
-.. autoclass:: radvel.basis.Basis
-   :members:
+   model
+   orbit
+   basis
+   likelihood
+   posterior
+   prior
+   fitting
+   mcmc
+   utils
+   plotting
+	      

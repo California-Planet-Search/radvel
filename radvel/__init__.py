@@ -5,6 +5,7 @@ from .posterior import *
 from .mcmc import *
 from .prior import *
 import os 
+import sys
 
 MODULEDIR, filename = os.path.split(__file__)
 DATADIR = os.path.join(MODULEDIR,'../data')

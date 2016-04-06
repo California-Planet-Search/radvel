@@ -10,16 +10,21 @@ def timetrans_to_timeperi(tc, per, ecc, w):
     """
     Convert Time of Transit to Time of Periastron Passage
 
-    Parameters
-    ----------
-    tc : time of transit
-    per : period [days]
-    ecc : eccecntricity
-    w : longitude of peri (radians)
+    :param tc: time of transit
+    :type tc: float
     
-    Returns
-    -------
-    tp : time of periastron passage. After tt
+    :param per: period [days]
+    :type per: float
+    
+    :param ecc: eccecntricity
+    :type ecc: float
+    
+    :param w: longitude of periastron (radians)
+    :type w: float
+
+    
+    :return: time of periastron passage
+
     """
 
     # Angular distance between true anomaly and peri as a function of time
@@ -35,16 +40,22 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=0):
     """
     Convert Time of Periastron to Time of Transit
 
-    Paramters
-    ---------
-    tp: time of periastron
-    P: period [days]
-    e: eccentricity
-    w: argument of peri (radians)
 
-    Returns
-    -------
-    tc: time of inferior conjuntion (time of transit if system is transiting)
+    :param tp: time of periastron
+    :type tp: float
+    
+    :param P: period [days]
+    :type P: float
+    
+    :param e: eccentricity
+    :type e: float
+    
+    :param w: argument of peri (radians)
+    :type w: float
+
+
+    :return: time of inferior conjuntion (time of transit if system is transiting)
+    
     """
 
     if secondary:
@@ -58,6 +69,24 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=0):
 
 
 def true_anomaly(t, P, e):
+    """
+    Calculate the true annomoly for a given time, period, eccentricity.
+
+    :param t: time (BJD_TDB)
+    :type t: float
+
+    :param P: period [days]
+    :type P: float
+
+    :param e: eccentricity
+    :type e: float
+
+
+    :return: True Annomoly
+    
+    """
+
+    
     # f in Murray and Dermott p. 27
     tp = 0
     t = np.array([t])
@@ -73,8 +102,10 @@ def true_anomaly(t, P, e):
 
 
 def next_epoch(P, epoch, now, nnext=10):
-    # Given a reference epoch and a period, compute the next times
-    # this period and epoch will occur
+    """
+    Given a reference epoch and a period, compute the next times this period and epoch will occur
+    """
+    
     phase_now = np.mod((now - epoch) / P,1)
     i = np.arange(1,nnext+1)
     time_from_now = (i - phase_now) * P
@@ -104,16 +135,20 @@ def semi_amplitude(Msini, P, Mtotal, e):
     """
     Compute Doppler semi-amplitude
 
-    Parameters 
-    ----------
-    Msini : mass of planet [Mjup]
-    P : Orbital period [days]
-    Mtotal : Mass of star + mass of planet [Msun]
-    e : eccentricity
+    :param Msini: mass of planet [Mjup]
+    :type Msini: float
+    
+    :param P: Orbital period [days]
+    :type P: float
+    
+    :param Mtotal: Mass of star + mass of planet [Msun]
+    :type Mtotal: float
+    
+    :param e: eccentricity
+    :type e: float
 
-    Returns
-    -------
-    K : Doppler semi-amplitude [m/s]
+
+    :return: Doppler semi-amplitude [m/s]
     """
     K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.33 * Mtotal**-0.66
     return K
@@ -122,26 +157,33 @@ def Msini(K, P, Mtotal, e):
     """
     Parameters
     ----------
-    K : m/s
-    P : Orbital period [days]
-    Mstar : Mass of star [Msun]
-    e : eccentricity
-
-    Returns
-    -------
-    Msini : Jupiter masses
+    :param K: Doppler semi-amplitude [m/s]
+    :type K: float
+    
+    :param P: Orbital period [days]
+    :type P: float
+    
+    :param Mstar: Mass of star [Msun]
+    :type Mstar: float
+    
+    :param e: eccentricity
+    :type e: float
+    
+    :return: Msini, Jupiter masses
+    
     """
     Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.66 * (P/365.0)**0.33
     return Msini
 
 def density(mass,radius):
     """
-    mass : mass in earth masses
-    radius : radius in earth radii
-    
-    Returns
-    -------
-    rho : density (g/cc)
+    :param mass: mass in Earth masses
+    :type mass: float
+
+    :param radius: radius in Earth radii
+    :type radius: float
+
+    :return: density (g/cc)
     """
     mass = np.array(mass)
     radius = np.array(radius)
@@ -151,26 +193,37 @@ def density(mass,radius):
 
 def Lstar(Rstar,Teff):
     """
-    Rstar : Radius (solar units)
-    Teff : Teff (K)
+    :param Rstar: Radius (solar units)
+    :type Rstar: float
     
-    Returns
-    -------
-    Lstar : Luminosity (solar units)
+    :param Teff: Teff (K)
+    :type Teff: float
+    
+
+    :return: Luminosity (solar units)
     """
     return (Rstar)**2*(Teff/5770)**4
 
 def Sinc(Lstar,A):
     """
-    Lstar : Luminosity (solar-units)
-    A : Semi-major axis (AU)
+    :param Lstar: Luminosity (solar-units)
+    :type Lstar: float
+    
+    :param A: Semi-major axis (AU)
+    :type A: float
+
+
+    :return: Insolation (Earth-units)
     """
     Sinc = Lstar / A**2
     return Sinc
 
 def Teq(Sinc):
     """
-    Sinc : Insolation (Earth-units)
+    :param Sinc: Insolation (Earth-units)
+    :type Sinc: float
+
+    :return: Equilibrium temperature
     """
     Sinc = np.array(Sinc)
     Se = 1300*u.W*u.m**-2
