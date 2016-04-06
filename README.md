@@ -1,12 +1,6 @@
 # radvel
 General Toolkit for Modeling Radial Velocities
 
-Note: Erik is still working on skeleton functionaliy. Afterwhich, BJ will take the lead on development.
-
-Issues:
-
-MCMC is buggy when we use it's used in a multi-threaded way. Is this becase we're creating multiple instances of the posterior object and it's not being passed around properly
-
 ## Features
 
 - Object-oriented (i.e. models, likelihoods, priors, and posteriors are defined as objects)
