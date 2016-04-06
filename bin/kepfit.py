@@ -14,12 +14,6 @@ import radvel
 import radvel.likelihood
 import radvel.plotting
 
-def import_string(name):
-    mod = __import__(name)
-    components = name.split('.')
-    for comp in components[1:]:
-        mod = getattr(mod, comp)
-    return mod
 
 def initialize_posterior(P):
     params = P.params.basis.from_cps(P.params, P.fitting_basis, keep=False)
