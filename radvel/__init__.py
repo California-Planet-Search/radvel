@@ -8,7 +8,4 @@ import os
 import sys
 
 MODULEDIR, filename = os.path.split(__file__)
-DATADIR = os.path.join(MODULEDIR,'../data')
-PLANETDIR = os.path.join(MODULEDIR,'../planets')
-
-sys.path.append(PLANETDIR)
+DATADIR = os.path.join(MODULEDIR,'../example_data')

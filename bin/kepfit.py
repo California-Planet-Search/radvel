@@ -3,7 +3,9 @@
 import pandas as pd
 import numpy as np
 import os
+import sys
 import argparse
+import imp
 
 from scipy import optimize
 import copy
@@ -58,10 +60,11 @@ if __name__ == '__main__':
     parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC? [False]')
     parser.add_argument('--outputdir', dest='outputdir',action='store',help='Directory to save output files [./]', default='./')
     opt = parser.parse_args()
-    opt.planet = import_string(opt.planet)    
 
-    P = opt.planet
+    system_name = os.path.basename(opt.planet).split('.')[0]
+    P = imp.load_source(system_name, os.path.abspath(opt.planet))
     
+        
     post = initialize_posterior(P)
     
     post0 = copy.deepcopy(post)
