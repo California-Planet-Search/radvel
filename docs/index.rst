@@ -5,7 +5,7 @@
 radvel: |br| A Radial Velocity Fitting Toolkit
 ==============================================
 
-Welcome to the documentation for ``radvel``, a Python package for modeling of radial velocity tools.
+Welcome to the documentation for ``radvel``, a Python package for modeling of radial velocity time series.
 
 Contents:
 
@@ -17,6 +17,10 @@ Contents:
    tutorial
    api
 
-Release Notes
--------------
-.. include::  ../changelog.rst
+Indices and tables for Python code
+====================================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
