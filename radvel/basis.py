@@ -19,8 +19,22 @@ def _print_valid_basis():
 class Basis(object):
     """
     Object that knows how to convert between the various Keplerian bases
-    """
 
+    Args:
+        name (str): basis name
+        num_planets (int): number of planets
+
+    Attributes:
+        cps_params (str): name of CPS basis
+
+    Note:
+        Valid basis functions: \n
+        'per tp e w k'         (The CPS basis) \n
+        'per tc secosw sesinw logk'  \n 
+        'per tc secosw sesinw k'  \n
+        'per tc e w k'
+    """
+    
     cps_params = 'per tp e w k'.split()
     def __init__(self, *args):
         self.name = None
@@ -45,13 +59,16 @@ class Basis(object):
 
         
     def to_cps(self, params_in, **kwargs):
-        """
-        Convert to CPS basis
+        """Convert to CPS basis
 
         Convert a dictionary with parameters of a given basis into the cps basis
 
-        :param params_in: planet parameters expressed in current basis
-        :type params_in: dict
+        Args:
+            params_in (dict): planet parameters expressed in current basis
+
+        Returns:
+            Output dict or DataFrame with the parameters expressed in the CPS basis
+
         """
 
         params_out = copy.copy(params_in)
@@ -128,16 +145,19 @@ class Basis(object):
 
 
     def from_cps(self, params_in, newbasis, **kwargs):
-        """
-        Convert from CPS basis into another basis
+        """Convert from CPS basis into another basis
 
         Convert a dictionary with parameters of a given basis into the cps basis
 
-        :param params: planet parameters expressed in cps basis
-        :type params: dict
+        Args:
+            params_in (dict):  planet parameters expressed in cps basis
+            newbasis (string): string corresponding to basis to switch into
+            keep (bool): (optional) If true keep the parameters expressed in the old basis,
+                else remove them from the output dictionary/DataFrame
 
-        :param newbasis: string corresponding to basis to switch into
-        :type newbasis: string
+        Returns:
+            Dictionary or dataframe with the parameters converted into the new basis
+
         """
         
         if newbasis not in BASIS_NAMES:
@@ -222,19 +242,16 @@ def _tcecos2cps(per, tc, ecosw, esinw):
     """
     Convert (per, tc, ecosw, esinw) to ( tp, e, w)
 
-    :param per: period
-    :type tc: float
+    Args:
+        per (float): period in days
+        tc (float): JD time of conjunction 
+        ecosw (float) eccentricity times cosine of argument of periastron
+        esinw (float) eccentricity times sine of argument of periastron
 
-    :param tc: time of conjunction
-    :type tc: float
+    Returns:
+        tuple: (time of periastron, eccentricity, omega)
 
-    :param ecosw: e*cosw
-    :type ecosw: float
-
-    :param esinw: e*sinw
-    :type esinw: float
-
-    .. doctest::
+    Examples:
        >>> per, tc, ecosw, esinw  = 1,0.0,0.5,0.5
        >>> tc, e, w = radvel.basis._tcecos2cps(per, tc, ecosw, esinw )
        >>> truth = array([ -1.657354e-02,   7.071067e-01,   4.500000e+01])
