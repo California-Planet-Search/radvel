@@ -30,8 +30,9 @@ Follow examples in
 You'll need the following dependencies
 
 - emcee
-- corner
+- corner 
 - pandas (to read in hdf5)
+- matplotlib-1.5.0
 
 
 

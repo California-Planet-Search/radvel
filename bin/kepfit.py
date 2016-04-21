@@ -47,8 +47,8 @@ def initialize_posterior(P):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Fit an RV dataset')
     parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',type=str)
-    parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain [1000]',default=1000,type=float)
-    parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers. [40]',default=40,type=int)
+    parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain [20000]',default=20000,type=float)
+    parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers. [50]',default=50,type=int)
     parser.add_argument('--nburns', dest='nburns',action='store',help='Number of burns. [1000]',default=1000,type=int)
     parser.add_argument('--noplots', dest='noplot',action='store_true',help='No plots will be created or saved [False]')
     parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC? [False]')
@@ -57,22 +57,23 @@ if __name__ == '__main__':
 
     system_name = os.path.basename(opt.planet).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(opt.planet))
-    
+    system_name = P.starname
         
     post = initialize_posterior(P)
     
     post0 = copy.deepcopy(post)
     print "Initial loglikelihood = %f" % post0.logprob()
     print "Performing maximum likelihood fit..."
-
     res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
                          options=dict(maxiter=10,maxfev=100000,xtol=1e-8) )
 
+    cpspost = copy.deepcopy(post)
+    cpsparams = post.params.basis.to_cps(post.params)
+    cpspost.params.update(cpsparams)
+    
     print "Final loglikelihood = %f" % post.logprob()
     print "Best-fit parameters:"
-    print post
-
-    cpsparams = post.params.basis.to_cps(post.params)
+    print cpspost
     
     like = post.likelihood
 
@@ -85,7 +86,7 @@ if __name__ == '__main__':
         radvel.plotting.rv_multipanel_plot(post, saveplot=saveto)
 
     if not opt.nomcmc:
-        print '\n Running MCMC, nwalkers = %s, nsteps = %s, nburns = %s ...'  %(opt.nwalkers, opt.nsteps, opt.nburns)
+        print '\n Running MCMC, nwalkers = %s, nsteps = %s, nburn = %s ...'  %(opt.nwalkers, opt.nsteps, opt.nburns)
         chains = radvel.mcmc(post,threads=1,nburn=opt.nburns,nwalkers=opt.nwalkers,nrun=opt.nsteps)
 
         saveto = os.path.join(writedir, P.starname+'_corner.pdf')
@@ -99,3 +100,23 @@ if __name__ == '__main__':
         print '\n Posterior Summary saved:' , saveto  
 
         chains.to_csv(os.path.join(writedir, P.starname+'_chains.csv.tar.bz2'), compression='bz2')
+
+        for k in chains.keys():
+            if k in post.params.keys():
+                post.params[k] = post_summary[k][0.5]
+        
+        print "Performing post-MCMC maximum likelihood fit..."
+        res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
+                         options=dict(maxiter=10,maxfev=100000,xtol=1e-8) )
+
+        cpspost = copy.deepcopy(post)
+        cpsparams = post.params.basis.to_cps(post.params)
+        cpspost.params.update(cpsparams)
+        
+        print "Final loglikelihood = %f" % post.logprob()
+        print "Best-fit parameters:"
+        print cpspost
+
+        if not opt.noplot:
+            saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
+            radvel.plotting.rv_multipanel_plot(post, saveplot=saveto)

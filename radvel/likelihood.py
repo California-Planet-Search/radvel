@@ -24,9 +24,15 @@ class Likelihood(object):
         keys = self.params.keys()
         keys.sort()
         for key in keys:
+            if key in self.vary.keys():
+                vstr = str(self.vary[key])
+            else:
+                vstr = ""
+                
             s +=  "{:20s}{:20g} {:>10s}\n".format(
-                key, self.params[key], str(self.vary[key])
+                key, self.params[key], vstr
                  )
+            
         return s
 
     def set_vary_params(self, params_array):
