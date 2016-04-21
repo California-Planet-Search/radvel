@@ -5,49 +5,89 @@ import numpy as np
 from .basis import Basis
 
 texdict = {'per': 'P',
-           'logk': '\\log{K}',
-           'tc': 'Tconj',
+           'logk': '\\ln{K}',
+           'tc': 'T\\rm{conj}',
            'secosw': '\\sqrt{e}\\cos{\\omega}',
-           'sesinw': '\\sqrt{e}\\cos{\\omega}'}
+           'sesinw': '\\sqrt{e}\\cos{\\omega}',
+           'e': 'e',
+           'w': '\\omega',
+           'tp': 'T\\rm{peri}',
+           'k': 'K',
+           'gamma_': '\\gamma_{\\rm ',
+           'logjit_': '\\ln{\\sigma_{\\rm jit}}_{\\rm ',
+           'dvdt': '\\dot{\\gamma}',
+           'curv': '\\ddot{\\gamma}'
+           }
+
 
 class RVParameters(dict):
     """
     Object to store the orbital parameters.
 
-    :param num_planets: Number of planets in model
-    :type num_planets: int
-
-    :param basis: parameterization of orbital parameters. See radvel.Basis._print_valid_basis() for a list of valid basis strings.
-    :type basis: str
-
-    :param tex_labels: Dictionary maping RVParameters keys to their TeX code representations
-    :type tex_labels: dict
+    Args:
+        num_planets (int): Number of planets in model
+        basis (string): parameterization of orbital parameters. See ``radvel.Basis._print_valid_basis()`` for a list of valid basis strings.
     
-    :Example:
+    Attributes:
+        basis (radvel.Basis): Basis object
+        planet_parameters (list): orbital parameters contained within the specified basis
+        num_planets (int): number of planets in the model
+        planet_letters (dict): map the numbers in the RVParameters object keys to planet letters (for plotting and tables)
     
-    .. doctest::
+    Examples:
 	
        >>> import radvel
-       >>> params = radvel.RVParameters(2)
+       >>> params = radvel.RVParameters(2)   # create a RVParameters object for a 2-planet system
 
     """
-    def __init__(self, num_planets, basis='per tc secosw sesinw logk'):
+    def __init__(self, num_planets, basis='per tc secosw sesinw logk', planet_letters=None):
         self.basis = Basis(basis,num_planets)
         self.planet_parameters = basis.split()
-        self.tex_labels = {}
         for num_planet in range(1,1+num_planets):
             for parameter in self.planet_parameters:
                 self.__setitem__(self._sparameter(parameter, num_planet), None)
-                self.tex_labels.__setitem__(self._sparameter(parameter, num_planet), self._texlabel(parameter, num_planet))
                 
         self.num_planets = num_planets
+        if planet_letters is not None:
+            for k in planet_letters.keys():
+                assert isinstance(k, int), "RVParameters: ERROR: The planet_letters dictionary should have only integers as keys."
+
+        self.planet_letters = planet_letters
+
+    def tex_labels(self):
+        """
+        Map RVParameters keys to pretty TeX code representations.
+
+        Returns:
+            dict: dictionary mapping RVParameters keys to TeX code             
+        """
+
+    
+        tex_labels = {}
+        for k in self.keys():
+            n = k[-1]
+            p = k[:-1]
+            if n.isdigit(): tex_labels[k] = self._planet_texlabel(p, n)
+            elif k in texdict.keys(): tex_labels[k] = "$%s$" % texdict[k]
+            elif p not in self.planet_parameters:
+                for tex in texdict.keys():
+                    if tex in k and len(tex) > 1:
+                        tex_labels[k] = "$%s}$" % k.replace(tex, texdict[tex])
+                        
+            if k not in tex_labels.keys():
+                tex_labels[k] = k
+
+        return tex_labels
         
     def _sparameter(self, parameter, num_planet):
         return '{0}{1}'.format(parameter, num_planet)
 
-    def _texlabel(self, parameter, num_planet):
+    def _planet_texlabel(self, parameter, num_planet):        
         pname = texdict.get(parameter, parameter)
-        lett_planet = chr(int(num_planet)+97)
+        if self.planet_letters is not None:
+            lett_planet = self.planet_letters[int(num_planet)]
+        else:
+            lett_planet = chr(int(num_planet)+97)
         return '$%s_{%s}$' % (pname, lett_planet) 
 
 class RVModel(object):

@@ -57,14 +57,13 @@ if __name__ == '__main__':
 
     system_name = os.path.basename(opt.planet).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(opt.planet))
-    
+    system_name = P.starname
         
     post = initialize_posterior(P)
     
     post0 = copy.deepcopy(post)
     print "Initial loglikelihood = %f" % post0.logprob()
     print "Performing maximum likelihood fit..."
-
     res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
                          options=dict(maxiter=10,maxfev=100000,xtol=1e-8) )
 
@@ -107,7 +106,6 @@ if __name__ == '__main__':
                 post.params[k] = post_summary[k][0.5]
         
         print "Performing post-MCMC maximum likelihood fit..."
-
         res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
                          options=dict(maxiter=10,maxfev=100000,xtol=1e-8) )
 

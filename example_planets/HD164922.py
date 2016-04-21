@@ -13,10 +13,10 @@ instnames = ['k', 'j', 'a']    # list of instrument names. Can be whatever you l
 ntels = len(instnames)       # number of instruments with unique velocity zero-points
 fitting_basis = 'per tc secosw sesinw logk'    # Fitting basis, see radvel.basis.BASIS_NAMES for available basis names
 bjd0 = 0   # reference epoch for RV timestamps (i.e. this number has been subtracted off your timestamps)
-
+planet_letters = {1: 'b', 2: 'c'}   # map the numbers in the RVParameters keys to planet letters (for plotting and tables)
 
 # Define prior centers (initial guesses) here.
-params = radvel.RVParameters(nplanets,basis='per tc e w k')    # initialize RVparameters object
+params = radvel.RVParameters(nplanets,basis='per tc e w k', planet_letters=planet_letters)    # initialize RVparameters object
 
 params['per1'] = 1206.3      # period of 1st planet
 params['tc1'] = 2456779.     # time of inferior conjunction of 1st planet

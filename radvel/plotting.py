@@ -10,6 +10,7 @@ from matplotlib import rcParams
 import numpy as np
 import matplotlib
 import corner
+import copy
 
 rcParams['font.size'] = 24
 
@@ -77,18 +78,21 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     if saveplot != None: resolution = 1e4
     else: resolution = 2000
 
+    cpspost = copy.deepcopy(post)
     cpsparams = post.params.basis.to_cps(post.params)
-    model = post.likelihood.model
-    rvtimes = post.likelihood.x
-    rvdat = post.likelihood.y
-    rverr = post.likelihood.yerr
+    cpspost.params.update(cpsparams)
+    
+    model = cpspost.likelihood.model
+    rvtimes = cpspost.likelihood.x
+    rvdat = cpspost.likelihood.y
+    rverr = cpspost.likelihood.yerr
     n = model.num_planets
     e = 2450000
 
-    if isinstance(post.likelihood, radvel.likelihood.CompositeLikelihood):
-        like_list = post.likelihood.like_list
+    if isinstance(cpspost.likelihood, radvel.likelihood.CompositeLikelihood):
+        like_list = cpspost.likelihood.like_list
     else:
-        like_list = [ post.likelihood ]
+        like_list = [ cpspost.likelihood ]
     
     periods = []
     for i in range(model.num_planets):
@@ -102,7 +106,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     rvmod2 = model(rvmodt)
     rvmod = model(rvtimes)
 
-    rawresid = post.likelihood.residuals()
+    rawresid = cpspost.likelihood.residuals()
     resid = rawresid + cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
     slope = cpsparams['dvdt']*(rvmodt-model.time_base) + cpsparams['curv']*(rvmodt-model.time_base)**2
     slope_low = cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
@@ -128,7 +132,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     ax.plot(rvmodt-e,rvmod2,'b-',linewidth=1, rasterized=False)
     ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', fontsize=28, fontweight='bold')
     pltletter += 1
-    _mtelplot(rvtimes-e,rawresid+rvmod,rverr,post.likelihood.telvec, ax, telfmts)
+    _mtelplot(rvtimes-e,rawresid+rvmod,rverr,cpspost.likelihood.telvec, ax, telfmts)
     ax.set_xlim(min(rvtimes-e)-0.01*dt,max(rvtimes-e)+0.01*dt)
     
     pl.setp(axRV.get_xticklabels(), visible=False)
@@ -164,7 +168,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.80), xycoords='axes fraction', fontsize=28, fontweight='bold')
     pltletter += 1
 
-    _mtelplot(rvtimes-e,resid,rverr, post.likelihood.telvec,ax, telfmts)
+    _mtelplot(rvtimes-e,resid,rverr, cpspost.likelihood.telvec,ax, telfmts)
     if not yscale_auto: ax.set_ylim(-yscale_sigma*np.std(resid), yscale_sigma*np.std(resid))
     ax.set_xlim(min(rvtimes-e)-0.01*dt,max(rvtimes-e)+0.01*dt)
     ticks = ax.yaxis.get_majorticklocs()
@@ -194,12 +198,12 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
 
         rvmod2 = model(rvmodt, planet_num=pnum) - slope
         
-        modph = t_to_phase(post.params, rvmodt, pnum, cat=True) - 1
+        modph = t_to_phase(cpspost.params, rvmodt, pnum, cat=True) - 1
 
         rvdat = rawresid + model(rvtimes, planet_num=pnum) - slope_low
         
-        phase = t_to_phase(post.params, rvtimes, pnum, cat=True) - 1
-        p2 = t_to_phase(post.params, rvtimes, pnum, cat=False) - 1
+        phase = t_to_phase(cpspost.params, rvtimes, pnum, cat=True) - 1
+        p2 = t_to_phase(cpspost.params, rvtimes, pnum, cat=False) - 1
 
         rvdatcat = np.concatenate((rvdat,rvdat))
         rverrcat = np.concatenate((rverr,rverr))
@@ -217,7 +221,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', fontsize=28, fontweight='bold')
         pltletter += 1
 
-        _mtelplot(phase,rvdatcat,rverrcat, np.concatenate((post.likelihood.telvec,post.likelihood.telvec)), ax, telfmts)
+        _mtelplot(phase,rvdatcat,rverrcat, np.concatenate((cpspost.likelihood.telvec,cpspost.likelihood.telvec)), ax, telfmts)
         if not nobin and len(rvdat) > 10: ax.errorbar(bint,bindat,yerr=binerr,fmt='ro', ecolor='r', markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2)
 
         pl.xlim(-0.5,0.5)
@@ -228,7 +232,9 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         
         letters = string.lowercase
         planetletter = letters[i+1]
-        labels = ['$P_{\\rm %s}$' % planetletter,'$K_{\\rm %s}$' % planetletter,'$e_{\\rm %s}$' % planetletter]
+        keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
+        labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
+        #labels = ['$P_{\\rm %s}$' % planetletter,'$K_{\\rm %s}$' % planetletter,'$e_{\\rm %s}$' % planetletter]
         units = ['days','m s$^{-1}$','']
         indicies = [0,4,2,2]
         spacing = 0.09
@@ -271,8 +277,8 @@ def corner_plot(post, chains, saveplot=None):
 
     
     labels = [k for k in post.vary.keys() if post.vary[k]]
-    texlabels = [post.params.tex_labels.get(l, l) for l in labels]
-    print labels, texlabels, post.params.tex_labels
+    texlabels = [post.params.tex_labels().get(l, l) for l in labels]
+    print texlabels
     
     f = rcParams['font.size']
     rcParams['font.size'] = 12
@@ -284,7 +290,8 @@ def corner_plot(post, chains, saveplot=None):
                         bins=20,
                         quantiles=[.16,.5,.84],
                         show_titles = True,
-                        title_kwargs={"fontsize": 14})
+                        title_kwargs={"fontsize": 14},
+                        smooth=True)
     
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)

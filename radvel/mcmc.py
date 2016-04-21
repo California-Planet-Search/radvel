@@ -36,8 +36,10 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
 
     # Run the MCMC
     # Burn-in first
+    print "Performing burn-in..."
     pos,prob,state = sampler.run_mcmc(p0,nburn)
     sampler.reset()
+    print "Discarding burn-in"
 
     num_run = int(np.round(nrun / checkinterval))
     totsteps = nrun*nwalkers
