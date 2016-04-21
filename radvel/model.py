@@ -4,6 +4,12 @@ import types
 import numpy as np
 from .basis import Basis
 
+texdict = {'per': 'P',
+           'logk': '\\log{K}',
+           'tc': 'Tconj',
+           'secosw': '\\sqrt{e}\\cos{\\omega}',
+           'sesinw': '\\sqrt{e}\\cos{\\omega}'}
+
 class RVParameters(dict):
     """
     Object to store the orbital parameters.
@@ -14,6 +20,9 @@ class RVParameters(dict):
     :param basis: parameterization of orbital parameters. See radvel.Basis._print_valid_basis() for a list of valid basis strings.
     :type basis: str
 
+    :param tex_labels: Dictionary maping RVParameters keys to their TeX code representations
+    :type tex_labels: dict
+    
     :Example:
     
     .. doctest::
@@ -25,14 +34,21 @@ class RVParameters(dict):
     def __init__(self, num_planets, basis='per tc secosw sesinw logk'):
         self.basis = Basis(basis,num_planets)
         self.planet_parameters = basis.split()
+        self.tex_labels = {}
         for num_planet in range(1,1+num_planets):
             for parameter in self.planet_parameters:
                 self.__setitem__(self._sparameter(parameter, num_planet), None)
-
+                self.tex_labels.__setitem__(self._sparameter(parameter, num_planet), self._texlabel(parameter, num_planet))
+                
         self.num_planets = num_planets
         
     def _sparameter(self, parameter, num_planet):
         return '{0}{1}'.format(parameter, num_planet)
+
+    def _texlabel(self, parameter, num_planet):
+        pname = texdict.get(parameter, parameter)
+        lett_planet = chr(int(num_planet)+97)
+        return '$%s_{%s}$' % (pname, lett_planet) 
 
 class RVModel(object):
     """

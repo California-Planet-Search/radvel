@@ -49,7 +49,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     :param saveplot: (optional) Name of output file, will show as interactive matplotlib window if not defined.
     :type string:
     
-    :param nobin: (optional) If True do not show binned data on phase plots
+    :param nobin: (optional) If True do not show binned data on phase plots. Will default to True if total number of measurements is less then 20.
     :type nobin: bool
     
     :param yscale_auto: (optional) Use matplotlib auto y-axis scaling
@@ -71,6 +71,8 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     yscale_auto = kwargs.pop('yscale_auto', False)
     telfmts = kwargs.pop('telfmts', globals()['telfmts'])
     nophase = kwargs.pop('nophase', False)
+
+    if len(post.likelihood.x) < 20: nobin = True
     
     if saveplot != None: resolution = 1e4
     else: resolution = 2000
@@ -105,10 +107,16 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     slope = cpsparams['dvdt']*(rvmodt-model.time_base) + cpsparams['curv']*(rvmodt-model.time_base)**2
     slope_low = cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
 
-    if nophase: fig = pl.figure(figsize=(19.0,23.0))
-    elif n == 1: fig = pl.figure(figsize=(19.0,16.0))
-    else: fig = pl.figure(figsize=(19.0,16.0+4*n))        
-    rect = [0.07, 0.64, 0.865, 1./(n+1)-0.02]
+    if nophase:
+        fig = pl.figure(figsize=(19.0,16.0))
+        n = 0
+        rect = [0.07, 0.12, 0.865, 1-0.12-0.06]
+    elif n == 1:
+        fig = pl.figure(figsize=(19.0,18.0))
+        rect = [0.07, 0.55, 0.865, 1-0.55-0.06]
+    else:
+        fig = pl.figure(figsize=(19.0,16.0+4*n))        
+        rect = [0.07, 0.64, 0.865, 1-0.64-0.06]
     axRV = pl.axes(rect)
     pl.subplots_adjust(left=0.1,top=0.865,right=0.95)
     plotindex = 1
@@ -169,7 +177,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     # Define the locations for the axes
     axbounds = ax.get_position().bounds
     bottom = axbounds[1]
-    height = (bottom - 0.10) / n
+    height = (bottom - 0.15) / n
     textloc = bottom / 2
     bottom -= height + 0.05
     left, width = 0.07, 0.75
@@ -263,12 +271,14 @@ def corner_plot(post, chains, saveplot=None):
 
     
     labels = [k for k in post.vary.keys() if post.vary[k]]
-
+    texlabels = [post.params.tex_labels.get(l, l) for l in labels]
+    print labels, texlabels, post.params.tex_labels
+    
     f = rcParams['font.size']
     rcParams['font.size'] = 12
     
     fig = corner.corner(chains[labels],
-                        labels=labels,
+                        labels=texlabels,
                         label_kwargs={"fontsize": 14},
                         plot_datapoints=False,
                         bins=20,
