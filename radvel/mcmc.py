@@ -54,7 +54,6 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
         pcomplete = ncomplete/float(totsteps) * 100
         ar = sampler.acceptance_fraction.mean() * 100.
         tchains = sampler.chain.transpose()
-        ac = sampler.acor.max()
 
         (ismixed, gr, tz) = gelman_rubin(tchains)
         mintz = min(tz)
@@ -66,7 +65,7 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
             print "\nChains are well-mixed after %d steps! MCMC complete" % ncomplete
             break
         else:
-            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Max correlation time = %.1f; Max G-R = %4.2f \r" % (ncomplete, totsteps, pcomplete, rate, ar, ac, maxgr))
+            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Min Tz = %.1f; Max G-R = %4.2f \r" % (ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr))
             sys.stdout.flush()
 
     print "\n"        
