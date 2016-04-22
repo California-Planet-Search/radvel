@@ -2,6 +2,7 @@ import pylab as pl
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 from mpl_toolkits.axes_grid1 import make_axes_locatable,AxesGrid
 from matplotlib.ticker import NullFormatter
+from matplotlib.backends.backend_pdf import PdfPages
 import radvel
 from radvel.utils import t_to_phase, fastbin
 from astropy.time import Time
@@ -289,7 +290,7 @@ def corner_plot(post, chains, saveplot=None):
 
     rcParams['font.size'] = f
     
-def trend_plot(post, chains, nwalkers, writedir):
+def trend_plot(post, chains, nwalkers, outfile=None):
     """MCMC trend plot
 
     Make a trend plot to show the evolution of the MCMC as a function of step number.
@@ -298,37 +299,38 @@ def trend_plot(post, chains, nwalkers, writedir):
         post (radvel.Posterior): Radvel Posterior object
         chains (DataFrame): MCMC chains output by radvel.mcmc
         nwalkers (int): number of walkers used in this particular MCMC run
-        writedir (string): directory where plots will be written
+        outfile (string): name of output multi-page PDF file
 
     Returns:
         None
         
     """
 
-    labels = [k for k in post.vary.keys() if post.vary[k]]
+    labels = sorted([k for k in post.vary.keys() if post.vary[k]])
     texlabels = [post.params.tex_labels().get(l, l) for l in labels]
     colors = [ cmap(x) for x in np.linspace(0.05, 0.95, nwalkers)]
 
     quantiles = chains.quantile([0.1587, 0.5, 0.8413])
-    
-    for param,tex in zip(labels,texlabels):
-        flatchain = chains[param].values
-        wchain = flatchain.reshape((nwalkers,-1))
-        
-        
-        fig = pl.figure(figsize=(18,10))
-        for w in range(nwalkers):
-            pl.plot(wchain[w,:], '.', rasterized=True, color=colors[w], markersize=3)
-        #pl.axhline(quantiles[param][0.1587], color='w', linestyle='-', lw=2)
-        #pl.axhline(quantiles[param][0.1587], color='k', linestyle='--', lw=2)
-        #pl.axhline(quantiles[param][0.5], color='k', linestyle='-', lw=3)
-        #pl.axhline(quantiles[param][0.8413], color='w', linestyle='-', lw=2)
-        #pl.axhline(quantiles[param][0.8413], color='k', linestyle='--', lw=2)
 
-        pl.xlim(0,wchain.shape[1])
+    with PdfPages(outfile) as pdf:
+        for param,tex in zip(labels,texlabels):
+            flatchain = chains[param].values
+            wchain = flatchain.reshape((nwalkers,-1))
         
-        pl.xlabel('Step Number')
-        pl.ylabel(tex)
         
-        pl.savefig(os.path.join(writedir,"%s_trend.pdf" % param))
-        pl.clf()
+            fig = pl.figure(figsize=(18,10))
+            for w in range(nwalkers):
+                pl.plot(wchain[w,:], '.', rasterized=True, color=colors[w], markersize=3)
+            #pl.axhline(quantiles[param][0.1587], color='w', linestyle='-', lw=2)
+            #pl.axhline(quantiles[param][0.1587], color='k', linestyle='--', lw=2)
+            #pl.axhline(quantiles[param][0.5], color='k', linestyle='-', lw=3)
+            #pl.axhline(quantiles[param][0.8413], color='w', linestyle='-', lw=2)
+            #pl.axhline(quantiles[param][0.8413], color='k', linestyle='--', lw=2)
+
+            pl.xlim(0,wchain.shape[1])
+
+            pl.xlabel('Step Number')
+            pl.ylabel(tex)
+
+            pdf.savefig()
+            pl.close()
