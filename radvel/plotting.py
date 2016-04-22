@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib
 import corner
 import copy
+import os
 
 rcParams['font.size'] = 24
 
@@ -19,7 +20,7 @@ telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs',
 teldecode = {'a': 'APF', 'k': 'HIRES_k', 'j': 'HIRES_j'}
 msize = 7
 elinecolor = '0.6'
-
+cmap = matplotlib.cm.nipy_spectral
     
 def _mtelplot(x, y, e, tel, ax, telfmts):
         utel = np.unique(tel)
@@ -44,26 +45,17 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     """
     Multi-panel RV plot to display model using post.params orbital paramters.
 
-    :param post: Radvel posterior object. The model plotted will be generated from post.params
-    :type post: radvel.Posterior
+    Args:
+        post (radvel.Posterior): Radvel posterior object. The model plotted will be generated from post.params
+        saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
+        nobin (bool): (optional) If True do not show binned data on phase plots. Will default to True if total number of measurements is less then 20.
+        yscale_auto (bool): (optional) Use matplotlib auto y-axis scaling
+        yscale_sigma (float): (optional) Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted)    
+        telfmts (dict): (optional) dictionary mapping instrument code to plotting format code
+        nophase (bool): (optional) Will omit phase-folded plots if true
 
-    :param saveplot: (optional) Name of output file, will show as interactive matplotlib window if not defined.
-    :type string:
-    
-    :param nobin: (optional) If True do not show binned data on phase plots. Will default to True if total number of measurements is less then 20.
-    :type nobin: bool
-    
-    :param yscale_auto: (optional) Use matplotlib auto y-axis scaling
-    :type yscale_auto: bool
-    
-    :param yscale_sigma: (optional) Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted)
-    :type yscale_sigma: float
-    
-    :param telfmts: (optional) dictionary mapping instrument code to plotting format code
-    :type telfmts: dict
-    
-    :param nophase: (optional) omit phase-folded plots
-    :type nophase: bool
+    Returns:
+        None
         
     """
 
@@ -234,7 +226,6 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         planetletter = letters[i+1]
         keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
         labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
-        #labels = ['$P_{\\rm %s}$' % planetletter,'$K_{\\rm %s}$' % planetletter,'$e_{\\rm %s}$' % planetletter]
         units = ['days','m s$^{-1}$','']
         indicies = [0,4,2,2]
         spacing = 0.09
@@ -264,21 +255,19 @@ def corner_plot(post, chains, saveplot=None):
     """
     Make a corner plot from the output MCMC chains and a posterior object.
 
-    :param post: Radvel posterior object
-    :type post: radvel.Posterior
+    Args:
+        post (radvel.Posterior): Radvel posterior object
+        chains (DataFrame): MCMC chains output by radvel.mcmc
+        saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
 
-    :param chains: MCMC chains output by radvel.mcmc
-    :type chains: pandas.DataFrame
-    
-    :param saveplot: (optional) Name of output file, will show as interactive matplotlib window if not defined.
-    :type string:
+    Returns:
+        None
     
     """
 
     
     labels = [k for k in post.vary.keys() if post.vary[k]]
     texlabels = [post.params.tex_labels().get(l, l) for l in labels]
-    print texlabels
     
     f = rcParams['font.size']
     rcParams['font.size'] = 12
@@ -300,3 +289,46 @@ def corner_plot(post, chains, saveplot=None):
 
     rcParams['font.size'] = f
     
+def trend_plot(post, chains, nwalkers, writedir):
+    """MCMC trend plot
+
+    Make a trend plot to show the evolution of the MCMC as a function of step number.
+
+    Args:
+        post (radvel.Posterior): Radvel Posterior object
+        chains (DataFrame): MCMC chains output by radvel.mcmc
+        nwalkers (int): number of walkers used in this particular MCMC run
+        writedir (string): directory where plots will be written
+
+    Returns:
+        None
+        
+    """
+
+    labels = [k for k in post.vary.keys() if post.vary[k]]
+    texlabels = [post.params.tex_labels().get(l, l) for l in labels]
+    colors = [ cmap(x) for x in np.linspace(0.05, 0.95, nwalkers)]
+
+    quantiles = chains.quantile([0.1587, 0.5, 0.8413])
+    
+    for param,tex in zip(labels,texlabels):
+        flatchain = chains[param].values
+        wchain = flatchain.reshape((nwalkers,-1))
+        
+        
+        fig = pl.figure(figsize=(18,10))
+        for w in range(nwalkers):
+            pl.plot(wchain[w,:], '.', rasterized=True, color=colors[w], markersize=3)
+        #pl.axhline(quantiles[param][0.1587], color='w', linestyle='-', lw=2)
+        #pl.axhline(quantiles[param][0.1587], color='k', linestyle='--', lw=2)
+        #pl.axhline(quantiles[param][0.5], color='k', linestyle='-', lw=3)
+        #pl.axhline(quantiles[param][0.8413], color='w', linestyle='-', lw=2)
+        #pl.axhline(quantiles[param][0.8413], color='k', linestyle='--', lw=2)
+
+        pl.xlim(0,wchain.shape[1])
+        
+        pl.xlabel('Step Number')
+        pl.ylabel(tex)
+        
+        pl.savefig(os.path.join(writedir,"%s_trend.pdf" % param))
+        pl.clf()

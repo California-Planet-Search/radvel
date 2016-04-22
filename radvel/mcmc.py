@@ -3,11 +3,12 @@ import pandas as pd
 import numpy as np
 from scipy import optimize
 import sys
+import time
 
 def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterval=100):
     """Run MCMC
 
-    Run MCMC chains using emcee
+    Run MCMC chains using the emcee EnsambleSampler
 
     Args:
         likelihood (radvel.likelihood): radvel likelihood object
@@ -20,8 +21,7 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
     Returns:
         DataFrame: DataFrame containing the MCMC samples
 
-    """
-    
+    """    
     # Get an initial array value
     p0 = likelihood.get_vary_params()
     ndim = p0.size
@@ -45,12 +45,16 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
     totsteps = nrun*nwalkers
     mixcount = 0
     for r in range(num_run):
+        t1 = time.time()
         pos, prob, state = sampler.run_mcmc(pos, checkinterval)
+        t2 = time.time()
 
+        rate = (checkinterval*nwalkers) / (t2-t1)
         ncomplete = sampler.flatlnprobability.shape[0]
         pcomplete = ncomplete/float(totsteps) * 100
         ar = sampler.acceptance_fraction.mean() * 100.
         tchains = sampler.chain.transpose()
+        ac = sampler.acor.max()
 
         (ismixed, gr, tz) = gelman_rubin(tchains)
         mintz = min(tz)
@@ -62,7 +66,7 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
             print "\nChains are well-mixed after %d steps! MCMC complete" % ncomplete
             break
         else:
-            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Mean acceptance rate = %3.1f%%; Min Tz = %.1f; Max G-R = %4.2f \r" % (ncomplete, totsteps, pcomplete, ar, mintz, maxgr))
+            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Max correlation time = %.1f; Max G-R = %4.2f \r" % (ncomplete, totsteps, pcomplete, rate, ar, ac, maxgr))
             sys.stdout.flush()
 
     print "\n"        
