@@ -26,7 +26,7 @@ class RVParameters(dict):
 
     Args:
         num_planets (int): Number of planets in model
-        basis (string): parameterization of orbital parameters. See ``radvel.Basis._print_valid_basis()`` for a list of valid basis strings.
+        basis (string): parameterization of orbital parameters. See ``radvel.basis.Basis`` for a list of valid basis strings.
         planet_letters (dict): (optional) custom map to match the planet numbers in the RVParameter object to planet letters.
             Default {1: 'b', 2: 'c', etc.}. The keys of this dictionary must all be integers.
         

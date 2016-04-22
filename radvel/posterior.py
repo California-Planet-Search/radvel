@@ -1,4 +1,7 @@
 from .likelihood  import Likelihood
+import copy
+import time
+import numpy as np
 
 class Posterior(Likelihood):
     def __init__(self,likelihood):
@@ -15,7 +18,7 @@ class Posterior(Likelihood):
             s +=  prior.__repr__() + "\n"
         return s
 
-    def logprob(self):
+    def logprob(self):            
         _logprob = self.likelihood.logprob()
         for prior in self.priors:
             _logprob += prior( self.params )
@@ -25,4 +28,5 @@ class Posterior(Likelihood):
     def logprob_array(self, params_array):
         self.likelihood.set_vary_params(params_array)
         _logprob = self.logprob()
+                
         return _logprob

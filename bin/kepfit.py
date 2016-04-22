@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
+import warnings
+warnings.filterwarnings("ignore")
+
 import pandas as pd
 import numpy as np
 import os
 import sys
 import argparse
 import imp
+import pickle
 
 from scipy import optimize
 import copy
@@ -95,7 +99,7 @@ if __name__ == '__main__':
         post_summary=chains.quantile([0.1587, 0.5, 0.8413])
         print '\n Posterior Summary...\n'
         print post_summary
-        saveto = os.path.join(writedir, P.starname+'_post_summary.txt')
+        saveto = os.path.join(writedir, P.starname+'_post_summary.csv')
         post_summary.to_csv(saveto, sep=',')
         print '\n Posterior Summary saved:' , saveto  
 
@@ -120,3 +124,11 @@ if __name__ == '__main__':
         if not opt.noplot:
             saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
             radvel.plotting.rv_multipanel_plot(post, saveplot=saveto)
+            radvel.plotting.trend_plot(post, chains, opt.nwalkers, writedir)
+            
+
+    # Save posterior object as binary pickle file
+    pkl = open(os.path.join(writedir, P.starname+'_post_obj.pkl'), 'wb')
+    pickle.dump(post, pkl)
+    pkl.close()
+    
