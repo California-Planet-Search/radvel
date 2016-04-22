@@ -124,7 +124,8 @@ if __name__ == '__main__':
         if not opt.noplot:
             saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
             radvel.plotting.rv_multipanel_plot(post, saveplot=saveto)
-            radvel.plotting.trend_plot(post, chains, opt.nwalkers, writedir)
+            saveto = os.path.join(writedir, P.starname+'_trends.pdf')
+            radvel.plotting.trend_plot(post, chains, opt.nwalkers, saveto)
             
 
     # Save posterior object as binary pickle file
