@@ -1,9 +1,10 @@
-__all__=['model','likelihood','posterior','mcmc','prior']
+__all__=['model','likelihood','posterior','mcmc','prior', 'utils']
 from .model import *
 from .likelihood import *
 from .posterior import *
 from .mcmc import *
 from .prior import *
+from .utils import *
 import os 
 import sys
 

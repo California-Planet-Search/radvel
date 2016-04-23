@@ -1,5 +1,54 @@
 import numpy as np
 from numpy import *
+from decimal import Decimal
+
+def round_sig(x, sig=2):
+    """
+    Round to the requested number of significant figures.
+
+    Args:
+        x (float): value
+        sig (int): (optional) desired number of significant figures
+
+    Returns:
+        float: `x` rounded to `sig` significant figures
+    """
+
+    if x == 0 or np.isnan(x): return 0.0
+    return round(x, sig-int(floor(log10(abs(x))))-1)
+
+def sigfig(med, errlow, errhigh=None):
+    """
+    Format values with errors into an equal number of signficant figures.
+
+    Args:
+        med (float): median value
+        errlow (float): lower errorbar
+        errhigh (float): upper errorbar
+
+    Returns:
+        tuple: (med,errlow,errhigh) rounded to the lowest number of significant figures
+
+    """
+    
+    if errhigh==None: errhigh = errlow
+        
+    ndec = Decimal(str(errlow)).as_tuple().exponent
+    if abs(Decimal(str(errhigh)).as_tuple().exponent) > abs(ndec): ndec = Decimal(str(errhigh)).as_tuple().exponent
+    if ndec < -1:
+            tmpmed = round(med,abs(ndec))
+            p = 0
+            while tmpmed == 0:
+                tmpmed = round(med, abs(ndec)+p)
+                p += 1
+            med = tmpmed
+    elif (ndec == -1 and str(errhigh)[-1] == '0') and (ndec == -1 and str(errlow)[-1] == '0') or ndec == 0:
+            errlow = int(round_sig(errlow))
+            errhigh = int(round(errhigh))
+            med = int(round(med))
+    else: med = round(med,abs(ndec))
+
+    return med, errlow, errhigh
 
 def timebin(time, meas, meas_err, binsize):
 #  This routine bins a set of times, measurements, and measurement errors 
