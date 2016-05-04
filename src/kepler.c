@@ -46,6 +46,15 @@ double kepler(double M, double e)
   return E;
 }
 
+
+double kepler_array(double * M_array, double e, double * E_array, int size)
+{
+  int i;
+  for(i=0;i<size;i++){
+    E_array[i] = kepler(M_array[i], e);
+  }
+}
+
 // little test function 
 int main()
 {
