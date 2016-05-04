@@ -1,24 +1,25 @@
-import rvkep
+import numpy as np
 import copy_reg
 import types
-import numpy as np
+
+from . import kepler
 from .basis import Basis
 
-texdict = {'per': 'P',
-           'logk': '\\ln{K}',
-           'tc': 'T\\rm{conj}',
-           'secosw': '\\sqrt{e}\\cos{\\omega}',
-           'sesinw': '\\sqrt{e}\\cos{\\omega}',
-           'e': 'e',
-           'w': '\\omega',
-           'tp': 'T\\rm{peri}',
-           'k': 'K',
-           'gamma_': '\\gamma_{\\rm ',
-           'logjit_': '\\ln{\\sigma_{\\rm jit}}_{\\rm ',
-           'dvdt': '\\dot{\\gamma}',
-           'curv': '\\ddot{\\gamma}'
-           }
-
+texdict = {
+    'per': 'P',
+    'logk': '\\ln{K}',
+    'tc': 'T\\rm{conj}',
+    'secosw': '\\sqrt{e}\\cos{\\omega}',
+    'sesinw': '\\sqrt{e}\\cos{\\omega}',
+    'e': 'e',
+    'w': '\\omega',
+    'tp': 'T\\rm{peri}',
+    'k': 'K',
+    'gamma_': '\\gamma_{\\rm ',
+    'logjit_': '\\ln{\\sigma_{\\rm jit}}_{\\rm ',
+    'dvdt': '\\dot{\\gamma}',
+    'curv': '\\ddot{\\gamma}'
+}
 
 class RVParameters(dict):
     """Object to store the orbital parameters.
@@ -138,7 +139,7 @@ class RVModel(object):
             w = params_cps['w{}'.format(num_planet)]
             k = params_cps['k{}'.format(num_planet)]
             orbel_cps = np.array([per, tp, e, w, k, 0, 0, 0])
-            vel+=rvkep.rv_drive(t, orbel_cps, time_base=0 )
+            vel+=kepler.rv_drive(t, orbel_cps, time_base=0 )
 
         vel+=self.params['dvdt'] * ( t - self.time_base )
         vel+=self.params['curv'] * ( t - self.time_base )**2
