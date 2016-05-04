@@ -138,8 +138,8 @@ class RVModel(object):
             e = params_cps['e{}'.format(num_planet)]
             w = params_cps['w{}'.format(num_planet)]
             k = params_cps['k{}'.format(num_planet)]
-            orbel_cps = np.array([per, tp, e, w, k, 0, 0, 0])
-            vel+=kepler.rv_drive(t, orbel_cps, time_base=0 )
+            orbel_cps = np.array([per, tp, e, w, k])
+            vel+=kepler.rv_drive(t, orbel_cps)
 
         vel+=self.params['dvdt'] * ( t - self.time_base )
         vel+=self.params['curv'] * ( t - self.time_base )**2
