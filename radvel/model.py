@@ -21,28 +21,32 @@ texdict = {'per': 'P',
 
 
 class RVParameters(dict):
-    """
-    Object to store the orbital parameters.
+    """Object to store the orbital parameters.
 
     Args:
         num_planets (int): Number of planets in model
-        basis (string): parameterization of orbital parameters. See ``radvel.basis.Basis`` for a list of valid basis strings.
-        planet_letters (dict): (optional) custom map to match the planet numbers in the RVParameter object to planet letters.
-            Default {1: 'b', 2: 'c', etc.}. The keys of this dictionary must all be integers.
-        
+        basis (string): parameterization of orbital parameters. See 
+            ``radvel.basis.Basis`` for a list of valid basis strings.
+        planet_letters (Dictionary[optional): custom map to match the planet 
+            numbers in the RVParameter object to planet letters.
+            Default {1: 'b', 2: 'c', etc.}. The keys of this dictionary must 
+            all be integers.
+
     Attributes:
         basis (radvel.Basis): Basis object
-        planet_parameters (list): orbital parameters contained within the specified basis
+        planet_parameters (list): orbital parameters contained within the 
+            specified basis
         num_planets (int): number of planets in the model
     
     Examples:
-	
        >>> import radvel
-       >>> # create a RVParameters object for a 2-planet system with custom planet number to letter mapping
+       # create a RVParameters object for a 2-planet system with
+       # custom planet number to letter mapping
        >>> params = radvel.RVParameters(2, planet_letters={1:'d', 2:'e'})
 
     """
-    def __init__(self, num_planets, basis='per tc secosw sesinw logk', planet_letters=None):
+    def __init__(self, num_planets, basis='per tc secosw sesinw logk', 
+                 planet_letters=None):
         self.basis = Basis(basis,num_planets)
         self.planet_parameters = basis.split()
         for num_planet in range(1,1+num_planets):
@@ -57,13 +61,12 @@ class RVParameters(dict):
         self.planet_letters = planet_letters
 
     def tex_labels(self):
-        """
-        Map RVParameters keys to pretty TeX code representations.
+        """Map RVParameters keys to pretty TeX code representations.
 
         Returns:
-            dict: dictionary mapping RVParameters keys to TeX code             
-        """
+            dict: dictionary mapping RVParameters keys to TeX code
 
+        """
     
         tex_labels = {}
         for k in self.keys():
@@ -100,7 +103,6 @@ class RVModel(object):
     classes. The different RV models, having different
     parameterizations inherit from this class.
     """
-
     def __init__(self, params, time_base=0):
         self.num_planets = params.num_planets
         self.params = params
@@ -109,22 +111,19 @@ class RVModel(object):
         self.time_base = time_base
 
     def __call__(self, t, planet_num=None):
-        """
-        Compute the radial velocity due to all Keplerians and
-        additional trends.
-
-        :param t: Timestamps to calculate the RV model
-        :type t: float array
-
-        :param planet_num: (optional) calculate the RV model for a single planet within a multi-planet system
-        :type planet_num: int
-
-        :return vel: Radial velocity at each timestamp in the t input array
-        :type vel: float array
+        """Compute the radial velocity
         
-        """
-        vel = np.zeros(len(t))
+        Includes all Keplerians and additional trends.
 
+        Args:
+            t (array of floats): Timestamps to calculate the RV model
+            planet_num (Optional[int]): calculate the RV model for a single 
+                planet within a multi-planet system
+
+        Returns:
+            vel (array of floats): Radial velocity at each time in `t`
+        """
+        vel = np.zeros( len(t) )
         params_cps = self.params.basis.to_cps(self.params)
 
         if planet_num == None:
@@ -139,9 +138,10 @@ class RVModel(object):
             w = params_cps['w{}'.format(num_planet)]
             k = params_cps['k{}'.format(num_planet)]
             orbel_cps = np.array([per, tp, e, w, k, 0, 0, 0])
-            vel += rvkep.rv_drive(t, orbel_cps, time_base=0 )
+            vel+=rvkep.rv_drive(t, orbel_cps, time_base=0 )
 
-        vel += self.params['dvdt']*( t - self.time_base ) + self.params['curv']*( t - self.time_base)**2
+        vel+=self.params['dvdt'] * ( t - self.time_base )
+        vel+=self.params['curv'] * ( t - self.time_base )**2
         return vel
 
 # I had to add these methods to get the model object to be
