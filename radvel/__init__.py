@@ -5,6 +5,8 @@ from .posterior import *
 from .mcmc import *
 from .prior import *
 from .utils import *
+from .report import *
+from .plotting import *
 import os 
 import sys
 
