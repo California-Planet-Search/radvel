@@ -1,5 +1,5 @@
 from distutils.core import setup, Extension
-from Cython.Distutils import build_ext
+from Cython.Build import cythonize
 import numpy
 
 setup(
@@ -7,13 +7,6 @@ setup(
     version="0.1",
     author="Erik Petigura, BJ Fulton",
     packages =['radvel'],
-    cmdclass={'build_ext': build_ext},
-    ext_modules=[
-        Extension(
-            "kepler_cext", 
-            sources=["src/_kepler.pyx"],
-            include_dirs=[numpy.get_include()]
-            )
-        ]
+    ext_modules=cythonize("src/_kepler.pyx"),
+    include_dirs=[numpy.get_include()]
 )
-

@@ -11,7 +11,7 @@ double CONV_TOL = 1.0e-12; // convergence criterion
 double kepler(double M, double e);
 double kepler(double M, double e)
 {
-  double k, conv, E, fi, d1, fip, fipp, fippp;
+  double k, E, fi, d1, fip, fipp, fippp;
   int count;
   k = 0.85; // initial guess at input parameter
 
@@ -36,13 +36,13 @@ double kepler(double M, double e)
       E += d1;
 
       fi  = (E - e * sin( E ) - M);
+
+      if(count==MAX_ITER){
+	printf("Error: kepler step not converging in MAX_ITER.\n");
+	exit(-1);
+      }
+
     }
-
-  if(count==MAX_ITER){
-    printf("Error: kepler step not converging in MAX_ITER.\n");
-    exit(-1);
-  }
-
   return E;
 }
 
