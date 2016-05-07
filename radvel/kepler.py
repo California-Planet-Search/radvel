@@ -1,4 +1,5 @@
 import numpy as np
+from _kepler import kepler_array_cext
 
 def rv_drive(t, orbel):
     """RV Drive
@@ -26,7 +27,9 @@ def rv_drive(t, orbel):
     # Calculate the approximate eccentric anomaly, E1, via the mean anomaly  M.
     M = 2 * np.pi * ( ((t - tp) / per) - np.floor( (t - tp) / per ) )
     eccarr = np.zeros(t.size) + e
-    E1 = kepler(M, eccarr)
+    #E1 = kepler(M, eccarr)
+    print orbel
+    E1 = kepler_array_cext(M, e)
     
     # Calculate nu
     nu = 2 * np.arctan( ( (1+e) / (1-e) )**0.5 * np.tan( E1 / 2 ) )
