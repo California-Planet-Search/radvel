@@ -31,3 +31,14 @@ def kepler_array_cext(np.ndarray[np.float64_t, ndim=1, mode="c"] M_array, double
     kepler_array(<double*> np.PyArray_DATA(M_array), e,
                  <double*> np.PyArray_DATA(E_array), size)
     return E_array 
+
+#def kepler_array_cext2(np.ndarray[np.float64_t, ndim=1, mode="c"] M_array, double e):
+#
+#    cdef int size = M_array.shape[0]
+#    
+#    cdef np.ndarray[np.float64_t, ndim=1] E_array = \
+#        np.empty(size, dtype=np.float64)
+#
+#    kepler_array(<double*> np.PyArray_DATA(M_array), e,
+#                 <double*> np.PyArray_DATA(E_array), size)
+#    return E_array 
