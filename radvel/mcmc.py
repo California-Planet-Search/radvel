@@ -4,8 +4,9 @@ import numpy as np
 from scipy import optimize
 import sys
 import time
+from radvel import utils
 
-def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterval=100):
+def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
     """Run MCMC
 
     Run MCMC chains using the emcee EnsambleSampler
@@ -13,7 +14,6 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
     Args:
         likelihood (radvel.likelihood): radvel likelihood object
         nwalkers (int): number of MCMC walkers
-        nburn (int): number of burn-in steps to run and discard before starting the full chains
         nrun (int): number of steps to take
         threads (int): number of CPU threads to utilize
         checkinterval (int): check MCMC convergence statistics every `checkinterval` steps
@@ -26,7 +26,7 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
     p0 = likelihood.get_vary_params()
     ndim = p0.size
     p0 = np.vstack([p0]*nwalkers)
-    p0 += [np.random.rand(ndim)*0.0001 for i in range(nwalkers)]
+    p0 += [np.random.rand(ndim)*0.05 for i in range(nwalkers)]
     sampler = emcee.EnsembleSampler( 
         nwalkers, 
         ndim, 
@@ -34,16 +34,12 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
         threads=threads
         )
 
-    # Run the MCMC
-    # Burn-in first
-    print "Performing burn-in..."
-    pos,prob,state = sampler.run_mcmc(p0,nburn)
-    sampler.reset()
-    print "Discarding burn-in"
-
+    pos = p0    
     num_run = int(np.round(nrun / checkinterval))
     totsteps = nrun*nwalkers
     mixcount = 0
+    burn_complete = False
+    t0 = time.time()
     for r in range(num_run):
         t1 = time.time()
         pos, prob, state = sampler.run_mcmc(pos, checkinterval)
@@ -53,25 +49,37 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
         ncomplete = sampler.flatlnprobability.shape[0]
         pcomplete = ncomplete/float(totsteps) * 100
         ar = sampler.acceptance_fraction.mean() * 100.
-        tchains = sampler.chain.transpose()
 
+        tchains = sampler.chain.transpose()
+        
         (ismixed, gr, tz) = gelman_rubin(tchains)
         mintz = min(tz)
         maxgr = max(gr)
         if ismixed: mixcount += 1
         else: mixcount = 0
 
+        # Burn-in complete after maximum G-R statistic first reaches 1.10
+        # reset sampler
+        if not burn_complete and maxgr <= 1.10:
+            sampler.reset()
+            print "\nDiscarding burn-in now that the chains are marginally well-mixed\n"
+            burn_complete = True
+
         if mixcount >= 5:
-            print "\nChains are well-mixed after %d steps! MCMC complete" % ncomplete
+            tf = time.time()
+            tdiff = tf - t0
+            tdiff,units = utils.time_print(tdiff)
+            print "\nChains are well-mixed after %d steps! MCMC completed in %3.1f %s" % (ncomplete, tdiff, units)
             break
         else:
-            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Min Tz = %.1f; Max G-R = %4.2f \r" % (ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr))
+            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Min Tz = %.1f; Max G-R = %4.2f        \r"
+                              % (ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr))
             sys.stdout.flush()
-
+            
     print "\n"        
     if ismixed and mixcount < 5: print "MCMC: WARNING: chains did not pass 5 consecutive convergence tests. They may be marginally well=mixed."
     elif not ismixed: print "MCMC: WARNING: chains did not pass convergence tests. They are likely not well-mixed."
-            
+    
     df = pd.DataFrame(
         sampler.flatchain,columns=likelihood.list_vary_params()
         )
@@ -105,13 +113,13 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
     return models
 
 
-def gelman_rubin(pars0, minTz=1000, maxGR=1.10):
+def gelman_rubin(pars0, minTz=1000, maxGR=1.03):
     """Gelman-Rubin Statistic
 
     Calculates the Gelman-Rubin statistic and the number of
     independent draws for each parameter, as defined by Ford et al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
     The chain is considered well-mixed if all parameters have a
-    Gelman-Rubin statistic of <= 1.10 and >= 1000 independent draws.
+    Gelman-Rubin statistic of <= 1.03 and >= 1000 independent draws.
 
     History:
         2010/03/01 - Written: Jason Eastman - The Ohio State University

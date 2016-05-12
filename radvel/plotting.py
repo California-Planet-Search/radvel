@@ -321,16 +321,14 @@ def trend_plot(post, chains, nwalkers, outfile=None):
             fig = pl.figure(figsize=(18,10))
             for w in range(nwalkers):
                 pl.plot(wchain[w,:], '.', rasterized=True, color=colors[w], markersize=3)
-            #pl.axhline(quantiles[param][0.1587], color='w', linestyle='-', lw=2)
-            #pl.axhline(quantiles[param][0.1587], color='k', linestyle='--', lw=2)
-            #pl.axhline(quantiles[param][0.5], color='k', linestyle='-', lw=3)
-            #pl.axhline(quantiles[param][0.8413], color='w', linestyle='-', lw=2)
-            #pl.axhline(quantiles[param][0.8413], color='k', linestyle='--', lw=2)
 
             pl.xlim(0,wchain.shape[1])
 
             pl.xlabel('Step Number')
             pl.ylabel(tex)
+
+            ax = pl.gca()
+            ax.set_rasterized(True)
 
             pdf.savefig()
             pl.close()

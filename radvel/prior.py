@@ -20,7 +20,7 @@ class Gaussian(Prior):
 
 class EccentricityPrior(Prior):
     def __repr__(self):
-        return "Eccentricity constrained to be < 1"
+        return "Eccentricity constrained to be < 0.99"
     
     def __init__(self, num_planets):
         self.num_planets = num_planets
