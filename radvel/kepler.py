@@ -2,7 +2,7 @@ import numpy as np
 
 # Try to import Kepler's equation solver written in C
 try:
-    from _kepler import kepler_array_cext
+    from . import _kepler 
     cext = True
 except ImportError:
     print "WARNING: KEPLER: Unable to import C-based Kepler's equation solver. Falling back to the slower NumPy implementation."
@@ -32,18 +32,17 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
     if e > 0.99: e = 0.99
 
     # Calculate the approximate eccentric anomaly, E1, via the mean anomaly  M.
-    M = 2 * np.pi * ( ((t - tp) / per) - np.floor( (t - tp) / per ) )
     if use_C_kepler_solver:
-        E1 = kepler_array_cext(M, e)
+        rv = _kepler.rv_drive_array(t, per, tp, e, om, k)
     else:
+        M = 2 * np.pi * ( ((t - tp) / per) - np.floor( (t - tp) / per ) )
         eccarr = np.zeros(t.size) + e
         E1 = kepler(M, eccarr)    
+        # Calculate nu
+        nu = 2 * np.arctan( ( (1+e) / (1-e) )**0.5 * np.tan( E1 / 2 ) )
+        # Calculate the radial velocity
+        rv = k * ( np.cos( nu + om ) + e * np.cos( om ) ) 
     
-    # Calculate nu
-    nu = 2 * np.arctan( ( (1+e) / (1-e) )**0.5 * np.tan( E1 / 2 ) )
-    
-    # Calculate the radial velocity
-    rv = k * ( np.cos( nu + om ) + e * np.cos( om ) ) 
     return rv
 
 def kepler(inbigM, inecc):
@@ -99,7 +98,7 @@ def kepler(inbigM, inecc):
 
 
 
-if __name__ == '__main__':
+def profile():
     # Profile and compare C-based Kepler solver with
     # Python/Numpy implementation
 

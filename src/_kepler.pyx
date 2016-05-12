@@ -11,25 +11,33 @@ np.import_array()
 # arguments and returns a double
 cdef extern from "kepler.c":
     double kepler(double M, double e)
-
-def kepler_cext(M, e):
-    return kepler(M, e)
-
-# cdefine the signature of our c function
-cdef extern from "kepler.c":
-    void kepler_array(double * M_array, double e, double * E_array, int size)
+    double rv_drive(double t, double per, double tp, double e, double om, double k )
 
 
 # create the wrapper code, with numpy type annotations
 @cython.boundscheck(False)
-def kepler_array_cext(double [:,] M, double e):
-    cdef int size = M.shape[0]
-    cdef np.ndarray[np.float64_t, ndim=1] E = \
-        np.empty(size, dtype=np.float64)
+def kepler_array(double [:,] M, double e):
+    cdef int size, i
 
-    cdef int i
+    size = M.shape[0]
+    cdef np.ndarray[double, ndim=1] E = \
+        np.ndarray(shape=(size,), dtype=np.float64) 
+
     for i in range(size):
         E[i] = kepler(M[i], e)
 
     return E 
+
+# create the wrapper code, with numpy type annotations
+@cython.boundscheck(False)
+def rv_drive_array(double [:,] t, double per, double tp, double e, double om, 
+                   double k):
+    cdef int size, i 
+    size = t.shape[0]
+    cdef np.ndarray[np.float64_t,ndim=1] rv = \
+        np.empty(size, dtype=np.float64) 
+    for i in range(size):
+        rv[i] = rv_drive(t[i], per, tp, e, om, k)
+
+    return rv
 
