@@ -90,7 +90,7 @@ if __name__ == '__main__':
         radvel.plotting.rv_multipanel_plot(post, saveplot=saveto)
 
     if not opt.nomcmc:
-        print '\n Running MCMC, nwalkers = %s, nsteps = %s, nburn = %s ...'  %(opt.nwalkers, opt.nsteps, opt.nburns)
+        print '\n Running MCMC, nwalkers = %s, nsteps = %s ...'  %(opt.nwalkers, opt.nsteps)
         chains = radvel.mcmc(post,threads=1,nburn=opt.nburns,nwalkers=opt.nwalkers,nrun=opt.nsteps)
 
         saveto = os.path.join(writedir, P.starname+'_corner.pdf')

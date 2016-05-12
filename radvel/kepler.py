@@ -1,23 +1,30 @@
 import numpy as np
-from _kepler import kepler_array_cext
 
-def rv_drive(t, orbel):
+# Try to import Kepler's equation solver written in C
+try:
+    from _kepler import kepler_array_cext
+    cext = True
+except ImportError:
+    print "WARNING: KEPLER: Unable to import C-based Kepler's equation solver. Falling back to the slower NumPy implementation."
+    cext = False
+
+def rv_drive(t, orbel, use_C_kepler_solver=cext):
     """RV Drive
     
     Args:
         t (array of floats): times of observations
         orbel (array of floats): [per, tp, e, om, K]. Omega is expected to be
             in degrees
+        use_C_kepler_solver (bool): (default: True) If True use the Kepler solver written in C, else use the Python/NumPy version.
 
     Returns:
-        rv: (array of floats): radial velocity
+        rv: (array of floats): radial velocity model
     
     """
     
     # unpack array
     per, tp, e, om, k = orbel
     om = om / 180 * np.pi
-    curv  = 0
     
     # Error checking
     if per < 0: per = 1e-4
@@ -26,9 +33,11 @@ def rv_drive(t, orbel):
 
     # Calculate the approximate eccentric anomaly, E1, via the mean anomaly  M.
     M = 2 * np.pi * ( ((t - tp) / per) - np.floor( (t - tp) / per ) )
-    eccarr = np.zeros(t.size) + e
-    #E1 = kepler(M, eccarr)    
-    E1 = kepler_array_cext(M, e)
+    if use_C_kepler_solver and e <= 0.99:
+        E1 = kepler_array_cext(M, e)
+    else:
+        eccarr = np.zeros(t.size) + e
+        E1 = kepler(M, eccarr)    
     
     # Calculate nu
     nu = 2 * np.arctan( ( (1+e) / (1-e) )**0.5 * np.tan( E1 / 2 ) )
@@ -38,7 +47,15 @@ def rv_drive(t, orbel):
     return rv
 
 def kepler(inbigM, inecc):
-    """Kepler's Equation
+    """Solve Kepler's Equation
+
+    Args:
+        inbigM (array): input Mean annomaly
+        inecc (array): eccentricity
+
+    Returns:
+        eccentric annomaly: array
+    
     """
     
     Marr = inbigM  # protect inputs; necessary?
@@ -72,10 +89,47 @@ def kepler(inbigM, inecc):
         E = E + d3
         Earr[convd] = E
         fiarr = ( Earr - eccarr * np.sin( Earr ) - Marr) # how well did we do?
-        convd = np.abs(fiarr) > conv, nd #test for convergence
+        convd = np.abs(fiarr) > conv  #test for convergence
         nd = np.sum(convd == True)
         
     if Earr.size > 1: 
         return Earr
     else: 
         return Earr[0]
+
+
+
+if __name__ == '__main__':
+    # Profile and compare C-based Kepler solver with
+    # Python/Numpy implementation
+
+    import timeit
+    
+    ecc = 0.99
+    orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
+    numloops = 10000
+
+    
+    for size in [10,30,100,300,1000,3000]:
+
+        setup = """\
+from radvel.kepler import rv_drive
+import numpy as np
+
+gc.enable()
+
+ecc = %f
+orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
+
+t = np.linspace(2455000, 2457000, %d)
+""" % (ecc, size)
+        
+        
+        print "\nProfiling pure C code for an RV time series with {} observations".format(size)
+        tc = timeit.timeit('rv_drive(t, orbel, use_C_kepler_solver=True)', setup=setup, number=numloops)
+        print "Ran %d model calculations in %5.3f seconds" % (numloops, tc)
+
+        print "Profiling Python code for an RV time series with {} observations".format(size)
+        tp = timeit.timeit('rv_drive(t, orbel, use_C_kepler_solver=False)', setup=setup, number=numloops)
+        print "Ran %d model calculations in %5.3f seconds" % (numloops, tp)
+        print "The C version runs %5.2f times faster" % (tp/tc)

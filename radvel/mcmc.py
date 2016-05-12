@@ -68,7 +68,7 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
 
         # Burn-in complete after maximum G-R statistic first reaches 1.5
         # reset sampler
-        if maxgr <= 1.5 and not burn_complete:
+        if not burn_complete and maxgr <= 1.5:
             sampler.reset()
             burn_complete = True
 

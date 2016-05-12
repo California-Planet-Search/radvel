@@ -49,7 +49,8 @@ double kepler(double M, double e)
       // printf("E =  %f, count = %i\n", E , count); //debugging
 
       if(count==MAX_ITER){
-	printf("Error: kepler step not converging in MAX_ITER.\n");
+	printf("Error: kepler step not converging after %d steps.\n", MAX_ITER);
+	printf("E=%f,  M=%f,  e=%f\n", E, M, e);
 	exit(-1);
       }
     }
