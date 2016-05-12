@@ -153,22 +153,17 @@ def semi_amplitude(Msini, P, Mtotal, e):
     return K
 
 def Msini(K, P, Mtotal, e):
-    """
-    Parameters
-    ----------
-    :param K: Doppler semi-amplitude [m/s]
-    :type K: float
+    """Calculate Msini
+
+    Calculate Msini for a given K, P, stellar mass, and e
     
-    :param P: Orbital period [days]
-    :type P: float
-    
-    :param Mstar: Mass of star [Msun]
-    :type Mstar: float
-    
-    :param e: eccentricity
-    :type e: float
-    
-    :return: Msini, Jupiter masses
+    Args:
+        K (float): Doppler semi-amplitude [m/s]
+        P (float): Orbital period [days]
+        Mstar (float): Mass of star [Msun]
+        e (float): eccentricity
+    Returns:
+        float: Msini, Jupiter masses
     
     """
     Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.66 * (P/365.0)**0.33

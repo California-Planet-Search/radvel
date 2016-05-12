@@ -53,7 +53,7 @@ if __name__ == '__main__':
     parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',type=str)
     parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain [20000]',default=20000,type=float)
     parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers. [50]',default=50,type=int)
-    parser.add_argument('--nburns', dest='nburns',action='store',help='Number of burns. [100]',default=100,type=int)
+    #parser.add_argument('--nburns', dest='nburns',action='store',help='Number of burns. [100]',default=100,type=int)
     parser.add_argument('--noplots', dest='noplot',action='store_true',help='No plots will be created or saved [False]')
     parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC? [False]')
     parser.add_argument('--outputdir', dest='outputdir',action='store',help='Directory to save output files [./]', default='./')
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
     if not opt.nomcmc:
         print '\n Running MCMC, nwalkers = %s, nsteps = %s ...'  %(opt.nwalkers, opt.nsteps)
-        chains = radvel.mcmc(post,threads=1,nburn=opt.nburns,nwalkers=opt.nwalkers,nrun=opt.nsteps)
+        chains = radvel.mcmc(post,threads=1,nwalkers=opt.nwalkers,nrun=opt.nsteps)
 
         saveto = os.path.join(writedir, P.starname+'_corner.pdf')
         radvel.plotting.corner_plot(post, chains, saveplot=saveto)
