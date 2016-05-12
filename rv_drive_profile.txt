@@ -1,0 +1,35 @@
+Profiling pure C code for an RV time series with 10 observations
+Ran 10000 model calculations in 0.196 seconds
+Profiling Python code for an RV time series with 10 observations
+Ran 10000 model calculations in 0.774 seconds
+The C version runs  3.94 times faster
+
+Profiling pure C code for an RV time series with 30 observations
+Ran 10000 model calculations in 0.250 seconds
+Profiling Python code for an RV time series with 30 observations
+Ran 10000 model calculations in 0.809 seconds
+The C version runs  3.24 times faster
+
+Profiling pure C code for an RV time series with 100 observations
+Ran 10000 model calculations in 0.446 seconds
+Profiling Python code for an RV time series with 100 observations
+Ran 10000 model calculations in 1.487 seconds
+The C version runs  3.34 times faster
+
+Profiling pure C code for an RV time series with 300 observations
+Ran 10000 model calculations in 1.033 seconds
+Profiling Python code for an RV time series with 300 observations
+Ran 10000 model calculations in 1.701 seconds
+The C version runs  1.65 times faster
+
+Profiling pure C code for an RV time series with 1000 observations
+Ran 10000 model calculations in 3.662 seconds
+Profiling Python code for an RV time series with 1000 observations
+Ran 10000 model calculations in 4.303 seconds
+The C version runs  1.18 times faster
+
+Profiling pure C code for an RV time series with 3000 observations
+Ran 10000 model calculations in 10.712 seconds
+Profiling Python code for an RV time series with 3000 observations
+Ran 10000 model calculations in 9.850 seconds
+The C version runs  0.92 times faster
