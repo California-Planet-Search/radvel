@@ -11,12 +11,11 @@ General Toolkit for Modeling Radial Velocities
 - parameters are represented as dicts not arrays
 - Can handle data from multiple telescopes
 - Easily convert between different parameterizations
+- Computation of Kepler's equation (numerically intensive) written in C
 
 ## To Do
 
-- Flesh out documentation
 - Bundle up examples in convenient test cases
-- Rewrite `rv_drive` in C (for fun)
 - Release publically (future) 
 
 ## Tutorials 
@@ -33,7 +32,5 @@ You'll need the following dependencies
 - corner 
 - pandas (to read in hdf5)
 - matplotlib-1.5.0
-
-
-
+- cython (tested with 0.22)
 
