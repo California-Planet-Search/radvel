@@ -13,6 +13,8 @@ cdef extern from "kepler.c":
     double kepler(double M, double e)
     double rv_drive(double t, double per, double tp, double e, double om, double k )
 
+DTYPE = np.float64
+ctypedef np.float64_t DTYPE_t
 
 # create the wrapper code, with numpy type annotations
 @cython.boundscheck(False)
@@ -30,12 +32,12 @@ def kepler_array(double [:,] M, double e):
 
 # create the wrapper code, with numpy type annotations
 @cython.boundscheck(False)
-def rv_drive_array(double [:,] t, double per, double tp, double e, double om, 
-                   double k):
+def rv_drive_array(np.ndarray[DTYPE_t, ndim=1] t, double per, double tp, 
+                   double e, double om, double k):
     cdef int size, i 
     size = t.shape[0]
-    cdef np.ndarray[np.float64_t,ndim=1] rv = \
-        np.empty(size, dtype=np.float64) 
+
+    cdef np.ndarray[DTYPE_t, ndim=1] rv = t.copy()
     for i in range(size):
         rv[i] = rv_drive(t[i], per, tp, e, om, k)
 

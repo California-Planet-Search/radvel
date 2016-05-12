@@ -96,8 +96,6 @@ def kepler(inbigM, inecc):
     else: 
         return Earr[0]
 
-
-
 def profile():
     # Profile and compare C-based Kepler solver with
     # Python/Numpy implementation
