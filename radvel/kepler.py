@@ -27,8 +27,7 @@ def rv_drive(t, orbel):
     # Calculate the approximate eccentric anomaly, E1, via the mean anomaly  M.
     M = 2 * np.pi * ( ((t - tp) / per) - np.floor( (t - tp) / per ) )
     eccarr = np.zeros(t.size) + e
-    #E1 = kepler(M, eccarr)
-    print orbel
+    #E1 = kepler(M, eccarr)    
     E1 = kepler_array_cext(M, e)
     
     # Calculate nu
@@ -56,6 +55,7 @@ def kepler(inbigM, inecc):
 
     while nd > 0:  # while unconverged elements exist
         count += 1
+        
         M = Marr[convd]  # just the unconverged elements ...
         ecc = eccarr[convd]
         E = Earr[convd]
@@ -74,7 +74,7 @@ def kepler(inbigM, inecc):
         fiarr = ( Earr - eccarr * np.sin( Earr ) - Marr) # how well did we do?
         convd = np.abs(fiarr) > conv, nd #test for convergence
         nd = np.sum(convd == True)
-
+        
     if Earr.size > 1: 
         return Earr
     else: 

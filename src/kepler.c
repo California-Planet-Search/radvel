@@ -16,7 +16,8 @@ double kepler(double M, double e)
   k = 0.85; // initial guess at input parameter
 
   count = 0; // how many loops have we done?
-  E = M + k * e; // first guess at E, the eccentric anomally
+  E = M + sign(sin(M)) * k * e; // first guess at E, the eccentric anomally
+  
 
   // We are finding the root of this function, fi. Should go to zero
   fi = (E - e * sin(E) - M); 
@@ -24,6 +25,8 @@ double kepler(double M, double e)
     {
       count++;
       
+      // printf("count=%d,  M=%f,  e=%f,  fabs(fi)=%5.3g\n", count, M, e, fabs(fi));
+
       // first, second, and third order derivatives of fi with respect to E
       fip = 1 - e * cos(E) ;
       fipp = e * sin(E); 
@@ -38,9 +41,9 @@ double kepler(double M, double e)
       fi  = (E - e * sin( E ) - M);
 
       if(count==MAX_ITER){
-	printf("Error: kepler step not converging in MAX_ITER.\n");
+        printf("Error: kepler step not converging after %d iterations. M=%9.7f, e=%f \n", MAX_ITER, M, e);
 	exit(-1);
-      }
+       }
 
     }
   return E;

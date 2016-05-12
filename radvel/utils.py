@@ -1,6 +1,19 @@
 import numpy as np
 from numpy import *
 
+def time_print(tdiff):
+    units = 'seconds'
+    if tdiff > 60:
+        tdiff /= 60
+        units = 'minutes'
+        if tdiff > 60:
+            tdiff /= 60
+            units = 'hours'
+            if tdiff > 24:
+                tdiff /= 24
+                units = 'days'
+    return tdiff, units
+
 def timebin(time, meas, meas_err, binsize):
 #  This routine bins a set of times, measurements, and measurement errors 
 #  into time bins.  All inputs and outputs should be floats or double. 

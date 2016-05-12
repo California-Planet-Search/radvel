@@ -4,6 +4,7 @@ import numpy as np
 from scipy import optimize
 import sys
 import time
+from radvel import utils
 
 def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterval=100):
     """Run MCMC
@@ -26,7 +27,7 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
     p0 = likelihood.get_vary_params()
     ndim = p0.size
     p0 = np.vstack([p0]*nwalkers)
-    p0 += [np.random.rand(ndim)*0.0001 for i in range(nwalkers)]
+    p0 += [np.random.rand(ndim)*0.05 for i in range(nwalkers)]
     sampler = emcee.EnsembleSampler( 
         nwalkers, 
         ndim, 
@@ -34,16 +35,19 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
         threads=threads
         )
 
-    # Run the MCMC
-    # Burn-in first
-    print "Performing burn-in..."
-    pos,prob,state = sampler.run_mcmc(p0,nburn)
-    sampler.reset()
-    print "Discarding burn-in"
-
+    # Run the MCMC for nburn steps then perturb the
+    # initial parameter positions by 1 standard deviation
+    #print "Estimating step sizes..."
+    #pos,prob,state = sampler.run_mcmc(p0,nburn)
+    #pos = emcee.utils.sample_ball(sampler.flatchain.mean(axis=0), sampler.flatchain.std(axis=0), size=50)
+    #sampler.reset()
+    pos = p0
+    
     num_run = int(np.round(nrun / checkinterval))
     totsteps = nrun*nwalkers
     mixcount = 0
+    burn_complete = False
+    t0 = time.time()
     for r in range(num_run):
         t1 = time.time()
         pos, prob, state = sampler.run_mcmc(pos, checkinterval)
@@ -53,25 +57,36 @@ def mcmc(likelihood, nwalkers=50, nburn=1000, nrun=10000, threads=1, checkinterv
         ncomplete = sampler.flatlnprobability.shape[0]
         pcomplete = ncomplete/float(totsteps) * 100
         ar = sampler.acceptance_fraction.mean() * 100.
-        tchains = sampler.chain.transpose()
 
+        tchains = sampler.chain.transpose()
+        
         (ismixed, gr, tz) = gelman_rubin(tchains)
         mintz = min(tz)
         maxgr = max(gr)
         if ismixed: mixcount += 1
         else: mixcount = 0
 
+        # Burn-in complete after maximum G-R statistic first reaches 1.5
+        # reset sampler
+        if maxgr <= 1.5 and not burn_complete:
+            sampler.reset()
+            burn_complete = True
+
         if mixcount >= 5:
-            print "\nChains are well-mixed after %d steps! MCMC complete" % ncomplete
+            tf = time.time()
+            tdiff = tf - t0
+            tdiff,units = utils.print_time(tdiff)
+            print "\nChains are well-mixed after %d steps! MCMC completed in %d %s" % (ncomplete, tdiff, units)
             break
         else:
-            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Min Tz = %.1f; Max G-R = %4.2f \r" % (ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr))
+            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Min Tz = %.1f; Max G-R = %4.2f\r"
+                              % (ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr))
             sys.stdout.flush()
-
+            
     print "\n"        
     if ismixed and mixcount < 5: print "MCMC: WARNING: chains did not pass 5 consecutive convergence tests. They may be marginally well=mixed."
     elif not ismixed: print "MCMC: WARNING: chains did not pass convergence tests. They are likely not well-mixed."
-            
+    
     df = pd.DataFrame(
         sampler.flatchain,columns=likelihood.list_vary_params()
         )
