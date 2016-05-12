@@ -1,35 +1,35 @@
 Profiling pure C code for an RV time series with 10 observations
-Ran 10000 model calculations in 0.196 seconds
+Ran 10000 model calculations in 0.063 seconds
 Profiling Python code for an RV time series with 10 observations
-Ran 10000 model calculations in 0.774 seconds
-The C version runs  3.94 times faster
+Ran 10000 model calculations in 0.802 seconds
+The C version runs 12.76 times faster
 
 Profiling pure C code for an RV time series with 30 observations
-Ran 10000 model calculations in 0.250 seconds
+Ran 10000 model calculations in 0.128 seconds
 Profiling Python code for an RV time series with 30 observations
-Ran 10000 model calculations in 0.809 seconds
-The C version runs  3.24 times faster
+Ran 10000 model calculations in 0.865 seconds
+The C version runs  6.77 times faster
 
 Profiling pure C code for an RV time series with 100 observations
-Ran 10000 model calculations in 0.446 seconds
+Ran 10000 model calculations in 0.346 seconds
 Profiling Python code for an RV time series with 100 observations
-Ran 10000 model calculations in 1.487 seconds
-The C version runs  3.34 times faster
+Ran 10000 model calculations in 1.521 seconds
+The C version runs  4.40 times faster
 
 Profiling pure C code for an RV time series with 300 observations
-Ran 10000 model calculations in 1.033 seconds
+Ran 10000 model calculations in 0.977 seconds
 Profiling Python code for an RV time series with 300 observations
-Ran 10000 model calculations in 1.701 seconds
-The C version runs  1.65 times faster
+Ran 10000 model calculations in 1.773 seconds
+The C version runs  1.81 times faster
 
 Profiling pure C code for an RV time series with 1000 observations
-Ran 10000 model calculations in 3.662 seconds
+Ran 10000 model calculations in 3.575 seconds
 Profiling Python code for an RV time series with 1000 observations
-Ran 10000 model calculations in 4.303 seconds
-The C version runs  1.18 times faster
+Ran 10000 model calculations in 3.435 seconds
+The C version runs  0.96 times faster
 
 Profiling pure C code for an RV time series with 3000 observations
-Ran 10000 model calculations in 10.712 seconds
+Ran 10000 model calculations in 9.447 seconds
 Profiling Python code for an RV time series with 3000 observations
-Ran 10000 model calculations in 9.850 seconds
-The C version runs  0.92 times faster
+Ran 10000 model calculations in 8.536 seconds
+The C version runs  0.90 times faster
