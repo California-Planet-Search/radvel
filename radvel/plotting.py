@@ -107,13 +107,13 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     if nophase:
         fig = pl.figure(figsize=(19.0,16.0))
         n = 0
-        rect = [0.07, 0.12, 0.865, 1-0.12-0.06]
+        rect = [0.10, 0.12, 0.865, 1-0.12-0.06]
     elif n == 1:
         fig = pl.figure(figsize=(19.0,18.0))
-        rect = [0.07, 0.55, 0.865, 1-0.55-0.06]
+        rect = [0.10, 0.55, 0.865, 1-0.55-0.06]
     else:
         fig = pl.figure(figsize=(19.0,16.0+4*n))        
-        rect = [0.07, 0.64, 0.865, 1-0.64-0.06]
+        rect = [0.10, 0.64, 0.865, 1-0.64-0.06]
     axRV = pl.axes(rect)
     pl.subplots_adjust(left=0.1,top=0.865,right=0.95)
     plotindex = 1
@@ -177,7 +177,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     height = (bottom - 0.15) / n
     textloc = bottom / 2
     bottom -= height + 0.05
-    left, width = 0.07, 0.75
+    left, width = 0.10, 0.72
 
     
     #Phase plots
