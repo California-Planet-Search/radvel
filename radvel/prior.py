@@ -1,4 +1,5 @@
 import numpy as np
+from radvel import model
 
 class Prior(object):
     def __repr__(self):
@@ -13,14 +14,27 @@ class Gaussian(Prior):
         x = params[self.param]
         return -0.5 * ( ( x - self.mu ) / self.sigma )**2
     def __repr__(self):
-        s = "Gaussian Prior on {}, mu={}, sigma={}".format(
+        s = "Gaussian prior on {}, mu={}, sigma={}".format(
             self.param, self. mu, self.sigma
             )
-        return s 
+        return s
+    def __str__(self):
+        try:
+            d = {self.param: self.mu}
+            tex = model.RVParameters(9).tex_labels()[self.param]
+        
+            s = "Gaussian prior on {}: ${} \\pm {}$".format(tex, self. mu, self.sigma)
+        except KeyError:
+            s = self.__repr__(self)
+            
+        return s
 
 class EccentricityPrior(Prior):
     def __repr__(self):
         return "Eccentricity constrained to be < 0.99"
+    def __str__(self):
+        return "Eccentricity constrained to be $<0.99$"
+
     
     def __init__(self, num_planets):
         self.num_planets = num_planets
@@ -45,7 +59,9 @@ class EccentricityPrior(Prior):
 class PositiveKPrior(Prior):
     def __repr__(self):
         return "K constrained to be > 0"
-    
+    def __str__(self):
+        return "$K$ constrained to be $>0$"
+
     def __init__(self, num_planets):
         self.num_planets = num_planets
     

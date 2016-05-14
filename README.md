@@ -33,4 +33,4 @@ You'll need the following dependencies
 - pandas (to read in hdf5)
 - matplotlib-1.5.0
 - cython (tested with 0.22)
-
+- pdflatex installed and in your system's path

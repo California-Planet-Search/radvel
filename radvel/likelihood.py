@@ -12,7 +12,8 @@ class Likelihood(object):
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.params.update({}.fromkeys(extra_params, np.nan) ) 
-
+        print extra_params
+        
         vary = {}.fromkeys(self.params.keys(), True)
         self.vary = vary
 
@@ -86,6 +87,8 @@ class CompositeLikelihood(Likelihood):
         self.y = like0.y - params[like0.gamma_param]
         self.yerr = np.sqrt(like0.yerr + np.exp(like0.params[like0.logjit_param])**2)
         self.telvec = like0.telvec
+        self.extra_params = like0.extra_params
+        self.suffixes = like0.suffix
         
         for i in range(1,self.nlike):
             like = like_list[i]
@@ -94,6 +97,8 @@ class CompositeLikelihood(Likelihood):
             self.y = np.append(self.y, like.y - like.params[like.gamma_param])
             self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + np.exp(like.params[like.logjit_param])**2))
             self.telvec = np.append(self.telvec, like.telvec)
+            self.extra_params = np.append(self.extra_params, like.extra_params)
+            self.suffixes = np.append(self.suffixes, like.suffix)
             
             assert like.model is like0.model, \
                 "Likelihoods must use the same model"
@@ -103,8 +108,8 @@ class CompositeLikelihood(Likelihood):
                     assert like.params[k] is params[k]
                 else:
                     params[k] = like.params[k]
-            
 
+        self.extra_params = list(set(self.extra_params))
         self.params = params
         self.vary = {}.fromkeys(params.keys(),True)
         self.like_list = like_list
@@ -132,9 +137,9 @@ class RVLikelihood(Likelihood):
 
         self.telvec = np.array([self.suffix]*len(t))
         
-        extra_params = [self.gamma_param, self.logjit_param]
+        self.extra_params = [self.gamma_param, self.logjit_param]
         super(RVLikelihood, self).__init__(
-            model, t, vel, errvel, extra_params=extra_params
+            model, t, vel, errvel, extra_params=self.extra_params
             )
 
     def residuals(self):
