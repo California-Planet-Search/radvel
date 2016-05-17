@@ -1,6 +1,7 @@
 import numpy as np
-from numpy import *
 from decimal import Decimal
+from contextlib import contextmanager
+import os
 
 def round_sig(x, sig=2):
     """
@@ -158,3 +159,24 @@ def phase_to_t(params, phase, num_planet):
     t = phase * P
     t += tc
     return t
+
+@contextmanager
+def working_directory(dir):
+    """Do something in a directory
+
+    Function to use with `with` statements.
+
+    Args:
+       dir (string): name of directory to work in
+    
+    Example:
+        >>> with workdir('/temp'):
+            # do something within the /temp directory
+    """
+    cwd = os.getcwd()
+    os.chdir(dir)
+    try:
+        yield
+    finally:
+        os.chdir(cwd)
+

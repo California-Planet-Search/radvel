@@ -17,6 +17,7 @@ import copy
 import radvel
 import radvel.likelihood
 import radvel.plotting
+import radvel.utils
 
 
 def initialize_posterior(P):
@@ -84,6 +85,7 @@ if __name__ == '__main__':
     like = post.likelihood
 
     writedir = os.path.join(opt.outputdir, P.starname)
+    curdir = os.getcwd()
     if not os.path.isdir(writedir):
         os.mkdir(writedir)
 
@@ -95,8 +97,11 @@ if __name__ == '__main__':
         print '\n Running MCMC, nwalkers = %s, nsteps = %s ...'  %(opt.nwalkers, opt.nsteps)
         chains = radvel.mcmc(post,threads=1,nwalkers=opt.nwalkers,nrun=opt.nsteps)
 
-        saveto = os.path.join(writedir, P.starname+'_corner.pdf')
-        radvel.plotting.corner_plot(post, chains, saveplot=saveto)
+        report_depfiles = []
+        if not opt.noplot:
+            cp_saveto = os.path.join(writedir, P.starname+'_corner.pdf')
+            radvel.plotting.corner_plot(post, chains, saveplot=cp_saveto)
+            report_depfiles.append(cp_saveto)
         
         post_summary=chains.quantile([0.1587, 0.5, 0.8413])
         print '\n Posterior Summary...\n'
@@ -124,11 +129,17 @@ if __name__ == '__main__':
         print cpspost
 
         if not opt.noplot:
-            saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
-            radvel.plotting.rv_multipanel_plot(post, saveplot=saveto)
+            mp_saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
+            radvel.plotting.rv_multipanel_plot(post, saveplot=mp_saveto)
             saveto = os.path.join(writedir, P.starname+'_trends.pdf')
             radvel.plotting.trend_plot(post, chains, opt.nwalkers, saveto)
-            
+            report_depfiles.append(mp_saveto)
+
+        with radvel.utils.working_directory(writedir):
+            report = radvel.report.RadvelReport(P, post, chains)
+            rfile = os.path.join(P.starname+"_results.pdf")
+            report_depfiles = [os.path.basename(p) for p in report_depfiles]
+            report.compile(rfile, depfiles=report_depfiles)
 
     # Save posterior object as binary pickle file
     pkl = open(os.path.join(writedir, P.starname+'_post_obj.pkl'), 'wb')

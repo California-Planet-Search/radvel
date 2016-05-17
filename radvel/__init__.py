@@ -11,4 +11,4 @@ import os
 import sys
 
 MODULEDIR, filename = os.path.split(__file__)
-DATADIR = os.path.join(MODULEDIR,'../example_data')
+DATADIR = os.path.join(sys.prefix,'radvel_example_data')

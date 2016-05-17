@@ -6,6 +6,13 @@ import sys
 import time
 from radvel import utils
 
+# Maximum G-R statistic to stop burn-in period
+burnGR = 1.10
+
+# Maximum G-R statistic for chains to be deemed well-mixed
+maxGR = 1.03
+
+
 def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
     """Run MCMC
 
@@ -60,7 +67,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
 
         # Burn-in complete after maximum G-R statistic first reaches 1.10
         # reset sampler
-        if not burn_complete and maxgr <= 1.10:
+        if not burn_complete and maxgr <= burnGR:
             sampler.reset()
             print "\nDiscarding burn-in now that the chains are marginally well-mixed\n"
             burn_complete = True
@@ -72,7 +79,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
             print "\nChains are well-mixed after %d steps! MCMC completed in %3.1f %s" % (ncomplete, tdiff, units)
             break
         else:
-            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Min Tz = %.1f; Max G-R = %4.2f        \r"
+            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Min Tz = %.1f; Max G-R = %4.2f      \r"
                               % (ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr))
             sys.stdout.flush()
             
@@ -113,7 +120,7 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
     return models
 
 
-def gelman_rubin(pars0, minTz=1000, maxGR=1.03):
+def gelman_rubin(pars0, minTz=1000, maxGR=maxGR):
     """Gelman-Rubin Statistic
 
     Calculates the Gelman-Rubin statistic and the number of
@@ -179,7 +186,8 @@ def gelman_rubin(pars0, minTz=1000, maxGR=1.03):
     # Equation 26: T(z) in Ford 2006
     vbz = varEstimate / bz
     tz = nchains*nsteps*vbz[vbz < 1]
-    if tz.size == 0: tz = [-1]
+    if tz.size == 0:
+        tz = [-1]
 
     # well-mixed criteria
     ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR

@@ -24,6 +24,7 @@ units = {'per': 'days',
          'curv': 'm s$-1$ day$^{-2}$'}
 
 
+
 class RadvelReport():
     """Radvel report
 
@@ -59,7 +60,8 @@ class RadvelReport():
 \\documentclass{emulateapj}
 \\usepackage{graphicx,textcomp}
 \\begin{document}
-"""
+\\shorttitle{Summary of \\texttt{RADVEL} results for %s}
+""" % (self.starname)
 
     def _postamble(self):
         return """
@@ -74,12 +76,62 @@ class RadvelReport():
         Returns:
             string: TeX code for report
         """
+
+        out = self._preamble() + self.tabletex()
+        if os.path.exists(self.starname+"_rv_multipanel.pdf"):
+            out += self.figtex(self.starname+"_rv_multipanel.pdf", caption=self._bestfit_caption())
+        if os.path.exists(self.starname+"_corner.pdf"):
+            out += self.figtex(self.starname+"_corner.pdf", caption="Posterior distributions for all free parameters.")
+
+        out += self._postamble()
         
-        return self._preamble() + self.tabletex() + self._postamble()
+        return out
 
     def tabletex(self):
         return TexTable(self).tex()
 
+    def figtex(self, infile, caption=""):
+        """Generate TeX for figure
+
+        Generate TeX to insert a figure into the report
+
+        Args:
+            infile (string): file name of figure
+            caption (string): (optional) figure caption
+
+        Returns:
+            string: TeX code
+        
+        """
+        fstr = """
+\\begin{figure*}[!h]
+\\centering
+\\includegraphics[width=6.5in]{%s}
+\\caption{%s}
+\\end{figure*}
+""" % (infile, caption)
+
+        return fstr
+
+    def _bestfit_caption(self):
+        cap = """
+Best-fit 2-planet Keplerian orbital model for %s.
+The maximum likelihood model is plotted while the orbital parameters listed in Table \\ref{tab:params}
+are the median values of the posterior distributions.
+The thin blue line is the best fit %d-planet model. We add in quadrature the RV jitter term(s) listed in Table \\ref{tab:params}
+with the measurement uncertainties for all RVs.
+{\\bf b)} Residuals to the best fit %d-planet model.
+{\\bf c)} RVs phase-folded to the ephemeris of planet %s. The Keplerian orbital models for all other planets (if any) have been subtracted.
+The small point colors and symbols are the same as in panel {\\bf a}.
+Red circles (if present) are the same velocities binned in 0.08 units of orbital phase.
+The phase-folded model for planet %s is shown as the blue line.
+""" % (self.starname, self.post.params.num_planets, self.post.params.num_planets, chr(int(1)+97), chr(int(1)+97))
+
+        for i in range(1, self.post.params.num_planets):
+            cap += "Panel {\\bf %s)} is the same as panel {\\bf %s)} but for planet %s %s.\n" % (chr(int(i)+99), chr(int(i)+98), self.starname, chr(int(i)+98))
+
+        return cap
+              
     def compile(self, pdfname, depfiles=[]):
         """Compile radvel report
 
@@ -94,6 +146,9 @@ class RadvelReport():
         
         current = os.getcwd()
         temp = tempfile.mkdtemp()
+        for fname in depfiles:
+            shutil.copy2(os.path.join(current,fname), os.path.join(temp,fname))
+        
         os.chdir(temp)
 
         f = open(texname, 'w')
@@ -103,7 +158,7 @@ class RadvelReport():
         # LaTex likes to be compiled a few times
         # to get the table widths correct
         for i in range(3):
-            proc = subprocess.Popen(['pdflatex', texname])
+            proc = subprocess.Popen(['pdflatex', texname], stdout=subprocess.PIPE)
             proc.communicate()
 
         shutil.copy(pdfname, current)
@@ -130,10 +185,8 @@ class TexTable(RadvelReport):
     def _header(self):
         fstr = """
 \\begin{deluxetable}{lrr}
-\\tablecaption{%s MCMC Results}""" % self.report.starname
-        fstr += """
-\\tablehead{\\colhead{Parameter} & \\colhead{Value} & \\colhead{Units}}"""
-        fstr += """
+\\tablecaption{MCMC Posteriors}
+\\tablehead{\\colhead{Parameter} & \\colhead{Value} & \\colhead{Units}}
 \\startdata
 """
         return fstr
@@ -143,6 +196,7 @@ class TexTable(RadvelReport):
 \\enddata
 \\tablenotetext{}{%d links saved}
 \\tablenotetext{}{Reference epoch for $\\gamma$,$\\dot{\\gamma}$,$\\ddot{\\gamma}$: %15.1f}
+\\label{tab:params}
 \\end{deluxetable}
 """ % (len(self.report.chains),self.report.post.likelihood.model.time_base)
         return fstr
@@ -159,7 +213,7 @@ class TexTable(RadvelReport):
         med, errlow, errhigh = radvel.utils.sigfig(med, low, high)
 
         if errlow == 0 or errlow == 0:
-            med = "$\\equiv$ %s" % med
+            med = "$\\equiv$ %s" % round(self.quantiles[param][0.5],4)
             errfmt = ''
         else:
             if errhigh == errlow: errfmt = '$\pm %s$' % (errhigh)    
@@ -201,7 +255,7 @@ class TexTable(RadvelReport):
     def prior_summary(self):
         """Summary of priors
 
-        Summarize the priors in separate table.
+        Summarize the priors in separate table within the report PDF.
 
         Returns:
             string: String containing TeX code for the prior summary table
