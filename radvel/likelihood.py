@@ -12,7 +12,6 @@ class Likelihood(object):
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.params.update({}.fromkeys(extra_params, np.nan) ) 
-        print extra_params
         
         vary = {}.fromkeys(self.params.keys(), True)
         self.vary = vary
@@ -85,7 +84,7 @@ class CompositeLikelihood(Likelihood):
         self.model = like0.model
         self.x = like0.x
         self.y = like0.y - params[like0.gamma_param]
-        self.yerr = np.sqrt(like0.yerr + np.exp(like0.params[like0.logjit_param])**2)
+        self.yerr = np.sqrt(like0.yerr**2 + np.exp(like0.params[like0.logjit_param])**2)
         self.telvec = like0.telvec
         self.extra_params = like0.extra_params
         self.suffixes = like0.suffix
@@ -108,6 +107,7 @@ class CompositeLikelihood(Likelihood):
                     assert like.params[k] is params[k]
                 else:
                     params[k] = like.params[k]
+
 
         self.extra_params = list(set(self.extra_params))
         self.params = params

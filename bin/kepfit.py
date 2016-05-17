@@ -23,6 +23,9 @@ def initialize_posterior(P):
     params = P.params.basis.from_cps(P.params, P.fitting_basis, keep=False)
     iparams = params.copy()
 
+    # Make sure we don't have duplicate indicies in the DataFrame
+    P.data = P.data.reset_index(drop=True)
+    
     # initialize RVmodel object
     mod = radvel.RVModel(params, time_base=P.time_base)   
 
@@ -35,7 +38,7 @@ def initialize_posterior(P):
                                                P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst)
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['logjit_'+inst] = iparams['logjit_'+inst]
-        
+
     like = radvel.likelihood.CompositeLikelihood(likes.values())
 
     # Set fixed/vary parameters
@@ -61,7 +64,7 @@ if __name__ == '__main__':
     system_name = os.path.basename(opt.planet).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(opt.planet))
     system_name = P.starname
-        
+
     post = initialize_posterior(P)
     
     post0 = copy.deepcopy(post)
