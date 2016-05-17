@@ -1,5 +1,3 @@
-# cython: profile=True
-
 # cimport the Cython declarations for numpy
 cimport numpy as np
 import numpy as np
@@ -13,32 +11,35 @@ np.import_array()
 # arguments and returns a double
 cdef extern from "kepler.c":
     double kepler(double M, double e)
+    double rv_drive(double t, double per, double tp, double e, double om, double k )
 
-def kepler_cext(M, e):
-    return kepler(M, e)
-
-# cdefine the signature of our c function
-cdef extern from "kepler.c":
-    void kepler_array(double * M_array, double e, double * E_array, int size)
-
+DTYPE = np.float64
+ctypedef np.float64_t DTYPE_t
 
 # create the wrapper code, with numpy type annotations
-def kepler_array_cext(np.ndarray[np.float64_t, ndim=1, mode="c"] M_array, double e):
-    cdef int size = M_array.shape[0]
-    cdef np.ndarray[np.float64_t, ndim=1] E_array = \
-        np.empty(size, dtype=np.float64)
+@cython.boundscheck(False)
+def kepler_array(double [:,] M, double e):
+    cdef int size, i
 
-    kepler_array(<double*> np.PyArray_DATA(M_array), e,
-                 <double*> np.PyArray_DATA(E_array), size)
-    return E_array 
+    size = M.shape[0]
+    cdef np.ndarray[double, ndim=1] E = \
+        np.ndarray(shape=(size,), dtype=np.float64) 
 
-#def kepler_array_cext2(np.ndarray[np.float64_t, ndim=1, mode="c"] M_array, double e):
-#
-#    cdef int size = M_array.shape[0]
-#    
-#    cdef np.ndarray[np.float64_t, ndim=1] E_array = \
-#        np.empty(size, dtype=np.float64)
-#
-#    kepler_array(<double*> np.PyArray_DATA(M_array), e,
-#                 <double*> np.PyArray_DATA(E_array), size)
-#    return E_array 
+    for i in range(size):
+        E[i] = kepler(M[i], e)
+
+    return E 
+
+# create the wrapper code, with numpy type annotations
+@cython.boundscheck(False)
+def rv_drive_array(np.ndarray[DTYPE_t, ndim=1] t, double per, double tp, 
+                   double e, double om, double k):
+    cdef int size, i 
+    size = t.shape[0]
+
+    cdef np.ndarray[DTYPE_t, ndim=1] rv = t.copy()
+    for i in range(size):
+        rv[i] = rv_drive(t[i], per, tp, e, om, k)
+
+    return rv
+
