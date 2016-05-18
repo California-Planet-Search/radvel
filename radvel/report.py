@@ -23,7 +23,7 @@ units = {'per': 'days',
          'dvdt': 'm s$-1$ day$^{-1}$',
          'curv': 'm s$-1$ day$^{-2}$'}
 
-
+latex_compiler = 'pdflatex'
 
 class RadvelReport():
     """Radvel report
@@ -115,7 +115,7 @@ class RadvelReport():
 
     def _bestfit_caption(self):
         cap = """
-Best-fit 2-planet Keplerian orbital model for %s.
+Best-fit %d-planet Keplerian orbital model for %s.
 The maximum likelihood model is plotted while the orbital parameters listed in Table \\ref{tab:params}
 are the median values of the posterior distributions.
 The thin blue line is the best fit %d-planet model. We add in quadrature the RV jitter term(s) listed in Table \\ref{tab:params}
@@ -125,7 +125,7 @@ with the measurement uncertainties for all RVs.
 The small point colors and symbols are the same as in panel {\\bf a}.
 Red circles (if present) are the same velocities binned in 0.08 units of orbital phase.
 The phase-folded model for planet %s is shown as the blue line.
-""" % (self.starname, self.post.params.num_planets, self.post.params.num_planets, chr(int(1)+97), chr(int(1)+97))
+""" % (self.post.params.num_planets, self.starname, self.post.params.num_planets, self.post.params.num_planets, chr(int(1)+97), chr(int(1)+97))
 
         for i in range(1, self.post.params.num_planets):
             cap += "Panel {\\bf %s)} is the same as panel {\\bf %s)} but for planet %s %s.\n" % (chr(int(i)+99), chr(int(i)+98), self.starname, chr(int(i)+98))
@@ -157,11 +157,16 @@ The phase-folded model for planet %s is shown as the blue line.
 
         # LaTex likes to be compiled a few times
         # to get the table widths correct
-        for i in range(3):
-            proc = subprocess.Popen(['pdflatex', texname], stdout=subprocess.PIPE)
-            proc.communicate()
+        if radvel.utils.cmd_exists(latex_compiler):
+            for i in range(3):
+                proc = subprocess.Popen([latex_compiler, texname], stdout=subprocess.PIPE)
+                proc.communicate()
 
-        shutil.copy(pdfname, current)
+            shutil.copy(pdfname, current)
+        else:
+            print "WARNING: REPORT: Could not locate %s executable. Failed to generate summary report PDF. \
+            Make sure that %s is installed and in your system's PATH." % (latex_compiler, latex_compiler)
+            
         shutil.copy(texname, current)
         shutil.rmtree(temp)
 
