@@ -58,9 +58,9 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=0):
     """
 
     if secondary:
-        f = 3*np.pi/2 - omega/360*2*np.pi                      # true anomaly during secondary eclipse
+        f = 3*np.pi/2 - omega                      # true anomaly during secondary eclipse
     else:
-        f = np.pi/2   - omega/360*2*np.pi                      # true anomaly during transit
+        f = np.pi/2   - omega                      # true anomaly during transit
     EE = 2 * np.arctan( np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)) )  # eccentric anomaly
     tc = tp + per/(2*np.pi) * (EE - ecc*np.sin(EE))         # time of conjunction
 

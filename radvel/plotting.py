@@ -16,9 +16,9 @@ import os
 
 rcParams['font.size'] = 24
 
-telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs',
-           'hires_rj': 'ko', 'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs'}
-teldecode = {'a': 'APF', 'k': 'HIRES_k', 'j': 'HIRES_j'}
+telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs', 'l': 'g+',
+           'hires_rj': 'ko', 'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs', 'lick': 'g+'}
+teldecode = {'a': 'APF', 'k': 'HIRES_k', 'j': 'HIRES_j', 'l': 'lick'}
 msize = 7
 elinecolor = '0.6'
 cmap = matplotlib.cm.nipy_spectral
