@@ -272,6 +272,8 @@ class TexTable(RadvelReport):
 \\tablehead{}
 \\startdata
 """
+        texdict = self.post.likelihood.params.tex_labels()
+        
         prior_list = self.post.priors
         for prior in prior_list:
             out += prior.__str__() + "\\\\\\\\\n"

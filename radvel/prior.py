@@ -21,11 +21,11 @@ class Gaussian(Prior):
     def __str__(self):
         try:
             d = {self.param: self.mu}
-            tex = model.RVParameters(9).tex_labels()[self.param]
-        
+            tex = model.RVParameters(9).tex_labels(param_list=[self.param])[self.param]
+            
             s = "Gaussian prior on {}: ${} \\pm {}$".format(tex, self. mu, self.sigma)
         except KeyError:
-            s = self.__repr__(self)
+            s = self.__repr__()
             
         return s
 

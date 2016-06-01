@@ -61,16 +61,22 @@ class RVParameters(dict):
 
         self.planet_letters = planet_letters
 
-    def tex_labels(self):
+    def tex_labels(self, param_list=None):
         """Map RVParameters keys to pretty TeX code representations.
 
+        Args:
+            param_list (list): (optional) Manually pass a list of parameter labels
+        
         Returns:
             dict: dictionary mapping RVParameters keys to TeX code
 
         """
-    
+
+        if param_list is None:
+            param_list = self.keys()
+        
         tex_labels = {}
-        for k in self.keys():
+        for k in param_list:
             n = k[-1]
             p = k[:-1]
             if n.isdigit(): tex_labels[k] = self._planet_texlabel(p, n)
