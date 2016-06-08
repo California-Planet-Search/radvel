@@ -20,8 +20,8 @@ units = {'per': 'days',
          'gamma': 'm s$-1$',
          'jitter': 'm s$-1$',
          'logjit': '$\\ln{(\\rm m\\ s^{-1})}$',
-         'dvdt': 'm s$-1$ day$^{-1}$',
-         'curv': 'm s$-1$ day$^{-2}$'}
+         'dvdt': 'm s$^{-1}$ day$^{-1}$',
+         'curv': 'm s$^{-1}$ day$^{-2}$'}
 
 latex_compiler = 'pdflatex'
 
@@ -217,7 +217,7 @@ class TexTable(RadvelReport):
         high = radvel.utils.round_sig(high)
         med, errlow, errhigh = radvel.utils.sigfig(med, low, high)
 
-        if errlow == 0 or errlow == 0:
+        if errlow == 0 or errhigh == 0:
             med = "$\\equiv$ %s" % round(self.quantiles[param][0.5],4)
             errfmt = ''
         else:
