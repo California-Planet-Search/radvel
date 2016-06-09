@@ -4,3 +4,4 @@
 .*
 docs/_*
 build
+src/*.o
