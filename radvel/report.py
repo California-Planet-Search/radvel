@@ -217,7 +217,7 @@ class TexTable(RadvelReport):
         high = radvel.utils.round_sig(high)
         med, errlow, errhigh = radvel.utils.sigfig(med, low, high)
 
-        if errlow == 0 or errhigh == 0:
+        if errlow <= 1e-12 or errhigh <= 1e-12:
             med = "$\\equiv$ %s" % round(self.quantiles[param][0.5],4)
             errfmt = ''
         else:

@@ -54,7 +54,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         yscale_sigma (float): (optional) Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted)    
         telfmts (dict): (optional) dictionary mapping instrument code to plotting format code
         nophase (bool): (optional) Will omit phase-folded plots if true
-
+        epoch (float): (optional) Subtract this value from the time axis for more compact axis labels (default: 245000)
     Returns:
         None
         
@@ -65,7 +65,8 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     yscale_auto = kwargs.pop('yscale_auto', False)
     telfmts = kwargs.pop('telfmts', globals()['telfmts'])
     nophase = kwargs.pop('nophase', False)
-
+    e = kwargs.pop('epoch', 2450000)
+    
     if len(post.likelihood.x) < 20: nobin = True
     
     if saveplot != None: resolution = 1e4
@@ -80,7 +81,6 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     rvdat = cpspost.likelihood.y
     rverr = cpspost.likelihood.yerr
     n = model.num_planets
-    e = 2450000
 
     if isinstance(cpspost.likelihood, radvel.likelihood.CompositeLikelihood):
         like_list = cpspost.likelihood.like_list

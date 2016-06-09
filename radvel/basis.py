@@ -1,7 +1,7 @@
 import numpy as np        
 import copy
 import pandas as pd
-from orbit import timeperi_to_timetrans
+from orbit import timeperi_to_timetrans, timetrans_to_timeperi
 
 # List of available bases
 BASIS_NAMES = [
@@ -98,10 +98,7 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                
-                ecosw = e*np.cos(w)
-                esinw = e*np.sin(w)
-                tp, e, w = _tcecos2cps(per, tc, ecosw, esinw)
+                tp = timetrans_to_timeperi(tc, per, ecc, w)
             
             if self.name=='per tc secosw sesinw logk':
                 # pull out parameters
@@ -116,7 +113,8 @@ class Basis(object):
                 se = np.sqrt(e)
                 ecosw = se*secosw
                 esinw = se*sesinw
-                tp, e, w = _tcecos2cps(per, tc, ecosw, esinw)
+                w = np.arctan2(esinw , ecosw)
+                tp = timetrans_to_timeperi(tc, per, e, w)
 
             if self.name=='per tc secosw sesinw k':
                 # pull out parameters
@@ -131,14 +129,15 @@ class Basis(object):
                 se = np.sqrt(e)
                 ecosw = se*secosw
                 esinw = se*sesinw
-                tp, e, w = _tcecos2cps(per, tc, ecosw, esinw)
+                w = np.arctan2(esinw , ecosw)
+                tp = timetrans_to_timeperi(tc, per, e, w)
 
                
             # shoves cps parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
             _setpar('e', e)
-            _setpar('w', w)
+            _setpar('w', np.degrees(w))
             _setpar('k', k)
 
         return params_out
@@ -189,9 +188,7 @@ class Basis(object):
                 try:
                     tp = _getpar('tp')
                 except KeyError:
-                    ecosw = e*np.cos(w)
-                    esinw = e*np.sin(w)
-                    tp, e, w = _tcecos2cps(per, _getpar('tc'), ecosw, esinw)
+                    tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                     
                 _setpar('secosw', np.sqrt(e)*np.cos(w) )
@@ -217,9 +214,7 @@ class Basis(object):
                 try:
                     tp = _getpar('tp')
                 except KeyError:
-                    ecosw = e*np.cos(w)
-                    esinw = e*np.sin(w)
-                    tp, e, w = _tcecos2cps(per, _getpar('tc'), ecosw, esinw)
+                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
                     _setpar('tp', tp)
                     
                 _setpar('secosw', np.sqrt(e)*np.cos(w) )
@@ -238,52 +233,3 @@ class Basis(object):
 
         return params_out
                 
-def _tcecos2cps(per, tc, ecosw, esinw):
-    """
-    Convert (per, tc, ecosw, esinw) to ( tp, e, w)
-
-    Args:
-        per (float): period in days
-        tc (float): JD time of conjunction 
-        ecosw (float) eccentricity times cosine of argument of periastron
-        esinw (float) eccentricity times sine of argument of periastron
-
-    Returns:
-        tuple: (time of periastron, eccentricity, omega)
-
-    Examples:
-       >>> per, tc, ecosw, esinw  = 1,0.0,0.5,0.5
-       >>> tc, e, w = radvel.basis._tcecos2cps(per, tc, ecosw, esinw )
-       >>> truth = array([ -1.657354e-02,   7.071067e-01,   4.500000e+01])
-       >>> output = np.array([tc, e, w])
-       >>> np.allclose(truth,output,rtol=1e-5)    
-
-    """
-
-    # converting ecosom, esinom to e, omega (degrees)
-    e = np.sqrt(ecosw**2 + esinw**2)
-    if isinstance(e, float):
-        if e >= 1.0:
-            e = 0.99
-    else:
-        e[e > 1.0] = 0.99 
-            
-    w = np.arctan2( esinw , ecosw ) / np.pi * 180
-
-    # om in [0.,360)
-    if isinstance(w, float):
-        while w < 0.:
-            w += 360.0
-    else:
-        while (w < 0).any():
-            w[w < 0] += 360.0
-            
-    # true anomaly during conjunction
-    f = np.pi / 2.0 - w / 180.0 * np.pi 
-
-    # eccentric anomaly
-    EE = 2.0 * np.arctan( np.tan( f / 2 ) * np.sqrt( (1.0 - e) / (1.0 + e) ) )
-
-    tp = tc - per / (2.0 * np.pi ) * (EE - e*np.sin(EE))
-    return tp, e, w
-

@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
     if not opt.noplot:
         saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
-        radvel.plotting.rv_multipanel_plot(post, saveplot=saveto)
+        radvel.plotting.rv_multipanel_plot(post, saveplot=saveto, epoch=P.bjd0)
 
     if not opt.nomcmc:
         print '\n Running MCMC, nwalkers = %s, nsteps = %s ...'  %(opt.nwalkers, opt.nsteps)
@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
         if not opt.noplot:
             mp_saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
-            radvel.plotting.rv_multipanel_plot(post, saveplot=mp_saveto)
+            radvel.plotting.rv_multipanel_plot(post, saveplot=mp_saveto, epoch=P.bjd0)
             saveto = os.path.join(writedir, P.starname+'_trends.pdf')
             radvel.plotting.trend_plot(post, chains, opt.nwalkers, saveto)
             report_depfiles.append(mp_saveto)
