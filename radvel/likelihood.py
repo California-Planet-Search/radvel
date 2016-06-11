@@ -67,8 +67,6 @@ class Likelihood(object):
 
     def neglogprob_array(self, params_array):
         return -self.logprob_array(params_array)
-        #self.set_vary_params(params_array)
-        #return self.neglogprob()
 
     def logprob_array(self, params_array):
         self.set_vary_params(params_array)

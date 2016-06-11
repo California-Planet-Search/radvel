@@ -72,7 +72,7 @@ if __name__ == '__main__':
     print "Initial loglikelihood = %f" % post0.logprob()
     print "Performing maximum likelihood fit..."
     res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
-                         options=dict(maxiter=10,maxfev=100000,xtol=1e-8) )
+                         options=dict(maxiter=100,maxfev=100000,xtol=1e-8) )
 
     cpspost = copy.deepcopy(post)
     cpsparams = post.params.basis.to_cps(post.params)
@@ -118,7 +118,7 @@ if __name__ == '__main__':
         
         print "Performing post-MCMC maximum likelihood fit..."
         res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
-                         options=dict(maxiter=10,maxfev=100000,xtol=1e-8) )
+                         options=dict(maxiter=100,maxfev=100000,xtol=1e-8) )
 
         cpspost = copy.deepcopy(post)
         cpsparams = post.params.basis.to_cps(post.params)

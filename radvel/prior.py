@@ -52,7 +52,7 @@ class EccentricityPrior(Prior):
                 ecc = secosw**2 + sesinw**2 
 
             if ecc > 0.99 or ecc < 0.0:
-                return -1e25
+                return -np.inf
         
         return 0
         
@@ -75,6 +75,6 @@ class PositiveKPrior(Prior):
             except KeyError:
                 k = np.exp(_getpar('logk',num_planet))
 
-            if k < 0.0:     # This was ecc > 0.99. We should probably allow for eccentricities as high as 0.99
+            if k < 0.0:    
                 return -np.inf
         return 0
