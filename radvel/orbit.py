@@ -19,7 +19,10 @@ def timetrans_to_timeperi(tc, per, ecc, omega):
         float: time of periastron passage
 
     """
-    if ecc >= 1: return tc
+    try:
+        if ecc >= 1: return tc
+    except ValueError:
+        pass
     
     f = np.pi/2   - omega
     EE = 2 * np.arctan( np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)) )  # eccentric anomaly
@@ -42,7 +45,10 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=0):
         float: time of inferior conjuntion (time of transit if system is transiting)
     
     """
-    if ecc >= 1: return tp
+    try:
+        if ecc >= 1: return tp
+    except ValueError:
+        pass
     
     if secondary:
         f = 3*np.pi/2 - omega                      # true anomaly during secondary eclipse
