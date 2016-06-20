@@ -188,6 +188,7 @@ class Basis(object):
                 try:
                     tp = _getpar('tp')
                 except KeyError:
+                    tc = _getpar('tc')
                     tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                     

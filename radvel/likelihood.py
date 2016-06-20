@@ -12,27 +12,50 @@ class Likelihood(object):
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.params.update({}.fromkeys(extra_params, np.nan) ) 
+        self.uparams = None
         
         vary = {}.fromkeys(self.params.keys(), True)
         self.vary = vary
 
     def __repr__(self):
         s = ""
-        s +=  "{:<20s}{:>20s} {:>10s}\n".format(
-            'parameter', 'value', 'vary'
-            )
-        keys = self.params.keys()
-        keys.sort()
-        for key in keys:
-            if key in self.vary.keys():
-                vstr = str(self.vary[key])
-            else:
-                vstr = ""
+        if self.uparams is None:
+            s +=  "{:<20s}{:>15s}{:>10s}\n".format(
+                'parameter', 'value', 'vary'
+                )
+            keys = self.params.keys()
+            keys.sort()
+            for key in keys:
+                if key in self.vary.keys():
+                    vstr = str(self.vary[key])
+                else:
+                    vstr = ""
+
+                s +=  "{:20s}{:15g} {:>10s}\n".format(
+                    key, self.params[key], vstr
+                     )
+        else:
+            s = ""
+            s +=  "{:<20s}{:>15s}{:>10s}{:>10s}\n".format(
+                'parameter', 'value', '+/-', 'vary'
+                )
+            keys = self.params.keys()
+            keys.sort()
+            for key in keys:
+                if key in self.vary.keys():
+                    vstr = str(self.vary[key])
+                else:
+                    vstr = ""
+                if key in self.uparams.keys():
+                    err = self.uparams[key]
+                else:
+                    err = ""
+                    
+                s +=  "{:20s}{:15g}{:10g}{:>10s}\n".format(
+                    key, self.params[key], err, vstr
+                     )
+
                 
-            s +=  "{:20s}{:20g} {:>10s}\n".format(
-                key, self.params[key], vstr
-                 )
-            
         return s
 
     def set_vary_params(self, params_array):
@@ -86,6 +109,7 @@ class CompositeLikelihood(Likelihood):
         self.telvec = like0.telvec
         self.extra_params = like0.extra_params
         self.suffixes = like0.suffix
+        self.uparams = like0.uparams
         
         for i in range(1,self.nlike):
             like = like_list[i]
@@ -96,6 +120,10 @@ class CompositeLikelihood(Likelihood):
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
             self.suffixes = np.append(self.suffixes, like.suffix)
+            try:
+                self.uparams = self.uparams.update(like.uparams)
+            except AttributeError:
+                self.uparams = None
             
             assert like.model is like0.model, \
                 "Likelihoods must use the same model"

@@ -58,13 +58,18 @@ if __name__ == '__main__':
     parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain [20000]',default=20000,type=float)
     parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers. [50]',default=50,type=int)
     parser.add_argument('--noplots', dest='noplot',action='store_true',help='No plots will be created or saved [False]')
+    parser.add_argument('--plotkw', dest='plotkw',action='store',help='Dictionary of keywords sent to rv_multipanel_plot. E.g. --plotkw "{\'yscale_auto\': True}"', default='{}', type=str)
     parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC? [False]')
     parser.add_argument('--outputdir', dest='outputdir',action='store',help='Directory to save output files [./]', default='./')
     opt = parser.parse_args()
 
+    opt.plotkw = eval(opt.plotkw)
+    
     system_name = os.path.basename(opt.planet).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(opt.planet))
     system_name = P.starname
+
+    opt.plotkw['epoch'] = P.bjd0
 
     post = initialize_posterior(P)
     
@@ -91,7 +96,7 @@ if __name__ == '__main__':
 
     if not opt.noplot:
         saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
-        radvel.plotting.rv_multipanel_plot(post, saveplot=saveto, epoch=P.bjd0)
+        radvel.plotting.rv_multipanel_plot(post, saveplot=saveto, **opt.plotkw)
 
     if not opt.nomcmc:
         print '\n Running MCMC, nwalkers = %s, nsteps = %s ...'  %(opt.nwalkers, opt.nsteps)
@@ -123,20 +128,34 @@ if __name__ == '__main__':
         cpspost = copy.deepcopy(post)
         cpsparams = post.params.basis.to_cps(post.params)
         cpspost.params.update(cpsparams)
-        
+                
+
+        report = radvel.report.RadvelReport(P, post, chains)
+
+        cpspost.uparams = {}
+        for par in cpspost.params.keys():
+            med = report.quantiles[par][0.5]
+            high = report.quantiles[par][0.841] - med
+            low = med - report.quantiles[par][0.159]
+            err = np.mean([high,low])
+            err = radvel.utils.round_sig(err)
+            med, err, errhigh = radvel.utils.sigfig(med, err)
+            cpspost.uparams[par] = err
+
         print "Final loglikelihood = %f" % post.logprob()
+        print "Final RMS = %f" % post.likelihood.residuals().std()
         print "Best-fit parameters:"
         print cpspost
 
         if not opt.noplot:
+            opt.plotkw['uparams'] = cpspost.uparams
             mp_saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
-            radvel.plotting.rv_multipanel_plot(post, saveplot=mp_saveto, epoch=P.bjd0)
+            radvel.plotting.rv_multipanel_plot(post, saveplot=mp_saveto, **opt.plotkw)
             saveto = os.path.join(writedir, P.starname+'_trends.pdf')
             radvel.plotting.trend_plot(post, chains, opt.nwalkers, saveto)
             report_depfiles.append(mp_saveto)
 
         with radvel.utils.working_directory(writedir):
-            report = radvel.report.RadvelReport(P, post, chains)
             rfile = os.path.join(P.starname+"_results.pdf")
             report_depfiles = [os.path.basename(p) for p in report_depfiles]
             report.compile(rfile, depfiles=report_depfiles)

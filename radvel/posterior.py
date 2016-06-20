@@ -8,6 +8,7 @@ class Posterior(Likelihood):
         self.likelihood = likelihood
         self.params = likelihood.params
         self.vary = likelihood.vary
+        self.uparams = likelihood.uparams
         self.priors = []
     
     def __repr__(self):

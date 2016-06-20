@@ -1,25 +1,29 @@
+import string
+import copy
+import os
+
+import numpy as np
 import pylab as pl
+import matplotlib
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 from mpl_toolkits.axes_grid1 import make_axes_locatable,AxesGrid
 from matplotlib.ticker import NullFormatter
 from matplotlib.backends.backend_pdf import PdfPages
-import radvel
-from radvel.utils import t_to_phase, fastbin
-from astropy.time import Time
-import string
 from matplotlib import rcParams
-import numpy as np
-import matplotlib
+
+from astropy.time import Time
 import corner
-import copy
-import os
+
+import radvel
+from radvel.utils import t_to_phase, fastbin, round_sig, sigfig
+
 
 rcParams['font.size'] = 24
 
 telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs', 'l': 'g+',
            'hires_rj': 'ko', 'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs', 'lick': 'g+'}
 teldecode = {'a': 'APF', 'k': 'HIRES_k', 'j': 'HIRES_j', 'l': 'lick'}
-msize = 7
+msize = 10
 elinecolor = '0.6'
 cmap = matplotlib.cm.nipy_spectral
     
@@ -32,7 +36,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts):
             if t == '': t = 'j'
             if t == 'j' or t == 'k':
                 ax.errorbar(xt,yt,yerr=et,fmt=telfmts[t], ecolor=elinecolor, markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], markerfacecolor='none',
-                            markeredgewidth=2)
+                            markeredgewidth=3)
             elif t not in telfmts.keys():
                 ax.errorbar(xt,yt,yerr=et,fmt='o', ecolor=elinecolor, markersize=msize, capsize=0, markeredgewidth=0)
             else:
@@ -50,11 +54,12 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         post (radvel.Posterior): Radvel posterior object. The model plotted will be generated from post.params
         saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
         nobin (bool): (optional) If True do not show binned data on phase plots. Will default to True if total number of measurements is less then 20.
-        yscale_auto (bool): (optional) Use matplotlib auto y-axis scaling
-        yscale_sigma (float): (optional) Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted)    
+        yscale_auto (bool): (optional) Use matplotlib auto y-axis scaling (default: False)
+        yscale_sigma (float): (optional) Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted) (default: 3.0)   
         telfmts (dict): (optional) dictionary mapping instrument code to plotting format code
         nophase (bool): (optional) Will omit phase-folded plots if true
         epoch (float): (optional) Subtract this value from the time axis for more compact axis labels (default: 245000)
+        uparams (dict): (optional) parameter uncertainties, must contain 'per', 'k', and 'e' keys  (default: None) 
     Returns:
         None
         
@@ -66,6 +71,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     telfmts = kwargs.pop('telfmts', globals()['telfmts'])
     nophase = kwargs.pop('nophase', False)
     e = kwargs.pop('epoch', 2450000)
+    uparams = kwargs.pop('uparams', None)
     
     if len(post.likelihood.x) < 20: nobin = True
     
@@ -99,6 +105,17 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     rvmod2 = model(rvmodt)
     rvmod = model(rvtimes)
 
+    if ((rvtimes - e) < -2.4e6).any():
+        plttimes = rvtimes
+        mplttimes = rvmodt
+    elif e == 0:
+        e = 2450000
+        plttimes = rvtimes - e
+        mplttimes = rvmodt - e
+    else:
+        plttimes = rvtimes - e
+        mplttimes = rvmodt - e
+
     rawresid = cpspost.likelihood.residuals()
     resid = rawresid + cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
     slope = cpsparams['dvdt']*(rvmodt-model.time_base) + cpsparams['curv']*(rvmodt-model.time_base)**2
@@ -122,17 +139,17 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     
     #Unphased plot
     ax.axhline(0, color='0.5', linestyle='--', lw=2)
-    ax.plot(rvmodt-e,rvmod2,'b-',linewidth=1, rasterized=False)
+    ax.plot(mplttimes,rvmod2,'b-',linewidth=1, rasterized=False)
     ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', fontsize=28, fontweight='bold')
     pltletter += 1
-    _mtelplot(rvtimes-e,rawresid+rvmod,rverr,cpspost.likelihood.telvec, ax, telfmts)
-    ax.set_xlim(min(rvtimes-e)-0.01*dt,max(rvtimes-e)+0.01*dt)
+    _mtelplot(plttimes,rawresid+rvmod,rverr,cpspost.likelihood.telvec, ax, telfmts)
+    ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
     
     pl.setp(axRV.get_xticklabels(), visible=False)
 
     # Years on upper axis
     axyrs = axRV.twiny()
-    axyrs.set_xlim(min(rvtimes-e)-0.01*dt,max(rvtimes-e)+0.01*dt)
+    axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
     #yrticklocs = [date2jd(datetime(y, 1, 1, 0, 0, 0))-e for y in [1998, 2002, 2006, 2010, 2014]]
     yrticklocs = []
     yrticklabels = []
@@ -157,13 +174,13 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     ax = axResid
 
     #Residuals
-    ax.plot(rvmodt-e,slope,'b-',linewidth=3)
+    ax.plot(mplttimes,slope,'b-',linewidth=3)
     ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.80), xycoords='axes fraction', fontsize=28, fontweight='bold')
     pltletter += 1
 
-    _mtelplot(rvtimes-e,resid,rverr, cpspost.likelihood.telvec,ax, telfmts)
+    _mtelplot(plttimes,resid,rverr, cpspost.likelihood.telvec,ax, telfmts)
     if not yscale_auto: ax.set_ylim(-yscale_sigma*np.std(resid), yscale_sigma*np.std(resid))
-    ax.set_xlim(min(rvtimes-e)-0.01*dt,max(rvtimes-e)+0.01*dt)
+    ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
     ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
@@ -243,10 +260,23 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
 
         print_params = ['per', 'k', 'e']
         for l,p in enumerate(print_params):
-            txt = ax.annotate('%s = %4.2f %s' % (labels[l],cpsparams["%s%d" % (print_params[l],pnum)] ,units[l]),(xstart,ystart-l*spacing),
-                                    xycoords='axes fraction', fontsize=28)
-        
+            val = cpsparams["%s%d" % (print_params[l],pnum)]
+            
+            if uparams is None:
+                anotext = '%s = %4.2f %s' % (labels[l], val, units[l])
+            else:
+                err = uparams["%s%d" % (print_params[l],pnum)]
+                if err > 0:
+                    val, err, errlow = radvel.utils.sigfig(val, err)
+                    anotext = '%s = %s $\\pm$ %s %s' % (labels[l], val, err, units[l])
+                else:
+                    anotext = '%s = %4.2f %s' % (labels[l], val, units[l])
+                
+                
+            txt = ax.annotate(anotext,(xstart,ystart-l*spacing),
+                xycoords='axes fraction', fontsize=28)
 
+                
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
         print "RV multi-panel plot saved to %s" % saveplot
