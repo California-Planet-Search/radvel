@@ -37,9 +37,9 @@ params['gamma_k'] = 0.0      # velocity zero-point for hires_rk
 params['gamma_j'] = 1.0      # "                   "   hires_rj
 params['gamma_a'] = 0.0      # "                   "   hires_apf
 
-params['logjit_k'] = np.log(2.6)        # jitter for hires_rk
-params['logjit_j'] = np.log(2.6)        # "      "   hires_rj
-params['logjit_a'] = np.log(2.6)        # "      "   hires_apf
+params['jit_k'] = np.log(2.6)        # jitter for hires_rk
+params['jit_j'] = np.log(2.6)        # "      "   hires_rj
+params['jit_a'] = np.log(2.6)        # "      "   hires_apf
 
 
 # Load radial velocity data, in this example the data is contained in an ASCII file, must have 'time', 'mnvel', 'errvel', and 'tel' keys
@@ -50,14 +50,17 @@ data = pd.read_csv(os.path.join(radvel.DATADIR,'164922_fixed.txt'), sep=' ')
 vary = dict(
     dvdt = False,
     curv = False,
-    logjit_k = False,
-    logjit_j = False,
-    logjit_a = False,
+    jit_k = True,
+    jit_j = True,
+    jit_a = True,
 )
 
 
 # Define prior shapes and widths here.
 priors = [
     radvel.prior.EccentricityPrior( nplanets ),           # Keeps eccentricity < 1
-    radvel.prior.Gaussian('tc1', params['tc1'], 300.0)    # Gaussian prior on tc1 with center at tc1 and width 300 days
+    radvel.prior.Gaussian('tc1', params['tc1'], 300.0),    # Gaussian prior on tc1 with center at tc1 and width 300 days
+    radvel.prior.HardBounds('jit_k', 0.0, 10.0),
+    radvel.prior.HardBounds('jit_j', 0.0, 10.0),
+    radvel.prior.HardBounds('jit_a', 0.0, 10.0)
 ]
