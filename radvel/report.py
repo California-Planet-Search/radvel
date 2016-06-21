@@ -20,6 +20,7 @@ units = {'per': 'days',
          'gamma': 'm s$-1$',
          'jitter': 'm s$-1$',
          'logjit': '$\\ln{(\\rm m\\ s^{-1})}$',
+         'jit': '$\\rm m\\ s^{-1}$',
          'dvdt': 'm s$^{-1}$ day$^{-1}$',
          'curv': 'm s$^{-1}$ day$^{-2}$'}
 

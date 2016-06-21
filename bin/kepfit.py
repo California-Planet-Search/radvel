@@ -38,7 +38,7 @@ def initialize_posterior(P):
                                                P.data.iloc[telgrps[inst]].mnvel,
                                                P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst)
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
-        likes[inst].params['logjit_'+inst] = iparams['logjit_'+inst]
+        likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
 
     like = radvel.likelihood.CompositeLikelihood(likes.values())
 

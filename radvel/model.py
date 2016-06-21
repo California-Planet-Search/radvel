@@ -17,6 +17,7 @@ texdict = {
     'k': 'K',
     'gamma_': '\\gamma_{\\rm ',
     'logjit_': '\\ln{\\sigma_{\\rm jit}}_{\\rm ',
+    'jit_': '\\sigma_{\\rm ',
     'dvdt': '\\dot{\\gamma}',
     'curv': '\\ddot{\\gamma}'
 }

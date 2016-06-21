@@ -105,7 +105,7 @@ class CompositeLikelihood(Likelihood):
         self.model = like0.model
         self.x = like0.x
         self.y = like0.y - params[like0.gamma_param]
-        self.yerr = np.sqrt(like0.yerr**2 + np.exp(like0.params[like0.logjit_param])**2)
+        self.yerr = np.sqrt(like0.yerr**2 + like0.params[like0.jit_param]**2)
         self.telvec = like0.telvec
         self.extra_params = like0.extra_params
         self.suffixes = like0.suffix
@@ -116,7 +116,7 @@ class CompositeLikelihood(Likelihood):
             
             self.x = np.append(self.x,like.x)
             self.y = np.append(self.y, like.y - like.params[like.gamma_param])
-            self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + np.exp(like.params[like.logjit_param])**2))
+            self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + like.params[like.jit_param]**2))
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
             self.suffixes = np.append(self.suffixes, like.suffix)
@@ -156,14 +156,14 @@ class CompositeLikelihood(Likelihood):
 class RVLikelihood(Likelihood):
     def __init__(self, model, t, vel, errvel, suffix=''):
         self.gamma_param = 'gamma'+suffix
-        self.logjit_param = 'logjit'+suffix
+        self.jit_param = 'jit'+suffix
 
         if suffix.startswith('_'): self.suffix = suffix[1:]
         else: self.suffix = suffix
 
         self.telvec = np.array([self.suffix]*len(t))
         
-        self.extra_params = [self.gamma_param, self.logjit_param]
+        self.extra_params = [self.gamma_param, self.jit_param]
         super(RVLikelihood, self).__init__(
             model, t, vel, errvel, extra_params=self.extra_params
             )
@@ -180,7 +180,7 @@ class RVLikelihood(Likelihood):
         loglike : Natural log of likelihood
         """
         
-        sigma_jit = np.exp( self.params[self.logjit_param] )
+        sigma_jit = self.params[self.jit_param]
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
         
