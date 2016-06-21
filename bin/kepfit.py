@@ -10,6 +10,7 @@ import sys
 import argparse
 import imp
 import pickle
+import warnings
 
 from scipy import optimize
 import copy
@@ -19,10 +20,22 @@ import radvel.likelihood
 import radvel.plotting
 import radvel.utils
 
+warnings.simplefilter('once', DeprecationWarning)
 
 def initialize_posterior(P):
     params = P.params.basis.from_cps(P.params, P.fitting_basis, keep=False)
+
+    for key in params.keys():
+        if key.startswith('logjit'):
+            warnings.warn("""Fitting log(jitter) is depreciated. Please convert your config \
+files to initialize 'jit' instead of 'logjit' parameters. \
+Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
+            newkey = key.replace('logjit', 'jit')
+            params[newkey] = np.exp(params[key])
+            del params[key]
+
     iparams = params.copy()
+
 
     # Make sure we don't have duplicate indicies in the DataFrame
     P.data = P.data.reset_index(drop=True)

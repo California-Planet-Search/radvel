@@ -98,6 +98,17 @@ class Likelihood(object):
 
 class CompositeLikelihood(Likelihood):
     def __init__(self, like_list):
+        """Composite Likelihood
+
+        A thin wrapper to combine multiple `Likelihood`
+        objects. One `Likelihood` applies to a dataset from
+        a particular instrument.
+
+        Args:
+            like_list (list): list of `radvel.likelihood.RVLikelihood` objects
+        """
+    
+        
         self.nlike = len(like_list)
 
         like0 = like_list[0]
@@ -116,6 +127,7 @@ class CompositeLikelihood(Likelihood):
             
             self.x = np.append(self.x,like.x)
             self.y = np.append(self.y, like.y - like.params[like.gamma_param])
+            print like.params[like.jit_param]
             self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + like.params[like.jit_param]**2))
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
@@ -141,19 +153,53 @@ class CompositeLikelihood(Likelihood):
         self.like_list = like_list
 
     def logprob(self):
+        """
+        See `radvel.likelihood.RVLikelihood.logprob`
+        """
+        
         _logprob = 0
         for like in self.like_list:
             _logprob += like.logprob()
         return _logprob
 
     def residuals(self):
+        """
+        See `radvel.likelihood.RVLikelihood.residuals`
+        """
+
         res = self.like_list[0].residuals()
         for like in self.like_list[1:]:
             res = np.append(res,like.residuals())
 
         return res
 
+    def errorbars(self):
+        """
+        See `radvel.likelihood.RVLikelihood.errorbars`
+        """
+        err = self.like_list[0].errorbars()
+        for like in self.like_list[1:]:
+            err = np.append(err,like.errorbars())
+
+        return err
+
+        
+
 class RVLikelihood(Likelihood):
+    """RV Likelihood
+
+    The Likelihood object for a radial velocity dataset
+
+    Args:
+        model (radvel.model.RVModel): RV model object
+        t (array): time array
+        vel (array): array of velocities
+        errvel (array): array of velocity uncertainties
+        suffix (string): suffix to identify this Likelihood object
+           useful when constructing a `CompositeLikelihood` object.
+
+    """
+    
     def __init__(self, model, t, vel, errvel, suffix=''):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
@@ -169,15 +215,31 @@ class RVLikelihood(Likelihood):
             )
 
     def residuals(self):
+        """Residuals
+
+        Data minus model
+        """
+        
         return self.y - self.params[self.gamma_param] - self.model(self.x)
+
+    def errorbars(self):
+        """
+        Return uncertainties with jitter added
+        in quadrature.
+
+        Returns:
+            array: uncertainties
+        
+        """
+        return np.sqrt(self.yerr**2 + self.params[self.jit_param]**2)
 
     def logprob(self):
         """
-        Return log-likelihood given
+        Return log-likelihood given the data and model.
+        Priors are not applied here.
 
-        Returns
-        -------
-        loglike : Natural log of likelihood
+        Returns:
+            float: Natural log of likelihood
         """
         
         sigma_jit = self.params[self.jit_param]
@@ -194,11 +256,13 @@ def loglike_jitter(residuals, sigma, sigma_jit):
     sigma**2 is replaced by sigma**2 + sigma_jit**2. It penalizes
     excessively large values of jitter
     
-    Parameters
-    ----------
-    residuals : array
-    sigma : float "measurement errors"
-    sigma_jit : float "jitter"
+    Args:
+        residuals (array): array of residuals
+        sigma (array): array of measurement errors
+        sigma_jit (float): jitter
+
+    Returns:
+        float: log-likelihood
     """
     sum_sig_quad = sigma**2 + sigma_jit**2
     penalty = np.sum( np.log( np.sqrt( 2 * np.pi * sum_sig_quad ) ) )

@@ -11,11 +11,11 @@ class Posterior(Likelihood):
     but priors are applied here.
 
     Args:
-        likelihood (radvel.Likelihood): Likelihood object
-        params (radvel.RVParameters): parameters object
+        likelihood (radvel.likelihood.Likelihood): Likelihood object
+        params (radvel.model.RVParameters): parameters object
 
     Note:
-        Append radvel.Prior objects to the Posterior.priors list
+        Append `radvel.prior.Prior` objects to the Posterior.priors list
         to apply priors in the likelihood calculations.
     """
     
@@ -56,7 +56,7 @@ class Posterior(Likelihood):
         Same as `self.logprob`, but will take a vector of
         parameter values. Useful as the objective function
         for routines that optimize a vector of parameter values
-        instead of the dictionary-like format of the `radvel.RVParameters` object.
+        instead of the dictionary-like format of the `radvel.model.RVParameters` object.
 
         Returns:
             float: log probability of the likelihood + priors

@@ -85,7 +85,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     model = cpspost.likelihood.model
     rvtimes = cpspost.likelihood.x
     rvdat = cpspost.likelihood.y
-    rverr = cpspost.likelihood.yerr
+    rverr = cpspost.likelihood.errorbars()
     n = model.num_planets
     
     if isinstance(cpspost.likelihood, radvel.likelihood.CompositeLikelihood):
