@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime, timedelta
 from decimal import Decimal
 from contextlib import contextmanager
 import os
@@ -185,3 +186,49 @@ def cmd_exists(cmd):
         os.access(os.path.join(path, cmd), os.X_OK) 
         for path in os.environ["PATH"].split(os.pathsep))
 
+def date2jd(date):
+    """
+    Convert datetime object to JD"
+
+    Args:
+        date (datetime.datetime): date to convert
+    Returns:
+        float: Julian date
+     """
+    
+    jd_td = date - datetime(2000,1,1,12,0,0)
+    jd = 2451545.0 + jd_td.days + jd_td.seconds/86400.0
+    return jd
+
+def jd2date(jd):
+    """
+    Convert JD to datetime.datetime object
+
+    Args:
+        jd (float): Julian date
+    Returns:
+        datetime.datetime: calendar date
+    """
+    
+    mjd = jd - 2400000.5
+    td = timedelta(days=mjd)
+    dt = datetime(1858,11,17,0,0,0) + td
+
+    return dt
+
+def t2dt(atime):
+    """
+    Convert fractional year (a float) to datetime
+
+    Args:
+        atime (float): Decimal year
+    Returns:
+        datetime.datetime: calendar date
+
+    """
+    year = int(atime)
+    remainder = atime - year
+    boy = datetime(year, 1, 1)
+    eoy = datetime(year + 1, 1, 1)
+    seconds = remainder * (eoy - boy).total_seconds()
+    return boy + timedelta(seconds=seconds)
