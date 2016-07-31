@@ -19,6 +19,7 @@ from radvel.utils import t_to_phase, fastbin, round_sig, sigfig
 
 
 rcParams['font.size'] = 24
+rcParams['axes.grid'] = False
 
 telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs', 'l': 'g+',
            'hires_rj': 'ko', 'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs', 'lick': 'g+'}
