@@ -3,3 +3,4 @@ scipy
 corner
 cython
 astropy
+emcee
