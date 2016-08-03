@@ -2,7 +2,7 @@
 General Toolkit for Modeling Radial Velocities
 
 ## Documentation
-- Documentation is available on ReadTheDocs.org: [http://radvel.readthedocs.io]
+- Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
 
 ## Features
 
