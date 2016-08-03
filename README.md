@@ -1,6 +1,9 @@
 # radvel
 General Toolkit for Modeling Radial Velocities
 
+## Documentation
+- Documentation is available on ReadTheDocs.org: [http://radvel.readthedocs.io]
+
 ## Features
 
 - Object-oriented (i.e. models, likelihoods, priors, and posteriors are defined as objects)
