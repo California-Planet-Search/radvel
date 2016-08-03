@@ -2,3 +2,4 @@ numpy
 scipy
 corner
 cython
+astropy
