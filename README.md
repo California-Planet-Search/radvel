@@ -1,5 +1,9 @@
 # radvel
-General Toolkit for Modeling Radial Velocities
+General Toolkit for Modeling Radial Velocities.
+
+## Attribution
+
+Written by BJ Fulton and Erik Petigura, Fulton and Petigura (in prep.).
 
 ## Documentation
 - Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
