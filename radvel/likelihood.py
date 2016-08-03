@@ -30,9 +30,14 @@ class Likelihood(object):
                     vstr = str(self.vary[key])
                 else:
                     vstr = ""
+                
+                if key.startswith('tc') or key.startswith('tp'):
+                    par = self.params[key] - 2450000
+                else:
+                    par = self.params[key]
 
                 s +=  "{:20s}{:15g} {:>10s}\n".format(
-                    key, self.params[key], vstr
+                    key, par, vstr
                      )
         else:
             s = ""
@@ -51,8 +56,13 @@ class Likelihood(object):
                 else:
                     err = ""
                     
+                if key.startswith('tc') or key.startswith('tp'):
+                    par = self.params[key] - 2450000
+                else:
+                    par = self.params[key]
+                    
                 s +=  "{:20s}{:15g}{:10g}{:>10s}\n".format(
-                    key, self.params[key], err, vstr
+                    key, par, err, vstr
                      )
 
                 
