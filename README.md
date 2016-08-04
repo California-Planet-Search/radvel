@@ -23,7 +23,6 @@ Written by BJ Fulton and Erik Petigura, Fulton and Petigura (in prep.).
 ## To Do
 
 - Bundle up examples in convenient test cases
-- Release publically (future) 
 
 ## Tutorials 
 
