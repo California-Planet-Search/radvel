@@ -33,6 +33,8 @@ files to initialize 'jit' instead of 'logjit' parameters. \
 Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
             newkey = key.replace('logjit', 'jit')
             params[newkey] = np.exp(params[key])
+            P.vary[newkey] = P.vary[key]
+            del P.vary[key]
             del params[key]
 
     iparams = params.copy()
