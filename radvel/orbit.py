@@ -5,6 +5,13 @@ from astropy.time import Time
 from astropy import constants as c
 from astropy import units as u
 
+
+# Normalization. 
+#RV m/s of a 1.0 Jupiter mass planet tugging on a 1.0
+# solar mass star on a 1.0 year orbital period
+K_0 = 28.4329
+
+
 def timetrans_to_timeperi(tc, per, ecc, omega):
     """
     Convert Time of Transit to Time of Periastron Passage
@@ -118,13 +125,7 @@ def e_om_to_ecosom_esinom(e,om):
     esinom = e * np.sin( dtorad*om )
     return ecosom, esinom
 
-
-
-# Normalization. RV m/s of a 1.0 Jupiter mass planet tugging on a 1.0
-# Jupiter mass star on a 1.0 year orbital period
-K_0 = 28.4329 
-
-def semi_amplitude(Msini, P, Mtotal, e):
+def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
     """
     Compute Doppler semi-amplitude
 
@@ -140,13 +141,24 @@ def semi_amplitude(Msini, P, Mtotal, e):
     :param e: eccentricity
     :type e: float
 
+    :param Msini_units: Units of returned Msini. Must be 'earth', or 'jupiter' (default 'jupiter').
+    :type Msini_units: string
 
     :return: Doppler semi-amplitude [m/s]
     """
-    K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.33 * Mtotal**-0.66
+    if Msini_units.lower() == 'jupiter':
+        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.333 * \
+            Mtotal**-0.667
+    elif Msini_units.lower() == 'earth':
+        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.333 * \
+            Mtotal**-0.667*(c.M_earth/c.M_jup).value
+    else: 
+        raise Exception("Msini_units must be 'earth', or 'jupiter'")
+        
     return K
 
-def Msini(K, P, Mtotal, e):
+
+def Msini(K, P, Mtotal, e, Msini_units='earth'):
     """Calculate Msini
 
     Calculate Msini for a given K, P, stellar mass, and e
@@ -154,30 +166,50 @@ def Msini(K, P, Mtotal, e):
     Args:
         K (float): Doppler semi-amplitude [m/s]
         P (float): Orbital period [days]
-        Mstar (float): Mass of star [Msun]
+        Mtotal (float): Mass of star + mass of planet [Msun]
         e (float): eccentricity
+        Msini_units = (optional) Units of returned Msini. Must be 'earth', or 'jupiter' (default 'earth'). 
     Returns:
-        float: Msini, Jupiter masses
+        float: Msini [units = Msini_units]
     
     """
-    Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.66 * (P/365.0)**0.33
+
+    if Msini_units.lower() == 'jupiter':
+        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.667 * \
+            (P/365.0)**0.333
+    elif Msini_units.lower() == 'earth':
+        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.667 * \
+            (P/365.0)**0.333*(c.M_jup/c.M_earth).value
+    else: 
+        raise Exception("Msini_units must be 'earth', or 'jupiter'")
+    
     return Msini
 
-def density(mass,radius):
+
+def density(mass,radius, MR_units='earth'):
     """
-    :param mass: mass in Earth masses
+    :param mass: mass, units = MR_units 
     :type mass: float
 
-    :param radius: radius in Earth radii
+    :param radius: radius, units = MR_units 
     :type radius: float
+
+    :param MR_units: (optional) units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
 
     :return: density (g/cc)
     """
     mass = np.array(mass)
     radius = np.array(radius)
-    vol = 4./3.*np.pi * (radius * c.R_earth)**3
-    rho = ((mass * c.M_earth / vol).to(u.g / u.cm**3)).value
+    if MR_units.lower() == 'earth':
+        vol = 4./3.*np.pi * (radius * c.R_earth)**3
+        rho = ((mass * c.M_earth / vol).to(u.g / u.cm**3)).value
+    elif MR_units.lower() == 'jupiter':
+        vol = 4./3.*np.pi * (radius * c.R_jup)**3
+        rho = ((mass * c.M_jup / vol).to(u.g / u.cm**3)).value
+    else: 
+        raise Exception("MR_units must be 'earth', or 'jupiter'")
     return rho
+
 
 def Lstar(Rstar,Teff):
     """
@@ -192,6 +224,7 @@ def Lstar(Rstar,Teff):
     """
     return (Rstar)**2*(Teff/5770)**4
 
+
 def Sinc(Lstar,A):
     """
     :param Lstar: Luminosity (solar-units)
@@ -205,6 +238,7 @@ def Sinc(Lstar,A):
     """
     Sinc = Lstar / A**2
     return Sinc
+
 
 def Teq(Sinc):
     """

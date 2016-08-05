@@ -19,6 +19,7 @@ import radvel
 import radvel.likelihood
 import radvel.plotting
 import radvel.utils
+import radvel.fitting
 
 warnings.simplefilter('once', DeprecationWarning)
 
@@ -27,11 +28,17 @@ def initialize_posterior(P):
 
     for key in params.keys():
         if key.startswith('logjit'):
-            warnings.warn("""Fitting log(jitter) is depreciated. Please convert your config \
-files to initialize 'jit' instead of 'logjit' parameters. \
-Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
+            warnings.warn("""Fitting log(jitter) is depreciated.\
+                             Please convert your config \
+                             files to initialize 'jit' instead of \
+                             'logjit' parameters. \
+                             Converting 'logjit' to 'jit' for you now.""",
+                             DeprecationWarning,
+                             stacklevel=2)
             newkey = key.replace('logjit', 'jit')
             params[newkey] = np.exp(params[key])
+            P.vary[newkey] = P.vary[key]
+            del P.vary[key]
             del params[key]
 
     iparams = params.copy()
@@ -47,9 +54,11 @@ Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
-        likes[inst] = radvel.likelihood.RVLikelihood(mod, P.data.iloc[telgrps[inst]].time,
-                                               P.data.iloc[telgrps[inst]].mnvel,
-                                               P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst)
+        likes[inst] = radvel.likelihood.RVLikelihood(mod,
+                                P.data.iloc[telgrps[inst]].time,
+                                P.data.iloc[telgrps[inst]].mnvel,
+                                P.data.iloc[telgrps[inst]].errvel,
+                                suffix='_'+inst)
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
 
@@ -67,13 +76,24 @@ Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Fit an RV dataset')
-    parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',type=str)
-    parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain [20000]',default=20000,type=float)
-    parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers. [50]',default=50,type=int)
-    parser.add_argument('--noplots', dest='noplot',action='store_true',help='No plots will be created or saved [False]')
-    parser.add_argument('--plotkw', dest='plotkw',action='store',help='Dictionary of keywords sent to rv_multipanel_plot. E.g. --plotkw "{\'yscale_auto\': True}"', default='{}', type=str)
-    parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC? [False]')
-    parser.add_argument('--outputdir', dest='outputdir',action='store',help='Directory to save output files [./]', default='./')
+    parser.add_argument(metavar='planet',dest='planet',action='store',
+                        help='Planet name (should be file name contained\
+                         in the planets directory)',type=str)
+    parser.add_argument('--nsteps', dest='nsteps',action='store',
+                        help='Number of steps per chain [20000]',
+                        default=20000,type=float)
+    parser.add_argument('--nwalkers', dest='nwalkers',action='store',
+                        help='Number of walkers. [50]',default=50,type=int)
+    parser.add_argument('--noplots', dest='noplot',action='store_true',
+                        help='No plots will be created or saved [False]')
+    parser.add_argument('--plotkw', dest='plotkw',action='store',
+                        help='Dictionary of keywords sent to rv_multipanel_plot. \
+                        E.g. --plotkw "{\'yscale_auto\': True}"', default='{}',
+                        type=str)
+    parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',
+                        help='Skip MCMC? [False]')
+    parser.add_argument('--outputdir', dest='outputdir',action='store',
+                        help='Directory to save output files [./]', default='./')
     opt = parser.parse_args()
 
     opt.plotkw = eval(opt.plotkw)
@@ -85,20 +105,11 @@ if __name__ == '__main__':
     opt.plotkw['epoch'] = P.bjd0
 
     post = initialize_posterior(P)
-    
-    post0 = copy.deepcopy(post)
-    print "Initial loglikelihood = %f" % post0.logprob()
-    print "Performing maximum likelihood fit..."
-    res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
-                         options=dict(maxiter=100,maxfev=100000,xtol=1e-8) )
 
-    cpspost = copy.deepcopy(post)
-    cpsparams = post.params.basis.to_cps(post.params)
-    cpspost.params.update(cpsparams)
     
-    print "Final loglikelihood = %f" % post.logprob()
-    print "Best-fit parameters:"
-    print cpspost
+    post = radvel.fitting.maxlike_fitting(post, verbose=True)
+    
+    #statsdict = radvel.fitting.model_comp(post)
     
     like = post.likelihood
 
@@ -109,18 +120,71 @@ if __name__ == '__main__':
 
     if not opt.noplot:
         saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
-        radvel.plotting.rv_multipanel_plot(post, saveplot=saveto, **opt.plotkw)
-
+        radvel.plotting.rv_multipanel_plot(post,
+                                           saveplot=saveto,
+                                           **opt.plotkw)
+        
     if not opt.nomcmc:
-        print '\n Running MCMC, nwalkers = %s, nsteps = %s ...'  %(opt.nwalkers, opt.nsteps)
-        chains = radvel.mcmc(post,threads=1,nwalkers=opt.nwalkers,nrun=opt.nsteps)
+        print '\n Running MCMC, nwalkers = %s, nsteps = %s ...'  \
+                % (opt.nwalkers, opt.nsteps)
+        chains = radvel.mcmc(post,
+                             threads=1,
+                             nwalkers=opt.nwalkers,
+                             nrun=opt.nsteps)
 
+        if not hasattr(P, 'mstar'):
+            P.mstar = 1.0
+            
+        if not hasattr(P, 'mstar_err'):
+            mstar = copy.deepcopy(P.mstar)
+        else:
+            mstar = np.random.normal(loc=P.mstar,
+                                     scale=P.mstar_err,
+                                     size=len(chains))
+
+        cpschains = chains.copy()
+        for par in post.params.keys():
+            if not post.vary[par]:
+                cpschains[par] = post.params[par]
+                
+        cpschains = post.params.basis.to_cps(cpschains)
+                
+        for i in np.arange(1, P.nplanets +1, 1):
+            per = cpschains['per' + str(i)]
+            k = cpschains['k' + str(i)]
+            e = cpschains['e' + str(i)]
+            cpschains['mpsini' + str(i)] = radvel.orbit.Msini(k,
+                                            per, mstar, e,
+                                            Msini_units='earth')
+            print "mpsini%d = %4.2f" \
+              % (i,np.median(cpschains['mpsini' + str(i)]))
+
+            if hasattr(P, 'rp' + str(i)) and  hasattr(P, 'rp_err' + str(i)):
+                if hasattr(P, 'rp_err' + str(i)):
+                    cpschains['rp' + str(i)] = np.random.normal(
+                        loc= getattr(P, 'rp' + str(i)),
+                        scale=getattr(P, 'rp_err' + str(i)),
+                        size=len(cpschains))
+                    cpschains['rhop' + str(i)] = radvel.orbit.density(
+                        cpschains['mpsini' + str(i)],
+                        cpschains['rp' + str(i)])
+                
         report_depfiles = []
         if not opt.noplot:
-            cp_saveto = os.path.join(writedir, P.starname+'_corner.pdf')
-            radvel.plotting.corner_plot(post, chains, saveplot=cp_saveto)
+            cp_saveto = os.path.join(writedir,
+                                     P.starname+'_corner.pdf')
+            radvel.plotting.corner_plot(post,
+                                        chains,
+                                        saveplot=cp_saveto)
+            cp_derived_saveto = os.path.join(writedir,
+                                             P.starname + \
+                                             '_corner_derived_pars.pdf')
             report_depfiles.append(cp_saveto)
-        
+            radvel.plotting.corner_plot_derived_pars(cpschains,
+                                             P,
+                                             saveplot=cp_derived_saveto)
+            report_depfiles.append(cp_derived_saveto)
+            
         post_summary=chains.quantile([0.1587, 0.5, 0.8413])
         print '\n Posterior Summary...\n'
         print post_summary
@@ -128,20 +192,20 @@ if __name__ == '__main__':
         post_summary.to_csv(saveto, sep=',')
         print '\n Posterior Summary saved:' , saveto  
 
-        chains.to_csv(os.path.join(writedir, P.starname+'_chains.csv.tar.bz2'), compression='bz2')
+        chains.to_csv(os.path.join(writedir,
+                                   P.starname+'_chains.csv.tar.bz2'),
+                                   compression='bz2')
 
         for k in chains.keys():
             if k in post.params.keys():
                 post.params[k] = post_summary[k][0.5]
         
         print "Performing post-MCMC maximum likelihood fit..."
-        res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
-                         options=dict(maxiter=100,maxfev=100000,xtol=1e-8) )
-
+        post = radvel.fitting.maxlike_fitting(post, verbose=False)
+        
         cpspost = copy.deepcopy(post)
         cpsparams = post.params.basis.to_cps(post.params)
         cpspost.params.update(cpsparams)
-                
 
         report = radvel.report.RadvelReport(P, post, chains)
 
@@ -163,7 +227,8 @@ if __name__ == '__main__':
         if not opt.noplot:
             opt.plotkw['uparams'] = cpspost.uparams
             mp_saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
-            radvel.plotting.rv_multipanel_plot(post, saveplot=mp_saveto, **opt.plotkw)
+            radvel.plotting.rv_multipanel_plot(post, saveplot=mp_saveto,
+                                               **opt.plotkw)
             saveto = os.path.join(writedir, P.starname+'_trends.pdf')
             radvel.plotting.trend_plot(post, chains, opt.nwalkers, saveto)
             report_depfiles.append(mp_saveto)

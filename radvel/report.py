@@ -83,6 +83,8 @@ class RadvelReport():
             out += self.figtex(self.starname+"_rv_multipanel.pdf", caption=self._bestfit_caption())
         if os.path.exists(self.starname+"_corner.pdf"):
             out += self.figtex(self.starname+"_corner.pdf", caption="Posterior distributions for all free parameters.")
+        if os.path.exists(self.starname+"_corner_derived_pars.pdf"):
+            out += self.figtex(self.starname+"_corner_derived_pars.pdf", caption="Posterior distributions for all derived parameters.")
 
         out += self._postamble()
         
@@ -291,7 +293,6 @@ class TexTable(RadvelReport):
         Returns:
             string: TeX code for the results table in the radvel report.
         """
-
         # Sort extra params
         ep = []
         order = ['gamma', 'dvdt', 'curv', 'jit']
@@ -304,7 +305,8 @@ class TexTable(RadvelReport):
             [ep.append(i) for i in sorted(op)[::-1]]
         ep = ' '.join(ep)
                         
-        outstr = self._header() + \
+        outstr = self.comp_table() + \
+                 self._header() + \
                  self._data(self.fitting_basis, sidehead='\\bf{Modified MCMC Step Parameters}') + \
                  self._data(print_basis, sidehead='\\bf{Orbital Parameters}', hline=True) + \
                  self._data(ep, sidehead='\\bf{Other Parameters}', hline=True) + \
@@ -321,4 +323,38 @@ class TexTable(RadvelReport):
                  
         return trimstr
 
-    
+
+    def comp_table(self):
+        statsdict = radvel.fitting.model_comp(self.post, verbose=False)
+        n_test = range(len(statsdict))
+
+        coldefs = 'r'*len(statsdict)
+        
+        tstr = """
+\\begin{deluxetable*}{l%s}
+\\tablecaption{Model Comparison}
+\\tablehead{\\colhead{Statistic}""" % coldefs
+        for n in n_test:
+            if n == max(n_test):
+                tstr = tstr + " & \\colhead{{\\bf %d planets (adopted)}}" % n
+            else:
+                tstr = tstr + " & \\colhead{%d planets}" % n
+        tstr += "}\n"
+            
+        tstr += "\\startdata\n\n"
+
+        statkeys = statsdict[0].keys()
+        for s in statkeys:
+            row = "%s (%s) " % (s, statsdict[0][s][1])
+            for n in n_test:
+                row += " & %s" % statsdict[n][s][0]
+
+            row += "\\\\\n"
+            tstr += row
+        tstr += """
+\\enddata
+\\label{tab:comp}
+\\end{deluxetable*}
+"""
+
+        return tstr

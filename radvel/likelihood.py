@@ -70,14 +70,14 @@ class Likelihood(object):
 
     def set_vary_params(self, params_array):
         i = 0
-        for key in self.params.keys():
-            if self.vary[key]:
-                # flip sign for negative jitter
-                if key.startswith('jit') and params_array[i] < 0:
-                    params_array[i] = -params_array[i]
+        for key in self.list_vary_params():
+            # flip sign for negative jitter
+            if key.startswith('jit') and params_array[i] < 0:
+                params_array[i] = -params_array[i]
                     
-                self.params[key] = params_array[i]
-                i+=1
+            self.params[key] = params_array[i]
+            i+=1
+
         assert i==len(params_array), \
             "length of array must match number of varied parameters"
 
@@ -98,9 +98,6 @@ class Likelihood(object):
 
     def neglogprob(self):
         return -1.0 * self.logprob()
-
-    def bic(self):
-        return -2.0 * self.logprob() + len(self.get_vary_params()) + np.log(len(self.y))
 
     def neglogprob_array(self, params_array):
         return -self.logprob_array(params_array)
