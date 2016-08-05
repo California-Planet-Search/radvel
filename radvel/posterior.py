@@ -50,6 +50,17 @@ class Posterior(Likelihood):
 
         return _logprob
 
+    def bic(self):
+        """
+        Calculate the Bayesian information criterion
+
+        Returns:
+            float: BIC
+        """
+        
+        return -2.0 * self.logprob() + len(self.likelihood.get_vary_params()) + np.log(len(self.likelihood.y))
+
+    
     def logprob_array(self, params_array):
         """Log probability for parameter vector
 

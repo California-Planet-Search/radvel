@@ -33,7 +33,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
     p0 = likelihood.get_vary_params()
     ndim = p0.size
     p0 = np.vstack([p0]*nwalkers)
-    p0 += [np.random.rand(ndim)*0.05 for i in range(nwalkers)]
+    p0 += [np.random.rand(ndim)*0.03 for i in range(nwalkers)]
     sampler = emcee.EnsembleSampler( 
         nwalkers, 
         ndim, 

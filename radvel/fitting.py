@@ -1,33 +1,104 @@
 from scipy import optimize
 import numpy as np
+import copy
+import collections
 
-def maxlike_fitting(mod, t, vel, errvel):
-    print "initial paraeters"
-    print mod.params0
+def maxlike_fitting(post, verbose=True):
+    """
+    Perform a maximum likelihood fit.
 
-    n = len(vel)
+    Args:
+        post (radvel.Posterior): Posterior object with initial guesses
+        verbose (bool): (optional) Print messages and fitted values?
 
-    # Maximizing likelihood is equivalent to minimizing negative likelihood
-    def obj(*args):
-        if np.isnan(args[0]).sum() > 0:
-            import pdb;pdb.set_trace()
-        return -1.0 * mod.lnprob_array(*args) 
+    Returns:
+        radvel.Posterior : Posterior object with parameters updated their maximum likelihood values
+    """
+    
+    post0 = copy.deepcopy(post)
+    if verbose:
+        print "Initial loglikelihood = %f" % post0.logprob()
+        print "Performing maximum likelihood fit..."
 
+    res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
+                         options=dict(maxiter=100,maxfev=100000,xtol=1e-8) )
 
-    # If epsilon is too small, there will be no-disernable change in
-    # the likelihood
-    p0 = mod.params_to_array(mod.params0)
-    p1, minneglnlike, outdict = optimize.fmin_l_bfgs_b(
-        obj, p0, args=(t, vel, errvel,), approx_grad=1, epsilon=1e-4
-        )
+    cpspost = copy.deepcopy(post)
+    cpsparams = post.params.basis.to_cps(post.params)
+    cpspost.params.update(cpsparams)
 
-    maxlnlike = -1.0 * minneglnlike
-    params_maxlike = mod.array_to_params(p1)
-    k = mod.nvary_parameters
-    print "max-likelihood parameters"
-    print params_maxlike
-    print "max-likelihood = {}".format( maxlnlike )
-    print "n = {}, k = {}, BIC = {}".format( 
-        n, k, BIC(maxlnlike, k,  n) 
-        )
-    return params_maxlike, maxlnlike
+    if verbose:
+        print "Final loglikelihood = %f" % post.logprob()
+        print "Best-fit parameters:"
+        print cpspost
+
+        
+    return post
+    
+
+def model_comp(post, verbose=False):
+    """
+    Fit for planets adding one at a time.
+    Save results as list of posterior objects.
+
+    Args:
+        post (radvel.Posterior): posterior object for final best-fit solution with all planets
+        verbose (bool): (optional) print out statistics
+        
+    Returns:
+        list of dictionaries : List of dictionaries with fit statistics. Each value in the dictionary is a tuple with the
+            statistic value as the first element and a description of that statistic in the second element.
+
+    """
+
+    ipost = copy.deepcopy(post)
+        
+    num_planets = post.likelihood.model.num_planets
+
+    statsdict = []
+    
+    for n in range(num_planets+1):
+        pdict = collections.OrderedDict()
+        if verbose:
+            print "Testing %d planet model.\n\n" % n
+
+        for par in post.params.keys():
+            try:
+                num = int(par[-1])
+                if num > n:
+                    if par.startswith('k') or par.startswith('logk'):
+                        post.params[par] = 0.0
+                    post.vary[par] = False
+                else:
+                    post.params[par] = ipost.params[par]
+                    post.vary[par] = ipost.vary[par]
+            except ValueError:
+                pass
+
+        post = maxlike_fitting(post, verbose=False)
+
+        ndata = len(post.likelihood.y)
+        nfree = len(post.get_vary_params())
+        chi = np.sum((post.likelihood.residuals()/post.likelihood.yerr)**2)
+        chi_red = chi / (ndata - nfree)
+
+        if verbose:
+            print post
+            print "N_free = %d" % nfree
+            print "RMS = %4.2f" % np.std(post.likelihood.residuals())
+            print "logprob = %4.2f" % post.logprob()
+            print "chi (no jitter) = %4.2f" % chi
+            print "chi_red (no jitter) = %4.2f" % chi_red
+            print "BIC = %4.2f" % post.bic()
+        
+        pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
+        pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
+        pdict['RMS'] = (np.round(np.std(post.likelihood.residuals()), 2), 'RMS of residuals in m s$^{-1}$')
+        pdict['$\\chi^{2}$'] = (np.round(chi,2), "assuming no jitter")
+        pdict['$\\chi^{2}_{\\nu}$'] = (np.round(chi_red,2), "assuming no jitter")
+        pdict['$\\ln{\\mathcal{L}}$'] = (np.round(post.logprob(),2), "natural log of the likelihood")
+        pdict['BIC'] = (np.round(post.bic(),2), 'Bayesian information criterion')
+        
+        statsdict.append(pdict)
+
+    return statsdict
