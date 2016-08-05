@@ -77,7 +77,7 @@ if __name__ == '__main__':
         '--nsteps', dest='nsteps', action='store',default=20000, type=float, 
         help='Number of steps per chain [20000]',)
     psr.add_argument(
-        '--nwalkers', dest='nwalkers', action='store', default=50, type=int
+        '--nwalkers', dest='nwalkers', action='store', default=50, type=int,
         help='Number of walkers. [50]', 
     )
     psr.add_argument(
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         help='Skip MCMC? [False]'
     )
     psr.add_argument(
-        '--outputdir', dest='outputdir', action='store', default='./'
+        '--outputdir', dest='outputdir', action='store', default='./',
         help='Directory to save output files [./]', 
     )
     opt = psr.parse_args()
