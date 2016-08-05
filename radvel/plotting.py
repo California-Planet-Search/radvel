@@ -11,15 +11,13 @@ from matplotlib.ticker import NullFormatter
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import rcParams
 
-from radvel.utils import date2jd, jd2date, t2dt
+from astropy.time import Time
 import corner
 
 import radvel
 from radvel.utils import t_to_phase, fastbin, round_sig, sigfig
 
-
 rcParams['font.size'] = 24
-rcParams['axes.grid'] = False
 
 telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs', 'l': 'g+',
            'hires_rj': 'ko', 'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs', 'lick': 'g+'}
@@ -145,25 +143,20 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     pltletter += 1
     _mtelplot(plttimes,rawresid+rvmod,rverr,cpspost.likelihood.telvec, ax, telfmts)
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
-    pl.setp(axRV.get_xticklabels(), visible=False)
-    ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=8, integer=True))
     
+    pl.setp(axRV.get_xticklabels(), visible=False)
+
     # Years on upper axis
     axyrs = axRV.twiny()
     axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
+    #yrticklocs = [date2jd(datetime(y, 1, 1, 0, 0, 0))-e for y in [1998, 2002, 2006, 2010, 2014]]
     yrticklocs = []
     yrticklabels = []
-
-    year_increments = [2,1,0.5,0.2,0.1]
-    for yi in year_increments:
-        yrs = np.arange(1988, 2050, yi)
-        for y in yrs:
-            jd = date2jd(t2dt(y)) - e
-            if jd > ax.get_xlim()[0] and jd < ax.get_xlim()[1]:
-                yrticklocs.append(jd)
-                yrticklabels.append("%s" % y)
-        if len(yrticklocs) >= len(axRV.get_xticklabels()) - 1: break
-
+    for y in [1988,1992,1996,2000,2004,2008,2012,2016]:
+        jd = Time("%d-01-01T00:00:00" % y, format='isot', scale='utc').jd - e
+        if jd > ax.get_xlim()[0] and jd < ax.get_xlim()[1]:
+            yrticklocs.append(jd)
+            yrticklabels.append("%d" % y)
     axyrs.set_xticks(yrticklocs)
     axyrs.set_xticklabels(yrticklabels)    
     if len(yrticklabels) > 0:
@@ -187,13 +180,12 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     _mtelplot(plttimes,resid,rverr, cpspost.likelihood.telvec,ax, telfmts)
     if not yscale_auto: ax.set_ylim(-yscale_sigma*np.std(resid), yscale_sigma*np.std(resid))
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
-    #ticks = ax.yaxis.get_majorticklocs()
-    #ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
-    ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=6, integer=True, prune='both'))
-    ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=9))
+    ticks = ax.yaxis.get_majorticklocs()
+    ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
     pl.xlabel('BJD$_{\\mathrm{TDB}}$ - %d' % e)
     ax.set_ylabel('Residuals')
+
     
     # Define the locations for the axes
     axbounds = ax.get_position().bounds
@@ -242,12 +234,11 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         if not nobin and len(rvdat) > 10: ax.errorbar(bint,bindat,yerr=binerr,fmt='ro', ecolor='r', markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2)
 
         pl.xlim(-0.5,0.5)
-        ax.set_xticks([-0.5, -0.25, 0.0, 0.25, 0.5])
+        #meanlim = np.mean([-min(rvdat), max(rvdat)])
+        #meanlim += 0.10*meanlim
+        #pl.ylim(-meanlim, meanlim)
         if not yscale_auto: pl.ylim(-yscale_sigma*np.std(rvdatcat), yscale_sigma*np.std(rvdatcat))
-        ax.yaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=7, integer=True, prune='both'))
-        if i < n-1:
-            pl.setp(ax.get_xticklabels(), visible=False)
-            
+        
         letters = string.lowercase
         planetletter = letters[i+1]
         keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
@@ -258,7 +249,10 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         xstart = 0.65
         ystart = 0.89
         
-            
+        if i < n-1:
+            ticks = ax.yaxis.get_majorticklocs()
+            ax.yaxis.set_ticks(ticks[1:-1])
+
         if n > 1: fig.text(0.01,textloc,'RV [m s$^{-1}$]',rotation='vertical',ha='center',va='center',fontsize=28)
         else: pl.ylabel('RV [m s$^{-1}$]')
         pl.xlabel('Phase')
@@ -280,12 +274,14 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
                 
             txt = ax.annotate(anotext,(xstart,ystart-l*spacing),
                 xycoords='axes fraction', fontsize=28)
-            
+
+                
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
         print "RV multi-panel plot saved to %s" % saveplot
     else: pl.show()
 
+        
 def corner_plot(post, chains, saveplot=None):
     """
     Make a corner plot from the output MCMC chains and a posterior object.
@@ -323,6 +319,56 @@ def corner_plot(post, chains, saveplot=None):
     else: pl.show()
 
     rcParams['font.size'] = f
+
+
+def corner_plot_derived_pars(chains, P, saveplot=None):
+    """
+    Make a corner plot from the output MCMC chains and a posterior object.
+
+    Args:
+        chains (DataFrame): MCMC chains output by radvel.mcmc
+        pars (list): 
+        saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
+
+    Returns:
+        None
+    
+    """
+
+    labels = []
+    texlabels = []
+    for i in np.arange(1, P.nplanets +1, 1):
+        letter = P.planet_letters[i]
+        if hasattr(chains, 'mpsini' + str(i)):
+            labels.append('mpsini' + str(i))
+            texlabels.append('$M_' + letter + '\\sin i$')
+        if hasattr(chains, 'rhop' + str(i)):
+            labels.append('rhop' + str(i))
+            texlabels.append('$\\rho_' + letter + '$')
+    
+            #labels = [k for k in post.vary.keys() if post.vary[k]]
+            #texlabels = [post.params.tex_labels().get(l, l) for l in labels]
+    
+    f = rcParams['font.size']
+    rcParams['font.size'] = 12
+    
+    fig = corner.corner(chains[labels],
+                        labels=texlabels,
+                        label_kwargs={"fontsize": 14},
+                        plot_datapoints=False,
+                        bins=20,
+                        quantiles=[.16,.5,.84],
+                        show_titles = True,
+                        title_kwargs={"fontsize": 14},
+                        smooth=True)
+    
+    if saveplot != None:
+        pl.savefig(saveplot,dpi=150)
+        print "Corner plot saved to %s" % saveplot
+    else: pl.show()
+
+    rcParams['font.size'] = f
+    
     
 def trend_plot(post, chains, nwalkers, outfile=None):
     """MCMC trend plot
