@@ -83,6 +83,8 @@ class RadvelReport():
             out += self.figtex(self.starname+"_rv_multipanel.pdf", caption=self._bestfit_caption())
         if os.path.exists(self.starname+"_corner.pdf"):
             out += self.figtex(self.starname+"_corner.pdf", caption="Posterior distributions for all free parameters.")
+        if os.path.exists(self.starname+"_corner_derived_pars.pdf"):
+            out += self.figtex(self.starname+"_corner_derived_pars.pdf", caption="Posterior distributions for all derived parameters.")
 
         out += self._postamble()
         
@@ -291,7 +293,6 @@ class TexTable(RadvelReport):
         Returns:
             string: TeX code for the results table in the radvel report.
         """
-
         # Sort extra params
         ep = []
         order = ['gamma', 'dvdt', 'curv', 'jit']
