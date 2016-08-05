@@ -19,6 +19,7 @@ import radvel
 import radvel.likelihood
 import radvel.plotting
 import radvel.utils
+import radvel.fitting
 
 warnings.simplefilter('once', DeprecationWarning)
 
@@ -86,19 +87,9 @@ if __name__ == '__main__':
 
     post = initialize_posterior(P)
     
-    post0 = copy.deepcopy(post)
-    print "Initial loglikelihood = %f" % post0.logprob()
-    print "Performing maximum likelihood fit..."
-    res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
-                         options=dict(maxiter=100,maxfev=100000,xtol=1e-8) )
-
-    cpspost = copy.deepcopy(post)
-    cpsparams = post.params.basis.to_cps(post.params)
-    cpspost.params.update(cpsparams)
+    post = radvel.fitting.maxlike_fitting(post, verbose=True)
     
-    print "Final loglikelihood = %f" % post.logprob()
-    print "Best-fit parameters:"
-    print cpspost
+    #statsdict = radvel.fitting.model_comp(post)
     
     like = post.likelihood
 
@@ -135,13 +126,11 @@ if __name__ == '__main__':
                 post.params[k] = post_summary[k][0.5]
         
         print "Performing post-MCMC maximum likelihood fit..."
-        res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
-                         options=dict(maxiter=100,maxfev=100000,xtol=1e-8) )
-
+        post = radvel.fitting.maxlike_fitting(post, verbose=False)
+        
         cpspost = copy.deepcopy(post)
         cpsparams = post.params.basis.to_cps(post.params)
         cpspost.params.update(cpsparams)
-                
 
         report = radvel.report.RadvelReport(P, post, chains)
 

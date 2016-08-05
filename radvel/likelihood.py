@@ -99,9 +99,6 @@ class Likelihood(object):
     def neglogprob(self):
         return -1.0 * self.logprob()
 
-    def bic(self):
-        return -2.0 * self.logprob() + len(self.get_vary_params()) + np.log(len(self.y))
-
     def neglogprob_array(self, params_array):
         return -self.logprob_array(params_array)
 

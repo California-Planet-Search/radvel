@@ -1,4 +1,4 @@
-__all__=['model','likelihood','posterior','mcmc','prior', 'utils']
+__all__=['model','likelihood','posterior','mcmc','prior', 'utils', 'fitting', 'report']
 from .model import *
 from .likelihood import *
 from .posterior import *
@@ -7,6 +7,7 @@ from .prior import *
 from .utils import *
 from .report import *
 from .plotting import *
+from .fitting import *
 import os 
 import sys
 
