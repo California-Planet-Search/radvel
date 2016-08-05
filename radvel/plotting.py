@@ -17,7 +17,6 @@ import corner
 import radvel
 from radvel.utils import t_to_phase, fastbin, round_sig, sigfig
 
-
 rcParams['font.size'] = 24
 
 telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs', 'l': 'g+',
@@ -282,6 +281,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         print "RV multi-panel plot saved to %s" % saveplot
     else: pl.show()
 
+        
 def corner_plot(post, chains, saveplot=None):
     """
     Make a corner plot from the output MCMC chains and a posterior object.
@@ -319,6 +319,56 @@ def corner_plot(post, chains, saveplot=None):
     else: pl.show()
 
     rcParams['font.size'] = f
+
+
+def corner_plot_derived_pars(chains, P, saveplot=None):
+    """
+    Make a corner plot from the output MCMC chains and a posterior object.
+
+    Args:
+        chains (DataFrame): MCMC chains output by radvel.mcmc
+        pars (list): 
+        saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
+
+    Returns:
+        None
+    
+    """
+
+    labels = []
+    texlabels = []
+    for i in np.arange(1, P.nplanets +1, 1):
+        letter = P.planet_letters[i]
+        if hasattr(chains, 'mpsini' + str(i)):
+            labels.append('mpsini' + str(i))
+            texlabels.append('$M_' + letter + '\\sin i$')
+        if hasattr(chains, 'rhop' + str(i)):
+            labels.append('rhop' + str(i))
+            texlabels.append('$\\rho_' + letter + '$')
+    
+            #labels = [k for k in post.vary.keys() if post.vary[k]]
+            #texlabels = [post.params.tex_labels().get(l, l) for l in labels]
+    
+    f = rcParams['font.size']
+    rcParams['font.size'] = 12
+    
+    fig = corner.corner(chains[labels],
+                        labels=texlabels,
+                        label_kwargs={"fontsize": 14},
+                        plot_datapoints=False,
+                        bins=20,
+                        quantiles=[.16,.5,.84],
+                        show_titles = True,
+                        title_kwargs={"fontsize": 14},
+                        smooth=True)
+    
+    if saveplot != None:
+        pl.savefig(saveplot,dpi=150)
+        print "Corner plot saved to %s" % saveplot
+    else: pl.show()
+
+    rcParams['font.size'] = f
+    
     
 def trend_plot(post, chains, nwalkers, outfile=None):
     """MCMC trend plot
