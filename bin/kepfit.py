@@ -67,16 +67,36 @@ Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Fit an RV dataset')
-    parser.add_argument(metavar='planet',dest='planet',action='store',help='Planet name (should be file name contained in the planets directory)',type=str)
-    parser.add_argument('--nsteps', dest='nsteps',action='store',help='Number of steps per chain [20000]',default=20000,type=float)
-    parser.add_argument('--nwalkers', dest='nwalkers',action='store',help='Number of walkers. [50]',default=50,type=int)
-    parser.add_argument('--noplots', dest='noplot',action='store_true',help='No plots will be created or saved [False]')
-    parser.add_argument('--plotkw', dest='plotkw',action='store',help='Dictionary of keywords sent to rv_multipanel_plot. E.g. --plotkw "{\'yscale_auto\': True}"', default='{}', type=str)
-    parser.add_argument('--nomcmc', dest='nomcmc',action='store_true',help='Skip MCMC? [False]')
-    parser.add_argument('--outputdir', dest='outputdir',action='store',help='Directory to save output files [./]', default='./')
-    opt = parser.parse_args()
-
+    psr = argparse.ArgumentParser(description='Fit an RV dataset')
+    psr.add_argument(
+        metavar='planet', dest='planet', action='store', 
+        help='Planet name (should be file name contained in the planets directory)',
+        type=str
+    )
+    psr.add_argument(
+        '--nsteps', dest='nsteps', action='store',default=20000, type=float, 
+        help='Number of steps per chain [20000]',)
+    psr.add_argument(
+        '--nwalkers', dest='nwalkers', action='store', default=50, type=int
+        help='Number of walkers. [50]', 
+    )
+    psr.add_argument(
+        '--noplots', dest='noplot', action='store_true', 
+        help='No plots will be created or saved [False]'
+    )
+    psr.add_argument(
+        '--plotkw', dest='plotkw',action='store', default='{}', type=str,
+        help='Dictionary of keywords sent to rv_multipanel_plot. E.g. --plotkw "{\'yscale_auto\': True}"', 
+    )
+    psr.add_argument(
+        '--nomcmc', dest='nomcmc', action='store_true', 
+        help='Skip MCMC? [False]'
+    )
+    psr.add_argument(
+        '--outputdir', dest='outputdir', action='store', default='./'
+        help='Directory to save output files [./]', 
+    )
+    opt = psr.parse_args()
     opt.plotkw = eval(opt.plotkw)
     
     system_name = os.path.basename(opt.planet).split('.')[0]
