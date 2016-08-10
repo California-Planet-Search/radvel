@@ -1,19 +1,15 @@
 #!/usr/bin/env python
-
+import os
+import sys
+import imp
+import pickle
+import argparse
+import copy
 import warnings
-warnings.filterwarnings("ignore")
 
 import pandas as pd
 import numpy as np
-import os
-import sys
-import argparse
-import imp
-import pickle
-import warnings
-
 from scipy import optimize
-import copy
 
 import radvel
 import radvel.likelihood
@@ -21,6 +17,7 @@ import radvel.plotting
 import radvel.utils
 import radvel.fitting
 
+warnings.filterwarnings("ignore")
 warnings.simplefilter('once', DeprecationWarning)
 
 def initialize_posterior(P):
@@ -37,7 +34,6 @@ Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
 
     iparams = params.copy()
 
-
     # Make sure we don't have duplicate indicies in the DataFrame
     P.data = P.data.reset_index(drop=True)
     
@@ -48,9 +44,11 @@ Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
-        likes[inst] = radvel.likelihood.RVLikelihood(mod, P.data.iloc[telgrps[inst]].time,
-                                               P.data.iloc[telgrps[inst]].mnvel,
-                                               P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst)
+        likes[inst] = radvel.likelihood.RVLikelihood(
+            mod, P.data.iloc[telgrps[inst]].time,
+            P.data.iloc[telgrps[inst]].mnvel,
+            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst
+        )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
 
