@@ -32,6 +32,8 @@ Converting 'logjit' to 'jit' for you now.
             warnings.warn(msg, DeprecationWarning, stacklevel=2)
             newkey = key.replace('logjit', 'jit')
             params[newkey] = np.exp(params[key])
+            P.vary[newkey] = P.vary[key]
+            del P.vary[key]
             del params[key]
 
     iparams = params.copy()
@@ -197,9 +199,6 @@ if __name__ == '__main__':
                 chains, P, saveplot=cp_derived_saveto
             )
             report_depfiles.append(cp_derived_saveto)
-
-#Evan updates end here
-################# 
             
         post_summary=chains.quantile([0.1587, 0.5, 0.8413])
         print '\n Posterior Summary...\n'
@@ -207,7 +206,6 @@ if __name__ == '__main__':
         saveto = os.path.join(writedir, P.starname+'_post_summary.csv')
         post_summary.to_csv(saveto, sep=',')
         print '\n Posterior Summary saved:' , saveto  
-
 
         csvfn = os.path.join(writedir, P.starname+'_chains.csv.tar.bz2')
         chains.to_csv(csvfn, compression='bz2')
@@ -243,7 +241,8 @@ if __name__ == '__main__':
         if not opt.noplot:
             opt.plotkw['uparams'] = cpspost.uparams
             mp_saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
-            radvel.plotting.rv_multipanel_plot(post, saveplot=mp_saveto, **opt.plotkw)
+            radvel.plotting.rv_multipanel_plot(post, saveplot=mp_saveto,
+                                               **opt.plotkw)
             saveto = os.path.join(writedir, P.starname+'_trends.pdf')
             radvel.plotting.trend_plot(post, chains, opt.nwalkers, saveto)
             report_depfiles.append(mp_saveto)

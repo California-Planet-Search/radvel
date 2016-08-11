@@ -53,8 +53,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'radvel'
-copyright = u'2015, Erik Petigura and BJ Fulton'
-author = u'Erik Petigura and BJ Fulton'
+copyright = u'2015, BJ Fulton and Erik Petigura'
+author = u'BJ Fulton and Erik Petigura'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

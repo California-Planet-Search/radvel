@@ -5,6 +5,13 @@ from astropy.time import Time
 from astropy import constants as c
 from astropy import units as u
 
+
+# Normalization. 
+#RV m/s of a 1.0 Jupiter mass planet tugging on a 1.0
+# solar mass star on a 1.0 year orbital period
+K_0 = 28.4329
+
+
 def timetrans_to_timeperi(tc, per, ecc, omega):
     """
     Convert Time of Transit to Time of Periastron Passage
@@ -118,13 +125,6 @@ def e_om_to_ecosom_esinom(e,om):
     esinom = e * np.sin( dtorad*om )
     return ecosom, esinom
 
-
-
-# Normalization. 
-#RV m/s of a 1.0 Jupiter mass planet tugging on a 1.0
-# solar mass star on a 1.0 year orbital period
-K_0 = 28.4329
-
 def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
     """
     Compute Doppler semi-amplitude
@@ -147,9 +147,11 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
     :return: Doppler semi-amplitude [m/s]
     """
     if Msini_units.lower() == 'jupiter':
-        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.333 * Mtotal**-0.667
+        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.333 * \
+            Mtotal**-0.667
     elif Msini_units.lower() == 'earth':
-        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.333 * Mtotal**-0.667*(c.M_earth/c.M_jup).value
+        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.333 * \
+            Mtotal**-0.667*(c.M_earth/c.M_jup).value
     else: 
         raise Exception("Msini_units must be 'earth', or 'jupiter'")
         
@@ -173,9 +175,11 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
     """
 
     if Msini_units.lower() == 'jupiter':
-        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.667 * (P/365.0)**0.333
+        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.667 * \
+            (P/365.0)**0.333
     elif Msini_units.lower() == 'earth':
-        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.667 * (P/365.0)**0.333*(c.M_jup/c.M_earth).value
+        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.667 * \
+            (P/365.0)**0.333*(c.M_jup/c.M_earth).value
     else: 
         raise Exception("Msini_units must be 'earth', or 'jupiter'")
     
