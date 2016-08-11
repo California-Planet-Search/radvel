@@ -19,15 +19,17 @@ import radvel.fitting
 
 warnings.filterwarnings("ignore")
 warnings.simplefilter('once', DeprecationWarning)
-
 def initialize_posterior(P):
     params = P.params.basis.from_cps(P.params, P.fitting_basis, keep=False)
 
     for key in params.keys():
         if key.startswith('logjit'):
-            warnings.warn("""Fitting log(jitter) is depreciated. Please convert your config \
-files to initialize 'jit' instead of 'logjit' parameters. \
-Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
+            msg = """
+Fitting log(jitter) is depreciated. Please convert your config
+files to initialize 'jit' instead of 'logjit' parameters.
+Converting 'logjit' to 'jit' for you now.
+"""
+            warnings.warn(msg, DeprecationWarning, stacklevel=2)
             newkey = key.replace('logjit', 'jit')
             params[newkey] = np.exp(params[key])
             del params[key]
@@ -60,15 +62,15 @@ Converting 'logjit' to 'jit' for you now.""", DeprecationWarning, stacklevel=2)
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors
-
     return post
-
 
 if __name__ == '__main__':
     psr = argparse.ArgumentParser(description='Fit an RV dataset')
     psr.add_argument(
         metavar='planet', dest='planet', action='store', 
-        help='Planet name (should be file name contained in the planets directory)',
+        help='''
+        Planet name (should be file name contained in the planets directory)
+        ''',
         type=str
     )
     psr.add_argument(
@@ -84,7 +86,10 @@ if __name__ == '__main__':
     )
     psr.add_argument(
         '--plotkw', dest='plotkw',action='store', default='{}', type=str,
-        help='Dictionary of keywords sent to rv_multipanel_plot. E.g. --plotkw "{\'yscale_auto\': True}"', 
+        help='''
+        Dictionary of keywords sent to rv_multipanel_plot. 
+        E.g. --plotkw "{'yscale_auto': True}"'
+        ''',
     )
     psr.add_argument(
         '--nomcmc', dest='nomcmc', action='store_true', 
@@ -104,14 +109,8 @@ if __name__ == '__main__':
     opt.plotkw['epoch'] = P.bjd0
 
     post = initialize_posterior(P)
-
-    
     post = radvel.fitting.maxlike_fitting(post, verbose=True)
-    
-    #statsdict = radvel.fitting.model_comp(post)
-    
     like = post.likelihood
-
     writedir = os.path.join(opt.outputdir, P.starname)
     curdir = os.getcwd()
     if not os.path.isdir(writedir):
@@ -121,53 +120,85 @@ if __name__ == '__main__':
         saveto = os.path.join(writedir, P.starname+'_rv_multipanel.pdf')
         radvel.plotting.rv_multipanel_plot(post, saveplot=saveto, **opt.plotkw)
 
-################# 
-#Evan updates start here
-    if not hasattr(P, 'mstar'):
-        P.mstar = 1.0
-        
-    if not opt.nomcmc:
-        print '\n Running MCMC, nwalkers = %s, nsteps = %s ...'  %(opt.nwalkers, opt.nsteps)
-        chains = radvel.mcmc(post,threads=1,nwalkers=opt.nwalkers,nrun=opt.nsteps)
+    # Check if stellar or planet properties are defined, if not add nan
+    if not hasattr(P, 'stellar'):
+        P.stelar = dict(mstar=np.nan, mstar_err=np.nan)
 
-        if not hasattr(P, 'mstar_err'):
-            mstar = copy.deepcopy(P.mstar)
-        else:
-            mstar = np.random.normal(loc=P.mstar, scale=P.mstar_err, size=len(chains))
+    if not hasattr(P, 'planet'):
+        planet = {}
+        for i in range(1, P.nplanets+1):
+            planet['rp{}'.format(i)] = np.nan
+        for i in range(1, P.nplanets+1):
+            planet['rp_err{}'.format(i)] = np.nan
+        P.planet = planet
+
+    if not opt.nomcmc:
+        msg = "Running MCMC, nwalkers = {}, nsteps = {} ...".format(
+            opt.nwalkers, opt.nsteps
+        )
+        print msg
+        chains = radvel.mcmc(
+            post, threads=1, nwalkers=opt.nwalkers, nrun=opt.nsteps
+        )
+        
+        mstar = np.random.normal(
+            loc=P.stellar['mstar'], scale=P.stellar['mstar_err'], 
+            size=len(chains)
+            )
+
             
         for i in np.arange(1, P.nplanets +1, 1):
-            if hasattr(chains, 'per'+ str(i)):
-                per = chains['per' + str(i)]
-            else:
-                per = P.params['per' + str(i)]
-            if hasattr(chains, 'k'+ str(i)):
-                k = chains['k' + str(i)]
-            else:
-                k = P.params['k' + str(i)]
-            if hasattr(chains, 'e'+ str(i)):
-                e = chains['e' + str(i)]
-            elif hasattr(chains, 'secosw' + str(i)) and hasattr(chains, 'sesinw' + str(i)):
-                e, _ = radvel.orbit.sqrtecosom_sqrtesinom_to_e_om(chains['secosw'+str(i)], chains['sesinw'+str(i)])
-            else:
-                if 'e' + str(i) in P.params.keys():
-                    e = P.params['e' + str(i)]
-                if ('secosw' + str(i) in P.params.keys()) and ('sesinw' + str(i) in P.params.keys()):
-                    e, _ = radvel.orbit.sqrtecosom_sqrtesinom_to_e_om(P.params['secosw'+str(i)], P.params['sesinw'+str(i)])            
-            chains['mpsini' + str(i)] = radvel.orbit.Msini(k, per, mstar, e, Msini_units='earth')
-            print "mpsini" + str(i) + " = " + str(np.median(chains['mpsini' + str(i)]))
 
-            if hasattr(P, 'rp' + str(i)):
-                if hasattr(P, 'rp_err' + str(i)):
-                    chains['rp' + str(i)] = np.random.normal(loc= getattr(P, 'rp' + str(i)), scale=getattr(P, 'rp_err' + str(i)), size=len(chains))
-                    chains['rhop' + str(i)] = radvel.orbit.density(chains['mpsini' + str(i)], chains['rp' + str(i)])
-                
+            # Grab parameters from the chain
+            def _has_col(key):
+                cols = list(chains.columns)
+                return cols.count('{}{}'.format(key,i))==1
+
+            def _get_param(key):
+                if _has_col(key):
+                    return chains['{}{}'.format(key,i)]
+                else:
+                    return P.params['{}{}'.format(key,i)]
+
+            def _set_param(key, value):
+                chains['{}{}'.format(key,i)] = value
+
+            per = _get_param('per')
+            k = _get_param('k')
+            if _has_col('e') or 'e{}'.format(i) in P.params.keys():
+                e = _get_param('e')
+            if _has_col('ecosw') or 'ecosw{}'.format(i) in P.params.keys():
+                secosw = _get_param('secosw')
+                sesinw = _get_param('sesinw')
+                e, _ = radvel.orbit.sqrtecosom_sqrtesinom_to_e_om(ecosw,esinw)  
+
+            mpsini = radvel.orbit.Msini(k, per, mstar, e, Msini_units='earth')
+            _set_param('mpsini',mpsini)
+            mpsini50 = np.median(_get_param('mpsini'))
+            
+            print "mpsini{} = {}".format(mpsini,mpsini50)
+
+            rp = np.random.normal(
+                loc=P.planet['rp{}'.format(i)], 
+                scale=P.planet['rp_err{}'.format(i)],
+                size=len(chains)
+            )
+
+            _set_param('rp',rp)
+            chains['rhop' + str(i)] = radvel.orbit.density(mpsini, rp)
+
+
         report_depfiles = []
         if not opt.noplot:
             cp_saveto = os.path.join(writedir, P.starname+'_corner.pdf')
             radvel.plotting.corner_plot(post, chains, saveplot=cp_saveto)
-            cp_derived_saveto = os.path.join(writedir, P.starname+'_corner_derived_pars.pdf')
+            cp_derived_saveto = os.path.join(
+                writedir, P.starname+'_corner_derived_pars.pdf'
+            )
             report_depfiles.append(cp_saveto)
-            radvel.plotting.corner_plot_derived_pars(chains, P, saveplot=cp_derived_saveto)
+            radvel.plotting.corner_plot_derived_pars(
+                chains, P, saveplot=cp_derived_saveto
+            )
             report_depfiles.append(cp_derived_saveto)
 
 #Evan updates end here
@@ -180,7 +211,9 @@ if __name__ == '__main__':
         post_summary.to_csv(saveto, sep=',')
         print '\n Posterior Summary saved:' , saveto  
 
-        chains.to_csv(os.path.join(writedir, P.starname+'_chains.csv.tar.bz2'), compression='bz2')
+
+        csvfn = os.path.join(writedir, P.starname+'_chains.csv.tar.bz2')
+        chains.to_csv(csvfn, compression='bz2')
 
         for k in chains.keys():
             if k in post.params.keys():
