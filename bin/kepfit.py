@@ -148,7 +148,6 @@ if __name__ == '__main__':
 
             
         for i in np.arange(1, P.nplanets +1, 1):
-
             # Grab parameters from the chain
             def _has_col(key):
                 cols = list(chains.columns)
@@ -176,8 +175,6 @@ if __name__ == '__main__':
             _set_param('mpsini',mpsini)
             mpsini50 = np.median(_get_param('mpsini'))
             
-            print "mpsini{} = {}".format(mpsini,mpsini50)
-
             rp = np.random.normal(
                 loc=P.planet['rp{}'.format(i)], 
                 scale=P.planet['rp_err{}'.format(i)],
