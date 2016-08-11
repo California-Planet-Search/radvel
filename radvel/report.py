@@ -325,6 +325,14 @@ class TexTable(RadvelReport):
 
 
     def comp_table(self):
+        """Model comparisons
+
+        Compare models with increasing number of planets
+
+        Returns:
+            string: String containing TeX code for the model comparison table
+        """
+
         statsdict = radvel.fitting.model_comp(self.post, verbose=False)
         n_test = range(len(statsdict))
 

@@ -98,7 +98,7 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                tp = timetrans_to_timeperi(tc, per, ecc, w)
+                tp = timetrans_to_timeperi(tc, per, e, w)
             
             if self.name=='per tc secosw sesinw logk':
                 # pull out parameters
