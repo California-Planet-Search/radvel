@@ -20,31 +20,46 @@ from radvel.utils import t_to_phase, fastbin, round_sig, sigfig
 rcParams['font.size'] = 24
 rcParams['axes.grid'] = False
 
-telfmts = {'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs', 'l': 'g+',
-           'hires_rj': 'ko', 'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs', 'lick': 'g+'}
+telfmts = {
+    'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs', 'l': 'g+','hires_rj': 'ko',
+    'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs', 'lick': 'g+'
+}
+
 teldecode = {'a': 'APF', 'k': 'HIRES_k', 'j': 'HIRES_j', 'l': 'lick'}
 msize = 10
 elinecolor = '0.6'
 cmap = matplotlib.cm.nipy_spectral
     
 def _mtelplot(x, y, e, tel, ax, telfmts):
-        utel = np.unique(tel)
-        for t in utel:
-            xt = x[tel == t]
-            yt = y[tel == t]
-            et = e[tel == t]
-            if t == '': t = 'j'
-            if t == 'j' or t == 'k':
-                ax.errorbar(xt,yt,yerr=et,fmt=telfmts[t], ecolor=elinecolor, markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], markerfacecolor='none',
-                            markeredgewidth=3)
-            elif t not in telfmts.keys():
-                ax.errorbar(xt,yt,yerr=et,fmt='o', ecolor=elinecolor, markersize=msize, capsize=0, markeredgewidth=0)
-            else:
-                ax.errorbar(xt,yt,yerr=et,fmt=telfmts[t], ecolor=elinecolor, markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], markerfacecolor=telfmts[t][0],
-                            markeredgewidth=3)
+    utel = np.unique(tel)
+    for t in utel:
+        xt = x[tel == t]
+        yt = y[tel == t]
+        et = e[tel == t]
+        if t == '': t = 'j'
+        if t == 'j' or t == 'k':
+            ax.errorbar(
+                xt, yt, yerr=et,fmt=telfmts[t], ecolor=elinecolor, 
+                markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], 
+                markerfacecolor='none', markeredgewidth=3)
+        elif t not in telfmts.keys():
+            ax.errorbar(
+                xt, yt, yerr=et, fmt='o', ecolor=elinecolor, markersize=msize, 
+                capsize=0, markeredgewidth=0
+            )
+        else:
+            ax.errorbar(
+                xt, yt, yerr=et, fmt=telfmts[t], ecolor=elinecolor, 
+                markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], 
+                markerfacecolor=telfmts[t][0], markeredgewidth=3
+            )
 
-        ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
-        ax.xaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter(useOffset=False))
+    ax.yaxis.set_major_formatter(
+        matplotlib.ticker.ScalarFormatter(useOffset=False)
+    )
+    ax.xaxis.set_major_formatter(
+        matplotlib.ticker.ScalarFormatter(useOffset=False)
+    )
 
 def rv_multipanel_plot(post, saveplot=None, **kwargs):
     """
@@ -304,15 +319,11 @@ def corner_plot(post, chains, saveplot=None):
     f = rcParams['font.size']
     rcParams['font.size'] = 12
     
-    fig = corner.corner(chains[labels],
-                        labels=texlabels,
-                        label_kwargs={"fontsize": 14},
-                        plot_datapoints=False,
-                        bins=20,
-                        quantiles=[.16,.5,.84],
-                        show_titles = True,
-                        title_kwargs={"fontsize": 14},
-                        smooth=True)
+    fig = corner.corner(
+        chains[labels], labels=texlabels, label_kwargs={"fontsize": 14},
+        plot_datapoints=False, bins=20, quantiles=[.16,.5,.84],
+        show_titles = True, title_kwargs={"fontsize": 14}, smooth=True
+    )
     
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
@@ -322,6 +333,12 @@ def corner_plot(post, chains, saveplot=None):
     rcParams['font.size'] = f
 
 
+def texlabel(key, letter):
+    if key.count('mpsini')==1:
+        return '$M_' + letter + '\\sin i$'
+    if key.count('rhop')==1:
+        return '$\\rho_' + letter + '$'
+        
 def corner_plot_derived_pars(chains, P, saveplot=None):
     """
     Make a corner plot from the output MCMC chains and a posterior object.
@@ -329,47 +346,47 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
     Args:
         chains (DataFrame): MCMC chains output by radvel.mcmc
         pars (list): 
-        saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
+        saveplot (Optional[string]: Name of output file, will show as 
+            interactive matplotlib window if not defined.
 
     Returns:
         None
     
     """
 
+    # Determine which columns to include in corner plot
     labels = []
     texlabels = []
     for i in np.arange(1, P.nplanets +1, 1):
         letter = P.planet_letters[i]
-        if hasattr(chains, 'mpsini' + str(i)):
-            labels.append('mpsini' + str(i))
-            texlabels.append('$M_' + letter + '\\sin i$')
-        if hasattr(chains, 'rhop' + str(i)):
-            labels.append('rhop' + str(i))
-            texlabels.append('$\\rho_' + letter + '$')
-    
-            #labels = [k for k in post.vary.keys() if post.vary[k]]
-            #texlabels = [post.params.tex_labels().get(l, l) for l in labels]
-    
+
+        for key in 'mpsini rhop'.split():
+            label = '{}{}'.format(key,i)
+            
+            is_column = list(chains.columns).count(label)==1
+            if not is_column:
+                break
+            
+            null_column = chains.isnull().any().ix[label]
+            if null_column:
+                break
+                
+            labels.append(label)
+            texlabels.append(texlabel(label,letter))
+
     f = rcParams['font.size']
     rcParams['font.size'] = 12
-    
-    fig = corner.corner(chains[labels],
-                        labels=texlabels,
-                        label_kwargs={"fontsize": 14},
-                        plot_datapoints=False,
-                        bins=20,
-                        quantiles=[.16,.5,.84],
-                        show_titles = True,
-                        title_kwargs={"fontsize": 14},
-                        smooth=True)
+    fig = corner.corner(
+        chains[labels], labels=texlabels, label_kwargs={"fontsize": 14}, 
+        plot_datapoints=False, bins=20, quantiles=[0.16,0.50,0.84],
+        show_titles = True, title_kwargs={"fontsize": 14}, smooth=True
+    )
     
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
         print "Corner plot saved to %s" % saveplot
     else: pl.show()
-
     rcParams['font.size'] = f
-    
     
 def trend_plot(post, chains, nwalkers, outfile=None):
     """MCMC trend plot

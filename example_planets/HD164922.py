@@ -64,3 +64,8 @@ priors = [
     radvel.prior.HardBounds('jit_j', 0.0, 10.0),
     radvel.prior.HardBounds('jit_a', 0.0, 10.0)
 ]
+
+
+# optional argument that can contain stellar mass and
+# uncertainties. If not set, mstar will be set to nan.
+stellar = dict(mstar=0.874, mstar_err=0.012)
