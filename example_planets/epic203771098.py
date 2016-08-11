@@ -79,3 +79,15 @@ priors = [
 
 
 time_base = np.mean([np.min(data.time), np.max(data.time)])   # abscissa for slope and curvature terms (should be near mid-point of time baseline)
+
+
+# optional argument that can contain stellar mass and
+# uncertainties. If not set, mstar will be set to nan.
+stellar = dict(mstar=1.12, mstar_err= 0.05)
+
+# optional argument that can contain planet radii, used for computing densities
+planet = dict(
+    rp1=5.68, rp_err1=0.56,
+    rp2=7.82, rp_err2=0.72,
+)
+
