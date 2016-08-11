@@ -375,7 +375,7 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
 
     f = rcParams['font.size']
     rcParams['font.size'] = 12
-    
+    import pdb;pdb.set_trace()
     fig = corner.corner(
         chains[labels], labels=texlabels, label_kwargs={"fontsize": 14}, 
         plot_datapoints=False, bins=20, quantiles=[0.16,0.50,0.84],
