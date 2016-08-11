@@ -148,16 +148,23 @@ if __name__ == '__main__':
             size=len(chains)
             )
 
+        # Convert chains into CPS basis
+        cpschains = chains.copy()
+        for par in post.params.keys():
+            if not post.vary[par]:
+                cpschains[par] = post.params[par]
+                 
+        cpschains = post.params.basis.to_cps(cpschains)
             
         for i in np.arange(1, P.nplanets +1, 1):
             # Grab parameters from the chain
             def _has_col(key):
-                cols = list(chains.columns)
+                cols = list(cpschains.columns)
                 return cols.count('{}{}'.format(key,i))==1
 
             def _get_param(key):
                 if _has_col(key):
-                    return chains['{}{}'.format(key,i)]
+                    return cpschains['{}{}'.format(key,i)]
                 else:
                     return P.params['{}{}'.format(key,i)]
 
@@ -166,16 +173,11 @@ if __name__ == '__main__':
 
             per = _get_param('per')
             k = _get_param('k')
-            if _has_col('e') or 'e{}'.format(i) in P.params.keys():
-                e = _get_param('e')
-            if _has_col('ecosw') or 'ecosw{}'.format(i) in P.params.keys():
-                secosw = _get_param('secosw')
-                sesinw = _get_param('sesinw')
-                e, _ = radvel.orbit.sqrtecosom_sqrtesinom_to_e_om(ecosw,esinw)  
-
+            e = _get_param('e')
+            
             mpsini = radvel.orbit.Msini(k, per, mstar, e, Msini_units='earth')
             _set_param('mpsini',mpsini)
-            mpsini50 = np.median(_get_param('mpsini'))
+            #mpsini50 = np.median(mpsini)
             
             rp = np.random.normal(
                 loc=P.planet['rp{}'.format(i)], 
@@ -184,7 +186,7 @@ if __name__ == '__main__':
             )
 
             _set_param('rp',rp)
-            chains['rhop' + str(i)] = radvel.orbit.density(mpsini, rp)
+            _set_param('rhop', radvel.orbit.density(mpsini, rp))
 
 
         report_depfiles = []
