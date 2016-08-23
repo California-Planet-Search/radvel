@@ -5,7 +5,8 @@ try:
     from . import _kepler 
     cext = True
 except ImportError:
-    print "WARNING: KEPLER: Unable to import C-based Kepler's equation solver. Falling back to the slower NumPy implementation."
+    print "WARNING: KEPLER: Unable to import C-based Kepler's\
+        equation solver. Falling back to the slower NumPy implementation."
     cext = False
 
 def rv_drive(t, orbel, use_C_kepler_solver=cext):
@@ -13,9 +14,12 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
     
     Args:
         t (array of floats): times of observations
-        orbel (array of floats): [per, tp, e, om, K]. Omega is expected to be
+        orbel (array of floats): [per, tp, e, om, K].\
+            Omega is expected to be\
             in degrees
-        use_C_kepler_solver (bool): (default: True) If True use the Kepler solver written in C, else use the Python/NumPy version.
+        use_C_kepler_solver (bool): (default: True) If \
+            True use the Kepler solver written in C, else \
+            use the Python/NumPy version.
 
     Returns:
         rv: (array of floats): radial velocity model
@@ -27,9 +31,13 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
     om = om / 180 * np.pi
     
     # Error checking
+    if e == 0.0:
+        return k * np.cos( (t-tp) / per)
+    
     if per < 0: per = 1e-4
     if e < 0: e = 0
     if e > 0.99: e = 0.99
+
 
     # Calculate the approximate eccentric anomaly, E1, via the mean anomaly  M.
     if use_C_kepler_solver:
@@ -102,7 +110,7 @@ def profile():
 
     import timeit
     
-    ecc = 0.99
+    ecc = 0.20
     orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
     numloops = 10000
 
