@@ -32,7 +32,8 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
     
     # Error checking
     if e == 0.0:
-        return k * np.cos( (t-tp) / per)
+        M = 2 * np.pi * ( ((t - tp) / per) - np.floor( (t - tp) / per ) )
+        return k * np.cos( M + om )
     
     if per < 0: per = 1e-4
     if e < 0: e = 0
@@ -45,7 +46,7 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
     else:
         M = 2 * np.pi * ( ((t - tp) / per) - np.floor( (t - tp) / per ) )
         eccarr = np.zeros(t.size) + e
-        E1 = kepler(M, eccarr)    
+        E1 = kepler(M, eccarr)
         # Calculate nu
         nu = 2 * np.arctan( ( (1+e) / (1-e) )**0.5 * np.tan( E1 / 2 ) )
         # Calculate the radial velocity
