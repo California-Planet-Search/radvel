@@ -20,9 +20,12 @@ Written by BJ Fulton and Erik Petigura, Fulton and Petigura (in prep.).
 - Easily convert between different parameterizations
 - Computation of Kepler's equation (numerically intensive) written in C
 
-## To Do
+## Future Improvements...
 
 - Bundle up examples in convenient test cases
+- PERF: Optimizations for low eccentricity orbits
+- Streamline API
+
 
 ## Tutorials 
 
