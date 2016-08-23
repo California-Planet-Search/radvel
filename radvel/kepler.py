@@ -27,9 +27,13 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
     om = om / 180 * np.pi
     
     # Error checking
+    if e == 0.0:
+        return k * np.cos( (t-tp) / per)
+    
     if per < 0: per = 1e-4
     if e < 0: e = 0
     if e > 0.99: e = 0.99
+
 
     # Calculate the approximate eccentric anomaly, E1, via the mean anomaly  M.
     if use_C_kepler_solver:
