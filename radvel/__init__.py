@@ -1,4 +1,4 @@
-__all__=['model','likelihood','posterior','mcmc','prior', 'utils', 'fitting', 'report']
+__all__=['model','likelihood','posterior','mcmc','prior', 'utils', 'fitting', 'report', 'cli']
 from .model import *
 from .likelihood import *
 from .posterior import *
