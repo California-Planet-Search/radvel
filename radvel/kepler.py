@@ -5,7 +5,8 @@ try:
     from . import _kepler 
     cext = True
 except ImportError:
-    print "WARNING: KEPLER: Unable to import C-based Kepler's equation solver. Falling back to the slower NumPy implementation."
+    print "WARNING: KEPLER: Unable to import C-based Kepler's\
+        equation solver. Falling back to the slower NumPy implementation."
     cext = False
 
 def rv_drive(t, orbel, use_C_kepler_solver=cext):
@@ -13,9 +14,12 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
     
     Args:
         t (array of floats): times of observations
-        orbel (array of floats): [per, tp, e, om, K]. Omega is expected to be
+        orbel (array of floats): [per, tp, e, om, K].\
+            Omega is expected to be\
             in degrees
-        use_C_kepler_solver (bool): (default: True) If True use the Kepler solver written in C, else use the Python/NumPy version.
+        use_C_kepler_solver (bool): (default: True) If \
+            True use the Kepler solver written in C, else \
+            use the Python/NumPy version.
 
     Returns:
         rv: (array of floats): radial velocity model
@@ -106,7 +110,7 @@ def profile():
 
     import timeit
     
-    ecc = 0.99
+    ecc = 0.20
     orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
     numloops = 10000
 
