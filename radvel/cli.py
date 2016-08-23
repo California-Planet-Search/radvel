@@ -67,12 +67,6 @@ def main():
 
     psr_physical.set_defaults(func=physical)
     
-    
-    
-    # radvel derive epic205071894.py
-
-
-
     # BIC 
     psr_bic = subpsr.add_parser('bic', parents=[psr_parent],)
     psr_bic.add_argument(
