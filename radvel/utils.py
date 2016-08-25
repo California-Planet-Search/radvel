@@ -1,8 +1,64 @@
-import numpy as np
-from datetime import datetime, timedelta
+import imp
+import os
 from decimal import Decimal
 from contextlib import contextmanager
-import os
+
+import numpy as np
+from datetime import datetime, timedelta
+
+import radvel
+
+def initialize_posterior(config_file):
+    system_name = os.path.basename(config_file).split('.')[0]
+    P = imp.load_source(system_name, os.path.abspath(config_file))
+    system_name = P.starname
+    
+    params = P.params.basis.from_cps(P.params, P.fitting_basis, keep=False)
+
+    for key in params.keys():
+        if key.startswith('logjit'):
+            msg = """
+Fitting log(jitter) is depreciated. Please convert your config
+files to initialize 'jit' instead of 'logjit' parameters.
+Converting 'logjit' to 'jit' for you now.
+"""
+            warnings.warn(msg, DeprecationWarning, stacklevel=2)
+            newkey = key.replace('logjit', 'jit')
+            params[newkey] = np.exp(params[key])
+            P.vary[newkey] = P.vary[key]
+            del P.vary[key]
+            del params[key]
+
+    iparams = params.copy()
+
+    # Make sure we don't have duplicate indicies in the DataFrame
+    P.data = P.data.reset_index(drop=True)
+    
+    # initialize RVmodel object
+    mod = radvel.RVModel(params, time_base=P.time_base)   
+
+    # initialize RVlikelihood objects for each instrument
+    telgrps = P.data.groupby('tel').groups
+    likes = {}
+    for inst in P.instnames:
+        likes[inst] = radvel.likelihood.RVLikelihood(
+            mod, P.data.iloc[telgrps[inst]].time,
+            P.data.iloc[telgrps[inst]].mnvel,
+            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst
+        )
+        likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
+        likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
+
+    like = radvel.likelihood.CompositeLikelihood(likes.values())
+
+    # Set fixed/vary parameters
+    like.vary.update(P.vary)
+    
+    # Initialize Posterior object
+    post = radvel.posterior.Posterior(like)
+    post.priors = P.priors
+    return P, post
+
 
 def round_sig(x, sig=2):
     """

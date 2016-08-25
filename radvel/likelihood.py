@@ -54,7 +54,7 @@ class Likelihood(object):
                 if key in self.uparams.keys():
                     err = self.uparams[key]
                 else:
-                    err = ""
+                    err = 0
                     
                 if key.startswith('tc') or key.startswith('tp'):
                     par = self.params[key] - 2450000

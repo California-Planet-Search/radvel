@@ -1,25 +1,16 @@
 """
 Command Line Interface
 """
+import os
 from argparse import ArgumentParser
+import imp
+import warnings
+import pickle
 
-def fit(args):
-    print "Perform max-likelihood fitting"
+import radvel.driver
 
-def mcmc(args):
-    print "Perform MCMC exploration"
-
-def bic(args):
-    print "bic {}".format(args.mode)
-
-def table_rv(args):
-    print "rv table"
-
-def physical(args):
-    print "multiplying mcmc chains by physical parameters"
-
-def report(args):
-    print "assembling report"
+warnings.filterwarnings("ignore")
+warnings.simplefilter('once', DeprecationWarning)
 
 def main():
     psr = ArgumentParser(
@@ -32,9 +23,11 @@ def main():
     # all subcommands.
     psr_parent = ArgumentParser(add_help=False)
     psr_parent.add_argument(
-        '-d', type=str, help="Working directory. Default is ./<starname>/"
+        '-d', dest='outputdir', type=str,
+        help="Working directory. Default is the same as the \
+        configuration file (without .py)"
     )
-    psr_parent.add_argument('-s',
+    psr_parent.add_argument('-s','--setup',
         dest='setupfn', type=str, nargs='+', 
         help="Setup file[s]. Can chain multiple."
     )
@@ -44,18 +37,48 @@ def main():
         'fit', parents=[psr_parent],
         description="Perform max-likelihood fitting"
     )
-    psr_fit.set_defaults(func=fit)
+    psr_fit.set_defaults(func=radvel.driver.fit)
 
+    
+    # Plotting
+    psr_plot = subpsr.add_parser('plot', parents=[psr_parent],)
+    psr_plot.add_argument('-t','--type',
+        type=str, nargs='+',
+        choices=['rv','corner','trend'],
+        help="type of plot(s) to generate"
+    )
+    psr_plot.add_argument(
+        '--plotkw', dest='plotkw',action='store', default="{}", type=eval,
+        help='''
+        Dictionary of keywords sent to rv_multipanel_plot. 
+        E.g. --plotkw "{'yscale_auto': True}"'
+        ''',
+    )
+    
+    psr_plot.set_defaults(func=radvel.driver.plots)
+
+    
+    # Reports
+    psr_report = subpsr.add_parser(
+        'report', parents=[psr_parent], 
+        description="Merge output tables and plots into LaTeX report"
+    )
+    psr_report.set_defaults(func=radvel.driver.report)
+    
+    
     # MCMC
     psr_mcmc = subpsr.add_parser(
         'mcmc', parents=[psr_parent],
         description="Perform MCMC exploration"
     )
-    psr_mcmc.add_argument('--nsteps', type=int, help="Number of MCMC steps")
     psr_mcmc.add_argument(
-        '--nburn', type=int, help="Number of MCMC burn-in steps"
+        '--nsteps', dest='nsteps', action='store',default=20000, type=float, 
+        help='Number of steps per chain [20000]',)
+    psr_mcmc.add_argument(
+        '--nwalkers', dest='nwalkers', action='store', default=50, type=int,
+        help='Number of walkers. [50]', 
     )
-    psr_mcmc.set_defaults(func=mcmc)
+    psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
 
     # Physical parameters
@@ -65,7 +88,7 @@ def main():
         + "be run first"
     )
 
-    psr_physical.set_defaults(func=physical)
+    psr_physical.set_defaults(func=radvel.driver.physical)
     
     # BIC 
     psr_bic = subpsr.add_parser('bic', parents=[psr_parent],)
@@ -74,7 +97,7 @@ def main():
         choices=['trend','ecc','nplanets'],
         help="type of BIC comparison to perform"
     )
-    psr_bic.set_defaults(func=bic)
+    psr_bic.set_defaults(func=radvel.driver.bic)
 
     # Tables
     psr_table_parent = ArgumentParser(add_help=False)
@@ -94,18 +117,29 @@ def main():
     psr_table_rv = subpsr_table.add_parser(
         'rv', description = "Radial velocities"
     )
-    psr_table_rv.set_defaults(func=table_rv)
+    psr_table_rv.set_defaults(func=radvel.driver.table_rv)
 
     # Reports
     psr_report = subpsr.add_parser(
         'report', parents=[psr_parent], 
         description="Merge output tables and plots into LaTeX report"
     )
-    psr_report.set_defaults(func=report)
+    psr_report.set_defaults(func=radvel.driver.report)
 
     
     args = psr.parse_args()
+
+    if args.outputdir is None:
+        setupfile = args.setupfn[0]
+        system_name = os.path.basename(setupfile).split('.')[0]
+        outdir = os.path.join('./', system_name)
+        args.outputdir = outdir
+            
+    if not os.path.isdir(args.outputdir):
+        os.mkdir(outdir)
+        
     args.func(args)
+
 
 if __name__ == '__main__':
     main()
