@@ -47,7 +47,7 @@ class RadvelReport():
         printpost.params = printpost.params.basis.to_cps(printpost.params)
         printpost.params = printpost.params.basis.from_cps(printpost.params, print_basis)
         self.latex_dict = printpost.params.tex_labels()
-        
+
         printchains = copy.deepcopy(chains)
         for p in post.params.keys():
             if p not in chains.columns:
@@ -90,8 +90,8 @@ class RadvelReport():
         
         return out
 
-    def tabletex(self):
-        return TexTable(self).tex()
+    def tabletex(self, tabtype='all'):
+        return TexTable(self).tex(tabtype=tabtype)
 
     def figtex(self, infile, caption=""):
         """Generate TeX for figure
@@ -287,7 +287,7 @@ class TexTable(RadvelReport):
 """
         return out
     
-    def tex(self):
+    def tex(self, tabtype='all'):
         """TeX code for table
 
         Returns:
@@ -304,14 +304,29 @@ class TexTable(RadvelReport):
             if len(op) == 0: op = [o]
             [ep.append(i) for i in sorted(op)[::-1]]
         ep = ' '.join(ep)
+
+        outstr_params = self._header() + \
+                        self._data(self.fitting_basis,
+                            sidehead='\\bf{Modified MCMC Step Parameters}')+\
+                        self._data(print_basis,
+                            sidehead='\\bf{Orbital Parameters}', hline=True)+\
+                        self._data(ep,
+                            sidehead='\\bf{Other Parameters}', hline=True)+\
+                        self._footer()
                         
-        outstr = self.comp_table() + \
-                 self._header() + \
-                 self._data(self.fitting_basis, sidehead='\\bf{Modified MCMC Step Parameters}') + \
-                 self._data(print_basis, sidehead='\\bf{Orbital Parameters}', hline=True) + \
-                 self._data(ep, sidehead='\\bf{Other Parameters}', hline=True) + \
-                 self._footer() + \
-                 self.prior_summary()
+        if tabtype == 'all':
+            outstr = self.comp_table() + \
+                     outstr_params + \
+                     self.prior_summary()
+                     
+        if tabtype == 'params':
+            outstr = outstr_params
+            
+        if tabtype == 'priors':
+            outstr = self.prior_summary()
+            
+        if tabtype == 'nplanets':
+            outstr = self.comp_table()
 
         # Remove duplicate lines from the
         # step parameters section of the table

@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import radvel
 
 def initialize_posterior(config_file):
+
     system_name = os.path.basename(config_file).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(config_file))
     system_name = P.starname

@@ -58,14 +58,6 @@ def main():
     psr_plot.set_defaults(func=radvel.driver.plots)
 
     
-    # Reports
-    psr_report = subpsr.add_parser(
-        'report', parents=[psr_parent], 
-        description="Merge output tables and plots into LaTeX report"
-    )
-    psr_report.set_defaults(func=radvel.driver.report)
-    
-    
     # MCMC
     psr_mcmc = subpsr.add_parser(
         'mcmc', parents=[psr_parent],
@@ -100,26 +92,21 @@ def main():
     psr_bic.set_defaults(func=radvel.driver.bic)
 
     # Tables
-    psr_table_parent = ArgumentParser(add_help=False)
-    psr_table_parent.add_argument(
+    psr_table = subpsr.add_parser('table', parents=[psr_parent],)
+    psr_table.add_argument('-t','--type',
+        type=str, nargs='+',
+        choices=['params','priors'],
+        help="type of plot(s) to generate"
+    )
+    psr_table.add_argument(
         '--header', action='store_true',
         help="included latex column header. Default just prints data rows"
     )
-    psr_table = subpsr.add_parser(
-        'table', parents=[psr_parent, psr_table_parent], 
-        description='Create LaTeX tables'
-        
-    )
-    subpsr_table = psr_table.add_subparsers(
-        title="subcommands", dest='subcommand'
-    )
+    
+    psr_table.set_defaults(func=radvel.driver.tables)
 
-    psr_table_rv = subpsr_table.add_parser(
-        'rv', description = "Radial velocities"
-    )
-    psr_table_rv.set_defaults(func=radvel.driver.table_rv)
-
-    # Reports
+    
+    # Report
     psr_report = subpsr.add_parser(
         'report', parents=[psr_parent], 
         description="Merge output tables and plots into LaTeX report"

@@ -138,7 +138,6 @@ class CompositeLikelihood(Likelihood):
             
             self.x = np.append(self.x,like.x)
             self.y = np.append(self.y, like.y - like.params[like.gamma_param])
-            print like.params[like.jit_param]
             self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + like.params[like.jit_param]**2))
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)

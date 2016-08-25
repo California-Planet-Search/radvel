@@ -37,13 +37,13 @@ def plots(args):
 
             if ptype == 'corner' or ptype == 'trend':
                 assert status.getboolean('mcmc', 'run'), \
-                "Must run MCMC exploration fit before making corner or trend plots"
+                "Must run MCMC before making corner or trend plots"
 
                 chains = pd.read_csv(status.get('mcmc', 'chainfile'))
 
             if ptype == 'corner':
-                cp_saveto = os.path.join(args.outputdir, conf_base+'_corner.pdf')
-                radvel.plotting.corner_plot(post, chains, saveplot=cp_saveto)
+                saveto = os.path.join(args.outputdir, conf_base+'_corner.pdf')
+                radvel.plotting.corner_plot(post, chains, saveplot=saveto)
 
             if ptype == 'trend':
                 nwalkers = status.getint('mcmc', 'nwalkers')
@@ -165,14 +165,70 @@ def mcmc(args):
 def bic(args):
     print "bic {}".format(args.mode)
 
-def table_rv(args):
-    print "rv table"
+def tables(args):
+
+    for config_file in args.setupfn:
+        conf_base = os.path.basename(config_file).split('.')[0]
+        statfile = os.path.join(args.outputdir,
+                                "{}_radvel.stat".format(conf_base))
+        status = load_status(statfile)
+
+        assert status.getboolean('mcmc', 'run'), \
+            "Must run MCMC before making tables"
+
+        P, post = radvel.utils.initialize_posterior(config_file)
+        post = radvel.posterior.load(status.get('fit', 'postfile'))
+        chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+        report = radvel.report.RadvelReport(P, post, chains)
+
+        for tabtype in args.type:
+            print "Generating LaTeX code for {} table".format(tabtype)                
+            
+            if tabtype == 'params':
+                tex = report.tabletex(tabtype=tabtype)
+                
+                saveto = os.path.join(args.outputdir, conf_base+'_params.tex')
+                with open(saveto, 'w') as f:
+                    print >>f, tex
+
+            if tabtype == 'priors':
+                tex = report.tabletex(tabtype=tabtype)
+                
+                saveto = os.path.join(args.outputdir, conf_base+'_priors.tex')
+                with open(saveto, 'w') as f:
+                    print >>f, tex
+                    
+            savestate = {'{}_tex'.format(tabtype): os.path.abspath(saveto)}
+            save_status(statfile, 'table', savestate)
+
+                
 
 def physical(args):
     print "multiplying mcmc chains by physical parameters"
 
 def report(args):
-    print "assembling report"
+    print "Assembling report"
+
+    for config_file in args.setupfn:
+        conf_base = os.path.basename(config_file).split('.')[0]
+        statfile = os.path.join(args.outputdir,
+                                "{}_radvel.stat".format(conf_base))
+
+        status = load_status(statfile)
+
+        P, post = radvel.utils.initialize_posterior(config_file)
+        post = radvel.posterior.load(status.get('fit', 'postfile'))
+        chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+        report = radvel.report.RadvelReport(P, post, chains)
+
+        report_depfiles = []
+        for ptype,pfile in status.items('plot'):
+            report_depfiles.append(pfile)
+
+        with radvel.utils.working_directory(args.outputdir):
+            rfile = os.path.join(conf_base+"_results.pdf")
+            report_depfiles = [os.path.basename(p) for p in report_depfiles]
+            report.compile(rfile, depfiles=report_depfiles)
 
     
 def save_status(statfile, section, statevars):

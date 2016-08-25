@@ -6,7 +6,7 @@ try:
     cext = True
 except ImportError:
     print "WARNING: KEPLER: Unable to import C-based Kepler's\
-        equation solver. Falling back to the slower NumPy implementation."
+equation solver. Falling back to the slower NumPy implementation."
     cext = False
 
 def rv_drive(t, orbel, use_C_kepler_solver=cext):
