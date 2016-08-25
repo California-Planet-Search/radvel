@@ -42,7 +42,8 @@ class RadvelReport():
         self.post = post
         
         self.starname = planet.starname
-        
+        self.starname_tex = planet.starname.replace('_', '\_')
+                
         printpost = copy.deepcopy(post)
         printpost.params = printpost.params.basis.to_cps(printpost.params)
         printpost.params = printpost.params.basis.from_cps(printpost.params, print_basis)
@@ -62,7 +63,7 @@ class RadvelReport():
 \\usepackage{graphicx,textcomp}
 \\begin{document}
 \\shorttitle{Summary of \\texttt{RADVEL} results for %s}
-""" % (self.starname)
+""" % (self.starname_tex)
 
     def _postamble(self):
         return """
@@ -128,10 +129,10 @@ with the measurement uncertainties for all RVs.
 The small point colors and symbols are the same as in panel {\\bf a}.
 Red circles (if present) are the same velocities binned in 0.08 units of orbital phase.
 The phase-folded model for planet %s is shown as the blue line.
-""" % (self.post.params.num_planets, self.starname, self.post.params.num_planets, self.post.params.num_planets, chr(int(1)+97), chr(int(1)+97))
+""" % (self.post.params.num_planets, self.starname_tex, self.post.params.num_planets, self.post.params.num_planets, chr(int(1)+97), chr(int(1)+97))
 
         for i in range(1, self.post.params.num_planets):
-            cap += "Panel {\\bf %s)} is the same as panel {\\bf %s)} but for planet %s %s.\n" % (chr(int(i)+99), chr(int(i)+98), self.starname, chr(int(i)+98))
+            cap += "Panel {\\bf %s)} is the same as panel {\\bf %s)} but for planet %s %s.\n" % (chr(int(i)+99), chr(int(i)+98), self.starname_tex, chr(int(i)+98))
 
         return cap
               
