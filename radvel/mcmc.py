@@ -46,6 +46,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
     totsteps = nrun*nwalkers
     mixcount = 0
     burn_complete = False
+    nburn = 0
     t0 = time.time()
     for r in range(num_run):
         t1 = time.time()
@@ -53,7 +54,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
         t2 = time.time()
 
         rate = (checkinterval*nwalkers) / (t2-t1)
-        ncomplete = sampler.flatlnprobability.shape[0]
+        ncomplete = sampler.flatlnprobability.shape[0] + nburn
         pcomplete = ncomplete/float(totsteps) * 100
         ar = sampler.acceptance_fraction.mean() * 100.
 
@@ -70,6 +71,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
         if not burn_complete and maxgr <= burnGR:
             sampler.reset()
             print "\nDiscarding burn-in now that the chains are marginally well-mixed\n"
+            nburn = ncomplete
             burn_complete = True
 
         if mixcount >= 5:
