@@ -37,7 +37,7 @@ class RadvelReport():
         chains (DataFrame): output DataFrame from a `radvel.mcmc` run
     """
     
-    def __init__(self, planet, post, chains):
+    def __init__(self, planet, post, chains, compstats=None):
         self.planet = planet
         self.post = post
         
@@ -55,6 +55,8 @@ class RadvelReport():
         self.chains = printpost.params.basis.to_cps(chains)
         self.chains = printpost.params.basis.from_cps(chains, print_basis)
         self.quantiles = chains.quantile([0.159, 0.5, 0.841])
+
+        self.compstats = compstats
         
     def _preamble(self):
         return """
@@ -287,7 +289,7 @@ class TexTable(RadvelReport):
 """
         return out
     
-    def tex(self, tabtype='all'):
+    def tex(self, tabtype='all', compstats=None):
         """TeX code for table
 
         Returns:
@@ -315,7 +317,7 @@ class TexTable(RadvelReport):
                         self._footer()
                         
         if tabtype == 'all':
-            outstr = self.comp_table() + \
+            outstr = self.tex(tabtype='nplanets', compstats=compstats)+ \
                      outstr_params + \
                      self.prior_summary()
                      
@@ -324,9 +326,9 @@ class TexTable(RadvelReport):
             
         if tabtype == 'priors':
             outstr = self.prior_summary()
-            
+
         if tabtype == 'nplanets':
-            outstr = self.comp_table()
+            outstr = self.comp_table(self.report.compstats)
 
         # Remove duplicate lines from the
         # step parameters section of the table
@@ -339,7 +341,7 @@ class TexTable(RadvelReport):
         return trimstr
 
 
-    def comp_table(self):
+    def comp_table(self, statsdict):
         """Model comparisons
 
         Compare models with increasing number of planets
@@ -348,7 +350,9 @@ class TexTable(RadvelReport):
             string: String containing TeX code for the model comparison table
         """
 
-        statsdict = radvel.fitting.model_comp(self.post, verbose=False)
+        if statsdict is None:
+            return ""
+        
         n_test = range(len(statsdict))
 
         coldefs = 'r'*len(statsdict)

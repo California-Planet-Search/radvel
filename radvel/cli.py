@@ -44,7 +44,7 @@ def main():
     psr_plot = subpsr.add_parser('plot', parents=[psr_parent],)
     psr_plot.add_argument('-t','--type',
         type=str, nargs='+',
-        choices=['rv','corner','trend'],
+        choices=['rv','corner','trend', 'derived'],
         help="type of plot(s) to generate"
     )
     psr_plot.add_argument(
@@ -73,20 +73,20 @@ def main():
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
 
-    # Physical parameters
+    # Derive hysical parameters
     psr_physical = subpsr.add_parser(
-        'physical', parents=[psr_parent],
+        'derive', parents=[psr_parent],
         description="Multiply MCMC chains by physical parameters. MCMC must"
         + "be run first"
     )
 
-    psr_physical.set_defaults(func=radvel.driver.physical)
+    psr_physical.set_defaults(func=radvel.driver.derive)
     
     # BIC 
     psr_bic = subpsr.add_parser('bic', parents=[psr_parent],)
-    psr_bic.add_argument(
-        '--mode', type=str, nargs='+', 
-        choices=['trend','ecc','nplanets'],
+    psr_bic.add_argument('-t',
+        '--type', type=str, nargs='+', 
+        choices=['nplanets'],
         help="type of BIC comparison to perform"
     )
     psr_bic.set_defaults(func=radvel.driver.bic)
@@ -95,7 +95,7 @@ def main():
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)
     psr_table.add_argument('-t','--type',
         type=str, nargs='+',
-        choices=['params','priors'],
+        choices=['params','priors', 'nplanets'],
         help="type of plot(s) to generate"
     )
     psr_table.add_argument(
@@ -111,6 +111,12 @@ def main():
         'report', parents=[psr_parent], 
         description="Merge output tables and plots into LaTeX report"
     )
+    psr_report.add_argument(
+        '--comptype', dest='comptype', action='store',
+        default='nplanets', type=str, 
+        help='Type of BIC model comparison table to include.\
+ Default: nplanets')
+
     psr_report.set_defaults(func=radvel.driver.report)
 
     

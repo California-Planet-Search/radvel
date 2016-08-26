@@ -6,6 +6,7 @@ import os
 import pickle
 import copy
 import ConfigParser
+from collections import OrderedDict
 import pandas as pd
 
 import numpy as np
@@ -50,6 +51,18 @@ def plots(args):
                 
                 saveto = os.path.join(args.outputdir, conf_base+'_trends.pdf')
                 radvel.plotting.trend_plot(post, chains, nwalkers, saveto)
+
+            if ptype == 'derived':
+                assert status.has_section('derive'), \
+                "Must run `radvel derive` before plotting derived parameters"
+
+                P, post = radvel.utils.initialize_posterior(config_file)
+                chains = pd.read_csv(status.get('derive', 'chainfile'))
+                saveto = os.path.join(args.outputdir,
+                                      conf_base+'_corner_derived_pars.pdf')
+                radvel.plotting.corner_plot_derived_pars(
+                chains, P, saveplot=saveto
+                )
 
             savestate = {'{}_plot'.format(ptype): os.path.abspath(saveto)}
             save_status(statfile, 'plot', savestate)
@@ -163,7 +176,28 @@ def mcmc(args):
 
 
 def bic(args):
-    print "bic {}".format(args.mode)
+    for config_file in args.setupfn:
+        conf_base = os.path.basename(config_file).split('.')[0]
+        statfile = os.path.join(args.outputdir,
+                                "{}_radvel.stat".format(conf_base))
+        
+        
+        status = load_status(statfile)
+        savestate = {}
+        
+        assert status.getboolean('fit', 'run'), \
+          "Must perform max-liklihood fit before running BIC comparisons"
+        post = radvel.posterior.load(status.get('fit', 'postfile'))
+
+        for btype in args.type:
+            print "performing bic comparison: {}".format(btype)
+
+            if btype == 'nplanets':
+                statsdict = radvel.fitting.model_comp(post, verbose=False)
+                savestate['nplanets'] = statsdict
+                
+        
+        save_status(statfile, 'bic', savestate)
 
 def tables(args):
 
@@ -187,24 +221,105 @@ def tables(args):
             if tabtype == 'params':
                 tex = report.tabletex(tabtype=tabtype)
                 
-                saveto = os.path.join(args.outputdir, conf_base+'_params.tex')
-                with open(saveto, 'w') as f:
-                    print >>f, tex
-
             if tabtype == 'priors':
                 tex = report.tabletex(tabtype=tabtype)
                 
-                saveto = os.path.join(args.outputdir, conf_base+'_priors.tex')
-                with open(saveto, 'w') as f:
-                    print >>f, tex
-                    
+            if tabtype == 'nplanets':
+                assert status.has_option('bic', 'nplanets'), \
+                    "Must run BIC comparison before making comparison tables"
+
+                compstats = eval(status.get('bic', 'nplanets'))
+                report = radvel.report.RadvelReport(P, post, chains, compstats=compstats)
+                tex = report.tabletex(tabtype='nplanets')
+
+            saveto = os.path.join(args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype))
+            with open(saveto, 'w') as f:
+                print >>f, tex
+                
             savestate = {'{}_tex'.format(tabtype): os.path.abspath(saveto)}
             save_status(statfile, 'table', savestate)
 
                 
 
-def physical(args):
-    print "multiplying mcmc chains by physical parameters"
+def derive(args):
+    print "Multiplying mcmc chains by physical parameters"
+
+    for config_file in args.setupfn:
+        conf_base = os.path.basename(config_file).split('.')[0]
+        statfile = os.path.join(args.outputdir,
+                                "{}_radvel.stat".format(conf_base))
+        status = load_status(statfile)
+
+        assert status.getboolean('mcmc', 'run'), \
+            "Must run MCMC before making tables"
+
+        P, post = radvel.utils.initialize_posterior(config_file)
+        post = radvel.posterior.load(status.get('fit', 'postfile'))
+        chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+
+        mstar = np.random.normal(
+            loc=P.stellar['mstar'], scale=P.stellar['mstar_err'], 
+            size=len(chains)
+            )
+
+        # Convert chains into CPS basis
+        cpschains = chains.copy()
+        for par in post.params.keys():
+            if not post.vary[par]:
+                cpschains[par] = post.params[par]
+                 
+        cpschains = post.params.basis.to_cps(cpschains)
+
+        savestate = {'run': True}
+        outcols = []
+        for i in np.arange(1, P.nplanets +1, 1):
+            # Grab parameters from the chain
+            def _has_col(key):
+                cols = list(cpschains.columns)
+                return cols.count('{}{}'.format(key,i))==1
+
+            def _get_param(key):
+                if _has_col(key):
+                    return cpschains['{}{}'.format(key,i)]
+                else:
+                    return P.params['{}{}'.format(key,i)]
+
+            def _set_param(key, value):
+                chains['{}{}'.format(key,i)] = value
+
+            def _get_colname(key):
+                return '{}{}'.format(key,i)
+
+            per = _get_param('per')
+            k = _get_param('k')
+            e = _get_param('e')
+
+            mpsini = radvel.orbit.Msini(k, per, mstar, e, Msini_units='earth')
+            _set_param('mpsini',mpsini)
+
+            outcols.append(_get_colname('mpsini'))
+
+            try:
+                rp = np.random.normal(
+                    loc=P.planet['rp{}'.format(i)], 
+                    scale=P.planet['rp_err{}'.format(i)],
+                    size=len(chains)
+                )
+
+                _set_param('rp',rp)
+                _set_param('rhop', radvel.orbit.density(mpsini, rp))
+
+                outcols.append(_get_colname('rhop'))
+            except AttributeError:
+                pass
+
+        print "Derived parameters:", outcols
+        csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.tar.bz2')
+        chains.to_csv(csvfn, columns=outcols, compression='bz2')
+        savestate['chainfile'] = os.path.abspath(csvfn)
+
+        save_status(statfile, 'derive', savestate)
+
 
 def report(args):
     print "Assembling report"
@@ -219,7 +334,18 @@ def report(args):
         P, post = radvel.utils.initialize_posterior(config_file)
         post = radvel.posterior.load(status.get('fit', 'postfile'))
         chains = pd.read_csv(status.get('mcmc', 'chainfile'))
-        report = radvel.report.RadvelReport(P, post, chains)
+
+        try:
+            compstats = eval(status.get('bic', args.comptype))
+        except:
+            print "WARNING: Could not find {} BIC model comparison\
+ in {}.\nPlease make sure that you have run `radvel bic -t {}` if you would\
+ like to include\nthe model comparison table in the report.".format(args.comptype,
+                                                                statfile,
+                                                                args.comptype)
+            compstats = None
+                
+        report = radvel.report.RadvelReport(P, post, chains, compstats=compstats)
 
         report_depfiles = []
         for ptype,pfile in status.items('plot'):
