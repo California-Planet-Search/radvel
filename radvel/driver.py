@@ -322,10 +322,10 @@ def derive(args):
 
 
 def report(args):
-    print "Assembling report"
-
     for config_file in args.setupfn:
         conf_base = os.path.basename(config_file).split('.')[0]
+        print "Assembling report for {}".format(conf_base)
+        
         statfile = os.path.join(args.outputdir,
                                 "{}_radvel.stat".format(conf_base))
 
@@ -350,10 +350,10 @@ def report(args):
         report_depfiles = []
         for ptype,pfile in status.items('plot'):
             report_depfiles.append(pfile)
-
+            
         with radvel.utils.working_directory(args.outputdir):
             rfile = os.path.join(conf_base+"_results.pdf")
-            report_depfiles = [os.path.basename(p) for p in report_depfiles]
+            #report_depfiles = [os.path.basename(p) for p in report_depfiles]
             report.compile(rfile, depfiles=report_depfiles)
 
     
