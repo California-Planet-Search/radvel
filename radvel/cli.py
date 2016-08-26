@@ -119,6 +119,14 @@ def main():
 
     psr_report.set_defaults(func=radvel.driver.report)
 
+
+    # Fitting    
+    psr_full = subpsr.add_parser(
+        'full', parents=[psr_parent],
+        description="Perform max-likelihood fitting"
+    )
+    psr_full.set_defaults(func=radvel.driver.full_run)
+
     
     args = psr.parse_args()
 

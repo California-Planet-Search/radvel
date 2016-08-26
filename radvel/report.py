@@ -43,6 +43,7 @@ class RadvelReport():
         
         self.starname = planet.starname
         self.starname_tex = planet.starname.replace('_', '\_')
+        self.runname = self.starname_tex
                 
         printpost = copy.deepcopy(post)
         printpost.params = printpost.params.basis.to_cps(printpost.params)
@@ -80,15 +81,14 @@ class RadvelReport():
         Returns:
             string: TeX code for report
         """
-
+        
         out = self._preamble() + self.tabletex()
-
-        if os.path.exists(self.starname_tex+"_rv_multipanel.pdf"):
-            out += self.figtex(self.starname_tex+"_rv_multipanel.pdf", caption=self._bestfit_caption())
-        if os.path.exists(self.starname_tex+"_corner.pdf"):
-            out += self.figtex(self.starname_tex+"_corner.pdf", caption="Posterior distributions for all free parameters.")
-        if os.path.exists(self.starname_tex+"_corner_derived_pars.pdf"):
-            out += self.figtex(self.starname_tex+"_corner_derived_pars.pdf", caption="Posterior distributions for all derived parameters.")
+        if os.path.exists(self.runname+"_rv_multipanel.pdf"):
+            out += self.figtex(self.runname+"_rv_multipanel.pdf", caption=self._bestfit_caption())
+        if os.path.exists(self.runname+"_corner.pdf"):
+            out += self.figtex(self.runname+"_corner.pdf", caption="Posterior distributions for all free parameters.")
+        if os.path.exists(self.runname+"_corner_derived_pars.pdf"):
+            out += self.figtex(self.runname+"_corner_derived_pars.pdf", caption="Posterior distributions for all derived parameters.")
 
         out += self._postamble()
         

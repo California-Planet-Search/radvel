@@ -346,14 +346,15 @@ def report(args):
             compstats = None
                 
         report = radvel.report.RadvelReport(P, post, chains, compstats=compstats)
-
+        report.runname = conf_base
+        
         report_depfiles = []
         for ptype,pfile in status.items('plot'):
             report_depfiles.append(pfile)
             
         with radvel.utils.working_directory(args.outputdir):
             rfile = os.path.join(conf_base+"_results.pdf")
-            #report_depfiles = [os.path.basename(p) for p in report_depfiles]
+            report_depfiles = [os.path.basename(p) for p in report_depfiles]
             report.compile(rfile, depfiles=report_depfiles)
 
     
