@@ -14,6 +14,7 @@ API
    prior
    fitting
    mcmc
+   driver
    utils
    plotting
    report	      

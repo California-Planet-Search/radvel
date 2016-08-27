@@ -1,7 +1,8 @@
 """
-Driver functions for the radvel pipeline
+Driver functions for the radvel pipeline.\
+These functions are meant to be used only with\
+the `cli.py` command line interface.
 """
-
 import os
 import pickle
 import copy
@@ -9,11 +10,18 @@ import ConfigParser
 from collections import OrderedDict
 import pandas as pd
 
-import numpy as np
+import numpy as np 
 
 import radvel
 
 def plots(args):
+    """
+    Generate plots
+
+    Args:
+        args (ArgumentParser): command line arguments
+    """
+    
     for config_file in args.setupfn:
         conf_base = os.path.basename(config_file).split('.')[0]
         statfile = os.path.join(args.outputdir,
@@ -69,6 +77,11 @@ def plots(args):
             
         
 def fit(args):
+    """Perform maximum-likelihood fit
+
+    Args:
+        args (ArgumentParser): command line arguments
+    """
 
     for config_file in args.setupfn:
         conf_base = os.path.basename(config_file).split('.')[0]
@@ -88,6 +101,11 @@ def fit(args):
                                  'fit', savestate)
             
 def mcmc(args):
+    """Perform MCMC error analysis
+
+    Args:
+        args (ArgumentParser): command line arguments
+    """
 
     for config_file in args.setupfn:
         conf_base = os.path.basename(config_file).split('.')[0]
@@ -176,6 +194,13 @@ def mcmc(args):
 
 
 def bic(args):
+    """Compare different models and comparative statistics
+
+    Args:
+        args (ArgumentParser): command line arguments
+    """
+
+    
     for config_file in args.setupfn:
         conf_base = os.path.basename(config_file).split('.')[0]
         statfile = os.path.join(args.outputdir,
@@ -200,6 +225,11 @@ def bic(args):
         save_status(statfile, 'bic', savestate)
 
 def tables(args):
+    """Generate TeX code for tables in summary report
+
+    Args:
+        args (ArgumentParser): command line arguments
+    """
 
     for config_file in args.setupfn:
         conf_base = os.path.basename(config_file).split('.')[0]
@@ -242,7 +272,11 @@ def tables(args):
                 
 
 def derive(args):
-    print "Multiplying mcmc chains by physical parameters"
+    """Derive physical parameters from posterior samples
+
+    Args:
+        args (ArgumentParser): command line arguments
+    """
 
     for config_file in args.setupfn:
         conf_base = os.path.basename(config_file).split('.')[0]
@@ -250,6 +284,8 @@ def derive(args):
                                 "{}_radvel.stat".format(conf_base))
         status = load_status(statfile)
 
+        print "Multiplying mcmc chains by physical parameters for {}".format(conf_base)
+        
         assert status.getboolean('mcmc', 'run'), \
             "Must run MCMC before making tables"
 
@@ -313,7 +349,8 @@ def derive(args):
             except AttributeError:
                 pass
 
-        print "Derived parameters:", outcols
+            print "Derived parameters:", outcols
+            
         csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.tar.bz2')
         chains.to_csv(csvfn, columns=outcols, compression='bz2')
         savestate['chainfile'] = os.path.abspath(csvfn)
@@ -322,6 +359,13 @@ def derive(args):
 
 
 def report(args):
+    """Generate summary report
+
+    Args:
+        args (ArgumentParser): command line arguments
+    """
+
+    
     for config_file in args.setupfn:
         conf_base = os.path.basename(config_file).split('.')[0]
         print "Assembling report for {}".format(conf_base)
@@ -359,6 +403,14 @@ def report(args):
 
     
 def save_status(statfile, section, statevars):
+    """Save pipeline status
+
+    Args:
+        statfile (string): name of output file
+        section (string): name of section to write
+        statevars (dict): dictionary of all options to populate
+           the specified section
+    """
 
     config = ConfigParser.RawConfigParser()
     
@@ -375,6 +427,15 @@ def save_status(statfile, section, statevars):
         config.write(f)
 
 def load_status(statfile):
+    """Load pipeline status
+
+    Args:
+        statfile (string): name of ConfigParser file
+
+    Returns:
+        ConfigParser.RawConfigParser
+    """
+    
     config = ConfigParser.RawConfigParser()
     gl = config.read(statfile)
 

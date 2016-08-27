@@ -8,6 +8,7 @@ from .utils import *
 from .report import *
 from .plotting import *
 from .fitting import *
+from .driver import *
 import os 
 import sys
 

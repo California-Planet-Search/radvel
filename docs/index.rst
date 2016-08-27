@@ -12,8 +12,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
-   installation
-   quickstart
+   quickstartcli
    tutorial
    api
 
