@@ -114,18 +114,18 @@ def main():
     psr_report.add_argument(
         '--comptype', dest='comptype', action='store',
         default='nplanets', type=str, 
-        help='Type of BIC model comparison table to include.\
- Default: nplanets')
+        help='Type of BIC model comparison table to include. \
+Default: nplanets')
 
     psr_report.set_defaults(func=radvel.driver.report)
 
 
-    # Fitting    
-    psr_full = subpsr.add_parser(
-        'full', parents=[psr_parent],
-        description="Perform max-likelihood fitting"
-    )
-    psr_full.set_defaults(func=radvel.driver.full_run)
+    # Default    
+    #psr_def = subpsr.add_parser(
+    #    'full', parents=[psr_parent],
+    #    description="Perform max-likelihood fitting"
+    #)
+    #psr_def.set_defaults(func=radvel.driver.def)
 
     
     args = psr.parse_args()

@@ -38,7 +38,6 @@ def plots(args):
             print "Creating {} plot for {}".format(ptype, conf_base)
             
             if ptype == 'rv':
-
                 saveto = os.path.join(args.outputdir,
                                       conf_base+'_rv_multipanel.pdf')
                 radvel.plotting.rv_multipanel_plot(post, saveplot=saveto,
