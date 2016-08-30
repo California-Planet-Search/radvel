@@ -13,7 +13,7 @@ Contents:
    :maxdepth: 2
 
    quickstartcli
-   tutorial
+   tutorials
    api
 
 Indices and tables for Python code

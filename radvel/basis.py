@@ -132,13 +132,14 @@ class Basis(object):
                 w = np.arctan2(esinw , ecosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-               
+                                
             # shoves cps parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
             _setpar('e', e)
             _setpar('w', np.degrees(w))
             _setpar('k', k)
+
 
         return params_out
 
