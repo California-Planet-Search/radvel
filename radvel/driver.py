@@ -38,6 +38,7 @@ def plots(args):
             print "Creating {} plot for {}".format(ptype, conf_base)
             
             if ptype == 'rv':
+                args.plotkw['uparams'] = post.uparams
                 saveto = os.path.join(args.outputdir,
                                       conf_base+'_rv_multipanel.pdf')
                 radvel.plotting.rv_multipanel_plot(post, saveplot=saveto,
@@ -165,6 +166,7 @@ def mcmc(args):
             err = radvel.utils.round_sig(err)
             med, err, errhigh = radvel.utils.sigfig(med, err)
             cpspost.uparams[par] = err
+            
 
         print "Final loglikelihood = %f" % post.logprob()
         print "Final RMS = %f" % post.likelihood.residuals().std()
@@ -177,7 +179,7 @@ def mcmc(args):
         
         postfile = os.path.join(args.outputdir,
                                 '{}_post_obj.pkl'.format(conf_base))
-        post.writeto(postfile)
+        cpspost.writeto(postfile)
 
         csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
         chains.to_csv(csvfn, compression='bz2')
@@ -300,8 +302,9 @@ def derive(args):
         # Convert chains into CPS basis
         cpschains = chains.copy()
         for par in post.params.keys():
-            if not post.vary[par]:
+            if (par not in post.vary.keys()) or (not post.vary[par]):
                 cpschains[par] = post.params[par]
+                
                  
         cpschains = post.params.basis.to_cps(cpschains)
 
