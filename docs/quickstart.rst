@@ -1,7 +1,7 @@
 .. _quickstart:
 
 Quickstart Tutorial
-===============
+===================
 
 1. Create a planetary system configuration file. Use the `HD164922.py`  
    file within the `example_planets` directory as an example or template.

@@ -37,18 +37,19 @@ class RadvelReport():
         chains (DataFrame): output DataFrame from a `radvel.mcmc` run
     """
     
-    def __init__(self, planet, post, chains):
+    def __init__(self, planet, post, chains, compstats=None):
         self.planet = planet
         self.post = post
         
         self.starname = planet.starname
         self.starname_tex = planet.starname.replace('_', '\_')
+        self.runname = self.starname_tex
                 
         printpost = copy.deepcopy(post)
         printpost.params = printpost.params.basis.to_cps(printpost.params)
         printpost.params = printpost.params.basis.from_cps(printpost.params, print_basis)
         self.latex_dict = printpost.params.tex_labels()
-        
+
         printchains = copy.deepcopy(chains)
         for p in post.params.keys():
             if p not in chains.columns:
@@ -56,6 +57,8 @@ class RadvelReport():
         self.chains = printpost.params.basis.to_cps(chains)
         self.chains = printpost.params.basis.from_cps(chains, print_basis)
         self.quantiles = chains.quantile([0.159, 0.5, 0.841])
+
+        self.compstats = compstats
         
     def _preamble(self):
         return """
@@ -78,21 +81,21 @@ class RadvelReport():
         Returns:
             string: TeX code for report
         """
-
+        
         out = self._preamble() + self.tabletex()
-        if os.path.exists(self.starname+"_rv_multipanel.pdf"):
-            out += self.figtex(self.starname+"_rv_multipanel.pdf", caption=self._bestfit_caption())
-        if os.path.exists(self.starname+"_corner.pdf"):
-            out += self.figtex(self.starname+"_corner.pdf", caption="Posterior distributions for all free parameters.")
-        if os.path.exists(self.starname+"_corner_derived_pars.pdf"):
-            out += self.figtex(self.starname+"_corner_derived_pars.pdf", caption="Posterior distributions for all derived parameters.")
+        if os.path.exists(self.runname+"_rv_multipanel.pdf"):
+            out += self.figtex(self.runname+"_rv_multipanel.pdf", caption=self._bestfit_caption())
+        if os.path.exists(self.runname+"_corner.pdf"):
+            out += self.figtex(self.runname+"_corner.pdf", caption="Posterior distributions for all free parameters.")
+        if os.path.exists(self.runname+"_corner_derived_pars.pdf"):
+            out += self.figtex(self.runname+"_corner_derived_pars.pdf", caption="Posterior distributions for all derived parameters.")
 
         out += self._postamble()
         
         return out
 
-    def tabletex(self):
-        return TexTable(self).tex()
+    def tabletex(self, tabtype='all'):
+        return TexTable(self).tex(tabtype=tabtype)
 
     def figtex(self, infile, caption=""):
         """Generate TeX for figure
@@ -288,7 +291,7 @@ class TexTable(RadvelReport):
 """
         return out
     
-    def tex(self):
+    def tex(self, tabtype='all', compstats=None):
         """TeX code for table
 
         Returns:
@@ -305,14 +308,29 @@ class TexTable(RadvelReport):
             if len(op) == 0: op = [o]
             [ep.append(i) for i in sorted(op)[::-1]]
         ep = ' '.join(ep)
+
+        outstr_params = self._header() + \
+                        self._data(self.fitting_basis,
+                            sidehead='\\bf{Modified MCMC Step Parameters}')+\
+                        self._data(print_basis,
+                            sidehead='\\bf{Orbital Parameters}', hline=True)+\
+                        self._data(ep,
+                            sidehead='\\bf{Other Parameters}', hline=True)+\
+                        self._footer()
                         
-        outstr = self.comp_table() + \
-                 self._header() + \
-                 self._data(self.fitting_basis, sidehead='\\bf{Modified MCMC Step Parameters}') + \
-                 self._data(print_basis, sidehead='\\bf{Orbital Parameters}', hline=True) + \
-                 self._data(ep, sidehead='\\bf{Other Parameters}', hline=True) + \
-                 self._footer() + \
-                 self.prior_summary()
+        if tabtype == 'all':
+            outstr = self.tex(tabtype='nplanets', compstats=compstats)+ \
+                     outstr_params + \
+                     self.prior_summary()
+                     
+        if tabtype == 'params':
+            outstr = outstr_params
+            
+        if tabtype == 'priors':
+            outstr = self.prior_summary()
+
+        if tabtype == 'nplanets':
+            outstr = self.comp_table(self.report.compstats)
 
         # Remove duplicate lines from the
         # step parameters section of the table
@@ -325,7 +343,7 @@ class TexTable(RadvelReport):
         return trimstr
 
 
-    def comp_table(self):
+    def comp_table(self, statsdict):
         """Model comparisons
 
         Compare models with increasing number of planets
@@ -334,7 +352,9 @@ class TexTable(RadvelReport):
             string: String containing TeX code for the model comparison table
         """
 
-        statsdict = radvel.fitting.model_comp(self.post, verbose=False)
+        if statsdict is None:
+            return ""
+        
         n_test = range(len(statsdict))
 
         coldefs = 'r'*len(statsdict)

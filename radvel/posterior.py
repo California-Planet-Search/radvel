@@ -2,6 +2,7 @@ from .likelihood  import Likelihood
 import copy
 import time
 import numpy as np
+import pickle
 
 class Posterior(Likelihood):
     """Posterior object
@@ -19,7 +20,7 @@ class Posterior(Likelihood):
         to apply priors in the likelihood calculations.
     """
     
-    def __init__(self,likelihood):
+    def __init__(self,likelihood, setup=None):
         self.likelihood = likelihood
         self.params = likelihood.params
         self.vary = likelihood.vary
@@ -78,3 +79,27 @@ class Posterior(Likelihood):
         _logprob = self.logprob()
                 
         return _logprob
+
+    def writeto(self, filename):
+        """
+        Save posterior object to pickle file.
+
+        Args:
+            filename (string): full path to outputfile
+        """
+        
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
+
+def load(filename):
+    """
+    Load posterior object from pickle file.
+
+    Args:
+        filename (string): full path to pickle file
+    """
+        
+    with open(filename, 'rb') as f:
+        post = pickle.load(f)
+
+    return post
