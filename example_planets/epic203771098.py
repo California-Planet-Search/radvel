@@ -38,9 +38,8 @@ params['jit_j'] = 2.6        # "      "   hires_rj
 
 # Load radial velocity data, in this example the data is contained in an hdf file,
 # the resulting dataframe or must have 'time', 'mnvel', 'errvel', and 'tel' keys
-path = os.path.join(radvel.DATADIR,'epic203771098.hdf')
-planet = pd.read_hdf(path,'planet')
-data = pd.read_hdf(path,'rv')
+path = os.path.join(radvel.DATADIR,'epic203771098.csv')
+data = pd.read_csv(path)
 data['time'] = data.t
 data['mnvel'] = data.vel
 data['errvel'] = data.errvel

@@ -18,8 +18,7 @@ setup(
             'radvel_example_data', 
             [
                 'example_data/164922_fixed.txt', 
-                'example_data/164922.hdf', 
-                'example_data/epic203771098.hdf'
+                'example_data/epic203771098.csv'
             ]
         )
     ],
