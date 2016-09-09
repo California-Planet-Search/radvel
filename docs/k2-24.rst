@@ -34,13 +34,13 @@ Define a function that we will use to initialize the
     def initialize_model():
         time_base = 2420
         params = radvel.RVParameters(2,basis='per tc secosw sesinw logk')
-        params['per1'] = planet.ix['P','b']
-        params['tc1'] = planet.ix['t0','b']
+        params['per1'] = 20.885258
+	params['tc1'] = 2072.79438
         params['secosw1'] = 0.01
         params['sesinw1'] = 0.01
         params['logk1'] = 1.1
-        params['per2'] = planet.ix['P','c']
-        params['tc2'] = planet.ix['t0','c']
+        params['per2'] = 42.363011
+        params['tc2'] = 2082.62516
         params['secosw2'] = 0.01
         params['sesinw2'] = 0.01
         params['logk2'] = 1.1
