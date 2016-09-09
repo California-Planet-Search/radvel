@@ -8,7 +8,7 @@ extensions = [
 
 setup(
     name = "radvel-package",
-    version = "0.5b",
+    version = "0.5",
     author = "BJ Fulton, Erik Petigura",
     packages = find_packages(),
     ext_modules = cythonize(extensions),
