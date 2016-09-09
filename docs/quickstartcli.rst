@@ -29,12 +29,12 @@ If ``git`` is installed on your system then clone the repository:
 If ``git`` is not installed in your system then download ``radvel``
 directly from github web interface: `RadVel on GitHub <https://github.com/California-Planet-Search/radvel>`_
 
-Run the `setup.py` script from within the main repo directory:
+Install the package into your system's python environment:
 
 .. code-block:: bash
 		
     $ cd radvel
-    $ python setup.py install
+    $ pip install . --upgrade
 
 
 
