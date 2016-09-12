@@ -147,12 +147,12 @@ class Basis(object):
         Args:
             params_in (dict):  planet parameters expressed in cps basis
             newbasis (string): string corresponding to basis to switch into
-            keep (bool): (optional) If true keep the parameters expressed in the old basis,
-                else remove them from the output dictionary/DataFrame
+            keep (Optional[bool]): keep the parameters expressed in
+                the old basis, else remove them from the output
+                dictionary/DataFrame
 
         Returns:
-            Dictionary or dataframe with the parameters converted into the new basis
-
+            dict or dataframe with the parameters converted into the new basis
         """
         
         if newbasis not in BASIS_NAMES:
@@ -226,7 +226,6 @@ class Basis(object):
 
                 self.name = newbasis
                 self.params = newbasis.split()
-
 
         return params_out
                 
