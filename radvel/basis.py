@@ -5,7 +5,7 @@ from orbit import timeperi_to_timetrans, timetrans_to_timeperi
 
 # List of available bases
 BASIS_NAMES = [
-'per tp e w k',         # The CPS basis
+'per tp e w k', # The CPS basis
 'per tc secosw sesinw logk',
 'per tc secosw sesinw k',
 'per tc e w k'
@@ -29,7 +29,7 @@ class Basis(object):
 
     Note:
         Valid basis functions: \n
-        'per tp e w k'         (The CPS basis) \n
+        'per tp e w k' (The CPS basis) \n
         'per tc secosw sesinw logk'  \n 
         'per tc secosw sesinw k'  \n
         'per tc e w k'
@@ -61,13 +61,14 @@ class Basis(object):
     def to_cps(self, params_in, **kwargs):
         """Convert to CPS basis
 
-        Convert a dictionary with parameters of a given basis into the cps basis
+        Convert a dictionary with parameters of a given basis into the
+        cps basis
 
         Args:
             params_in (dict): planet parameters expressed in current basis
 
-        Returns:
-            Output dict or DataFrame with the parameters expressed in the CPS basis
+        Returns: 
+            dict or DataFrame: parameters expressed in the CPS basis
 
         """
 
