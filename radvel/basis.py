@@ -110,10 +110,7 @@ class Basis(object):
 
                 k = np.exp(logk)
                 e = secosw**2 + sesinw**2
-                se = np.sqrt(e)
-                ecosw = se*secosw
-                esinw = se*sesinw
-                w = np.arctan2(esinw , ecosw)
+                w = np.arctan2(sesinw , secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
             if self.name=='per tc secosw sesinw k':
@@ -126,10 +123,7 @@ class Basis(object):
             
                 # transform into CPS basis
                 e = secosw**2 + sesinw**2
-                se = np.sqrt(e)
-                ecosw = se*secosw
-                esinw = se*sesinw
-                w = np.arctan2(esinw , ecosw)
+                w = np.arctan2(sesinw , secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
                                 
