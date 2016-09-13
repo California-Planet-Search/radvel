@@ -12,7 +12,6 @@ burnGR = 1.10
 # Maximum G-R statistic for chains to be deemed well-mixed
 maxGR = 1.03
 
-
 def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
     """Run MCMC
 
@@ -23,7 +22,8 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
         nwalkers (int): number of MCMC walkers
         nrun (int): number of steps to take
         threads (int): number of CPU threads to utilize
-        checkinterval (int): check MCMC convergence statistics every `checkinterval` steps
+        checkinterval (int): check MCMC convergence statistics every 
+            `checkinterval` steps
 
     Returns:
         DataFrame: DataFrame containing the MCMC samples
@@ -35,11 +35,8 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
     p0 = np.vstack([p0]*nwalkers)
     p0 += [np.random.rand(ndim)*0.03 for i in range(nwalkers)]
     sampler = emcee.EnsembleSampler( 
-        nwalkers, 
-        ndim, 
-        likelihood.logprob_array, 
-        threads=threads
-        )
+        nwalkers, ndim, likelihood.logprob_array, threads=threads
+    )
 
     pos = p0    
     num_run = int(np.round(nrun / checkinterval))
@@ -70,7 +67,11 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
         # reset sampler
         if not burn_complete and maxgr <= burnGR:
             sampler.reset()
-            print "\nDiscarding burn-in now that the chains are marginally well-mixed\n"
+            msg = (
+                "\nDiscarding burn-in now that the chains are marginally "
+                "well-mixed\n"
+            )
+            print msg
             nburn = ncomplete
             burn_complete = True
 
@@ -78,16 +79,35 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
             tf = time.time()
             tdiff = tf - t0
             tdiff,units = utils.time_print(tdiff)
-            print "\nChains are well-mixed after %d steps! MCMC completed in %3.1f %s" % (ncomplete, tdiff, units)
+            msg = (
+                "\nChains are well-mixed after {:d} steps! MCMC completed in "
+                "{3.1f} {:s}"
+            ).format(ncomplete, tdiff, units)
+            print msg
             break
         else:
-            sys.stdout.write("%d/%d (%3.1f%%) steps complete; Running %.2f steps/s; Mean acceptance rate = %3.1f%%; Min Tz = %.1f; Max G-R = %4.2f      \r"
-                              % (ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr))
+            msg = (
+                "{:d}/%{:d} ({:3.1f}%%) steps complete; "
+                "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%%; "
+                "Min Tz = {:.1f}; Max G-R = {:4.2f} \r"
+            ).format(ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr)
+            
+            print msg
             sys.stdout.flush()
             
     print "\n"        
-    if ismixed and mixcount < 5: print "MCMC: WARNING: chains did not pass 5 consecutive convergence tests. They may be marginally well=mixed."
-    elif not ismixed: print "MCMC: WARNING: chains did not pass convergence tests. They are likely not well-mixed."
+    if ismixed and mixcount < 5: 
+        msg = (
+            "MCMC: WARNING: chains did not pass 5 consecutive convergence "
+            "tests. They may be marginally well=mixed."
+        )
+        print msg
+    elif not ismixed: 
+        msg = (
+            "MCMC: WARNING: chains did not pass convergence tests. They are "
+            "likely not well-mixed."
+        )
+        print msg
     
     df = pd.DataFrame(
         sampler.flatchain,columns=likelihood.list_vary_params()
@@ -103,12 +123,14 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
 
     Args:
         mod (radvel.RVmodel) : RV model
-        chain (DataFrame): pandas DataFrame with different values from MCMC chain
+        chain (DataFrame): pandas DataFrame with different values from MCMC 
+            chain
         t (array): time range over which to synthesize models
         nsamples (int): number of draws
     
     Returns:
         array: 2D array with the different models as different rows
+
     """
 
     np.random.seed(0)
@@ -126,45 +148,48 @@ def gelman_rubin(pars0, minTz=1000, maxGR=maxGR):
     """Gelman-Rubin Statistic
 
     Calculates the Gelman-Rubin statistic and the number of
-    independent draws for each parameter, as defined by Ford et al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
+    independent draws for each parameter, as defined by Ford et
+    al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
     The chain is considered well-mixed if all parameters have a
     Gelman-Rubin statistic of <= 1.03 and >= 1000 independent draws.
 
-    History:
-        2010/03/01 - Written: Jason Eastman - The Ohio State University
-        
-        2012/10/08 - Ported to Python by BJ Fulton - University of Hawaii, Institute for Astronomy
-        
+    History: 
+        2010/03/01 - Written: Jason Eastman - The Ohio State University        
+        2012/10/08 - Ported to Python by BJ Fulton - University of Hawaii, 
+            Institute for Astronomy
         2016/04/20 - Adapted for use in radvel. Removed "angular" parameter.
 
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
-                 parameter values
+            parameter values
         minTz (int): (optional) minimum Tz to consider well-mixed
-        maxGR (float): (optional) maximum Gelman-Rubin statistic to consider well-mixed
+        maxGR (float): (optional) maximum Gelman-Rubin statistic to
+            consider well-mixed
 
     Returns:
-             tuple :
-                     :ismixed (bool): Are the chains well-mixed?
-                     
-                     :G-R (array): An NPARS element array containing the Gelman-Rubin
-                         statistic for each parameter (equation 25)
-                         
-                     :Tz (array): An NPARS element array containing the number of
-                         independent draws for each parameter (equation 26)
-"""
+        (tuple): tuple containing:
+
+            ismixed (bool): Are the chains well-mixed?
+            gelmanrubin (array): An NPARS element array containing the
+                Gelman-Rubin statistic for each parameter (equation
+                25)
+            Tz (array): An NPARS element array containing the number
+                of independent draws for each parameter (equation 26)
+    """
 
 
     pars = pars0.copy() # don't modify input parameters
     
     sz = pars.shape
-    assert pars.ndim == 3, 'MCMC: GELMAN_RUBIN: ERROR: pars must have 3 dimensions'
+    msg = 'MCMC: GELMAN_RUBIN: ERROR: pars must have 3 dimensions'
+    assert pars.ndim == 3, msg 
 
     npars = float(sz[0])
     nsteps = float(sz[1])
     nchains = float(sz[2])
 
-    assert nsteps > 1, 'MCMC: GELMAN_RUBIN: ERROR: NSTEPS must be greater than 1'
+    msg = 'MCMC: GELMAN_RUBIN: ERROR: NSTEPS must be greater than 1'
+    assert nsteps > 1, msg
 
     # Equation 21: W(z) in Ford 2006
     variances = np.var(pars,axis=1, dtype=np.float64)
@@ -175,12 +200,15 @@ def gelman_rubin(pars0, minTz=1000, maxGR=maxGR):
     means = np.mean(pars,axis=1)
     betweenChainVariances = np.var(means,axis=1, dtype=np.float64) * nsteps
     varianceofmeans = np.var(means,axis=1, dtype=np.float64) / (nchains-1)
-    varEstimate = (1 - 1./nsteps) * withinChainVariances + (1./nsteps) * betweenChainVariances
+    varEstimate = (
+        (1.0 - 1.0/nsteps) * withinChainVariances 
+        + 1.0 / nsteps * betweenChainVariances
+    )
     
-    bz = varianceofmeans*nsteps
+    bz = varianceofmeans * nsteps
 
     # Equation 24: varhat+(z) in Ford 2006
-    varz = (nsteps-1.)/bz + varianceofmeans
+    varz = (nsteps-1.0)/bz + varianceofmeans
 
     # Equation 25: Rhat(z) in Ford 2006
     gelmanrubin = np.sqrt(varEstimate/withinChainVariances)
