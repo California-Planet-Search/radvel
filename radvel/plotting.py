@@ -62,22 +62,31 @@ def _mtelplot(x, y, e, tel, ax, telfmts):
     )
 
 def rv_multipanel_plot(post, saveplot=None, **kwargs):
-    """
-    Multi-panel RV plot to display model using post.params orbital paramters.
+    """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
-        post (radvel.Posterior): Radvel posterior object. The model plotted will be generated from post.params
-        saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
-        nobin (bool): (optional) If True do not show binned data on phase plots. Will default to True if total number of measurements is less then 20.
-        yscale_auto (bool): (optional) Use matplotlib auto y-axis scaling (default: False)
-        yscale_sigma (float): (optional) Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted) (default: 3.0)   
-        telfmts (dict): (optional) dictionary mapping instrument code to plotting format code
+        post (radvel.Posterior): Radvel posterior object. The model plotted 
+            will be generated from post.params
+        saveplot (string): (optional) Name of output file, will show as 
+             interactive matplotlib window if not defined.
+        nobin (bool): (optional) If True do not show binned data on
+             phase plots. Will default to True if total number of
+             measurements is less then 20.
+        yscale_auto (bool): (optional) Use matplotlib auto y-axis
+             scaling (default: False)
+        yscale_sigma (float): (optional) Scale y-axis limits to be +/-
+             yscale_sigma*(RMS of data plotted) (default: 3.0)
+        telfmts (dict): (optional) dictionary mapping instrument code to 
+             plotting format code
         nophase (bool): (optional) Will omit phase-folded plots if true
-        epoch (float): (optional) Subtract this value from the time axis for more compact axis labels (default: 245000)
-        uparams (dict): (optional) parameter uncertainties, must contain 'per', 'k', and 'e' keys  (default: None) 
+        epoch (float): (optional) Subtract this value from the time axis for
+            more compact axis labels (default: 245000)
+        uparams (dict): (optional) parameter uncertainties, must contain 
+            'per', 'k', and 'e' keys  (default: None) 
+
     Returns:
         None
-        
+
     """
 
     nobin = kwargs.pop('nobin', False)
@@ -88,10 +97,13 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     e = kwargs.pop('epoch', 2450000)
     uparams = kwargs.pop('uparams', None)
     
-    if len(post.likelihood.x) < 20: nobin = True
+    if len(post.likelihood.x) < 20: 
+        nobin = True
     
-    if saveplot != None: resolution = 1e4
-    else: resolution = 2000
+    if saveplot != None: 
+        resolution = 1e4
+    else: 
+        resolution = 2000
 
     cpspost = copy.deepcopy(post)
     cpsparams = post.params.basis.to_cps(post.params)
@@ -132,9 +144,18 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         mplttimes = rvmodt - e
 
     rawresid = cpspost.likelihood.residuals()
-    resid = rawresid + cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
-    slope = cpsparams['dvdt']*(rvmodt-model.time_base) + cpsparams['curv']*(rvmodt-model.time_base)**2
-    slope_low = cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
+    resid = (
+        rawresid + cpsparams['dvdt']*(rvtimes-model.time_base) 
+        + cpsparams['curv']*(rvtimes-model.time_base)**2
+    )
+    slope = (
+        cpsparams['dvdt']*(rvmodt-model.time_base) 
+        + cpsparams['curv']*(rvmodt-model.time_base)**2
+    )
+    slope_low = (
+        cpsparams['dvdt']*(rvtimes-model.time_base) 
+        + cpsparams['curv']*(rvtimes-model.time_base)**2
+    )
 
     if nophase:
         fig = pl.figure(figsize=(19.0,16.0))
@@ -220,40 +241,53 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         #print "Planet %d" % pnum
 
         rvdat = rvdat.copy()
-
         rvmod2 = model(rvmodt, planet_num=pnum) - slope
-        
         modph = t_to_phase(cpspost.params, rvmodt, pnum, cat=True) - 1
-
         rvdat = rawresid + model(rvtimes, planet_num=pnum) - slope_low
-        
         phase = t_to_phase(cpspost.params, rvtimes, pnum, cat=True) - 1
         p2 = t_to_phase(cpspost.params, rvtimes, pnum, cat=False) - 1
-
         rvdatcat = np.concatenate((rvdat,rvdat))
         rverrcat = np.concatenate((rverr,rverr))
         rvmod2cat = np.concatenate((rvmod2,rvmod2))
-
         bint, bindat, binerr = fastbin(phase+1, rvdatcat, nbins=25)
         bint -= 1.0
-
         rect = [left, bottom-(i)*height, (left+width)+0.045, height]
-        if n == 1: rect[1] -= 0.03
+        if n == 1: 
+            rect[1] -= 0.03
         ax = pl.axes(rect)
 
         ax.axhline(0, color='0.5', linestyle='--', lw=2)
         ax.plot(sorted(modph),rvmod2cat[np.argsort(modph)],'b-',linewidth=3)
-        ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', fontsize=28, fontweight='bold')
+        ax.annotate(
+            "%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', 
+            fontsize=28, fontweight='bold'
+        )
         pltletter += 1
 
-        _mtelplot(phase,rvdatcat,rverrcat, np.concatenate((cpspost.likelihood.telvec,cpspost.likelihood.telvec)), ax, telfmts)
-        if not nobin and len(rvdat) > 10: ax.errorbar(bint,bindat,yerr=binerr,fmt='ro', ecolor='r', markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2)
+        _mtelplot(
+            phase,
+            rvdatcat, 
+            rverrcat, 
+            np.concatenate(
+                (cpspost.likelihood.telvec,cpspost.likelihood.telvec)), 
+            ax, 
+            telfmts
+        )
+        if not nobin and len(rvdat) > 10: 
+            ax.errorbar(
+                bint, bindat, yerr=binerr, fmt='ro', ecolor='r', 
+                markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2
+            )
 
         pl.xlim(-0.5,0.5)
         #meanlim = np.mean([-min(rvdat), max(rvdat)])
         #meanlim += 0.10*meanlim
         #pl.ylim(-meanlim, meanlim)
-        if not yscale_auto: pl.ylim(-yscale_sigma*np.std(rvdatcat), yscale_sigma*np.std(rvdatcat))
+        if not yscale_auto: 
+            pl.ylim(
+                -yscale_sigma*np.std(rvdatcat), 
+                yscale_sigma*np.std(rvdatcat)
+            )
         
         letters = string.lowercase
         planetletter = letters[i+1]
@@ -269,8 +303,14 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
             ticks = ax.yaxis.get_majorticklocs()
             ax.yaxis.set_ticks(ticks[1:-1])
 
-        if n > 1: fig.text(0.01,textloc,'RV [m s$^{-1}$]',rotation='vertical',ha='center',va='center',fontsize=28)
-        else: pl.ylabel('RV [m s$^{-1}$]')
+        if n > 1: 
+            fig.text(
+                0.01,textloc, 'RV [m s$^{-1}$]',rotation='vertical',
+                ha='center',va='center',fontsize=28
+            )
+        else: 
+            pl.ylabel('RV [m s$^{-1}$]')
+
         pl.xlabel('Phase')
 
         print_params = ['per', 'k', 'e']
@@ -418,7 +458,10 @@ def trend_plot(post, chains, nwalkers, outfile=None):
         
             fig = pl.figure(figsize=(18,10))
             for w in range(nwalkers):
-                pl.plot(wchain[w,:], '.', rasterized=True, color=colors[w], markersize=3)
+                pl.plot(
+                    wchain[w,:], '.', rasterized=True, color=colors[w], 
+                    markersize=3
+                )
 
             pl.xlim(0,wchain.shape[1])
 

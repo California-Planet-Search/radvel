@@ -81,14 +81,14 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
             tdiff,units = utils.time_print(tdiff)
             msg = (
                 "\nChains are well-mixed after {:d} steps! MCMC completed in "
-                "{3.1f} {:s}"
+                "{:3.1f} {:s}"
             ).format(ncomplete, tdiff, units)
             print msg
             break
         else:
             msg = (
-                "{:d}/%{:d} ({:3.1f}%%) steps complete; "
-                "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%%; "
+                "{:d}/{:d} ({:3.1f}%) steps complete; "
+                "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
                 "Min Tz = {:.1f}; Max G-R = {:4.2f} \r"
             ).format(ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr)
             
