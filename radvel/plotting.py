@@ -7,7 +7,8 @@ import pylab as pl
 import matplotlib
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 from mpl_toolkits.axes_grid1 import make_axes_locatable,AxesGrid
-from matplotlib.ticker import NullFormatter
+from matplotlib.ticker import NullFormatter, MaxNLocator
+
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import rcParams
 
@@ -20,39 +21,60 @@ from radvel.utils import t_to_phase, fastbin, round_sig, sigfig
 rcParams['font.size'] = 24
 rcParams['axes.grid'] = False
 
-telfmts = {
-    'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs', 'l': 'g+','hires_rj': 'ko',
-    'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs', 'lick': 'g+'
+telfmts_default = {
+    'j': dict(color='k',fmt='o'),
+    'k': dict(color='k',fmt='s'),
+    'a': dict(color='g',fmt='d'),
+    'h': dict(color='g',fmt='s'), 
+    'l': dict(color='g',fmt='+'),
 }
+telfmts_default['lick'] = telfmts_default['l']
+telfmts_default['hires_rj'] = telfmts_default['j']
+telfmts_default['hires_rk'] = telfmts_default['k']
+telfmts_default['apf'] = telfmts_default['a']
+telfmts_default['harps'] = telfmts_default['h']
 
-teldecode = {'a': 'APF', 'k': 'HIRES_k', 'j': 'HIRES_j', 'l': 'lick'}
-msize = 10
-elinecolor = '0.6'
+msize = 12
 cmap = matplotlib.cm.nipy_spectral
     
-def _mtelplot(x, y, e, tel, ax, telfmts):
+def _mtelplot(x, y, e, tel, ax, telfmts={}):
+    """Plot data from from multiple telescopes
+
+    x (array): Either time or phase
+    y (array): RV
+    e (array): RV error
+    tel (array): telecsope string key
+    telfmts (dict): dictionary of dictionaries corresponding to kwargs 
+        passed to errorbar. Example:
+
+        telfmts = {
+             'hires': dict(fmt='o',label='HIRES',msize=),
+             'harps-n' dict(fmt='s',)}  
+    
+    """
+
     utel = np.unique(tel)
     for t in utel:
         xt = x[tel == t]
         yt = y[tel == t]
         et = e[tel == t]
-        if t == '': t = 'j'
-        if t == 'j' or t == 'k':
-            ax.errorbar(
-                xt, yt, yerr=et,fmt=telfmts[t], ecolor=elinecolor, 
-                markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], 
-                markerfacecolor='none', markeredgewidth=3)
-        elif t not in telfmts.keys():
-            ax.errorbar(
-                xt, yt, yerr=et, fmt='o', ecolor=elinecolor, markersize=msize, 
-                capsize=0, markeredgewidth=0
-            )
-        else:
-            ax.errorbar(
-                xt, yt, yerr=et, fmt=telfmts[t], ecolor=elinecolor, 
-                markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], 
-                markerfacecolor=telfmts[t][0], markeredgewidth=3
-            )
+
+        # Default formatting
+        kw = dict(
+            fmt='o', markersize=msize, capsize=0, markeredgewidth=0, 
+            ecolor='0.6'
+        )
+
+        # If not explicit format set, look among default formats
+        telfmt = {}
+        if not telfmts.has_key(t) and telfmts_default.has_key(t):
+            telfmt = telfmts_default[t]
+        if telfmts.has_key(t):
+            telfmt = telfmts[t]
+        for k in telfmt:
+            kw[k] = telfmt[k]
+            
+        pl.errorbar(xt, yt, yerr=et, **kw)
 
     ax.yaxis.set_major_formatter(
         matplotlib.ticker.ScalarFormatter(useOffset=False)
@@ -61,42 +83,37 @@ def _mtelplot(x, y, e, tel, ax, telfmts):
         matplotlib.ticker.ScalarFormatter(useOffset=False)
     )
 
-def rv_multipanel_plot(post, saveplot=None, **kwargs):
+def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
+                       yscale_auto=False, yscale_sigma=3.0, nophase=False, 
+                       epoch=2450000, uparams=None):
     """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
-        post (radvel.Posterior): Radvel posterior object. The model plotted 
-            will be generated from post.params
-        saveplot (string): (optional) Name of output file, will show as 
+        post (radvel.Posterior): Radvel posterior object. The model
+            plotted will be generated from post.params
+        saveplot (string, optional): Name of output file, will show as
              interactive matplotlib window if not defined.
-        nobin (bool): (optional) If True do not show binned data on
+        nobin (bool, optional): If True do not show binned data on
              phase plots. Will default to True if total number of
              measurements is less then 20.
-        yscale_auto (bool): (optional) Use matplotlib auto y-axis
+        yscale_auto (bool, optional): Use matplotlib auto y-axis
              scaling (default: False)
-        yscale_sigma (float): (optional) Scale y-axis limits to be +/-
-             yscale_sigma*(RMS of data plotted) (default: 3.0)
-        telfmts (dict): (optional) dictionary mapping instrument code to 
-             plotting format code
-        nophase (bool): (optional) Will omit phase-folded plots if true
-        epoch (float): (optional) Subtract this value from the time axis for
+        yscale_sigma (float, optional): Scale y-axis limits to be +/-
+             yscale_sigma*(RMS of data plotted)
+        telfmts (dict, optional): dictionary of dictionaries mapping
+             instrument code to plotting format code.
+        nophase (bool, optional): Will omit phase-folded plots if true
+        epoch (float, optional): Subtract this value from the time axis for
             more compact axis labels (default: 245000)
-        uparams (dict): (optional) parameter uncertainties, must contain 
-            'per', 'k', and 'e' keys  (default: None) 
+        uparams (dict, optional): parameter uncertainties, must
+           contain 'per', 'k', and 'e' keys.
 
     Returns:
-        None
+        figure: current matplotlib figure object
+        list: list of axis objects
 
     """
-
-    nobin = kwargs.pop('nobin', False)
-    yscale_sigma = kwargs.pop('yscale_sigma', 3.0)
-    yscale_auto = kwargs.pop('yscale_auto', False)
-    telfmts = kwargs.pop('telfmts', globals()['telfmts'])
-    nophase = kwargs.pop('nophase', False)
-    e = kwargs.pop('epoch', 2450000)
-    uparams = kwargs.pop('uparams', None)
-    
+    e = epoch
     if len(post.likelihood.x) < 20: 
         nobin = True
     
@@ -126,8 +143,10 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     longp = max(periods)
     shortp = min(periods)
         
-    dt = max(rvtimes)-min(rvtimes)
-    rvmodt = np.linspace(min(rvtimes)-0.05*dt,max(rvtimes)+0.05*dt+longp,resolution)
+    dt = max(rvtimes) - min(rvtimes)
+    rvmodt = np.linspace(
+        min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 *dt + longp, resolution
+    )
 
     rvmod2 = model(rvmodt)
     rvmod = model(rvtimes)
@@ -167,12 +186,16 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     else:
         fig = pl.figure(figsize=(19.0,16.0+4*n))        
         rect = [0.10, 0.64, 0.865, 1-0.64-0.06]
+
+    axL = []
     axRV = pl.axes(rect)
     pl.subplots_adjust(left=0.1,top=0.865,right=0.95)
     plotindex = 1
     pltletter = ord('a')
     ax = axRV
-    
+
+    axL += [axRV]
+   
     #Unphased plot
     ax.axhline(0, color='0.5', linestyle='--', lw=2)
     ax.plot(mplttimes,rvmod2,'b-',linewidth=1, rasterized=False)
@@ -208,6 +231,9 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     divider = make_axes_locatable(axRV)
     axResid = divider.append_axes("bottom",size="50%",pad=0.0,sharex=axRV,sharey=None)
     ax = axResid
+    axL += [axResid]
+
+
 
     #Residuals
     ax.plot(mplttimes,slope,'b-',linewidth=3)
@@ -217,11 +243,13 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     _mtelplot(plttimes,resid,rverr, cpspost.likelihood.telvec,ax, telfmts)
     if not yscale_auto: ax.set_ylim(-yscale_sigma*np.std(resid), yscale_sigma*np.std(resid))
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
-    ticks = ax.yaxis.get_majorticklocs()
+#    ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
     pl.xlabel('BJD$_{\\mathrm{TDB}}$ - %d' % e)
     ax.set_ylabel('Residuals')
+    ax.yaxis.set_major_locator(MaxNLocator(5,prune='both'))
+
 
     
     # Define the locations for the axes
@@ -255,6 +283,8 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         if n == 1: 
             rect[1] -= 0.03
         ax = pl.axes(rect)
+        axL += [ax]
+
 
         ax.axhline(0, color='0.5', linestyle='--', lw=2)
         ax.plot(sorted(modph),rvmod2cat[np.argsort(modph)],'b-',linewidth=3)
@@ -276,7 +306,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         if not nobin and len(rvdat) > 10: 
             ax.errorbar(
                 bint, bindat, yerr=binerr, fmt='ro', ecolor='r', 
-                markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2
+                markersize=msize*2.0, markeredgecolor='w', markeredgewidth=2
             )
 
         pl.xlim(-0.5,0.5)
@@ -314,7 +344,7 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         pl.xlabel('Phase')
 
         print_params = ['per', 'k', 'e']
-        for l,p in enumerate(print_params):
+        for l, p in enumerate(print_params):
             val = cpsparams["%s%d" % (print_params[l],pnum)]
             
             if uparams is None:
@@ -335,9 +365,10 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
         print "RV multi-panel plot saved to %s" % saveplot
-    else: pl.show()
 
-        
+    return fig, axL
+
+    
 def corner_plot(post, chains, saveplot=None):
     """
     Make a corner plot from the output MCMC chains and a posterior object.
