@@ -30,8 +30,8 @@ params['w2'] = np.pi/2.
 params['k2'] = 1
 
 time_base = 2456778          # abscissa for slope and curvature terms (should be near mid-point of time baseline)
-params['dvdt'] = 0.0         # slope
-params['curv'] = 0.0         # curvature
+params['dvdt'] = 0.0         # slope: (If rv is m/s and time is days then [dvdt] is m/s/day)
+params['curv'] = 0.0         # curvature: (If rv is m/s and time is days then [curv] is m/s/day^2)
 
 params['gamma_k'] = 0.0      # velocity zero-point for hires_rk
 params['gamma_j'] = 1.0      # "                   "   hires_rj
