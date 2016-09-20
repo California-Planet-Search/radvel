@@ -24,10 +24,10 @@ def plots(args):
     
     for config_file in args.setupfn:
         conf_base = os.path.basename(config_file).split('.')[0]
-        statfile = os.path.join(args.outputdir,
-                                "{}_radvel.stat".format(conf_base))
-        
-        
+        statfile = os.path.join(
+            args.outputdir,"{}_radvel.stat".format(conf_base)
+        )
+
         status = load_status(statfile)
 
         assert status.getboolean('fit', 'run'), \
@@ -39,10 +39,12 @@ def plots(args):
             
             if ptype == 'rv':
                 args.plotkw['uparams'] = post.uparams
-                saveto = os.path.join(args.outputdir,
-                                      conf_base+'_rv_multipanel.pdf')
-                radvel.plotting.rv_multipanel_plot(post, saveplot=saveto,
-                                                   **args.plotkw)
+                saveto = os.path.join(
+                    args.outputdir,conf_base+'_rv_multipanel.pdf'
+                )
+                radvel.plotting.rv_multipanel_plot(
+                    post, saveplot=saveto, **args.plotkw
+                )
 
             if ptype == 'corner' or ptype == 'trend':
                 assert status.getboolean('mcmc', 'run'), \
@@ -66,10 +68,11 @@ def plots(args):
 
                 P, post = radvel.utils.initialize_posterior(config_file)
                 chains = pd.read_csv(status.get('derive', 'chainfile'))
-                saveto = os.path.join(args.outputdir,
-                                      conf_base+'_corner_derived_pars.pdf')
+                saveto = os.path.join(
+                    args.outputdir,conf_base+'_corner_derived_pars.pdf'
+                )
                 radvel.plotting.corner_plot_derived_pars(
-                chains, P, saveplot=saveto
+                    chains, P, saveplot=saveto
                 )
 
             savestate = {'{}_plot'.format(ptype): os.path.abspath(saveto)}
@@ -126,10 +129,9 @@ def mcmc(args):
             conf_base, args.nwalkers, args.nsteps)
         print msg
     
-        chains = radvel.mcmc(post,
-                             threads=1,
-                             nwalkers=args.nwalkers,
-                             nrun=args.nsteps)
+        chains = radvel.mcmc(
+            post, threads=1, nwalkers=args.nwalkers, nrun=args.nsteps
+        )
 
 
         # Convert chains into CPS basis
@@ -260,10 +262,14 @@ def tables(args):
                     "Must run BIC comparison before making comparison tables"
 
                 compstats = eval(status.get('bic', 'nplanets'))
-                report = radvel.report.RadvelReport(P, post, chains, compstats=compstats)
+                report = radvel.report.RadvelReport(
+                    P, post, chains, compstats=compstats
+                )
                 tex = report.tabletex(tabtype='nplanets')
 
-            saveto = os.path.join(args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype))
+            saveto = os.path.join(
+                args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
+            )
             with open(saveto, 'w') as f:
                 print >>f, tex
                 
@@ -285,7 +291,10 @@ def derive(args):
                                 "{}_radvel.stat".format(conf_base))
         status = load_status(statfile)
 
-        print "Multiplying mcmc chains by physical parameters for {}".format(conf_base)
+        msg = "Multiplying mcmc chains by physical parameters for {}".format(
+            conf_base
+        )
+        print msg
         
         assert status.getboolean('mcmc', 'run'), \
             "Must run MCMC before making tables"

@@ -376,7 +376,8 @@ def corner_plot(post, chains, saveplot=None):
     Args:
         post (radvel.Posterior): Radvel posterior object
         chains (DataFrame): MCMC chains output by radvel.mcmc
-        saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
+        saveplot (str, optional):  Name of output file, will show as 
+            interactive matplotlib window if not defined.
 
     Returns:
         None

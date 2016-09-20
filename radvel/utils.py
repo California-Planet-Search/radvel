@@ -141,8 +141,8 @@ def timebin(time, meas, meas_err, binsize):
         wt = (1./meas_err[ind])**2.     #weights based in errors
         wt = wt/np.sum(wt)              #normalized weights
         if ct == 0:
-            time_out     = [np.sum(wt*time[ind])]
-	    meas_out     = [np.sum(wt*meas[ind])]
+            time_out = [np.sum(wt*time[ind])]
+	    meas_out = [np.sum(wt*meas[ind])]
 	    meas_err_out = [1./np.sqrt(np.sum(1./(meas_err[ind])**2))]
         else:
             time_out.append(np.sum(wt*time[ind]))
@@ -171,7 +171,9 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
     newtelvec = np.array([])
     for i,tel in enumerate(uniqsort):
         pos = np.where(telvec == tel)
-        t_bin, vel_bin, err_bin = timebin(t[pos], vel[pos], err[pos], binsize=binsize)
+        t_bin, vel_bin, err_bin = timebin(
+            t[pos], vel[pos], err[pos], binsize=binsize
+        )
         rvtimes = np.hstack((rvtimes, t_bin))
         rvdat = np.hstack((rvdat, vel_bin))
         rverr = np.hstack((rverr, err_bin))
@@ -202,7 +204,6 @@ def fastbin(x,y,nbins=30):
 def round_sig(x, sig=2):
     if x == 0: return 0.0
     return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
-
 
 def t_to_phase(params, t, num_planet, cat=False):
     P = params['per%i' % num_planet]
