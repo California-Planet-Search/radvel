@@ -348,10 +348,10 @@ def derive(args):
                 _set_param('rhop', radvel.orbit.density(mpsini, rp))
 
                 outcols.append(_get_colname('rhop'))
-            except AttributeError:
+            except (AttributeError, KeyError):
                 pass
 
-            print "Derived parameters:", outcols
+        print "Derived parameters:", outcols
             
         csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.tar.bz2')
         chains.to_csv(csvfn, columns=outcols, compression='bz2')
