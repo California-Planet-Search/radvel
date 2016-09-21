@@ -1,17 +1,15 @@
+import os
 import string
 import copy
-import os
 
 import numpy as np
 import pylab as pl
 import matplotlib
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from mpl_toolkits.axes_grid1 import make_axes_locatable,AxesGrid
+from mpl_toolkits.axes_grid1 import make_axes_locatable, AxesGrid
 from matplotlib.ticker import NullFormatter, MaxNLocator
-from matplotlib import gridspec 
+from matplotlib import rcParams, gridspec
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib import rcParams
-
 from astropy.time import Time
 import corner
 
@@ -22,15 +20,17 @@ latex = {
     'ms':'m s$^{\mathregular{-1}}$',
     'BJDTDB':'BJD$_{\mathregular{TDB}}$'
 }
-rcParams['axes.grid'] = False
 
 telfmts_default = {
-    'j': dict(color='k',fmt='o'),
-    'k': dict(color='k',fmt='s'),
-    'a': dict(color='g',fmt='d'),
-    'h': dict(color='g',fmt='s'), 
+    'j': dict(color='k',fmt='o',mfc='none',label='HIRES post 2004',mew=1),
+    'k': dict(color='k',fmt='s',mfc='none',label='HIRES pre 2004',mew=1),
+    'a': dict(color='g',fmt='d',label='APF'),
+    'pfs': dict(color='Green',fmt='^',label='PFS'),
+    'harps-n': dict(color='RoyalBlue',fmt='d',label='HARPS-N'),
+    'h': dict(color='g',fmt='s',label='HARPS'),
     'l': dict(color='g',fmt='+'),
 }
+
 telfmts_default['lick'] = telfmts_default['l']
 telfmts_default['hires_rj'] = telfmts_default['j']
 telfmts_default['hires_rk'] = telfmts_default['k']
@@ -40,6 +40,7 @@ telfmts_default['harps'] = telfmts_default['h']
 cmap = matplotlib.cm.nipy_spectral
 rcParams['font.size'] = 8
 rcParams['lines.markersize'] = 5
+rcParams['axes.grid'] = False
     
 def _mtelplot(x, y, e, tel, ax, telfmts={}):
     """Plot data from from multiple telescopes
@@ -519,8 +520,6 @@ def trend_plot(post, chains, nwalkers, outfile=None):
 
             pdf.savefig()
             pl.close()
-
-from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 
 def add_anchored(*args,**kwargs):
     """
