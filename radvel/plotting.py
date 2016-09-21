@@ -129,7 +129,9 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     phasefac = 2 
     ax_rv_height = figwidth * 2.0/4.0
     ax_phase_height = ax_rv_height / phasefac 
-    bin_markersize = 1.5 * rcParams['lines.markersize']
+    bin_fac = 1.75
+    bin_markersize = bin_fac * rcParams['lines.markersize']
+    bin_markeredgewidth = bin_fac * rcParams['lines.markeredgewidth']
     fit_linewidth = 2.0 * rcParams['lines.linewidth']
 
     cpspost = copy.deepcopy(post) 
@@ -212,7 +214,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     gs_rv = gridspec.GridSpec(1, 1)
     gs_rv.update(top=0.95,bottom=divide+buf)
     gs_phase = gridspec.GridSpec(phase_nrows, phase_ncols)
-    gs_phase.update(top=divide-buf, bottom=0.05,hspace=0.25,wspace=0.25)
+    if phase_ncols==1:
+        gs_phase.update(top=divide-buf, bottom=0.05,hspace=0.001)
+    else:
+        gs_phase.update(top=divide-buf, bottom=0.05,hspace=0.25,wspace=0.25)
 
     axL = []
     axRV = pl.subplot(gs_rv[0, 0])
@@ -228,7 +233,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     def labelfig(ax, pltletter):
         text = "{})".format(chr(pltletter))
-        add_anchored(text,loc=2,prop=dict(fontweight='bold'),frameon=False)
+        add_anchored(text,loc=2,prop=dict(fontweight='bold',size='large'),frameon=False)
+
 
     labelfig(ax,pltletter)
 
@@ -242,19 +248,15 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     # Years on upper axis
     axyrs = axRV.twiny()
-    axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
-    yrticklocs = []
-    yrticklabels = []
-    for y in [1988,1992,1996,2000,2004,2008,2012,2016]:
-        jd = Time("%d-01-01T00:00:00" % y, format='isot', scale='utc').jd - e
-        if jd > ax.get_xlim()[0] and jd < ax.get_xlim()[1]:
-            yrticklocs.append(jd)
-            yrticklabels.append("%d" % y)
-    axyrs.set_xticks(yrticklocs)
-    axyrs.set_xticklabels(yrticklabels)    
-    if len(yrticklabels) > 0:
-        pl.xlabel('Year')
-        axyrs.grid(False)
+#    axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
+
+
+    xl = np.array(list(ax.get_xlim())) + e
+    decimalyear = Time(xl,format='jd',scale='utc').decimalyear
+    axyrs.plot(decimalyear,decimalyear)
+    axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
+    axyrs.set_xlim(*decimalyear)
+    #axyrs.xaxis.set_major_locator(MaxNLocator(8))
 
     if not yscale_auto: 
         scale = np.std(rawresid+rvmod)
@@ -272,7 +274,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     axL += [axResid]
 
     #Residuals
-    ax.plot(mplttimes,slope,'b-')
+    ax.plot(mplttimes,slope,'b-',lw=fit_linewidth)
 
     labelfig(ax,pltletter)
 
@@ -331,7 +333,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
         _mtelplot(phase,rvdatcat, rverrcat, telcat, ax, telfmts)
         if not nobin and len(rvdat) > 10: 
-            ax.errorbar(bint, bindat, yerr=binerr, fmt='ro',mec='w', ms=bin_markersize)
+            ax.errorbar(
+                bint, bindat, yerr=binerr, fmt='ro',mec='w', ms=bin_markersize, 
+                mew=bin_markeredgewidth
+            )
 
         pl.xlim(-0.5,0.5)
 
@@ -343,7 +348,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         planetletter = letters[i+1]
         keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
         labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
-        units = ['days','m s$^{-1}$','']
 
         if i < num_planets-1:
             ticks = ax.yaxis.get_majorticklocs()
@@ -353,30 +357,26 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         pl.xlabel('Phase')
 
         print_params = ['per', 'k', 'e']
+        units = {'per':'days','k':latex['ms'],'e':''}
+
         anotext = []
         for l, p in enumerate(print_params):
             val = cpsparams["%s%d" % (print_params[l],pnum)]
             
             if uparams is None:
-                _anotext = '%s = %4.2f %s' % (labels[l], val, units[l])
+                _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
             else:
                 err = uparams["%s%d" % (print_params[l],pnum)]
                 if err > 0:
                     val, err, errlow = radvel.utils.sigfig(val, err)
-                    _anotext = '%s = %s $\\pm$ %s %s' % (labels[l], val, err, units[l])
+                    _anotext = '%s = %s $\\pm$ %s %s' % (labels[l], val, err, units[p])
                 else:
-                    _anotext = '%s = %4.2f %s' % (labels[l], val, units[l])
+                    _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
 
             anotext += [_anotext] 
 
         anotext = '\n'.join(anotext)
         add_anchored(anotext,loc=1,frameon=False)
-            
-#            txt = ax.annotate(
-#                anotext,(xstart,ystart-l*spacing), xycoords='axes fraction'
-#            )
-#
-
 
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
