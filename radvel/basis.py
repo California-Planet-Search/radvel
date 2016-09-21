@@ -5,7 +5,7 @@ from orbit import timeperi_to_timetrans, timetrans_to_timeperi
 
 # List of available bases
 BASIS_NAMES = [
-'per tp e w k',         # The CPS basis
+'per tp e w k', # The CPS basis
 'per tc secosw sesinw logk',
 'per tc secosw sesinw k',
 'per tc e w k'
@@ -29,7 +29,7 @@ class Basis(object):
 
     Note:
         Valid basis functions: \n
-        'per tp e w k'         (The CPS basis) \n
+        'per tp e w k' (The CPS basis) \n
         'per tc secosw sesinw logk'  \n 
         'per tc secosw sesinw k'  \n
         'per tc e w k'
@@ -61,13 +61,14 @@ class Basis(object):
     def to_cps(self, params_in, **kwargs):
         """Convert to CPS basis
 
-        Convert a dictionary with parameters of a given basis into the cps basis
+        Convert a dictionary with parameters of a given basis into the
+        cps basis
 
         Args:
             params_in (dict): planet parameters expressed in current basis
 
-        Returns:
-            Output dict or DataFrame with the parameters expressed in the CPS basis
+        Returns: 
+            dict or DataFrame: parameters expressed in the CPS basis
 
         """
 
@@ -110,10 +111,7 @@ class Basis(object):
 
                 k = np.exp(logk)
                 e = secosw**2 + sesinw**2
-                se = np.sqrt(e)
-                ecosw = se*secosw
-                esinw = se*sesinw
-                w = np.arctan2(esinw , ecosw)
+                w = np.arctan2(sesinw , secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
             if self.name=='per tc secosw sesinw k':
@@ -126,10 +124,7 @@ class Basis(object):
             
                 # transform into CPS basis
                 e = secosw**2 + sesinw**2
-                se = np.sqrt(e)
-                ecosw = se*secosw
-                esinw = se*sesinw
-                w = np.arctan2(esinw , ecosw)
+                w = np.arctan2(sesinw , secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
                                 
@@ -152,12 +147,12 @@ class Basis(object):
         Args:
             params_in (dict):  planet parameters expressed in cps basis
             newbasis (string): string corresponding to basis to switch into
-            keep (bool): (optional) If true keep the parameters expressed in the old basis,
-                else remove them from the output dictionary/DataFrame
+            keep (Optional[bool]): keep the parameters expressed in
+                the old basis, else remove them from the output
+                dictionary/DataFrame
 
         Returns:
-            Dictionary or dataframe with the parameters converted into the new basis
-
+            dict or dataframe with the parameters converted into the new basis
         """
         
         if newbasis not in BASIS_NAMES:
@@ -231,7 +226,6 @@ class Basis(object):
 
                 self.name = newbasis
                 self.params = newbasis.split()
-
 
         return params_out
                 
