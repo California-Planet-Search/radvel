@@ -60,6 +60,9 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 
     lw = 0.5 * rcParams['lines.linewidth']
 
+    default_colors = ['orange', 'purple', 'magenta' , 'pink']
+    ci = 0
+    
     utel = np.unique(tel)
     for t in utel:
         xt = x[tel == t]
@@ -68,8 +71,9 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 
         # Default formatting
         kw = dict(
-            fmt='o', capsize=0, markeredgewidth=0, 
-            ecolor='0.6', lw = lw    
+            fmt='o', capsize=0, mew=0, 
+            ecolor='0.6', lw = lw, color=default_colors[ci],
+            label = t
         )
 
         # If not explicit format set, look among default formats
@@ -78,9 +82,11 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
             telfmt = telfmts_default[t]
         if telfmts.has_key(t):
             telfmt = telfmts[t]
+        if not telfmts.has_key(t) and not telfmts_default.has_key(t):
+            ci += 1
         for k in telfmt:
             kw[k] = telfmt[k]
-            
+
         pl.errorbar(xt, yt, yerr=et, **kw)
 
     ax.yaxis.set_major_formatter(
@@ -93,7 +99,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
-                       phase_nrows=None):
+                       phase_nrows=None, legend=True):
     """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
@@ -115,12 +121,11 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             more compact axis labels (default: 245000)
         uparams (dict, optional): parameter uncertainties, must
            contain 'per', 'k', and 'e' keys.
-
         phase_ncols (int, optional): number of columns in the phase
             folded plots. Default behavior is 1.
         phase_nrows (int, optional): number of columns in the phase
             folded plots. Default is nplanets.
-
+        legend (bool, optional): include legend on plot? (default: True)
     Returns:
         figure: current matplotlib figure object
         list: list of axis objects
@@ -247,6 +252,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     
     pl.setp(axRV.get_xticklabels(), visible=False)
 
+    # Legend
+    if legend:
+        pl.legend()
+    
     # Years on upper axis
     axyrs = axRV.twiny()
 #    axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
@@ -289,7 +298,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
-    pl.xlabel('{} - {:d}'.format(latex['BJDTDB'],e))
+    pl.xlabel('{} - {:d}'.format(latex['BJDTDB'],int(np.round(e))))
     ax.set_ylabel('Residuals')
     ax.yaxis.set_major_locator(MaxNLocator(5,prune='both'))
     
