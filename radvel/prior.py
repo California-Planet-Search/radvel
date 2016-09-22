@@ -64,9 +64,12 @@ class EccentricityPrior(Prior):
         return msg[:-1]
     
     def __str__(self):
-        return "Eccentricity constrained to be $<0.99$"
+        msg = ""
+        for i,num_planet in enumerate(self.planet_list):
+            msg += "e{} constrained to be $<{}$\n".format(num_planet, self.upperlims[i])
 
-    
+        return msg[:-1]
+        
     def __init__(self, num_planets, upperlims=0.99):
 
         if type(num_planets) == int:
