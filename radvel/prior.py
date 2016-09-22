@@ -42,28 +42,50 @@ class Gaussian(Prior):
 class EccentricityPrior(Prior):
     """Physical eccentricities
 
-    Prior to keep eccentricity between 0 and 1.
+    Prior to keep eccentricity between 0 and a specified upper limit.
 
     Args:
-        num_planets (int): Number of planets. Used to ensure e for each
-            planet is a phsyical value.
+        num_planets (int or list): Planets to apply the eccentricity prior.
+            If an integer is given then all planets with indexes up to and including
+            the specified integer will be included in the prior. If a list is given then
+            the prior will only be applied to the specified planets.
+        upperlims (float or list of floats): List of eccentricity upper limits to assign
+            to each of the planets. If a float is given then all planets must have
+            eccentricities less then this value. If a list of floats is given then
+            each planet can have a different eccentricity upper limit.
     """
 
     
     def __repr__(self):
-        return "Eccentricity constrained to be < 0.99"
+        msg = ""
+        for i,num_planet in enumerate(self.planet_list):
+            msg += "e{} constrained to be < {}\n".format(num_planet, self.upperlims[i])
+
+        return msg[:-1]
+    
     def __str__(self):
         return "Eccentricity constrained to be $<0.99$"
 
     
-    def __init__(self, num_planets):
-        self.num_planets = num_planets
+    def __init__(self, num_planets, upperlims=0.99):
+
+        if type(num_planets) == int:
+            self.planet_list = range(1,num_planets+1)
+        else:
+            self.planet_list = num_planets
+            
+        if type(upperlims) == float:
+            self.upperlims = [upperlims] * len(self.planet_list)
+        else:
+            assert len(upperlims) == len(self.planet_list), "Number of eccentricity \
+upper limits must match number of planets."
+            self.upperlims = upperlims
     
     def __call__(self, params):
         def _getpar(key, num_planet):
             return params['{}{}'.format(key,num_planet)]
-
-        for num_planet in range(1,self.num_planets+1):
+        
+        for i,num_planet in enumerate(self.planet_list):
             try:
                 ecc = _getpar('e', num_planet)
             except KeyError:
@@ -71,7 +93,7 @@ class EccentricityPrior(Prior):
                 sesinw = _getpar('sesinw',num_planet)
                 ecc = secosw**2 + sesinw**2 
 
-            if ecc > 0.99 or ecc < 0.0:
+            if ecc > self.upperlims[i] or ecc < 0.0:
                 return -np.inf
         
         return 0
@@ -142,7 +164,9 @@ class HardBounds(Prior):
             d = {self.param: self.minval}
             tex = model.RVParameters(9).tex_labels(param_list=[self.param])[self.param]
             
-            s = "Bounded prior: ${} < {} < {}$".format(self.minval, tex.replace('$',''), self.maxval)
+            s = "Bounded prior: ${} < {} < {}$".format(self.minval,
+                                                       tex.replace('$',''),
+                                                       self.maxval)
         except KeyError:
             s = self.__repr__()
             

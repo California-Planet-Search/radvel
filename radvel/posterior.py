@@ -29,7 +29,7 @@ class Posterior(Likelihood):
     
     def __repr__(self):
         s = super(Posterior, self).__repr__()
-        s += "Priors\n"
+        s += "\nPriors\n"
         s += "------\n"
         for prior in self.priors:
             s +=  prior.__repr__() + "\n"

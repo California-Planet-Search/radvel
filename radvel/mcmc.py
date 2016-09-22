@@ -28,7 +28,9 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
     Returns:
         DataFrame: DataFrame containing the MCMC samples
 
-    """    
+    """
+    nrun = int(nrun)
+        
     # Get an initial array value
     p0 = likelihood.get_vary_params()
     ndim = p0.size
@@ -92,7 +94,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
                 "Min Tz = {:.1f}; Max G-R = {:4.2f} \r"
             ).format(ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr)
             
-            print msg
+            sys.stdout.write(msg)
             sys.stdout.flush()
             
     print "\n"        
