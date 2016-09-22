@@ -134,7 +134,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     figwidth = 7.5 # spans a page with 0.5in margins
     phasefac = 1.5
     ax_rv_height = figwidth * 1/2.
-    ax_phase_height = ax_rv_height / phasefac 
+    ax_phase_height = ax_rv_height / phasefac
     bin_fac = 1.75
     bin_markersize = bin_fac * rcParams['lines.markersize']
     bin_markeredgewidth = bin_fac * rcParams['lines.markeredgewidth']
@@ -156,6 +156,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         phase_ncols = 1
     if phase_nrows is None:
         phase_nrows = num_planets
+
+    ax_phase_height /= phase_ncols
         
     e = epoch
     if len(post.likelihood.x) < 20: 
@@ -212,7 +214,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     )
 
     # Provision figure
-    buf = 0.035 # padding between RV panel and phased panels 
+    buf = 0.032 # padding between RV panel and phased panels 
     figheight = ax_rv_height + ax_phase_height * num_planets
     divide = 1 - ax_rv_height / figheight
     fig = pl.figure(figsize=(figwidth,figheight))
