@@ -4,15 +4,17 @@ import copy
 import collections
 
 def maxlike_fitting(post, verbose=True):
-    """
+    """Maximum Likelihood Fitting
+
     Perform a maximum likelihood fit.
 
     Args:
         post (radvel.Posterior): Posterior object with initial guesses
         verbose (bool): (optional) Print messages and fitted values?
 
-    Returns:
-        radvel.Posterior : Posterior object with parameters updated their maximum likelihood values
+    Returns: radvel.Posterior : Posterior object with parameters
+        updated their maximum likelihood values
+
     """
     
     post0 = copy.deepcopy(post)
@@ -20,8 +22,10 @@ def maxlike_fitting(post, verbose=True):
         print "Initial loglikelihood = %f" % post0.logprob()
         print "Performing maximum likelihood fit..."
 
-    res  = optimize.minimize(post.neglogprob_array, post.get_vary_params(), method='Powell',
-                         options=dict(maxiter=100,maxfev=100000,xtol=1e-8) )
+    res  = optimize.minimize(
+        post.neglogprob_array, post.get_vary_params(), method='Powell',
+        options=dict(maxiter=100,maxfev=100000,xtol=1e-8)
+    )
 
     cpspost = copy.deepcopy(post)
     cpsparams = post.params.basis.to_cps(post.params)
@@ -31,24 +35,27 @@ def maxlike_fitting(post, verbose=True):
         print "Final loglikelihood = %f" % post.logprob()
         print "Best-fit parameters:"
         print cpspost
-
         
     return post
     
 
 def model_comp(post, verbose=False):
-    """
-    Fit for planets adding one at a time.
-    Save results as list of posterior objects.
+    """Model Comparison
+
+    Fit for planets adding one at a time.  Save results as list of
+    posterior objects.
 
     Args:
-        post (radvel.Posterior): posterior object for final best-fit solution with all planets
+        post (radvel.Posterior): posterior object for final best-fit solution 
+            with all planets
         verbose (bool): (optional) print out statistics
         
     Returns:
-        list of dictionaries : List of dictionaries with fit statistics. Each value in the dictionary is a tuple with the
-            statistic value as the first element and a description of that statistic in the second element.
 
+        list of dictionaries : List of dictionaries with fit
+            statistics. Each value in the dictionary is a tuple with
+            the statistic value as the first element and a description
+            of that statistic in the second element.
     """
 
     ipost = copy.deepcopy(post)
@@ -93,11 +100,21 @@ def model_comp(post, verbose=False):
         
         pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
         pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
-        pdict['RMS'] = (np.round(np.std(post.likelihood.residuals()), 2), 'RMS of residuals in m s$^{-1}$')
+        pdict['RMS'] = (
+            np.round(np.std(post.likelihood.residuals()), 2), 
+            'RMS of residuals in m s$^{-1}$'
+        )
         pdict['$\\chi^{2}$'] = (np.round(chi,2), "assuming no jitter")
-        pdict['$\\chi^{2}_{\\nu}$'] = (np.round(chi_red,2), "assuming no jitter")
-        pdict['$\\ln{\\mathcal{L}}$'] = (np.round(post.logprob(),2), "natural log of the likelihood")
-        pdict['BIC'] = (np.round(post.bic(),2), 'Bayesian information criterion')
+        pdict['$\\chi^{2}_{\\nu}$'] = (
+            np.round(chi_red,2), "assuming no jitter"
+        )
+        pdict['$\\ln{\\mathcal{L}}$'] = (
+            np.round(post.logprob(),2), "natural log of the likelihood"
+        )
+        pdict['BIC'] = (
+            np.round(post.bic(),2), 
+            'Bayesian information criterion'
+        )
         
         statsdict.append(pdict)
 

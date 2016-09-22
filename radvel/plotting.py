@@ -1,58 +1,87 @@
+import os
 import string
 import copy
-import os
 
 import numpy as np
 import pylab as pl
 import matplotlib
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from mpl_toolkits.axes_grid1 import make_axes_locatable,AxesGrid
-from matplotlib.ticker import NullFormatter
+from mpl_toolkits.axes_grid1 import make_axes_locatable, AxesGrid
+from matplotlib.ticker import NullFormatter, MaxNLocator
+from matplotlib import rcParams, gridspec
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib import rcParams
-
 from astropy.time import Time
 import corner
 
 import radvel
 from radvel.utils import t_to_phase, fastbin, round_sig, sigfig
 
-rcParams['font.size'] = 24
-rcParams['axes.grid'] = False
-
-telfmts = {
-    'j': 'ko', 'k': 'ks', 'a': 'gd', 'h': 'gs', 'l': 'g+','hires_rj': 'ko',
-    'hires_rk': 'ks', 'apf': 'gd', 'harps': 'gs', 'lick': 'g+'
+latex = {
+    'ms':'m s$^{\mathregular{-1}}$',
+    'BJDTDB':'BJD$_{\mathregular{TDB}}$'
 }
 
-teldecode = {'a': 'APF', 'k': 'HIRES_k', 'j': 'HIRES_j', 'l': 'lick'}
-msize = 10
-elinecolor = '0.6'
+telfmts_default = {
+    'j': dict(color='k',fmt='o',mfc='none',label='HIRES post 2004',mew=1),
+    'k': dict(color='k',fmt='s',mfc='none',label='HIRES pre 2004',mew=1),
+    'a': dict(color='g',fmt='d',label='APF'),
+    'pfs': dict(color='Green',fmt='^',label='PFS'),
+    'harps-n': dict(color='RoyalBlue',fmt='d',label='HARPS-N'),
+    'h': dict(color='g',fmt='s',label='HARPS'),
+    'l': dict(color='g',fmt='+'),
+}
+
+telfmts_default['lick'] = telfmts_default['l']
+telfmts_default['hires_rj'] = telfmts_default['j']
+telfmts_default['hires_rk'] = telfmts_default['k']
+telfmts_default['apf'] = telfmts_default['a']
+telfmts_default['harps'] = telfmts_default['h']
+
 cmap = matplotlib.cm.nipy_spectral
+rcParams['font.size'] = 8
+rcParams['lines.markersize'] = 5
+rcParams['axes.grid'] = False
     
-def _mtelplot(x, y, e, tel, ax, telfmts):
+def _mtelplot(x, y, e, tel, ax, telfmts={}):
+    """Plot data from from multiple telescopes
+
+    x (array): Either time or phase
+    y (array): RV
+    e (array): RV error
+    tel (array): telecsope string key
+    telfmts (dict): dictionary of dictionaries corresponding to kwargs 
+        passed to errorbar. Example:
+
+        telfmts = {
+             'hires': dict(fmt='o',label='HIRES',msize=),
+             'harps-n' dict(fmt='s',)}  
+    
+    """
+
+    lw = 0.5 * rcParams['lines.linewidth']
+
     utel = np.unique(tel)
     for t in utel:
         xt = x[tel == t]
         yt = y[tel == t]
         et = e[tel == t]
-        if t == '': t = 'j'
-        if t == 'j' or t == 'k':
-            ax.errorbar(
-                xt, yt, yerr=et,fmt=telfmts[t], ecolor=elinecolor, 
-                markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], 
-                markerfacecolor='none', markeredgewidth=3)
-        elif t not in telfmts.keys():
-            ax.errorbar(
-                xt, yt, yerr=et, fmt='o', ecolor=elinecolor, markersize=msize, 
-                capsize=0, markeredgewidth=0
-            )
-        else:
-            ax.errorbar(
-                xt, yt, yerr=et, fmt=telfmts[t], ecolor=elinecolor, 
-                markersize=msize, capsize=0, markeredgecolor=telfmts[t][0], 
-                markerfacecolor=telfmts[t][0], markeredgewidth=3
-            )
+
+        # Default formatting
+        kw = dict(
+            fmt='o', capsize=0, markeredgewidth=0, 
+            ecolor='0.6', lw = lw    
+        )
+
+        # If not explicit format set, look among default formats
+        telfmt = {}
+        if not telfmts.has_key(t) and telfmts_default.has_key(t):
+            telfmt = telfmts_default[t]
+        if telfmts.has_key(t):
+            telfmt = telfmts[t]
+        for k in telfmt:
+            kw[k] = telfmt[k]
+            
+        pl.errorbar(xt, yt, yerr=et, **kw)
 
     ax.yaxis.set_major_formatter(
         matplotlib.ticker.ScalarFormatter(useOffset=False)
@@ -61,61 +90,93 @@ def _mtelplot(x, y, e, tel, ax, telfmts):
         matplotlib.ticker.ScalarFormatter(useOffset=False)
     )
 
-def rv_multipanel_plot(post, saveplot=None, **kwargs):
-    """
-    Multi-panel RV plot to display model using post.params orbital paramters.
+def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
+                       yscale_auto=False, yscale_sigma=3.0, nophase=False, 
+                       epoch=2450000, uparams=None, phase_ncols=None, 
+                       phase_nrows=None):
+    """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
-        post (radvel.Posterior): Radvel posterior object. The model plotted will be generated from post.params
-        saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
-        nobin (bool): (optional) If True do not show binned data on phase plots. Will default to True if total number of measurements is less then 20.
-        yscale_auto (bool): (optional) Use matplotlib auto y-axis scaling (default: False)
-        yscale_sigma (float): (optional) Scale y-axis limits to be +/- yscale_sigma*(RMS of data plotted) (default: 3.0)   
-        telfmts (dict): (optional) dictionary mapping instrument code to plotting format code
-        nophase (bool): (optional) Will omit phase-folded plots if true
-        epoch (float): (optional) Subtract this value from the time axis for more compact axis labels (default: 245000)
-        uparams (dict): (optional) parameter uncertainties, must contain 'per', 'k', and 'e' keys  (default: None) 
+        post (radvel.Posterior): Radvel posterior object. The model
+            plotted will be generated from post.params
+        saveplot (string, optional): Name of output file, will show as
+             interactive matplotlib window if not defined.
+        nobin (bool, optional): If True do not show binned data on
+             phase plots. Will default to True if total number of
+             measurements is less then 20.
+        yscale_auto (bool, optional): Use matplotlib auto y-axis
+             scaling (default: False)
+        yscale_sigma (float, optional): Scale y-axis limits to be +/-
+             yscale_sigma*(RMS of data plotted)
+        telfmts (dict, optional): dictionary of dictionaries mapping
+             instrument code to plotting format code.
+        nophase (bool, optional): Will omit phase-folded plots if true
+        epoch (float, optional): Subtract this value from the time axis for
+            more compact axis labels (default: 245000)
+        uparams (dict, optional): parameter uncertainties, must
+           contain 'per', 'k', and 'e' keys.
+
+        phase_ncols (int, optional): number of columns in the phase
+            folded plots. Default behavior is 1.
+        phase_nrows (int, optional): number of columns in the phase
+            folded plots. Default is nplanets.
+
     Returns:
-        None
-        
+        figure: current matplotlib figure object
+        list: list of axis objects
+
     """
+    figwidth = 7.5 # spans a page with 0.5in margins
+    phasefac = 2 
+    ax_rv_height = figwidth * 2.0/4.0
+    ax_phase_height = ax_rv_height / phasefac 
+    bin_fac = 1.75
+    bin_markersize = bin_fac * rcParams['lines.markersize']
+    bin_markeredgewidth = bin_fac * rcParams['lines.markeredgewidth']
+    fit_linewidth = 2.0 * rcParams['lines.linewidth']
 
-    nobin = kwargs.pop('nobin', False)
-    yscale_sigma = kwargs.pop('yscale_sigma', 3.0)
-    yscale_auto = kwargs.pop('yscale_auto', False)
-    telfmts = kwargs.pop('telfmts', globals()['telfmts'])
-    nophase = kwargs.pop('nophase', False)
-    e = kwargs.pop('epoch', 2450000)
-    uparams = kwargs.pop('uparams', None)
-    
-    if len(post.likelihood.x) < 20: nobin = True
-    
-    if saveplot != None: resolution = 1e4
-    else: resolution = 2000
-
-    cpspost = copy.deepcopy(post)
+    cpspost = copy.deepcopy(post) 
+    model = cpspost.likelihood.model
     cpsparams = post.params.basis.to_cps(post.params)
     cpspost.params.update(cpsparams)
-    
-    model = cpspost.likelihood.model
     rvtimes = cpspost.likelihood.x
     rvdat = cpspost.likelihood.y
     rverr = cpspost.likelihood.errorbars()
-    n = model.num_planets
+    num_planets = model.num_planets
+
+    if nophase:
+        num_planets = 0
+
+    if phase_ncols is None:
+        phase_ncols = 1
+    if phase_nrows is None:
+        phase_nrows = num_planets
+        
+    e = epoch
+    if len(post.likelihood.x) < 20: 
+        nobin = True
     
+    if saveplot != None: 
+        resolution = 1e4
+    else: 
+        resolution = 2000
+
+
     if isinstance(cpspost.likelihood, radvel.likelihood.CompositeLikelihood):
         like_list = cpspost.likelihood.like_list
     else:
         like_list = [ cpspost.likelihood ]
     
     periods = []
-    for i in range(model.num_planets):
+    for i in range(num_planets):
         periods.append(cpsparams['per%d' % (i+1)])
     longp = max(periods)
     shortp = min(periods)
         
-    dt = max(rvtimes)-min(rvtimes)
-    rvmodt = np.linspace(min(rvtimes)-0.05*dt,max(rvtimes)+0.05*dt+longp,resolution)
+    dt = max(rvtimes) - min(rvtimes)
+    rvmodt = np.linspace(
+        min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp, resolution
+    )
 
     rvmod2 = model(rvmodt)
     rvmod = model(rvtimes)
@@ -132,172 +193,199 @@ def rv_multipanel_plot(post, saveplot=None, **kwargs):
         mplttimes = rvmodt - e
 
     rawresid = cpspost.likelihood.residuals()
-    resid = rawresid + cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
-    slope = cpsparams['dvdt']*(rvmodt-model.time_base) + cpsparams['curv']*(rvmodt-model.time_base)**2
-    slope_low = cpsparams['dvdt']*(rvtimes-model.time_base) + cpsparams['curv']*(rvtimes-model.time_base)**2
+    resid = (
+        rawresid + cpsparams['dvdt']*(rvtimes-model.time_base) 
+        + cpsparams['curv']*(rvtimes-model.time_base)**2
+    )
+    slope = (
+        cpsparams['dvdt'] * (rvmodt-model.time_base) 
+        + cpsparams['curv'] * (rvmodt-model.time_base)**2
+    )
+    slope_low = (
+        cpsparams['dvdt'] * (rvtimes-model.time_base) 
+        + cpsparams['curv'] * (rvtimes-model.time_base)**2
+    )
 
-    if nophase:
-        fig = pl.figure(figsize=(19.0,16.0))
-        n = 0
-        rect = [0.10, 0.12, 0.865, 1-0.12-0.06]
-    elif n == 1:
-        fig = pl.figure(figsize=(19.0,18.0))
-        rect = [0.10, 0.55, 0.865, 1-0.55-0.06]
+    # Provision figure
+    buf = 0.03 # padding between RV panel and phased panels 
+    figheight = ax_rv_height + ax_phase_height * num_planets
+    divide = 1 - ax_rv_height / figheight
+    fig = pl.figure(figsize=(figwidth,figheight))
+    fig.subplots_adjust(left=0.1)
+    gs_rv = gridspec.GridSpec(1, 1)
+    gs_rv.update(top=0.95,bottom=divide+buf)
+    gs_phase = gridspec.GridSpec(phase_nrows, phase_ncols)
+    if phase_ncols==1:
+        gs_phase.update(top=divide-buf, bottom=0.05,hspace=0.001)
     else:
-        fig = pl.figure(figsize=(19.0,16.0+4*n))        
-        rect = [0.10, 0.64, 0.865, 1-0.64-0.06]
-    axRV = pl.axes(rect)
-    pl.subplots_adjust(left=0.1,top=0.865,right=0.95)
+        gs_phase.update(top=divide-buf, bottom=0.05,hspace=0.25,wspace=0.25)
+
+    axL = []
+    axRV = pl.subplot(gs_rv[0, 0])
     plotindex = 1
     pltletter = ord('a')
     ax = axRV
-    
+
+    axL += [axRV]
+   
     #Unphased plot
-    ax.axhline(0, color='0.5', linestyle='--', lw=2)
-    ax.plot(mplttimes,rvmod2,'b-',linewidth=1, rasterized=False)
-    ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', fontsize=28, fontweight='bold')
+    ax.axhline(0, color='0.5', linestyle='--')
+    ax.plot(mplttimes,rvmod2,'b-', rasterized=False)
+
+    def labelfig(ax, pltletter):
+        text = "{})".format(chr(pltletter))
+        add_anchored(text,loc=2,prop=dict(fontweight='bold',size='large'),frameon=False)
+
+
+    labelfig(ax,pltletter)
+
     pltletter += 1
-    _mtelplot(plttimes,rawresid+rvmod,rverr,cpspost.likelihood.telvec, ax, telfmts)
+    _mtelplot(
+        plttimes,rawresid+rvmod,rverr,cpspost.likelihood.telvec, ax, telfmts
+    )
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
     
     pl.setp(axRV.get_xticklabels(), visible=False)
 
     # Years on upper axis
     axyrs = axRV.twiny()
-    axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
-    #yrticklocs = [date2jd(datetime(y, 1, 1, 0, 0, 0))-e for y in [1998, 2002, 2006, 2010, 2014]]
-    yrticklocs = []
-    yrticklabels = []
-    for y in [1988,1992,1996,2000,2004,2008,2012,2016]:
-        jd = Time("%d-01-01T00:00:00" % y, format='isot', scale='utc').jd - e
-        if jd > ax.get_xlim()[0] and jd < ax.get_xlim()[1]:
-            yrticklocs.append(jd)
-            yrticklabels.append("%d" % y)
-    axyrs.set_xticks(yrticklocs)
-    axyrs.set_xticklabels(yrticklabels)    
-    if len(yrticklabels) > 0:
-        pl.xlabel('Year')
-        axyrs.grid(False)
+#    axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
 
-    if not yscale_auto: ax.set_ylim(-yscale_sigma*np.std(rawresid+rvmod), yscale_sigma*np.std(rawresid+rvmod))
-    ax.set_ylabel('RV [m s$^{-1}$]')
+
+    xl = np.array(list(ax.get_xlim())) + e
+    decimalyear = Time(xl,format='jd',scale='utc').decimalyear
+    axyrs.plot(decimalyear,decimalyear)
+    axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
+    axyrs.set_xlim(*decimalyear)
+    #axyrs.xaxis.set_major_locator(MaxNLocator(8))
+
+    if not yscale_auto: 
+        scale = np.std(rawresid+rvmod)
+        ax.set_ylim(-yscale_sigma * scale , yscale_sigma * scale)
+
+    ax.set_ylabel('RV [{ms:}]'.format(**latex))
     ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks(ticks[1:])
 
     divider = make_axes_locatable(axRV)
-    axResid = divider.append_axes("bottom",size="50%",pad=0.0,sharex=axRV,sharey=None)
+    axResid = divider.append_axes(
+        "bottom",size="50%",pad=0.0,sharex=axRV,sharey=None
+    )
     ax = axResid
+    axL += [axResid]
 
     #Residuals
-    ax.plot(mplttimes,slope,'b-',linewidth=3)
-    ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.80), xycoords='axes fraction', fontsize=28, fontweight='bold')
+    ax.plot(mplttimes,slope,'b-',lw=fit_linewidth)
+
+    labelfig(ax,pltletter)
+
     pltletter += 1
 
     _mtelplot(plttimes,resid,rverr, cpspost.likelihood.telvec,ax, telfmts)
-    if not yscale_auto: ax.set_ylim(-yscale_sigma*np.std(resid), yscale_sigma*np.std(resid))
+    if not yscale_auto: 
+        scale = np.std(resid)
+        ax.set_ylim(-yscale_sigma * scale, yscale_sigma * scale)
+
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
-    ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
-    pl.xlabel('BJD$_{\\mathrm{TDB}}$ - %d' % e)
+    pl.xlabel('{} - {:d}'.format(latex['BJDTDB'],e))
     ax.set_ylabel('Residuals')
-
+    ax.yaxis.set_major_locator(MaxNLocator(5,prune='both'))
     
     # Define the locations for the axes
     axbounds = ax.get_position().bounds
     bottom = axbounds[1]
-    height = (bottom - 0.15) / n
+    height = (bottom - 0.15) / num_planets
     textloc = bottom / 2
     bottom -= height + 0.05
     left, width = 0.10, 0.72
 
-    
     #Phase plots
-    for i in range(n):
+    for i in range(num_planets):
         if nophase: break
         
         pnum = i+1
         #print "Planet %d" % pnum
 
         rvdat = rvdat.copy()
-
         rvmod2 = model(rvmodt, planet_num=pnum) - slope
-        
         modph = t_to_phase(cpspost.params, rvmodt, pnum, cat=True) - 1
-
         rvdat = rawresid + model(rvtimes, planet_num=pnum) - slope_low
-        
         phase = t_to_phase(cpspost.params, rvtimes, pnum, cat=True) - 1
         p2 = t_to_phase(cpspost.params, rvtimes, pnum, cat=False) - 1
-
         rvdatcat = np.concatenate((rvdat,rvdat))
         rverrcat = np.concatenate((rverr,rverr))
         rvmod2cat = np.concatenate((rvmod2,rvmod2))
-
         bint, bindat, binerr = fastbin(phase+1, rvdatcat, nbins=25)
         bint -= 1.0
 
-        rect = [left, bottom-(i)*height, (left+width)+0.045, height]
-        if n == 1: rect[1] -= 0.03
-        ax = pl.axes(rect)
+        i_row = i / phase_ncols
+        i_col = i - i_row * phase_ncols
+        ax = pl.subplot(gs_phase[i_row, i_col])
+        axL += [ax]
 
-        ax.axhline(0, color='0.5', linestyle='--', lw=2)
-        ax.plot(sorted(modph),rvmod2cat[np.argsort(modph)],'b-',linewidth=3)
-        ax.annotate("%s)" % chr(pltletter), xy=(0.01,0.85), xycoords='axes fraction', fontsize=28, fontweight='bold')
+        ax.axhline(0, color='0.5', linestyle='--', )
+        ax.plot(sorted(modph),rvmod2cat[np.argsort(modph)],'b-',linewidth=fit_linewidth)
+        labelfig(ax,pltletter)
+
         pltletter += 1
+        telcat = np.concatenate((cpspost.likelihood.telvec,cpspost.likelihood.telvec))
 
-        _mtelplot(phase,rvdatcat,rverrcat, np.concatenate((cpspost.likelihood.telvec,cpspost.likelihood.telvec)), ax, telfmts)
-        if not nobin and len(rvdat) > 10: ax.errorbar(bint,bindat,yerr=binerr,fmt='ro', ecolor='r', markersize=msize*2.5, markeredgecolor='w', markeredgewidth=2)
+        _mtelplot(phase,rvdatcat, rverrcat, telcat, ax, telfmts)
+        if not nobin and len(rvdat) > 10: 
+            ax.errorbar(
+                bint, bindat, yerr=binerr, fmt='ro',mec='w', ms=bin_markersize, 
+                mew=bin_markeredgewidth
+            )
 
         pl.xlim(-0.5,0.5)
-        #meanlim = np.mean([-min(rvdat), max(rvdat)])
-        #meanlim += 0.10*meanlim
-        #pl.ylim(-meanlim, meanlim)
-        if not yscale_auto: pl.ylim(-yscale_sigma*np.std(rvdatcat), yscale_sigma*np.std(rvdatcat))
+
+        if not yscale_auto: 
+            scale = np.std(rvdatcat)
+            pl.ylim(-yscale_sigma*scale, yscale_sigma*scale )
         
         letters = string.lowercase
         planetletter = letters[i+1]
         keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
         labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
-        units = ['days','m s$^{-1}$','']
-        indicies = [0,4,2,2]
-        spacing = 0.09
-        xstart = 0.65
-        ystart = 0.89
-        
-        if i < n-1:
+
+        if i < num_planets-1:
             ticks = ax.yaxis.get_majorticklocs()
             ax.yaxis.set_ticks(ticks[1:-1])
 
-        if n > 1: fig.text(0.01,textloc,'RV [m s$^{-1}$]',rotation='vertical',ha='center',va='center',fontsize=28)
-        else: pl.ylabel('RV [m s$^{-1}$]')
+        pl.ylabel('RV [{ms:}]'.format(**latex))
         pl.xlabel('Phase')
 
         print_params = ['per', 'k', 'e']
-        for l,p in enumerate(print_params):
+        units = {'per':'days','k':latex['ms'],'e':''}
+
+        anotext = []
+        for l, p in enumerate(print_params):
             val = cpsparams["%s%d" % (print_params[l],pnum)]
             
             if uparams is None:
-                anotext = '%s = %4.2f %s' % (labels[l], val, units[l])
+                _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
             else:
                 err = uparams["%s%d" % (print_params[l],pnum)]
                 if err > 0:
                     val, err, errlow = radvel.utils.sigfig(val, err)
-                    anotext = '%s = %s $\\pm$ %s %s' % (labels[l], val, err, units[l])
+                    _anotext = '%s = %s $\\pm$ %s %s' % (labels[l], val, err, units[p])
                 else:
-                    anotext = '%s = %4.2f %s' % (labels[l], val, units[l])
-                
-                
-            txt = ax.annotate(anotext,(xstart,ystart-l*spacing),
-                xycoords='axes fraction', fontsize=28)
+                    _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
 
-                
+            anotext += [_anotext] 
+
+        anotext = '\n'.join(anotext)
+        add_anchored(anotext,loc=1,frameon=False)
+
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
         print "RV multi-panel plot saved to %s" % saveplot
-    else: pl.show()
-
         
+    return fig, axL
+
+    
 def corner_plot(post, chains, saveplot=None):
     """
     Make a corner plot from the output MCMC chains and a posterior object.
@@ -305,14 +393,13 @@ def corner_plot(post, chains, saveplot=None):
     Args:
         post (radvel.Posterior): Radvel posterior object
         chains (DataFrame): MCMC chains output by radvel.mcmc
-        saveplot (string): (optional) Name of output file, will show as interactive matplotlib window if not defined.
+        saveplot (str, optional):  Name of output file, will show as 
+            interactive matplotlib window if not defined.
 
     Returns:
         None
     
     """
-
-    
     labels = [k for k in post.vary.keys() if post.vary[k]]
     texlabels = [post.params.tex_labels().get(l, l) for l in labels]
     
@@ -328,10 +415,10 @@ def corner_plot(post, chains, saveplot=None):
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
         print "Corner plot saved to %s" % saveplot
-    else: pl.show()
+    else:
+        pl.show()
 
     rcParams['font.size'] = f
-
 
 def texlabel(key, letter):
     if key.count('mpsini')==1:
@@ -418,7 +505,10 @@ def trend_plot(post, chains, nwalkers, outfile=None):
         
             fig = pl.figure(figsize=(18,10))
             for w in range(nwalkers):
-                pl.plot(wchain[w,:], '.', rasterized=True, color=colors[w], markersize=3)
+                pl.plot(
+                    wchain[w,:], '.', rasterized=True, color=colors[w], 
+                    markersize=3
+                )
 
             pl.xlim(0,wchain.shape[1])
 
@@ -430,3 +520,26 @@ def trend_plot(post, chains, nwalkers, outfile=None):
 
             pdf.savefig()
             pl.close()
+
+def add_anchored(*args,**kwargs):
+    """
+    Parameters
+    ----------
+    s : string
+        Text.
+
+    loc : str
+        Location code.
+
+    pad : float, optional
+        Pad between the text and the frame as fraction of the font
+        size.
+
+    borderpad : float, optional
+        Pad between the frame and the axes (or *bbox_to_anchor*).
+
+    prop : `matplotlib.font_manager.FontProperties`
+        Font properties.
+    """
+    at = AnchoredText(*args, **kwargs)
+    pl.gca().add_artist(at)
