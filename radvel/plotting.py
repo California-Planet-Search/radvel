@@ -99,7 +99,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
-                       phase_nrows=None, legend=True):
+                       phase_nrows=None, legend=True, rv_phase_space=0.07):
     """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
@@ -126,13 +126,17 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         phase_nrows (int, optional): number of columns in the phase
             folded plots. Default is nplanets.
         legend (bool, optional): include legend on plot? (default: True)
+        rv_phase_space (float, optional): verticle space between rv
+            plot and phase-folded plots (in units of fraction of
+            figure height)
+
     Returns:
         figure: current matplotlib figure object
         list: list of axis objects
 
     """
     figwidth = 7.5 # spans a page with 0.5in margins
-    phasefac = 1.5
+    phasefac = 1.25
     ax_rv_height = figwidth * 1/2.
     ax_phase_height = ax_rv_height / phasefac 
     bin_fac = 1.75
@@ -211,19 +215,19 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         + cpsparams['curv'] * (rvtimes-model.time_base)**2
     )
 
+
     # Provision figure
-    buf = 0.035 # padding between RV panel and phased panels 
-    figheight = ax_rv_height + ax_phase_height * num_planets
+    figheight = ax_rv_height + ax_phase_height * phase_nrows
     divide = 1 - ax_rv_height / figheight
     fig = pl.figure(figsize=(figwidth,figheight))
     fig.subplots_adjust(left=0.1)
     gs_rv = gridspec.GridSpec(1, 1)
-    gs_rv.update(top=0.95,bottom=divide+buf)
+    gs_rv.update(top=0.95,bottom=divide+rv_phase_space*0.5)
     gs_phase = gridspec.GridSpec(phase_nrows, phase_ncols)
     if phase_ncols==1:
-        gs_phase.update(top=divide-buf, bottom=0.07,hspace=0.001)
+        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.001)
     else:
-        gs_phase.update(top=divide-buf, bottom=0.07,hspace=0.25,wspace=0.25)
+        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.25,wspace=0.25)
 
     axL = []
     axRV = pl.subplot(gs_rv[0, 0])
@@ -239,8 +243,9 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     def labelfig(ax, pltletter):
         text = "{})".format(chr(pltletter))
-        add_anchored(text,loc=2,prop=dict(fontweight='bold',size='large'),frameon=False)
-
+        add_anchored(
+            text,loc=2,prop=dict(fontweight='bold',size='large'),frameon=False
+        )
 
     labelfig(ax,pltletter)
 
@@ -358,7 +363,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         planetletter = letters[i+1]
         keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
         labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
-
+        labels = ['P','K','e']
         if i < num_planets-1:
             ticks = ax.yaxis.get_majorticklocs()
             ax.yaxis.set_ticks(ticks[1:-1])
@@ -367,14 +372,14 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         pl.xlabel('Phase')
 
         print_params = ['per', 'k', 'e']
-        units = {'per':'days','k':latex['ms'],'e':''}
+        units = {'per':'days','k':'m\ s^{-1}','e':''}
 
         anotext = []
         for l, p in enumerate(print_params):
             val = cpsparams["%s%d" % (print_params[l],pnum)]
             
             if uparams is None:
-                _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
+                _anotext = '$\mathregular{{{:s}_{:s}\ =\ {:4.2f}\ {:s}}}$'.format(labels[l], planetletter, val, units[p])
             else:
                 err = uparams["%s%d" % (print_params[l],pnum)]
                 if err > 0:
@@ -386,7 +391,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             anotext += [_anotext] 
 
         anotext = '\n'.join(anotext)
-        add_anchored(anotext,loc=1,frameon=False)
+        add_anchored(
+            anotext, loc=1, frameon=True, prop=dict(size='large',weight='bold'),
+            bbox=dict(ec='none', fc='w', alpha=0.8)
+        )
 
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
@@ -550,5 +558,13 @@ def add_anchored(*args,**kwargs):
     prop : `matplotlib.font_manager.FontProperties`
         Font properties.
     """
+
+    bbox = {}
+    if kwargs.has_key('bbox'):
+        bbox = kwargs.pop('bbox')
     at = AnchoredText(*args, **kwargs)
-    pl.gca().add_artist(at)
+    if len(bbox.keys())>0:
+        pl.setp(at.patch,**bbox)
+
+    ax = pl.gca()
+    ax.add_artist(at)
