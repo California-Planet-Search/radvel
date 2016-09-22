@@ -33,7 +33,7 @@ class Gaussian(Prior):
             d = {self.param: self.mu}
             tex = model.RVParameters(9).tex_labels(param_list=[self.param])[self.param]
             
-            s = "Gaussian prior on {}: ${} \\pm {}$".format(tex, self. mu, self.sigma)
+            s = "Gaussian prior on {}: ${} \\pm {}$ \\\\".format(tex, self. mu, self.sigma)
         except KeyError:
             s = self.__repr__()
             
