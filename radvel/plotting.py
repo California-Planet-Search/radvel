@@ -212,7 +212,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     )
 
     # Provision figure
-    buf = 0.03 # padding between RV panel and phased panels 
+    buf = 0.035 # padding between RV panel and phased panels 
     figheight = ax_rv_height + ax_phase_height * num_planets
     divide = 1 - ax_rv_height / figheight
     fig = pl.figure(figsize=(figwidth,figheight))
@@ -221,9 +221,9 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     gs_rv.update(top=0.95,bottom=divide+buf)
     gs_phase = gridspec.GridSpec(phase_nrows, phase_ncols)
     if phase_ncols==1:
-        gs_phase.update(top=divide-buf, bottom=0.05,hspace=0.001)
+        gs_phase.update(top=divide-buf, bottom=0.07,hspace=0.001)
     else:
-        gs_phase.update(top=divide-buf, bottom=0.05,hspace=0.25,wspace=0.25)
+        gs_phase.update(top=divide-buf, bottom=0.07,hspace=0.25,wspace=0.25)
 
     axL = []
     axRV = pl.subplot(gs_rv[0, 0])
