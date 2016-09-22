@@ -363,7 +363,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         planetletter = letters[i+1]
         keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
         labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
-        labels = ['P','K','e']
         if i < num_planets-1:
             ticks = ax.yaxis.get_majorticklocs()
             ax.yaxis.set_ticks(ticks[1:-1])
@@ -372,14 +371,14 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         pl.xlabel('Phase')
 
         print_params = ['per', 'k', 'e']
-        units = {'per':'days','k':'m\ s^{-1}','e':''}
+        units = {'per':'days','k':latex['ms'],'e':''}
 
         anotext = []
         for l, p in enumerate(print_params):
             val = cpsparams["%s%d" % (print_params[l],pnum)]
             
             if uparams is None:
-                _anotext = '$\mathregular{{{:s}_{:s}\ =\ {:4.2f}\ {:s}}}$'.format(labels[l], planetletter, val, units[p])
+                _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
             else:
                 err = uparams["%s%d" % (print_params[l],pnum)]
                 if err > 0:
@@ -392,7 +391,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
         anotext = '\n'.join(anotext)
         add_anchored(
-            anotext, loc=1, frameon=True, prop=dict(size='large',weight='bold'),
+            anotext, loc=1, frameon=True, prop=dict(size='large'),
             bbox=dict(ec='none', fc='w', alpha=0.8)
         )
 
