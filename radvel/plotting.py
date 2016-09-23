@@ -25,14 +25,15 @@ telfmts_default = {
     'j': dict(color='k',fmt='o',mfc='none',label='HIRES post 2004',mew=1),
     'k': dict(color='k',fmt='s',mfc='none',label='HIRES pre 2004',mew=1),
     'a': dict(color='g',fmt='d',label='APF'),
-    'pfs': dict(color='Green',fmt='^',label='PFS'),
-    'harps-n': dict(color='RoyalBlue',fmt='d',label='HARPS-N'),
-    'h': dict(color='g',fmt='s',label='HARPS'),
+    'pfs': dict(color='magenta',fmt='p',label='PFS'),
+    'h': dict(color='firebrick',fmt="s",label='HARPS'),
+    'harps-n': dict(color='firebrick',fmt='^',label='HARPS-N'),
     'l': dict(color='g',fmt='+'),
 }
 
 telfmts_default['lick'] = telfmts_default['l']
 telfmts_default['hires_rj'] = telfmts_default['j']
+telfmts_default['hires'] = telfmts_default['j']
 telfmts_default['hires_rk'] = telfmts_default['k']
 telfmts_default['apf'] = telfmts_default['a']
 telfmts_default['harps'] = telfmts_default['h']
