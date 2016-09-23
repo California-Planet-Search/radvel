@@ -79,7 +79,7 @@ def model_comp(post, verbose=False):
                 else:
                     post.params[par] = ipost.params[par]
                     post.vary[par] = ipost.vary[par]
-            except ValueError:
+            except (ValueError, KeyError):
                 pass
 
         post = maxlike_fitting(post, verbose=False)
