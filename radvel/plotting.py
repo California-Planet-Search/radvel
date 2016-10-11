@@ -151,7 +151,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     num_planets = model.num_planets
 
     if nophase:
-        num_planets = 0
+        num_planets = 1
+        periods = [max(rvtimes) - min(rvtimes)]
 
     if phase_ncols is None:
         phase_ncols = 1
@@ -175,9 +176,11 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     else:
         like_list = [ cpspost.likelihood ]
     
-    periods = []
-    for i in range(num_planets):
-        periods.append(cpsparams['per%d' % (i+1)])
+    if not nophase:
+        periods = []
+        for i in range(num_planets):
+            periods.append(cpsparams['per%d' % (i+1)])
+            
     longp = max(periods)
     shortp = min(periods)
         
