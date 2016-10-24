@@ -218,7 +218,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     )
 
     # Provision figure
-    buf = 0.032 # padding between RV panel and phased panels 
+    buf = 0.04 # padding between RV panel and phased panels
+    if num_planets > 1: buf -= 0.008 
     figheight = ax_rv_height + ax_phase_height * num_planets
     divide = 1 - ax_rv_height / figheight
     fig = pl.figure(figsize=(figwidth,figheight))
