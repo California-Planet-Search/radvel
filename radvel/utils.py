@@ -133,7 +133,6 @@ def timebin(time, meas, meas_err, binsize):
     time = time[ind_order]
     meas = meas[ind_order]
     meas_err = meas_err[ind_order]
-
     ct=0
     while ct < len(time):
         ind = np.where((time >= time[ct]) & (time < time[ct]+binsize))[0]
