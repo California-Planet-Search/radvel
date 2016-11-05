@@ -137,7 +137,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     """
     figwidth = 7.5 # spans a page with 0.5in margins
-    phasefac = 1.25
+    phasefac = 1.5
     ax_rv_height = figwidth * 1/2.
     ax_phase_height = ax_rv_height / phasefac
     bin_fac = 1.75
@@ -386,6 +386,13 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             if uparams is None:
                 _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$",""), val, units[p])
             else:
+                if hasattr(post, 'medparams'):
+                    val = post.medparams["%s%d" % (print_params[l],pnum)]
+                else:
+                    print "WARNING: medparams attribute not found in "+ \
+                          "posterior object will annotate with "+ \
+                          "max-likelihood values and reported uncertainties "+ \
+                          "may not be appropriate."
                 err = uparams["%s%d" % (print_params[l],pnum)]
                 if err > 0:
                     val, err, errlow = radvel.utils.sigfig(val, err)
