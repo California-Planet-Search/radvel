@@ -14,9 +14,10 @@ def initialize_posterior(config_file):
     system_name = os.path.basename(config_file).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(config_file))
     system_name = P.starname
-    
-    params = P.params.basis.from_cps(P.params, P.fitting_basis, keep=False)
 
+    cpsparams = P.params.basis.to_cps(P.params)
+    params = P.params.basis.from_cps(cpsparams, P.fitting_basis, keep=False)
+    
     for key in params.keys():
         if key.startswith('logjit'):
             msg = """

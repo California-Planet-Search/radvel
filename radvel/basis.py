@@ -90,7 +90,7 @@ class Basis(object):
                 per = _getpar('per')
                 tp = _getpar('tp')
                 e = _getpar('e')
-                w = _getpar('w')
+                w = _getpar('w')   
                 k = _getpar('k')
                 
             if self.name == 'per tc e w k':
@@ -132,7 +132,7 @@ class Basis(object):
             _setpar('per', per)
             _setpar('tp', tp)
             _setpar('e', e)
-            _setpar('w', np.degrees(w))
+            _setpar('w', w)
             _setpar('k', k)
 
 
@@ -174,7 +174,17 @@ class Basis(object):
             
 
             if newbasis == 'per tc e w k':
-                pass
+                per = _getpar('per')
+                e = _getpar('e')
+                w = _getpar('w')
+                tp = _getpar('tp')
+                
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
+                _setpar('w', w )
+
+                if not kwargs.get('keep', True):
+                    _delpar('tp')
+
             
             if newbasis == 'per tc secosw sesinw logk':
                 per = _getpar('per')

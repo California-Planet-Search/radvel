@@ -16,7 +16,7 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
         t (array of floats): times of observations
         orbel (array of floats): [per, tp, e, om, K].\
             Omega is expected to be\
-            in degrees
+            in radians
         use_C_kepler_solver (bool): (default: True) If \
             True use the Kepler solver written in C, else \
             use the Python/NumPy version.
@@ -28,7 +28,6 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
     
     # unpack array
     per, tp, e, om, k = orbel
-    om = om / 180 * np.pi
     
     # Error checking
     if e == 0.0:
