@@ -39,7 +39,7 @@ telfmts_default['apf'] = telfmts_default['a']
 telfmts_default['harps'] = telfmts_default['h']
 
 cmap = matplotlib.cm.nipy_spectral
-rcParams['font.size'] = 8
+rcParams['font.size'] = 9
 rcParams['lines.markersize'] = 5
 rcParams['axes.grid'] = False
     
@@ -283,7 +283,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         scale = np.std(rawresid+rvmod)
         ax.set_ylim(-yscale_sigma * scale , yscale_sigma * scale)
 
-    ax.set_ylabel('RV [{ms:}]'.format(**latex))
+    ax.set_ylabel('RV [{ms:}]'.format(**latex), weight='bold')
     ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks(ticks[1:])
 
@@ -309,8 +309,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
-    pl.xlabel('{} - {:d}'.format(latex['BJDTDB'],int(np.round(e))))
-    ax.set_ylabel('Residuals')
+    pl.xlabel('{} - {:d}'.format(latex['BJDTDB'],int(np.round(e))), weight='bold')
+    ax.set_ylabel('Residuals', weight='bold')
     ax.yaxis.set_major_locator(MaxNLocator(5,prune='both'))
     
     # Define the locations for the axes
@@ -373,8 +373,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             ticks = ax.yaxis.get_majorticklocs()
             ax.yaxis.set_ticks(ticks[1:-1])
 
-        pl.ylabel('RV [{ms:}]'.format(**latex))
-        pl.xlabel('Phase')
+        pl.ylabel('RV [{ms:}]'.format(**latex), weight='bold')
+        pl.xlabel('Phase', weight='bold')
 
         print_params = ['per', 'k', 'e']
         units = {'per':'days','k':latex['ms'],'e':''}
@@ -384,20 +384,20 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             val = cpsparams["%s%d" % (print_params[l],pnum)]
             
             if uparams is None:
-                _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
+                _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$",""), val, units[p])
             else:
                 err = uparams["%s%d" % (print_params[l],pnum)]
                 if err > 0:
                     val, err, errlow = radvel.utils.sigfig(val, err)
-                    _anotext = '%s = %s $\\pm$ %s %s' % (labels[l], val, err, units[p])
+                    _anotext = '$\\mathregular{%s}$ = %s $\\mathregular{\\pm}$ %s %s' % (labels[l].replace("$",""), val, err, units[p])
                 else:
-                    _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
+                    _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$",""), val, units[p])
 
             anotext += [_anotext] 
 
         anotext = '\n'.join(anotext)
         add_anchored(
-            anotext, loc=1, frameon=True, prop=dict(size='large'),
+            anotext, loc=1, frameon=True, prop=dict(size='large', weight='bold'),
             bbox=dict(ec='none', fc='w', alpha=0.8)
         )
 
