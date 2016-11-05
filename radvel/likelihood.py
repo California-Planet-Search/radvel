@@ -31,7 +31,7 @@ class Likelihood(object):
                 else:
                     vstr = ""
                 
-                if key.startswith('tc') or key.startswith('tp'):
+                if (key.startswith('tc') or key.startswith('tp')) and self.params[key] > 1e6:
                     par = self.params[key] - 2450000
                 else:
                     par = self.params[key]
