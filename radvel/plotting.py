@@ -39,7 +39,7 @@ telfmts_default['apf'] = telfmts_default['a']
 telfmts_default['harps'] = telfmts_default['h']
 
 cmap = matplotlib.cm.nipy_spectral
-rcParams['font.size'] = 8
+rcParams['font.size'] = 9
 rcParams['lines.markersize'] = 5
 rcParams['axes.grid'] = False
     
@@ -100,7 +100,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
-                       phase_nrows=None, legend=True):
+                       phase_nrows=None, legend=True, rv_phase_space=0.07):
     """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
@@ -127,6 +127,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         phase_nrows (int, optional): number of columns in the phase
             folded plots. Default is nplanets.
         legend (bool, optional): include legend on plot? (default: True)
+        rv_phase_space (float, optional): verticle space between rv
+            plot and phase-folded plots (in units of fraction of
+            figure height)
+
     Returns:
         figure: current matplotlib figure object
         list: list of axis objects
@@ -217,20 +221,19 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         + cpsparams['curv'] * (rvtimes-model.time_base)**2
     )
 
+
     # Provision figure
-    buf = 0.04 # padding between RV panel and phased panels
-    if num_planets > 1: buf -= 0.008 
-    figheight = ax_rv_height + ax_phase_height * num_planets
+    figheight = ax_rv_height + ax_phase_height * phase_nrows
     divide = 1 - ax_rv_height / figheight
     fig = pl.figure(figsize=(figwidth,figheight))
     fig.subplots_adjust(left=0.1)
     gs_rv = gridspec.GridSpec(1, 1)
-    gs_rv.update(top=0.95,bottom=divide+buf)
+    gs_rv.update(top=0.95,bottom=divide+rv_phase_space*0.5)
     gs_phase = gridspec.GridSpec(phase_nrows, phase_ncols)
     if phase_ncols==1:
-        gs_phase.update(top=divide-buf, bottom=0.07,hspace=0.001)
+        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.001)
     else:
-        gs_phase.update(top=divide-buf, bottom=0.07,hspace=0.25,wspace=0.25)
+        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.25,wspace=0.25)
 
     axL = []
     axRV = pl.subplot(gs_rv[0, 0])
@@ -246,8 +249,9 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     def labelfig(ax, pltletter):
         text = "{})".format(chr(pltletter))
-        add_anchored(text,loc=2,prop=dict(fontweight='bold',size='large'),frameon=False)
-
+        add_anchored(
+            text,loc=2,prop=dict(fontweight='bold',size='large'),frameon=False
+        )
 
     labelfig(ax,pltletter)
 
@@ -279,7 +283,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         scale = np.std(rawresid+rvmod)
         ax.set_ylim(-yscale_sigma * scale , yscale_sigma * scale)
 
-    ax.set_ylabel('RV [{ms:}]'.format(**latex))
+    ax.set_ylabel('RV [{ms:}]'.format(**latex), weight='bold')
     ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks(ticks[1:])
 
@@ -305,8 +309,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
-    pl.xlabel('{} - {:d}'.format(latex['BJDTDB'],int(np.round(e))))
-    ax.set_ylabel('Residuals')
+    pl.xlabel('{} - {:d}'.format(latex['BJDTDB'],int(np.round(e))), weight='bold')
+    ax.set_ylabel('Residuals', weight='bold')
     ax.yaxis.set_major_locator(MaxNLocator(5,prune='both'))
     
     # Define the locations for the axes
@@ -365,13 +369,12 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         planetletter = letters[i+1]
         keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
         labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
-
         if i < num_planets-1:
             ticks = ax.yaxis.get_majorticklocs()
             ax.yaxis.set_ticks(ticks[1:-1])
 
-        pl.ylabel('RV [{ms:}]'.format(**latex))
-        pl.xlabel('Phase')
+        pl.ylabel('RV [{ms:}]'.format(**latex), weight='bold')
+        pl.xlabel('Phase', weight='bold')
 
         print_params = ['per', 'k', 'e']
         units = {'per':'days','k':latex['ms'],'e':''}
@@ -381,19 +384,29 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             val = cpsparams["%s%d" % (print_params[l],pnum)]
             
             if uparams is None:
-                _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
+                _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$",""), val, units[p])
             else:
+                if hasattr(post, 'medparams'):
+                    val = post.medparams["%s%d" % (print_params[l],pnum)]
+                else:
+                    print "WARNING: medparams attribute not found in "+ \
+                          "posterior object will annotate with "+ \
+                          "max-likelihood values and reported uncertainties "+ \
+                          "may not be appropriate."
                 err = uparams["%s%d" % (print_params[l],pnum)]
                 if err > 0:
                     val, err, errlow = radvel.utils.sigfig(val, err)
-                    _anotext = '%s = %s $\\pm$ %s %s' % (labels[l], val, err, units[p])
+                    _anotext = '$\\mathregular{%s}$ = %s $\\mathregular{\\pm}$ %s %s' % (labels[l].replace("$",""), val, err, units[p])
                 else:
-                    _anotext = '%s = %4.2f %s' % (labels[l], val, units[p])
+                    _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$",""), val, units[p])
 
             anotext += [_anotext] 
 
         anotext = '\n'.join(anotext)
-        add_anchored(anotext,loc=1,frameon=False)
+        add_anchored(
+            anotext, loc=1, frameon=True, prop=dict(size='large', weight='bold'),
+            bbox=dict(ec='none', fc='w', alpha=0.8)
+        )
 
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
@@ -557,5 +570,13 @@ def add_anchored(*args,**kwargs):
     prop : `matplotlib.font_manager.FontProperties`
         Font properties.
     """
+
+    bbox = {}
+    if kwargs.has_key('bbox'):
+        bbox = kwargs.pop('bbox')
     at = AnchoredText(*args, **kwargs)
-    pl.gca().add_artist(at)
+    if len(bbox.keys())>0:
+        pl.setp(at.patch,**bbox)
+
+    ax = pl.gca()
+    ax.add_artist(at)
