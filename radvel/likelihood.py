@@ -1,4 +1,5 @@
 import numpy as np
+import george
 
 class Likelihood(object):
     """
@@ -224,6 +225,7 @@ class RVLikelihood(Likelihood):
             model, t, vel, errvel, extra_params=self.extra_params
             )
 
+
     def residuals(self):
         """Residuals
 
@@ -257,6 +259,96 @@ class RVLikelihood(Likelihood):
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
         
         return loglike
+
+class RVLikelihoodGP(Likelihood):
+    """RV Likelihood
+
+    The Likelihood object for a radial velocity dataset
+
+    Args:
+        model (radvel.model.RVModel): RV model object
+        t (array): time array
+        vel (array): array of velocities
+        errvel (array): array of velocity uncertainties
+        suffix (string): suffix to identify this Likelihood object
+           useful when constructing a `CompositeLikelihood` object.
+
+    """
+    
+    def __init__(self, model, t, vel, errvel, suffix=''):
+        self.gamma_param = 'gamma'+suffix
+        self.jit_param = 'jit'+suffix
+
+        self.gp_period_param = 'GP_per'
+        self.gp_scale_param = 'GP_scale'
+        self.gp_amp_param = 'GP_amp'+suffix
+
+        if suffix.startswith('_'): self.suffix = suffix[1:]
+        else: self.suffix = suffix
+
+        self.telvec = np.array([self.suffix]*len(t))
+        
+        self.extra_params = [self.gamma_param, self.jit_param, self.gp_period_param, self.gp_scale_param, self.gp_amp_param]
+        super(RVLikelihoodGP, self).__init__(
+            model, t, vel, errvel, extra_params=self.extra_params
+            )
+        
+        self.gp = george.GP(0.0*george.kernels.ExpSine2Kernel(1.0, 1.0))
+        self.gp.compute(self.x, self.yerr)
+        
+        
+    def GPmodel(self, x):
+        return self.gp.sample_conditional(self.y, x)
+        
+    def residuals(self):
+        """Residuals
+
+        Data minus model
+        """
+        return self.y - self.params[self.gamma_param] - self.model(self.x) - self.GPmodel(self.x)
+
+    def errorbars(self):
+        """
+        Return uncertainties with jitter added
+        in quadrature.
+
+        Returns:
+            array: uncertainties
+        
+        """
+        return np.sqrt(self.yerr**2 + self.params[self.jit_param]**2)
+
+    def logprob(self):
+        """
+        Return log-likelihood given the data and model.
+        Priors are not applied here.
+
+        Returns:
+            float: Natural log of likelihood
+        """
+        
+        sigma_jit = self.params[self.jit_param]
+        residuals = self.residuals()
+        loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
+
+        GP_scale = self.params[self.gp_scale_param]
+        GP_per = self.params[self.gp_period_param]
+        GP_amp = self.params[self.gp_amp_param]
+        if GP_scale <= 0 or GP_per <= 0 or GP_amp < 0:
+            gplike = -np.inf
+        else:
+            #self.gp = george.GP(GP_amp*(george.kernels.ExpSine2Kernel(GP_scale, GP_per)))                                  
+            self.gp = george.GP(GP_amp*george.kernels.ExpSquaredKernel(GP_scale))
+            #self.gp = george.GP(GP_amp*(george.kernels.ExpSine2Kernel(GP_per/GP_scale, GP_per) + george.kernels.ExpSquaredKernel(GP_scale)))
+            res_preGP = self.y - self.params[self.gamma_param] - self.model(self.x)
+            self.gp.compute(self.x, self.errorbars())
+            gplike = self.gp.lnlikelihood(res_preGP, self.x)
+            
+        #gplike = -0.5 * np.sum((res_preGP-self.GPmodel(self.x))**2/self.errorbars()**2)
+        #loglike += gplike
+        
+        return loglike
+
 
 def loglike_jitter(residuals, sigma, sigma_jit):
     """

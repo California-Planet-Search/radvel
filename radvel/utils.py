@@ -44,13 +44,14 @@ Converting 'logjit' to 'jit' for you now.
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
-        likes[inst] = radvel.likelihood.RVLikelihood(
+        likes[inst] = radvel.likelihood.RVLikelihoodGP(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
             P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst
         )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
+        likes[inst].params['GP_amp_'+inst] = iparams['gamma_'+inst]
 
     like = radvel.likelihood.CompositeLikelihood(likes.values())
 
