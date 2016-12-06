@@ -61,7 +61,7 @@ author = u'BJ Fulton and Erik Petigura'
 # built documents.
 #
 # The short X.Y version.
-version = u'0.65'
+version = u'0.70'
 # The full version, including alpha/beta/rc tags.
 release = u'rc'
 

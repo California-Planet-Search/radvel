@@ -28,8 +28,8 @@ def main():
         configuration file (without .py)"
     )
     psr_parent.add_argument('-s','--setup',
-        dest='setupfn', type=str, nargs='+', 
-        help="Setup file[s]. Can chain multiple."
+        dest='setupfn', type=str, 
+        help="Setup file."
     )
 
     # Fitting    
@@ -118,20 +118,12 @@ def main():
 Default: nplanets')
 
     psr_report.set_defaults(func=radvel.driver.report)
-
-
-    # Default    
-    #psr_def = subpsr.add_parser(
-    #    'full', parents=[psr_parent],
-    #    description="Perform max-likelihood fitting"
-    #)
-    #psr_def.set_defaults(func=radvel.driver.def)
-
     
     args = psr.parse_args()
 
     if args.outputdir is None:
-        setupfile = args.setupfn[0]
+        setupfile = args.setupfn
+        print setupfile
         system_name = os.path.basename(setupfile).split('.')[0]
         outdir = os.path.join('./', system_name)
         args.outputdir = outdir
