@@ -9,12 +9,12 @@ Installation
 +++++++
 
 Install python dependencies: `emcee`, `corner`, `pandas`,
-`matplotlib-1.5.1`, `cython (tested with 0.22)`, `astropy`,
+`matplotlib`, `cython (tested with 0.22)`, `astropy`,
 `pdflatex` (installed and in your system's path):
 
 .. code-block:: bash
 
-    $ pip install emcee corner pandas matplotlib-1.5.1 cython astropy
+    $ pip install emcee corner pandas matplotlib cython astropy
 
 Make sure that ``pdflatex`` is installed and in your system's
 path. You can get ``pdflatex`` by installing the `TexLive package
