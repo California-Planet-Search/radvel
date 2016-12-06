@@ -291,3 +291,35 @@ def t2dt(atime):
     eoy = datetime(year + 1, 1, 1)
     seconds = remainder * (eoy - boy).total_seconds()
     return boy + timedelta(seconds=seconds)
+
+def geterr(vec, angular=False):
+    """
+    Calculate median, 15.9, and 84.1 percentile values
+    for a given vector."
+
+    Args:
+        vec (array): vector, usually an MCMC chain for one parameter
+        angular (bool): (optional) Is this an angular parameter?
+            if True vec should be in radians. This will perform
+            some checks to ensure proper boundary wrapping.
+
+    Returns:
+        tuple: 50, 15.9 and 84.1 percentiles
+    """
+
+    if angular:
+        val, edges = np.histogram(vec, bins=50)
+        med = edges[np.argmax(val)]
+        if med > np.radians(90):
+            vec[vec<np.radians(0)] = vec[vec<np.radians(0)] + np.radians(360)
+        if med <= np.radians(-90):
+            vec[vec>=np.radians(0)] = vec[vec>=np.radians(0)] - np.radians(360)
+        med = np.median(vec)
+    else:
+        med = np.median(vec)
+        
+    s = sorted(vec)
+    errlow = med - s[int(0.159*len(s))]
+    errhigh = s[int(0.841*len(s))] - med
+            
+    return med, errlow, errhigh

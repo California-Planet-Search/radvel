@@ -214,10 +214,14 @@ class TexTable(RadvelReport):
         return fstr
     
     def _row(self, param, unit):
-        med = self.quantiles[param][0.5]
-        low = self.quantiles[param][0.5] - self.quantiles[param][0.159]
-        high = self.quantiles[param][0.841] - self.quantiles[param][0.5]
 
+        if unit == 'radians':
+            med, low, high = radvel.utils.geterr(self.report.chains[param], angular=True)
+        else:
+            med = self.quantiles[param][0.5]
+            low = self.quantiles[param][0.5] - self.quantiles[param][0.159]
+            high = self.quantiles[param][0.841] - self.quantiles[param][0.5]
+            
         tex = self.report.latex_dict[param]
 
         low = radvel.utils.round_sig(low)
