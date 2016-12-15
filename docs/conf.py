@@ -229,7 +229,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'radvel.tex', u'radvel Documentation',
-   u'Erik Petigura', 'manual'),
+   u'BJ Fulton and Erik Petigura', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
