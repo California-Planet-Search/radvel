@@ -1,8 +1,11 @@
 from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
 import numpy
+import re
 
-exec(open('radvel/__version__.py').read())
+def get_property(prop, project):
+    result = re.search(r'{}\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop), open(project + '/__init__.py').read())
+    return result.group(1)
 
 extensions = [
     Extension("radvel._kepler", ["src/_kepler.pyx"],)
@@ -10,7 +13,7 @@ extensions = [
 
 setup(
     name = "radvel-package",
-    version = __version__,
+    version = get_property('__version__', 'radvel'),
     author = "BJ Fulton, Erik Petigura",
     packages = find_packages(),
     ext_modules = cythonize(extensions),
