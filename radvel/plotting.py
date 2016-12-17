@@ -265,7 +265,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     # Legend
     if legend:
-        pl.legend()
+        pl.legend(numpoints=1, fontsize='x-small', loc='best')
     
     # Years on upper axis
     axyrs = axRV.twiny()
@@ -277,6 +277,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     axyrs.plot(decimalyear,decimalyear)
     axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
     axyrs.set_xlim(*decimalyear)
+    axyrs.set_xlabel('Year', fontweight='bold')
     #axyrs.xaxis.set_major_locator(MaxNLocator(8))
 
     if not yscale_auto: 
@@ -309,7 +310,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
-    pl.xlabel('{} - {:d}'.format(latex['BJDTDB'],int(np.round(e))), weight='bold')
+    pl.xlabel('JD - {:d}'.format(int(np.round(e))), weight='bold')
     ax.set_ylabel('Residuals', weight='bold')
     ax.yaxis.set_major_locator(MaxNLocator(5,prune='both'))
     

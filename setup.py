@@ -2,13 +2,15 @@ from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
 import numpy
 
+exec(open('radvel/__version__.py').read())
+
 extensions = [
     Extension("radvel._kepler", ["src/_kepler.pyx"],)
 ]
 
 setup(
     name = "radvel-package",
-    version = "0.70",
+    version = __version__,
     author = "BJ Fulton, Erik Petigura",
     packages = find_packages(),
     ext_modules = cythonize(extensions),
