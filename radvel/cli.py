@@ -31,6 +31,12 @@ def main():
         dest='setupfn', type=str, 
         help="Setup file."
     )
+    psr_parent.add_argument('--decorr',
+        dest='bcdecorr',
+        action='store_true',
+        default=False,
+        help="Include decorrelation in likelihood."
+    )
 
     # Fitting    
     psr_fit = subpsr.add_parser(

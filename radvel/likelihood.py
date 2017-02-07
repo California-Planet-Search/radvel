@@ -4,14 +4,16 @@ class Likelihood(object):
     """
     Generic Likelihood
     """
-    def __init__(self, model, x, y, yerr, extra_params=[]):
+    def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[], decorr_vectors=[]):
         self.model = model
         self.params = model.params
 
         self.x = np.array(x) # Variables must be arrays.
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
-        self.params.update({}.fromkeys(extra_params, np.nan) ) 
+        self.dvec = [np.array(d) for d in decorr_vectors]
+        self.params.update({}.fromkeys(extra_params, np.nan) )
+        self.params.update({}.fromkeys(decorr_params, 0.0) )
         self.uparams = None
         
         vary = {}.fromkeys(self.params.keys(), True)
@@ -210,18 +212,28 @@ class RVLikelihood(Likelihood):
 
     """
     
-    def __init__(self, model, t, vel, errvel, suffix=''):
+    def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[]):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
 
-        if suffix.startswith('_'): self.suffix = suffix[1:]
-        else: self.suffix = suffix
+        if suffix.startswith('_'):
+            self.suffix = suffix[1:]
+        else:
+            self.suffix = suffix
 
         self.telvec = np.array([self.suffix]*len(t))
         
         self.extra_params = [self.gamma_param, self.jit_param]
+        self.decorr_params = []
+        self.decorr_vectors = {}
+        if len(decorr_vars) > 0:
+            self.decorr_params += ['c1_'+d+suffix for d in decorr_vars]
+            self.decorr_params += ['c0_'+d+suffix for d in decorr_vars]
+            self.decorr_vectors[d] = 
+
         super(RVLikelihood, self).__init__(
-            model, t, vel, errvel, extra_params=self.extra_params
+            model, t, vel, errvel, extra_params=self.extra_params,
+            decorr_params = self.decorr_params
             )
 
     def residuals(self):
@@ -229,8 +241,12 @@ class RVLikelihood(Likelihood):
 
         Data minus model
         """
+
+        res = self.y - self.params[self.gamma_param] - self.model(self.x)
         
-        return self.y - self.params[self.gamma_param] - self.model(self.x)
+        res -= np.polyval([self.params[s] for s in self.decorr_params], self.decorr_vectors)
+        
+        return res
 
     def errorbars(self):
         """
@@ -279,5 +295,4 @@ def loglike_jitter(residuals, sigma, sigma_jit):
     chi2 = np.sum(residuals**2 / sum_sig_quad)
     loglike = -0.5 * chi2 - penalty 
     return loglike
-
 
