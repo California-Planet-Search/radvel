@@ -212,7 +212,8 @@ class RVLikelihood(Likelihood):
 
     """
     
-    def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[]):
+    def __init__(self, model, t, vel, errvel, suffix='',
+                     decorr_vars=[], decorr_vectors=[]):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
 
@@ -225,15 +226,14 @@ class RVLikelihood(Likelihood):
         
         self.extra_params = [self.gamma_param, self.jit_param]
         self.decorr_params = []
-        self.decorr_vectors = {}
+        self.decorr_vectors = decorr_vectors
         if len(decorr_vars) > 0:
             self.decorr_params += ['c1_'+d+suffix for d in decorr_vars]
-            self.decorr_params += ['c0_'+d+suffix for d in decorr_vars]
-            self.decorr_vectors[d] = 
+            #self.decorr_params += ['c0_'+d+suffix for d in decorr_vars]
 
         super(RVLikelihood, self).__init__(
             model, t, vel, errvel, extra_params=self.extra_params,
-            decorr_params = self.decorr_params
+            decorr_params = self.decorr_params, decorr_vectors=self.decorr_vectors
             )
 
     def residuals(self):
@@ -244,9 +244,15 @@ class RVLikelihood(Likelihood):
 
         res = self.y - self.params[self.gamma_param] - self.model(self.x)
         
-        res -= np.polyval([self.params[s] for s in self.decorr_params], self.decorr_vectors)
-        
-        return res
+        if len(self.decorr_params) > 0:
+            for parname in self.decorr_params:
+                var = parname.split('_')[1]
+                if np.isfinite(self.decorr_vectors[var]).all():
+                    print self.decorr_params, [self.params[s] for s in self.decorr_params]+[0.0], self.decorr_vectors[var]
+                    p = np.poly1d([self.params[s] for s in self.decorr_params]+[0.0])
+                    res -= p(self.decorr_vectors[var])
+                    
+                    return res
 
     def errorbars(self):
         """

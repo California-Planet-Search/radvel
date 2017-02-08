@@ -32,7 +32,7 @@ def main():
         help="Setup file."
     )
     psr_parent.add_argument('--decorr',
-        dest='bcdecorr',
+        dest='decorr',
         action='store_true',
         default=False,
         help="Include decorrelation in likelihood."

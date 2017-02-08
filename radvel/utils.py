@@ -20,6 +20,8 @@ def initialize_posterior(config_file, decorr=False):
 
     if decorr:
         decorr_vars = P.decorr_vars
+    else:
+        decorr_vars = []
     
     for key in params.keys():
         if key.startswith('logjit'):
@@ -47,8 +49,10 @@ Converting 'logjit' to 'jit' for you now.
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
+        decorr_vectors = {}
         if decorr:
-            decorr_vectors = [P.data.iloc[telgrps[inst]][d] for d in decorr_vars]
+            for d in decorr_vars:
+                decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
         likes[inst] = radvel.likelihood.RVLikelihood(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
