@@ -19,7 +19,11 @@ def initialize_posterior(config_file, decorr=False):
     params = P.params.basis.from_cps(cpsparams, P.fitting_basis, keep=False)
 
     if decorr:
-        decorr_vars = P.decorr_vars
+        try:
+            decorr_vars = P.decorr_vars
+        except:
+            raise Exception("--decorr option selected,\
+ but decorr_vars is not found in your setup file.")
     else:
         decorr_vars = []
     
