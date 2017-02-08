@@ -247,12 +247,17 @@ class RVLikelihood(Likelihood):
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:
                 var = parname.split('_')[1]
+                pars = []
+                for par in self.decorr_params:
+                    if var in par:
+                        pars.append(self.params[par])
+                pars.append(0.0)
                 if np.isfinite(self.decorr_vectors[var]).all():
-                    print self.decorr_params, [self.params[s] for s in self.decorr_params]+[0.0], self.decorr_vectors[var]
-                    p = np.poly1d([self.params[s] for s in self.decorr_params]+[0.0])
-                    res -= p(self.decorr_vectors[var])
+                    vec = self.decorr_vectors[var] - np.mean(self.decorr_vectors[var])
+                    p = np.poly1d(pars)
+                    res -= p(vec)
                     
-                    return res
+        return res
 
     def errorbars(self):
         """
