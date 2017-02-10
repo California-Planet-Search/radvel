@@ -10,15 +10,18 @@ Installation
 
 Install python dependencies: `emcee`, `corner`, `pandas`,
 `matplotlib`, `cython (tested with 0.22)`, `astropy`,
-`pdflatex` (installed and in your system's path):
+`pdflatex`:
 
 .. code-block:: bash
 
     $ pip install emcee corner pandas matplotlib cython astropy
 
-Make sure that ``pdflatex`` is installed and in your system's
-path. You can get ``pdflatex`` by installing the `TexLive package
+Make sure that ``pdflatex`` is installed. 
+You can get ``pdflatex`` by installing the `TexLive package
 <https://www.tug.org/texlive/>`_ or other LaTeX distributions.
+By default it is expected to be in your system's path, but you may
+specify a path to pdflatex using the ``--latex-compiler``
+option at the ``radvel report`` step.
 
 If ``git`` is installed on your system then clone the repository:
 
