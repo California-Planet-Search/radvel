@@ -118,7 +118,7 @@ def main():
         Default: nplanets')
 
     psr_report.add_argument(
-        '--latex-compiler', default=None, type=str, 
+        '--latex-compiler', default='pdflatex', type=str, 
         help='Path to latex compiler'
         )
 
