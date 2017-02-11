@@ -115,7 +115,12 @@ def main():
         '--comptype', dest='comptype', action='store',
         default='nplanets', type=str, 
         help='Type of BIC model comparison table to include. \
-Default: nplanets')
+        Default: nplanets')
+
+    psr_report.add_argument(
+        '--latex-compiler', default='pdflatex', type=str, 
+        help='Path to latex compiler'
+        )
 
     psr_report.set_defaults(func=radvel.driver.report)
     

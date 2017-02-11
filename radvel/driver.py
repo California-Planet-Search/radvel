@@ -412,7 +412,9 @@ like to include\nthe model comparison table in the report.".format(args.comptype
     with radvel.utils.working_directory(args.outputdir):
         rfile = os.path.join(conf_base+"_results.pdf")
         report_depfiles = [os.path.basename(p) for p in report_depfiles]
-        report.compile(rfile, depfiles=report_depfiles)
+        report.compile(
+            rfile, depfiles=report_depfiles, latex_compiler=args.latex_compiler
+        )
 
     
 def save_status(statfile, section, statevars):

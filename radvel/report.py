@@ -24,7 +24,6 @@ units = {'per': 'days',
          'dvdt': 'm s$^{-1}$ day$^{-1}$',
          'curv': 'm s$^{-1}$ day$^{-2}$'}
 
-latex_compiler = 'pdflatex'
 
 class RadvelReport():
     """Radvel report
@@ -139,7 +138,7 @@ The phase-folded model for planet %s is shown as the blue line.
 
         return cap
               
-    def compile(self, pdfname, depfiles=[]):
+    def compile(self, pdfname, latex_compiler='pdflatex', depfiles=[]):
         """Compile radvel report
 
         Compile the radvel report from a string containing TeX code
@@ -147,10 +146,11 @@ The phase-folded model for planet %s is shown as the blue line.
 
         Args:
             pdfname (string): name of the output PDF file
-            depfiles (list): list of file names of dependencies needed for LaTex compilation (e.g. figure files)
+            latex_compiler (string): path to latex
+            depfiles (list): list of file names of dependencies needed for 
+                LaTex compilation (e.g. figure files)
         """
         texname = os.path.basename(pdfname).split('.')[0] + '.tex'
-        
         current = os.getcwd()
         temp = tempfile.mkdtemp()
         for fname in depfiles:
@@ -161,22 +161,26 @@ The phase-folded model for planet %s is shown as the blue line.
         f = open(texname, 'w')
         f.write(self.texdoc())
         f.close()
-
-        # LaTex likes to be compiled a few times
-        # to get the table widths correct
-        if radvel.utils.cmd_exists(latex_compiler):
+        try:
             for i in range(3):
-                proc = subprocess.Popen([latex_compiler, texname], stdout=subprocess.PIPE)
-                proc.communicate()
+                # LaTex likes to be compiled a few times
+                # to get the table widths correct
+                proc = subprocess.Popen(
+                    [latex_compiler, texname], stdout=subprocess.PIPE, 
+                )
+                proc.communicate() # Let the subprocess complete
+        except OSError:
+            msg = """ 
+WARNING: REPORT: could not run %s. Ensure that %s is in your PATH
+or pass in the path as an argument
+""" % (latex_compiler, latex_compiler)
+            print msg
+            return 
 
-            shutil.copy(pdfname, current)
-        else:
-            print "WARNING: REPORT: Could not locate %s executable. Failed to generate summary report PDF. \
-            Make sure that %s is installed and in your system's PATH." % (latex_compiler, latex_compiler)
-            
+        shutil.copy(pdfname, current)
         shutil.copy(texname, current)
+        
         shutil.rmtree(temp)
-
         os.chdir(current)
 
 class TexTable(RadvelReport):
