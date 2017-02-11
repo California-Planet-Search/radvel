@@ -1,12 +1,14 @@
 # radvel
-General Toolkit for Modeling Radial Velocities.
+
+General Toolkit for Modeling Radial Velocities. Version 0.7.1
 
 ## Attribution
 
 Written by BJ Fulton and Erik Petigura, Fulton and Petigura (in prep.).
 
 ## Documentation
-- Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
+
+Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
 
 ## Features
 
@@ -26,7 +28,6 @@ Written by BJ Fulton and Erik Petigura, Fulton and Petigura (in prep.).
 - PERF: Optimizations for low eccentricity orbits
 - Streamline API
 
-
 ## Tutorials 
 
 Follow examples in
@@ -43,3 +44,4 @@ You'll need the following dependencies
 - matplotlib-1.5.0
 - cython (tested with 0.22)
 - pdflatex installed and in your system's path
+
