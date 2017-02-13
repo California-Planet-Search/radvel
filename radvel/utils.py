@@ -206,16 +206,26 @@ def round_sig(x, sig=2):
     return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
 
 def t_to_phase(params, t, num_planet, cat=False):
+    if ('tc%i' % num_planet) in params:
+        timeparam = 'tc%i' % num_planet
+    elif ('tp%i' % num_planet) in params:
+        timeparam = 'tp%i' % num_planet
+        
     P = params['per%i' % num_planet]
-    tc = params['tc%i' % num_planet]
+    tc = params[timeparam]
     phase = np.mod(t - tc, P) 
     phase /= P
     if cat: phase = np.concatenate((phase,phase+1))
     return phase
 
 def phase_to_t(params, phase, num_planet):
+    if ('tc%i' % num_planet) in params:
+        timeparam = 'tc%i' % num_planet
+    elif ('tp%i' % num_planet) in params:
+        timeparam = 'tp%i' % num_planet
+        
     P = params['per%i' % num_planet]
-    tc = params['tc%i' % num_planet]
+    tc = params[timeparam]
     t = phase * P
     t += tc
     return t
