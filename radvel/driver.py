@@ -161,15 +161,19 @@ def mcmc(args):
     print "Calculating uncertainties..."
     cpspost.uparams = {}
     cpspost.medparams = {}
+    cpspost.maxparams = {}
     for par in cpspost.params.keys():
+        maxlike = cpspost.params[par]
         med = cps_quantile[par][0.5]
         high = cps_quantile[par][0.841] - med
         low = med - cps_quantile[par][0.159]
         err = np.mean([high,low])
         err = radvel.utils.round_sig(err)
         med, err, errhigh = radvel.utils.sigfig(med, err)
+        maxlike, err, errhigh = radvel.utils.sigfig(maxlike, err)
         cpspost.uparams[par] = err
         cpspost.medparams[par] = med
+        cpspost.maxparams[par] = maxlike
 
 
     print "Final loglikelihood = %f" % post.logprob()
