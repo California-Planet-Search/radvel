@@ -200,9 +200,9 @@ class TexTable(RadvelReport):
     
     def _header(self):
         fstr = """
-\\begin{deluxetable}{lrr}
+\\begin{deluxetable}{lrrr}
 \\tablecaption{MCMC Posteriors}
-\\tablehead{\\colhead{Parameter} & \\colhead{Value} & \\colhead{Units}}
+\\tablehead{\\colhead{Parameter} & \\colhead{Credible Interval} & \\colhead{Maximum Likelihood} & \\colhead{Units}}
 \\startdata
 """
         return fstr
@@ -225,21 +225,24 @@ class TexTable(RadvelReport):
             med = self.quantiles[param][0.5]
             low = self.quantiles[param][0.5] - self.quantiles[param][0.159]
             high = self.quantiles[param][0.841] - self.quantiles[param][0.5]
-            
+
+        maxlike = self.post.maxparams[param]
+        
         tex = self.report.latex_dict[param]
 
         low = radvel.utils.round_sig(low)
         high = radvel.utils.round_sig(high)
+        maxlike, errlow, errhigh = radvel.utils.sigfig(maxlike, low, high)
         med, errlow, errhigh = radvel.utils.sigfig(med, low, high)
 
         if errlow <= 1e-12 or errhigh <= 1e-12:
-            med = "$\\equiv$ %s" % round(self.quantiles[param][0.5],4)
+            med = maxlike = "$\\equiv$ %s" % round(self.quantiles[param][0.5],4)
             errfmt = ''
         else:
             if errhigh == errlow: errfmt = '$\pm %s$' % (errhigh)    
             else: errfmt = '$^{+%s}_{-%s}$' % (errhigh,errlow)
 
-        row = "%s & %s %s & %s\\\\\n" % (tex,med,errfmt,unit)
+        row = "%s & %s %s & %s & %s\\\\\n" % (tex,med,errfmt,maxlike,unit)
 
         return row
 
