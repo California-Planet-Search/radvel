@@ -226,14 +226,14 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     figheight = ax_rv_height + ax_phase_height * phase_nrows
     divide = 1 - ax_rv_height / figheight
     fig = pl.figure(figsize=(figwidth,figheight))
-    fig.subplots_adjust(left=0.1)
+    fig.subplots_adjust(left=0.12, right=0.95)
     gs_rv = gridspec.GridSpec(1, 1)
-    gs_rv.update(top=0.95,bottom=divide+rv_phase_space*0.5)
+    gs_rv.update(top=0.92,bottom=divide+rv_phase_space*0.5)
     gs_phase = gridspec.GridSpec(phase_nrows, phase_ncols)
     if phase_ncols==1:
-        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.001)
+        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.08,hspace=0.001)
     else:
-        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.25,wspace=0.25)
+        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.08,hspace=0.25,wspace=0.25)
 
     axL = []
     axRV = pl.subplot(gs_rv[0, 0])
