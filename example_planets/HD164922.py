@@ -37,16 +37,17 @@ params['gamma_k'] = 0.0      # velocity zero-point for hires_rk
 params['gamma_j'] = 1.0      # "                   "   hires_rj
 params['gamma_a'] = 0.0      # "                   "   hires_apf
 
-params['jit_k'] = np.log(2.6)        # jitter for hires_rk
-params['jit_j'] = np.log(2.6)        # "      "   hires_rj
-params['jit_a'] = np.log(2.6)        # "      "   hires_apf
+params['jit_k'] = 2.6        # jitter for hires_rk
+params['jit_j'] = 2.6        # "      "   hires_rj
+params['jit_a'] = 2.6        # "      "   hires_apf
 
 
 # Load radial velocity data, in this example the data is contained in an ASCII file, must have 'time', 'mnvel', 'errvel', and 'tel' keys
 data = pd.read_csv(os.path.join(radvel.DATADIR,'164922_fixed.txt'), sep=' ')
 
 
-# Set parameters to be held constant (default is for all parameters to vary). Must be defined in the fitting basis
+# Set parameters to vary (False means "hold constant"; default is for all parameters to vary). 
+#   Must be defined in the fitting basis
 vary = dict(
     dvdt = False,
     curv = False,

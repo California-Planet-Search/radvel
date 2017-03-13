@@ -31,7 +31,7 @@ class Likelihood(object):
                 else:
                     vstr = ""
                 
-                if key.startswith('tc') or key.startswith('tp'):
+                if (key.startswith('tc') or key.startswith('tp')) and self.params[key] > 1e6:
                     par = self.params[key] - 2450000
                 else:
                     par = self.params[key]
@@ -56,7 +56,7 @@ class Likelihood(object):
                 else:
                     err = 0
                     
-                if key.startswith('tc') or key.startswith('tp'):
+                if (key.startswith('tc') or key.startswith('tp')) and self.params[key] > 1e6:
                     par = self.params[key] - 2450000
                 else:
                     par = self.params[key]
@@ -127,7 +127,8 @@ class CompositeLikelihood(Likelihood):
         self.model = like0.model
         self.x = like0.x
         self.y = like0.y - params[like0.gamma_param]
-        self.yerr = np.sqrt(like0.yerr**2 + like0.params[like0.jit_param]**2)
+        #self.yerr = np.sqrt(like0.yerr**2 + like0.params[like0.jit_param]**2)
+        self.yerr = like0.yerr
         self.telvec = like0.telvec
         self.extra_params = like0.extra_params
         self.suffixes = like0.suffix
@@ -138,7 +139,8 @@ class CompositeLikelihood(Likelihood):
             
             self.x = np.append(self.x,like.x)
             self.y = np.append(self.y, like.y - like.params[like.gamma_param])
-            self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + like.params[like.jit_param]**2))
+            #self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + like.params[like.jit_param]**2))
+            self.yerr = np.append(self.yerr, like.yerr)
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
             self.suffixes = np.append(self.suffixes, like.suffix)

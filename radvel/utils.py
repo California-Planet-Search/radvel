@@ -14,9 +14,10 @@ def initialize_posterior(config_file):
     system_name = os.path.basename(config_file).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(config_file))
     system_name = P.starname
-    
-    params = P.params.basis.from_cps(P.params, P.fitting_basis, keep=False)
 
+    cpsparams = P.params.basis.to_cps(P.params)
+    params = P.params.basis.from_cps(cpsparams, P.fitting_basis, keep=False)
+    
     for key in params.keys():
         if key.startswith('logjit'):
             msg = """
@@ -205,16 +206,26 @@ def round_sig(x, sig=2):
     return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
 
 def t_to_phase(params, t, num_planet, cat=False):
+    if ('tc%i' % num_planet) in params:
+        timeparam = 'tc%i' % num_planet
+    elif ('tp%i' % num_planet) in params:
+        timeparam = 'tp%i' % num_planet
+        
     P = params['per%i' % num_planet]
-    tc = params['tc%i' % num_planet]
+    tc = params[timeparam]
     phase = np.mod(t - tc, P) 
     phase /= P
     if cat: phase = np.concatenate((phase,phase+1))
     return phase
 
 def phase_to_t(params, phase, num_planet):
+    if ('tc%i' % num_planet) in params:
+        timeparam = 'tc%i' % num_planet
+    elif ('tp%i' % num_planet) in params:
+        timeparam = 'tp%i' % num_planet
+        
     P = params['per%i' % num_planet]
-    tc = params['tc%i' % num_planet]
+    tc = params[timeparam]
     t = phase * P
     t += tc
     return t
@@ -290,3 +301,35 @@ def t2dt(atime):
     eoy = datetime(year + 1, 1, 1)
     seconds = remainder * (eoy - boy).total_seconds()
     return boy + timedelta(seconds=seconds)
+
+def geterr(vec, angular=False):
+    """
+    Calculate median, 15.9, and 84.1 percentile values
+    for a given vector."
+
+    Args:
+        vec (array): vector, usually an MCMC chain for one parameter
+        angular (bool): (optional) Is this an angular parameter?
+            if True vec should be in radians. This will perform
+            some checks to ensure proper boundary wrapping.
+
+    Returns:
+        tuple: 50, 15.9 and 84.1 percentiles
+    """
+
+    if angular:
+        val, edges = np.histogram(vec, bins=50)
+        med = edges[np.argmax(val)]
+        if med > np.radians(90):
+            vec[vec<np.radians(0)] = vec[vec<np.radians(0)] + np.radians(360)
+        if med <= np.radians(-90):
+            vec[vec>=np.radians(0)] = vec[vec>=np.radians(0)] - np.radians(360)
+        med = np.median(vec)
+    else:
+        med = np.median(vec)
+        
+    s = sorted(vec)
+    errlow = med - s[int(0.159*len(s))]
+    errhigh = s[int(0.841*len(s))] - med
+            
+    return med, errlow, errhigh

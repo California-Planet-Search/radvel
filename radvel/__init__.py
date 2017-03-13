@@ -11,5 +11,7 @@ from .fitting import *
 import os 
 import sys
 
+__version__ = '0.7.5'
+
 MODULEDIR, filename = os.path.split(__file__)
 DATADIR = os.path.join(sys.prefix,'radvel_example_data')

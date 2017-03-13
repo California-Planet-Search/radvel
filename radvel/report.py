@@ -12,7 +12,7 @@ units = {'per': 'days',
          'tp': 'JD',
          'tc': 'JD',
          'e': '',
-         'w': 'degrees',
+         'w': 'radians',
          'k': 'm s$^{-1}$',
          'logk': '$\\ln{(\\rm m\\ s^{-1})}$',
          'secosw': '',
@@ -24,7 +24,6 @@ units = {'per': 'days',
          'dvdt': 'm s$^{-1}$ day$^{-1}$',
          'curv': 'm s$^{-1}$ day$^{-2}$'}
 
-latex_compiler = 'pdflatex'
 
 class RadvelReport():
     """Radvel report
@@ -139,7 +138,7 @@ The phase-folded model for planet %s is shown as the blue line.
 
         return cap
               
-    def compile(self, pdfname, depfiles=[]):
+    def compile(self, pdfname, latex_compiler='pdflatex', depfiles=[]):
         """Compile radvel report
 
         Compile the radvel report from a string containing TeX code
@@ -147,10 +146,11 @@ The phase-folded model for planet %s is shown as the blue line.
 
         Args:
             pdfname (string): name of the output PDF file
-            depfiles (list): list of file names of dependencies needed for LaTex compilation (e.g. figure files)
+            latex_compiler (string): path to latex
+            depfiles (list): list of file names of dependencies needed for 
+                LaTex compilation (e.g. figure files)
         """
         texname = os.path.basename(pdfname).split('.')[0] + '.tex'
-        
         current = os.getcwd()
         temp = tempfile.mkdtemp()
         for fname in depfiles:
@@ -161,22 +161,26 @@ The phase-folded model for planet %s is shown as the blue line.
         f = open(texname, 'w')
         f.write(self.texdoc())
         f.close()
-
-        # LaTex likes to be compiled a few times
-        # to get the table widths correct
-        if radvel.utils.cmd_exists(latex_compiler):
+        try:
             for i in range(3):
-                proc = subprocess.Popen([latex_compiler, texname], stdout=subprocess.PIPE)
-                proc.communicate()
+                # LaTex likes to be compiled a few times
+                # to get the table widths correct
+                proc = subprocess.Popen(
+                    [latex_compiler, texname], stdout=subprocess.PIPE, 
+                )
+                proc.communicate() # Let the subprocess complete
+        except OSError:
+            msg = """ 
+WARNING: REPORT: could not run %s. Ensure that %s is in your PATH
+or pass in the path as an argument
+""" % (latex_compiler, latex_compiler)
+            print msg
+            return 
 
-            shutil.copy(pdfname, current)
-        else:
-            print "WARNING: REPORT: Could not locate %s executable. Failed to generate summary report PDF. \
-            Make sure that %s is installed and in your system's PATH." % (latex_compiler, latex_compiler)
-            
+        shutil.copy(pdfname, current)
         shutil.copy(texname, current)
+        
         shutil.rmtree(temp)
-
         os.chdir(current)
 
 class TexTable(RadvelReport):
@@ -196,9 +200,9 @@ class TexTable(RadvelReport):
     
     def _header(self):
         fstr = """
-\\begin{deluxetable}{lrr}
+\\begin{deluxetable}{lrrr}
 \\tablecaption{MCMC Posteriors}
-\\tablehead{\\colhead{Parameter} & \\colhead{Value} & \\colhead{Units}}
+\\tablehead{\\colhead{Parameter} & \\colhead{Credible Interval} & \\colhead{Maximum Likelihood} & \\colhead{Units}}
 \\startdata
 """
         return fstr
@@ -214,24 +218,31 @@ class TexTable(RadvelReport):
         return fstr
     
     def _row(self, param, unit):
-        med = self.quantiles[param][0.5]
-        low = self.quantiles[param][0.5] - self.quantiles[param][0.159]
-        high = self.quantiles[param][0.841] - self.quantiles[param][0.5]
 
+        if unit == 'radians':
+            med, low, high = radvel.utils.geterr(self.report.chains[param], angular=True)
+        else:
+            med = self.quantiles[param][0.5]
+            low = self.quantiles[param][0.5] - self.quantiles[param][0.159]
+            high = self.quantiles[param][0.841] - self.quantiles[param][0.5]
+
+        maxlike = self.post.maxparams[param]
+        
         tex = self.report.latex_dict[param]
 
         low = radvel.utils.round_sig(low)
         high = radvel.utils.round_sig(high)
+        maxlike, errlow, errhigh = radvel.utils.sigfig(maxlike, low, high)
         med, errlow, errhigh = radvel.utils.sigfig(med, low, high)
 
         if errlow <= 1e-12 or errhigh <= 1e-12:
-            med = "$\\equiv$ %s" % round(self.quantiles[param][0.5],4)
+            med = maxlike = "$\\equiv$ %s" % round(self.quantiles[param][0.5],4)
             errfmt = ''
         else:
             if errhigh == errlow: errfmt = '$\pm %s$' % (errhigh)    
             else: errfmt = '$^{+%s}_{-%s}$' % (errhigh,errlow)
 
-        row = "%s & %s %s & %s\\\\\n" % (tex,med,errfmt,unit)
+        row = "%s & %s %s & %s & %s\\\\\n" % (tex,med,errfmt,maxlike,unit)
 
         return row
 
