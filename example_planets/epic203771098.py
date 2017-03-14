@@ -44,7 +44,6 @@ data['time'] = data.t
 data['mnvel'] = data.vel
 data['errvel'] = data.errvel
 data['tel'] = 'j'
-print data['time']
 
 
 # Set parameters to be held constant (default is for all parameters to vary). Must be defined in the fitting basis
