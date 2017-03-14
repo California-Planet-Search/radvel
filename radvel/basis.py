@@ -223,7 +223,6 @@ class Basis(object):
                 except KeyError:
                     tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
                     _setpar('tp', tp)
-                    
                 _setpar('secosw', np.sqrt(e)*np.cos(w) )
                 _setpar('sesinw', np.sqrt(e)*np.sin(w) )
                 _setpar('k', k )
