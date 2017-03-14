@@ -170,7 +170,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         nobin = True
     
     if saveplot != None: 
-        resolution = 1e4
+        resolution = 10000
     else: 
         resolution = 2000
 
@@ -190,7 +190,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         
     dt = max(rvtimes) - min(rvtimes)
     rvmodt = np.linspace(
-        min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp, resolution
+        min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp, int(resolution)
     )
 
     rvmod2 = model(rvmodt)
