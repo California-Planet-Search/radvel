@@ -100,7 +100,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
-                       phase_nrows=None, legend=True, rv_phase_space=0.07):
+                       phase_nrows=None, legend=True, rv_phase_space=0.08):
     """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
@@ -137,7 +137,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     """
     figwidth = 7.5 # spans a page with 0.5in margins
-    phasefac = 1.5
+    phasefac = 1.25
     ax_rv_height = figwidth * 1/2.
     ax_phase_height = ax_rv_height / phasefac
     bin_fac = 1.75
