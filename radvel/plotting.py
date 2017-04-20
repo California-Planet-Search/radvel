@@ -192,7 +192,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     rvmodt = np.linspace(
         min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp, int(resolution)
     )
-
+    
     rvmod2 = model(rvmodt)
     rvmod = model(rvtimes)
 

@@ -42,6 +42,9 @@ def plots(args):
             saveto = os.path.join(
                 args.outputdir,conf_base+'_rv_multipanel.pdf'
             )
+            P,_ = radvel.utils.initialize_posterior(config_file)
+            if hasattr(P, 'bjd0'):
+                args.plotkw['epoch'] = P.bjd0
             radvel.plotting.rv_multipanel_plot(
                 post, saveplot=saveto, **args.plotkw
             )
@@ -66,7 +69,7 @@ def plots(args):
             assert status.has_section('derive'), \
             "Must run `radvel derive` before plotting derived parameters"
 
-            P, post = radvel.utils.initialize_posterior(config_file)
+            P,_ = radvel.utils.initialize_posterior(config_file)
             chains = pd.read_csv(status.get('derive', 'chainfile'))
             saveto = os.path.join(
                 args.outputdir,conf_base+'_corner_derived_pars.pdf'
