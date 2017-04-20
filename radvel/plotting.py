@@ -28,7 +28,7 @@ telfmts_default = {
     'pfs': dict(color='magenta',fmt='p',label='PFS'),
     'h': dict(color='firebrick',fmt="s",label='HARPS'),
     'harps-n': dict(color='firebrick',fmt='^',label='HARPS-N'),
-    'l': dict(color='g',fmt='+'),
+    'l': dict(color='g',fmt='*'),
 }
 
 telfmts_default['lick'] = telfmts_default['l']
@@ -50,7 +50,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
     y (array): RV
     e (array): RV error
     tel (array): telecsope string key
-    telfmts (dict): dictionary of dictionaries corresponding to kwargs 
+     telfmts (dict): dictionary of dictionaries corresponding to kwargs 
         passed to errorbar. Example:
 
         telfmts = {
