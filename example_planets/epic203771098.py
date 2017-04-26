@@ -38,6 +38,7 @@ params['jit_j'] = 2.6        # "      "   hires_rj
 
 # Load radial velocity data, in this example the data is contained in an hdf file,
 # the resulting dataframe or must have 'time', 'mnvel', 'errvel', and 'tel' keys
+# the velocities are expected to be in m/s
 path = os.path.join(radvel.DATADIR,'epic203771098.csv')
 data = pd.read_csv(path)
 data['time'] = data.t
@@ -75,15 +76,17 @@ priors = [
     radvel.prior.HardBounds('jit_j', 0.0, 15.0)
 ]
 
+# abscissa for slope and curvature terms (should be near mid-point of time baseline)
+time_base = np.mean([np.min(data.time), np.max(data.time)])  
 
-time_base = np.mean([np.min(data.time), np.max(data.time)])   # abscissa for slope and curvature terms (should be near mid-point of time baseline)
 
-
-# optional argument that can contain stellar mass and
-# uncertainties. If not set, mstar will be set to nan.
+# optional argument that can contain stellar mass in solar units (mstar) and
+# uncertainty (mstar_err). If not set, mstar will be set to nan.
 stellar = dict(mstar=1.12, mstar_err= 0.05)
 
-# optional argument that can contain planet radii, used for computing densities
+# optional argument that can contain planet radii,
+# used for computing densities. Values should be given
+# in units of Earth radii
 planet = dict(
     rp1=5.68, rp_err1=0.56,
     rp2=7.82, rp_err2=0.72,

@@ -42,7 +42,9 @@ params['jit_j'] = 2.6        # "      "   hires_rj
 params['jit_a'] = 2.6        # "      "   hires_apf
 
 
-# Load radial velocity data, in this example the data is contained in an ASCII file, must have 'time', 'mnvel', 'errvel', and 'tel' keys
+# Load radial velocity data, in this example the data is contained in
+# an ASCII file, must have 'time', 'mnvel', 'errvel', and 'tel' keys
+# the velocities are expected to be in m/s
 data = pd.read_csv(os.path.join(radvel.DATADIR,'164922_fixed.txt'), sep=' ')
 
 
@@ -67,6 +69,6 @@ priors = [
 ]
 
 
-# optional argument that can contain stellar mass and
-# uncertainties. If not set, mstar will be set to nan.
+# optional argument that can contain stellar mass in solar units (mstar) and
+# uncertainty (mstar_err). If not set, mstar will be set to nan.
 stellar = dict(mstar=0.874, mstar_err=0.012)
