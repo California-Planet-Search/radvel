@@ -1,6 +1,6 @@
-numpy
-scipy
-corner
-cython
-astropy
-emcee
+numpy>=1.11
+scipy>=0.17
+corner>=2.0
+cython>=0.22
+astropy>=1.1.2
+emcee>=2.2.1

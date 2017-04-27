@@ -8,13 +8,11 @@ Getting Started
 Installation
 +++++++
 
-Install python dependencies: `emcee`, `corner`, `pandas`,
-`matplotlib`, `cython (tested with 0.22)`, `astropy`,
-`pdflatex`:
+Install ``radvel`` using pip:
 
 .. code-block:: bash
 
-    $ pip install emcee corner pandas matplotlib cython astropy
+    $ pip install radvel
 
 Make sure that ``pdflatex`` is installed. 
 You can get ``pdflatex`` by installing the `TexLive package
@@ -22,23 +20,6 @@ You can get ``pdflatex`` by installing the `TexLive package
 By default it is expected to be in your system's path, but you may
 specify a path to pdflatex using the ``--latex-compiler``
 option at the ``radvel report`` step.
-
-If ``git`` is installed on your system then clone the repository:
-
-.. code-block:: bash
-
-    $ git clone https://github.com/California-Planet-Search/radvel.git
-
-If ``git`` is not installed in your system then download ``radvel``
-directly from github web interface: `RadVel on GitHub <https://github.com/California-Planet-Search/radvel>`_
-
-Install the package into your system's python environment:
-
-.. code-block:: bash
-		
-    $ cd radvel
-    $ pip install . --upgrade
-
 
 
 Example Fit

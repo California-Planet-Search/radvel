@@ -4,7 +4,8 @@ import numpy
 import re
 
 def get_property(prop, project):
-    result = re.search(r'{}\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop), open(project + '/__init__.py').read())
+    result = re.search(r'{}\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop),
+                       open(project + '/__init__.py').read())
     return result.group(1)
 
 extensions = [
@@ -12,7 +13,7 @@ extensions = [
 ]
 
 setup(
-    name = "radvel-package",
+    name = "radvel",
     version = get_property('__version__', 'radvel'),
     author = "BJ Fulton, Erik Petigura",
     packages = find_packages(),
@@ -27,7 +28,9 @@ setup(
             ]
         )
     ],
-    entry_points = {'console_scripts': ['radvel=radvel.cli:main']}
+    entry_points = {'console_scripts': ['radvel=radvel.cli:main']},
+    install_requires = [line.strip() for line in \
+         open('requirements.txt', 'r').readlines()]
+
 )
 
-print find_packages(),
