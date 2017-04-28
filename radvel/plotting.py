@@ -137,8 +137,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     """
     figwidth = 7.5 # spans a page with 0.5in margins
-    phasefac = 1.5
-    ax_rv_height = figwidth * 1/2.
+    phasefac = 1.4
+    ax_rv_height = figwidth * 0.6
     ax_phase_height = ax_rv_height / phasefac
     bin_fac = 1.75
     bin_markersize = bin_fac * rcParams['lines.markersize']
