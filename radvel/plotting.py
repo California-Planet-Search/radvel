@@ -59,7 +59,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
     
     """
 
-    lw = 0.5 * rcParams['lines.linewidth']
+    lw = 1.0
 
     default_colors = ['orange', 'purple', 'magenta' , 'pink']
     ci = 0
@@ -137,13 +137,13 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     """
     figwidth = 7.5 # spans a page with 0.5in margins
-    phasefac = 1.5
-    ax_rv_height = figwidth * 1/2.
+    phasefac = 1.4
+    ax_rv_height = figwidth * 0.6
     ax_phase_height = ax_rv_height / phasefac
     bin_fac = 1.75
     bin_markersize = bin_fac * rcParams['lines.markersize']
     bin_markeredgewidth = bin_fac * rcParams['lines.markeredgewidth']
-    fit_linewidth = 2.0 * rcParams['lines.linewidth']
+    fit_linewidth = 3.0
 
     cpspost = copy.deepcopy(post) 
     model = cpspost.likelihood.model
@@ -228,12 +228,17 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     fig = pl.figure(figsize=(figwidth,figheight))
     fig.subplots_adjust(left=0.1)
     gs_rv = gridspec.GridSpec(1, 1)
-    gs_rv.update(top=0.95,bottom=divide+rv_phase_space*0.5)
+    gs_rv.update(left=0.12, right=0.93, top=0.93,
+                     bottom=divide+rv_phase_space*0.5)
     gs_phase = gridspec.GridSpec(phase_nrows, phase_ncols)
     if phase_ncols==1:
-        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.001)
+        gs_phase.update(left=0.12, right=0.93,
+                            top=divide-rv_phase_space*0.5,
+                            bottom=0.07,hspace=0.003)
     else:
-        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.25,wspace=0.25)
+        gs_phase.update(left=0.12, right=0.93,
+                            top=divide-rv_phase_space*0.5,
+                            bottom=0.07,hspace=0.25,wspace=0.25)
 
     axL = []
     axRV = pl.subplot(gs_rv[0, 0])
@@ -245,7 +250,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
    
     #Unphased plot
     ax.axhline(0, color='0.5', linestyle='--')
-    ax.plot(mplttimes,rvmod2,'b-', rasterized=False)
+    ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.5*fit_linewidth)
 
     def labelfig(ax, pltletter):
         text = "{})".format(chr(pltletter))

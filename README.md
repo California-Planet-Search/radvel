@@ -1,6 +1,6 @@
-# radvel
+# RadVel
 
-General Toolkit for Modeling Radial Velocities. Version 0.7.1
+General Toolkit for Modeling Radial Velocities. Version 0.8.4
 
 ## Attribution
 
