@@ -100,7 +100,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
-                       phase_nrows=None, legend=True, rv_phase_space=0.07):
+                       phase_nrows=None, legend=True, rv_phase_space=0.08):
     """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
@@ -226,7 +226,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     figheight = ax_rv_height + ax_phase_height * phase_nrows
     divide = 1 - ax_rv_height / figheight
     fig = pl.figure(figsize=(figwidth,figheight))
-    fig.subplots_adjust(left=0.1)
+    fig.subplots_adjust(left=0.12, right=0.95)
     gs_rv = gridspec.GridSpec(1, 1)
     gs_rv.update(left=0.12, right=0.93, top=0.93,
                      bottom=divide+rv_phase_space*0.5)
@@ -556,6 +556,57 @@ def trend_plot(post, chains, nwalkers, outfile=None):
             pdf.savefig()
             pl.close()
 
+
+def correlation_plot(post, chains=None, outfile=None):
+    """Correlation plot
+
+    Plot parameter correlations.
+
+    Args:
+        post (radvel.Posterior): Radvel Posterior object
+        chains (DataFrame): (optional) MCMC chains output by radvel.mcmc
+        outfile (string): name of output multi-page PDF file
+
+    Returns:
+        None
+        
+    """
+
+    pltind = 1
+    pl.subplot(431)
+    pl.subplots_adjust(top=0.97, left = 0.07, right=0.95,
+                           bottom=0.10, hspace=0.22, wspace=0.22)
+    
+    for like in post.likelihood.like_list:
+        resid = like.residuals()
+        for parname in like.decorr_params:
+            var = parname.split('_')[1]
+            pars = []
+            for par in like.decorr_params:
+                if var in par:
+                    pars.append(like.params[par])
+            pars.append(0.0)
+            if np.isfinite(like.decorr_vectors[var]).all():
+                vec = like.decorr_vectors[var]
+                vec -= np.mean(vec)
+                p = np.poly1d(pars)
+                print var, pars
+                
+                pl.subplot('33%d' % pltind)
+                pl.plot(vec, p(vec), 'b-', lw=3)
+                pl.plot(vec, resid + p(vec), 'ko')
+
+                pl.xlabel("$\Delta$ %s" % '_'.join(parname.split('_')[1:]))
+                pl.ylabel('RV [m s$^{-1}$]')
+                
+                pltind += 1
+
+    if outfile is None:
+        pl.show()
+    else:
+        pl.savefig(outfile)
+
+
 def add_anchored(*args,**kwargs):
     """
     Parameters
@@ -586,3 +637,5 @@ def add_anchored(*args,**kwargs):
 
     ax = pl.gca()
     ax.add_artist(at)
+
+

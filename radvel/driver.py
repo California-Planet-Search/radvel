@@ -93,7 +93,7 @@ def fit(args):
     conf_base = os.path.basename(config_file).split('.')[0]
     print "Performing max-likelihood fitting for {}".format(conf_base)
 
-    P, post = radvel.utils.initialize_posterior(config_file)
+    P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
     post = radvel.fitting.maxlike_fitting(post, verbose=True)
 
     postfile = os.path.join(args.outputdir,
@@ -125,7 +125,7 @@ def mcmc(args):
 
         post = radvel.posterior.load(status.get('fit', 'postfile'))
     else:
-        P, post = radvel.utils.initialize_posterior(config_file)
+        P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
 
 
     msg = "Running MCMC for {}, nwalkers = {}, nsteps = {} ...".format(

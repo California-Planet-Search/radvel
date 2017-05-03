@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 import radvel
 
-def initialize_posterior(config_file):
+def initialize_posterior(config_file, decorr=False):
 
     system_name = os.path.basename(config_file).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(config_file))
@@ -17,6 +17,15 @@ def initialize_posterior(config_file):
 
     cpsparams = P.params.basis.to_cps(P.params)
     params = P.params.basis.from_cps(cpsparams, P.fitting_basis, keep=False)
+
+    if decorr:
+        try:
+            decorr_vars = P.decorr_vars
+        except:
+            raise Exception("--decorr option selected,\
+ but decorr_vars is not found in your setup file.")
+    else:
+        decorr_vars = []
     
     for key in params.keys():
         if key.startswith('logjit'):
@@ -44,10 +53,15 @@ Converting 'logjit' to 'jit' for you now.
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
+        decorr_vectors = {}
+        if decorr:
+            for d in decorr_vars:
+                decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
         likes[inst] = radvel.likelihood.RVLikelihood(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst
+            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst,
+            decorr_vars=decorr_vars, decorr_vectors=decorr_vectors
         )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
