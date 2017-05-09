@@ -76,6 +76,12 @@ def main():
         '--nwalkers', dest='nwalkers', action='store', default=50, type=int,
         help='Number of walkers. [50]', 
     )
+    psr_mcmc.add_argument(
+    '--nensembles', dest='ensembles', action='store', default=8, type=int,
+    help='''\
+Number of ensembles. Will be run in parallel on separate CPUs [8]
+'''
+    )
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
 

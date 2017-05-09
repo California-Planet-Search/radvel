@@ -20,7 +20,7 @@ class Posterior(Likelihood):
         to apply priors in the likelihood calculations.
     """
     
-    def __init__(self,likelihood, setup=None):
+    def __init__(self,likelihood):
         self.likelihood = likelihood
         self.params = likelihood.params
         self.vary = likelihood.vary
@@ -35,6 +35,17 @@ class Posterior(Likelihood):
             s +=  prior.__repr__() + "\n"
         return s
 
+    def copy(self):
+        like = self.likelihood.copy()
+
+        new = Posterior(like)
+        new.params = self.params.copy()
+        new.vary = self.vary
+        new.uparams = self.uparams
+        new.priors = self.priors
+        
+        return new
+    
     def logprob(self):
         """Log probability
 

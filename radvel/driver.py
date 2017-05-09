@@ -133,7 +133,7 @@ def mcmc(args):
     print msg
 
     chains = radvel.mcmc(
-        post, threads=1, nwalkers=args.nwalkers, nrun=args.nsteps
+        post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles
     )
 
 
@@ -204,7 +204,8 @@ def mcmc(args):
                  'nsteps': args.nsteps}
     save_status(statfile, 'mcmc', savestate)
 
-
+    os._exit(0)
+    
 def bic(args):
     """Compare different models and comparative statistics
 

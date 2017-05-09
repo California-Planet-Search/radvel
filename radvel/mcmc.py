@@ -1,18 +1,21 @@
 import emcee
 import pandas as pd
 import numpy as np
+import copy
+import pp
 from scipy import optimize
 import sys
 import time
 from radvel import utils
 
 # Maximum G-R statistic to stop burn-in period
-burnGR = 1.10
+burnGR = 1.05
 
 # Maximum G-R statistic for chains to be deemed well-mixed
-maxGR = 1.03
+maxGR = 1.01
 
-def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
+def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
+             checkinterval=50):
     """Run MCMC
 
     Run MCMC chains using the emcee EnsambleSampler
@@ -21,7 +24,8 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
         likelihood (radvel.likelihood): radvel likelihood object
         nwalkers (int): number of MCMC walkers
         nrun (int): number of steps to take
-        threads (int): number of CPU threads to utilize
+        ensembles (int): number of ensembles to run. Will be run
+            in parallel on separate CPUs
         checkinterval (int): check MCMC convergence statistics every 
             `checkinterval` steps
 
@@ -29,46 +33,85 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
         DataFrame: DataFrame containing the MCMC samples
 
     """
+
+    def _crunch(sampler, ipos, checkinterval):
+        sampler.run_mcmc(ipos, checkinterval)
+        return sampler
+
+    server = pp.Server(ncpus=ensembles)
+    
     nrun = int(nrun)
         
     # Get an initial array value
-    p0 = likelihood.get_vary_params()
-    ndim = p0.size
-    p0 = np.vstack([p0]*nwalkers)
-    p0 += [np.random.rand(ndim)*1e-5 for i in range(nwalkers)]
-    sampler = emcee.EnsembleSampler( 
-        nwalkers, ndim, likelihood.logprob_array, threads=threads
-    )
+    pi = likelihood.get_vary_params()
+    ndim = pi.size
+    
+    samplers = []
+    initial_positions = []
+    for e in range(ensembles):
+        lcopy = copy.deepcopy(likelihood)
+        pi = lcopy.get_vary_params()
+        p0 = np.vstack([pi]*nwalkers)
+        p0 += [np.random.rand(ndim)*1e-5 for i in range(nwalkers)]
+        initial_positions.append(p0)
+        samplers.append(emcee.EnsembleSampler( 
+            nwalkers, ndim, lcopy.logprob_array, threads=1))
 
-    pos = p0    
     num_run = int(np.round(nrun / checkinterval))
-    totsteps = nrun*nwalkers
+    totsteps = nrun*nwalkers*ensembles
     mixcount = 0
     burn_complete = False
     nburn = 0
     t0 = time.time()
     for r in range(num_run):
         t1 = time.time()
-        pos, prob, state = sampler.run_mcmc(pos, checkinterval)
+        jobs = []
+        for i,sampler in enumerate(samplers):
+            if sampler.flatlnprobability.shape[0] == 0:
+                p1 = initial_positions[i]
+            else:
+                p1 = None
+            #pos, prob, state = sampler.run_mcmc(p1, checkinterval)
+            #samplers[i] = _crunch(sampler, p1, checkinterval)
+            jobs.append(server.submit(_crunch, (sampler, p1, checkinterval)))
+            
+        for i,j in enumerate(jobs):
+            samplers[i] = j()
+            
         t2 = time.time()
 
-        rate = (checkinterval*nwalkers) / (t2-t1)
-        ncomplete = sampler.flatlnprobability.shape[0] + nburn
-        pcomplete = ncomplete/float(totsteps) * 100
-        ar = sampler.acceptance_fraction.mean() * 100.
-
-        tchains = sampler.chain.transpose()
+        ar = 0
+        ncomplete = 0
+        tchains = np.empty((ndim,
+                            samplers[0].flatlnprobability.shape[0],
+                            ensembles))
+        for i,sampler in enumerate(samplers):
+            ncomplete += sampler.flatlnprobability.shape[0]
+            ar += sampler.acceptance_fraction.mean() * 100
+            tchains[:,:,i] = sampler.flatchain.transpose()
+        ar /= ensembles
         
-        (ismixed, gr, tz) = gelman_rubin(tchains)
-        mintz = min(tz)
-        maxgr = max(gr)
-        if ismixed: mixcount += 1
-        else: mixcount = 0
+        pcomplete = ncomplete/float(totsteps) * 100
+        rate = (checkinterval*nwalkers*ensembles) / (t2-t1)
+        
+        if ensembles < 2:
+            tchains = sampler.chain.transpose()
+            
+        if pcomplete < 10  and sampler.flatlnprobability.shape[0] <= 1e3*nwalkers:
+            (ismixed, maxgr, mintz) = 0, np.inf, -1
+        else:
+            (ismixed, gr, tz) = gelman_rubin(tchains)
+            mintz = min(tz)
+            maxgr = max(gr)
+            if ismixed: mixcount += 1
+            else: mixcount = 0
 
-        # Burn-in complete after maximum G-R statistic first reaches 1.10
+        # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset sampler
         if not burn_complete and maxgr <= burnGR:
-            sampler.reset()
+            for sampler in samplers:
+                initial_positions[i] = np.mean(sampler.chain, axis=1)
+                sampler.reset()
             msg = (
                 "\nDiscarding burn-in now that the chains are marginally "
                 "well-mixed\n"
@@ -91,11 +134,13 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
             msg = (
                 "{:d}/{:d} ({:3.1f}%) steps complete; "
                 "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
-                "Min Tz = {:.1f}; Max G-R = {:4.2f} \r"
+                "Min Tz = {:.1f}; Max G-R = {:4.2f}      \r"
             ).format(ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr)
             
             sys.stdout.write(msg)
             sys.stdout.flush()
+
+    server.destroy()
             
     print "\n"        
     if ismixed and mixcount < 5: 
@@ -115,6 +160,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, threads=1, checkinterval=50):
         sampler.flatchain,columns=likelihood.list_vary_params()
         )
     df['lnprobability'] = sampler.flatlnprobability
+    
     return df
 
 def draw_models_from_chain(mod, chain, t, nsamples=50):

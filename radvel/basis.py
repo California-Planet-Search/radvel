@@ -1,7 +1,8 @@
 import numpy as np        
-import copy
+from collections import OrderedDict
 import pandas as pd
 from orbit import timeperi_to_timetrans, timetrans_to_timeperi
+import radvel.model
 
 # List of available bases
 BASIS_NAMES = [
@@ -15,6 +16,15 @@ BASIS_NAMES = [
 def _print_valid_basis():
     print "Available bases:"
     print "\n".join(BASIS_NAMES)
+
+def _copy_params(params_in, new_basis):
+    params_out = radvel.model.RVParameters(
+    params_in.num_planets, basis=new_basis,
+    planet_letterrs=params_in.planet_letters)
+    
+    params_out.update(params_in)
+    
+    return params_out
 
 class Basis(object):
     """
@@ -72,14 +82,15 @@ class Basis(object):
 
         """
 
-        params_out = copy.copy(params_in)
+        params_out = params_in.copy()
+        #import pdb; pdb.set_trace()
         for num_planet in range(1,1+self.num_planets):
             def _getpar(key):
                 return params_out['{}{}'.format(key,num_planet)]
             def _setpar(key, value):
                 params_out['{}{}'.format(key,num_planet)] = value
             def _delpar(key):
-                if isinstance(params_in,dict):
+                if isinstance(params_in,OrderedDict):
                     del params_out['{}{}'.format(key,num_planet)]
                 elif isinstance(params_in,pd.core.frame.DataFrame):
                     params_out.drop('{}{}'.format(key,num_planet))
@@ -160,7 +171,7 @@ class Basis(object):
             _print_valid_basis()
             return None
         
-        params_out = copy.copy(params_in)
+        params_out = params_in.copy()
         for num_planet in range(1,1+self.num_planets):
             def _getpar(key):
                 return params_out['{}{}'.format(key,num_planet)]

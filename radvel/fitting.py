@@ -17,7 +17,7 @@ def maxlike_fitting(post, verbose=True):
 
     """
     
-    post0 = copy.deepcopy(post)
+    post0 = post.copy()
     if verbose:
         print "Initial loglikelihood = %f" % post0.logprob()
         print "Performing maximum likelihood fit..."
