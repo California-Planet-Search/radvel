@@ -96,8 +96,10 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
             # if less than 3 ensembles then GR between ensembles does
             # not work so just calculate is on the last sampler
             tchains = sampler.chain.transpose()
-            
-        if pcomplete < 5 and sampler.flatlnprobability.shape[0] <= 500*nwalkers:
+
+        # Must have compelted at least 5% or 1000 steps per walker before
+        # attempting to calculate GR
+        if pcomplete < 5 and sampler.flatlnprobability.shape[0] <= 1000*nwalkers:
             (ismixed, maxgr, mintz) = 0, np.inf, -1
         else:
             (ismixed, gr, tz) = gelman_rubin(tchains)
