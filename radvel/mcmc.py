@@ -3,10 +3,13 @@ import pandas as pd
 import numpy as np
 import copy
 import pp
+import threading
+from multiprocessing.pool import Pool
 from scipy import optimize
 import sys
 import time
 from radvel import utils
+
 
 # Maximum G-R statistic to stop burn-in period
 burnGR = 1.03
@@ -14,8 +17,89 @@ burnGR = 1.03
 # Maximum G-R statistic for chains to be deemed well-mixed
 maxGR = 1.01
 
+
+class StateVars(object):
+    def __init__(self):
+        pass
+
+statevars = StateVars()
+
+
+def convergence_check(server, samplers):
+
+
+    
+    ar = 0
+    statevars.ncomplete = statevars.nburn
+    statevars.tchains = np.empty((statevars.ndim,
+                        statevars.samplers[0].flatlnprobability.shape[0],
+                        statevars.ensembles))
+    statevars.lnprob = []
+    for i,sampler in enumerate(statevars.samplers):
+        statevars.ncomplete += sampler.flatlnprobability.shape[0]
+        ar += sampler.acceptance_fraction.mean() * 100
+        statevars.tchains[:,:,i] = sampler.flatchain.transpose()
+        statevars.lnprob.append(sampler.flatlnprobability)
+    ar /= statevars.ensembles
+
+    pcomplete = statevars.ncomplete/float(statevars.totsteps) * 100
+    rate = (statevars.checkinterval*statevars.nwalkers*statevars.ensembles) / statevars.interval
+
+    if statevars.ensembles < 3:
+        # if less than 3 ensembles then GR between ensembles does
+        # not work so just calculate is on the last sampler
+        statevars.tchains = sampler.chain.transpose()
+
+    # Must have compelted at least 5% or 1000 steps per walker before
+    # attempting to calculate GR
+    if pcomplete < 5 and sampler.flatlnprobability.shape[0] <= 300*statevars.nwalkers:
+        (statevars.ismixed, maxgr, mintz) = 0, np.inf, -1
+    else:
+        (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains)
+        mintz = min(tz)
+        maxgr = max(gr)
+        if statevars.ismixed:
+            statevars.mixcount += 1
+        else:
+            statevars.mixcount = 0
+
+    # Burn-in complete after maximum G-R statistic first reaches burnGR
+    # reset sampler
+    if not statevars.burn_complete and maxgr <= burnGR:
+        for sampler in samplers:
+            statevars.initial_positions[i] = sampler._last_run_mcmc_result[0]
+            sampler.reset()
+        msg = (
+            "\nDiscarding burn-in now that the chains are marginally "
+            "well-mixed\n"
+        )
+        print msg
+        statevars.nburn = statevars.ncomplete
+        statevars.burn_complete = True
+
+    else:
+        msg = (
+            "{:d}/{:d} ({:3.1f}%) steps complete; "
+            "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
+            "Min Tz = {:.1f}; Max G-R = {:4.2f}      \r"
+        ).format(statevars.ncomplete, statevars.totsteps, pcomplete, rate, ar, mintz, maxgr)
+
+        sys.stdout.write(msg)
+        sys.stdout.flush()
+
+        
+class CheckThread(threading.Thread):
+    def __init__(self, target, *args):
+        self._target = target
+        self._args = args
+        threading.Thread.__init__(self)
+
+    def run(self):
+        self._target(*self._args)
+    
+
 def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
-             checkinterval=50):
+             checkinterval=30):
     """Run MCMC
 
     Run MCMC chains using the emcee EnsambleSampler
@@ -39,129 +123,114 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
         return sampler
 
     server = pp.Server(ncpus=ensembles)
+    pool = Pool(processes=1)
+
+    statevars.server = server
+    statevars.ensembles = ensembles
+    statevars.nwalkers = nwalkers
+    statevars.checkinterval = checkinterval
     
     nrun = int(nrun)
         
     # Get an initial array value
     pi = likelihood.get_vary_params()
-    ndim = pi.size
+    statevars.ndim = pi.size
+
+    # set up perturbation size
+    pscales = []
+    for par in likelihood.list_vary_params():
+        val = likelihood.params[par]
+        if par.startswith('per'):
+            pscale = np.abs(val * 0.01*np.log10(val))
+            pscale_per = pscale
+        elif par.startswith('tc'):
+            pscale = pscale_per
+        else:
+            pscale = np.abs(0.10 * val)
+
+        pscales.append(pscale)
+        
+    pscales = np.array(pscales)
+
     
-    samplers = []
-    initial_positions = []
+    statevars.samplers = []
+    statevars.initial_positions = []
     for e in range(ensembles):
         lcopy = copy.deepcopy(likelihood)
         pi = lcopy.get_vary_params()
         p0 = np.vstack([pi]*nwalkers)
-        p0 += [np.random.rand(ndim)*1e-5 for i in range(nwalkers)]
-        initial_positions.append(p0)
-        samplers.append(emcee.EnsembleSampler( 
-            nwalkers, ndim, lcopy.logprob_array, threads=1))
+        p0 += [np.random.rand(statevars.ndim)*pscales for i in range(nwalkers)]
+        statevars.initial_positions.append(p0)
+        statevars.samplers.append(emcee.EnsembleSampler( 
+            nwalkers, statevars.ndim, lcopy.logprob_array, threads=1))
 
+        
     num_run = int(np.round(nrun / checkinterval))
-    totsteps = nrun*nwalkers*ensembles
-    mixcount = 0
-    burn_complete = False
-    nburn = 0
-    t0 = time.time()
+    statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
+    statevars.mixcount = 0
+    statevars.burn_complete = False
+    statevars.nburn = 0
+    statevars.t0 = time.time()
     for r in range(num_run):
         t1 = time.time()
         jobs = []
-        for i,sampler in enumerate(samplers):
+        for i,sampler in enumerate(statevars.samplers):
             if sampler.flatlnprobability.shape[0] == 0:
-                p1 = initial_positions[i]
+                p1 = statevars.initial_positions[i]
             else:
                 p1 = None
-            jobs.append(server.submit(_crunch, (sampler, p1, checkinterval)))
+            jobs.append(statevars.server.submit(_crunch, (sampler, p1, checkinterval)))
             
         for i,j in enumerate(jobs):
-            samplers[i] = j()
+            statevars.samplers[i] = j()
             
         t2 = time.time()
+        statevars.interval = t2 - t1
 
-        ar = 0
-        ncomplete = 0
-        tchains = np.empty((ndim,
-                            samplers[0].flatlnprobability.shape[0],
-                            ensembles))
-        for i,sampler in enumerate(samplers):
-            ncomplete += sampler.flatlnprobability.shape[0]
-            ar += sampler.acceptance_fraction.mean() * 100
-            tchains[:,:,i] = sampler.flatchain.transpose()
-        ar /= ensembles
+        ch = CheckThread(convergence_check, statevars.server, statevars.samplers)
+        ch.start()
+
+        # result = pool.apply_async(convergence_check,
+        #                     (server, samplers,
+        #                       interval, burn_complete, nburn, mixcount,
+        #                       totsteps, checkinterval, initial_positions))
+        # print result.get()
+
+        #convergence_check(statevars.server, statevars.samplers)
         
-        pcomplete = ncomplete/float(totsteps) * 100
-        rate = (checkinterval*nwalkers*ensembles) / (t2-t1)
-        
-        if ensembles < 3:
-            # if less than 3 ensembles then GR between ensembles does
-            # not work so just calculate is on the last sampler
-            tchains = sampler.chain.transpose()
-
-        # Must have compelted at least 5% or 1000 steps per walker before
-        # attempting to calculate GR
-        if pcomplete < 5 and sampler.flatlnprobability.shape[0] <= 1000*nwalkers:
-            (ismixed, maxgr, mintz) = 0, np.inf, -1
-        else:
-            (ismixed, gr, tz) = gelman_rubin(tchains)
-            mintz = min(tz)
-            maxgr = max(gr)
-            if ismixed: mixcount += 1
-            else: mixcount = 0
-
-        # Burn-in complete after maximum G-R statistic first reaches burnGR
-        # reset sampler
-        if not burn_complete and maxgr <= burnGR:
-            for sampler in samplers:
-                initial_positions[i] = sampler._last_run_mcmc_result[0]
-                sampler.reset()
-            msg = (
-                "\nDiscarding burn-in now that the chains are marginally "
-                "well-mixed\n"
-            )
-            print msg
-            nburn = ncomplete
-            burn_complete = True
-
-        if mixcount >= 5:
+        if statevars.mixcount >= 5:
             tf = time.time()
-            tdiff = tf - t0
+            tdiff = tf - statevars.t0
             tdiff,units = utils.time_print(tdiff)
             msg = (
                 "\nChains are well-mixed after {:d} steps! MCMC completed in "
                 "{:3.1f} {:s}"
-            ).format(ncomplete, tdiff, units)
+            ).format(statevars.ncomplete, tdiff, units)
             print msg
             break
-        else:
-            msg = (
-                "{:d}/{:d} ({:3.1f}%) steps complete; "
-                "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
-                "Min Tz = {:.1f}; Max G-R = {:4.2f}      \r"
-            ).format(ncomplete, totsteps, pcomplete, rate, ar, mintz, maxgr)
-            
-            sys.stdout.write(msg)
-            sys.stdout.flush()
 
     server.destroy()
             
     print "\n"        
-    if ismixed and mixcount < 5: 
+    if statevars.ismixed and statevars.mixcount < 5: 
         msg = (
             "MCMC: WARNING: chains did not pass 5 consecutive convergence "
             "tests. They may be marginally well=mixed."
         )
         print msg
-    elif not ismixed: 
+    elif not statevars.ismixed: 
         msg = (
             "MCMC: WARNING: chains did not pass convergence tests. They are "
             "likely not well-mixed."
         )
         print msg
-    
+        
     df = pd.DataFrame(
-        sampler.flatchain,columns=likelihood.list_vary_params()
-        )
-    df['lnprobability'] = sampler.flatlnprobability
+        statevars.tchains.reshape(statevars.ndim,statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
+        columns=likelihood.list_vary_params())
+    df['lnprobability'] = np.hstack(statevars.lnprob)
+
+    ch.join()
     
     return df
 
