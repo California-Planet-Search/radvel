@@ -34,17 +34,6 @@ class Posterior(Likelihood):
         for prior in self.priors:
             s +=  prior.__repr__() + "\n"
         return s
-
-    def copy(self):
-        like = self.likelihood.copy()
-
-        new = Posterior(like)
-        new.params = self.params.copy()
-        new.vary = self.vary
-        new.uparams = self.uparams
-        new.priors = self.priors
-        
-        return new
     
     def logprob(self):
         """Log probability
@@ -113,4 +102,8 @@ def load(filename):
     with open(filename, 'rb') as f:
         post = pickle.load(f)
 
+    for key,val in post.params.items():
+        if val is None:
+            del post.params[key]
+    
     return post

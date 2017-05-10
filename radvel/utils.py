@@ -16,7 +16,8 @@ def initialize_posterior(config_file, decorr=False):
     system_name = P.starname
 
     cpsparams = P.params.basis.to_cps(P.params)
-    params = P.params.basis.from_cps(cpsparams, P.fitting_basis, keep=False)
+    params = P.params.basis.from_cps(cpsparams,
+                                            P.fitting_basis, keep=False)
 
     if decorr:
         try:
@@ -41,14 +42,15 @@ Converting 'logjit' to 'jit' for you now.
             del P.vary[key]
             del params[key]
 
-    iparams = params.copy()
-
+    #iparams = params.copy()
+    iparams = radvel.basis._copy_params(params)
+    
     # Make sure we don't have duplicate indicies in the DataFrame
     P.data = P.data.reset_index(drop=True)
     
     # initialize RVmodel object
     mod = radvel.RVModel(params, time_base=P.time_base)   
-
+    
     # initialize RVlikelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
@@ -74,6 +76,7 @@ Converting 'logjit' to 'jit' for you now.
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors
+    
     return P, post
 
 

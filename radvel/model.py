@@ -2,6 +2,7 @@ import numpy as np
 import copy_reg
 import types
 from collections import OrderedDict
+import lmfit
 
 from . import kepler
 from .basis import Basis
@@ -26,6 +27,9 @@ texdict = {
 class RVParameters(OrderedDict):
     """Object to store the orbital parameters.
 
+    Parameters to describe a radial velocity orbit
+    stored as an OrderedDict
+
     Args:
         num_planets (int): Number of planets in model
         basis (string): parameterization of orbital parameters. See 
@@ -48,26 +52,36 @@ class RVParameters(OrderedDict):
        >>> params = radvel.RVParameters(2, planet_letters={1:'d', 2:'e'})
 
     """
-    # def __init__(self, num_planets, basis='per tc secosw sesinw logk', 
-    #              planet_letters=None):
-    def __init__(self, *args, **kwargs):
-        self.num_planets = args[0]
-        basis = kwargs.pop('basis', 'per tc secosw sesinw logk')
-        planet_letters = kwargs.pop('planet_letters', None)
-        super(RVParameters, self).__init__(**kwargs)
-        self.basis = Basis(basis,self.num_planets)
-        self.planet_parameters = basis.split()
-        for num_planet in range(1,1+self.num_planets):
+    def __init__(self, num_planets, basis='per tc secosw sesinw logk', 
+                 planet_letters=None):
+        super(RVParameters, self).__init__()
+        
+        basis = Basis(basis,num_planets)
+        self.planet_parameters = basis.name.split()
+
+        for num_planet in range(1,1+num_planets):
             for parameter in self.planet_parameters:
                 self.__setitem__(self._sparameter(parameter, num_planet), None)
 
+                
         if planet_letters is not None:
             for k in planet_letters.keys():
                 assert isinstance(k, int), """\
 RVParameters: ERROR: The planet_letters dictionary \
 should have only integers as keys."""
 
+        self.basis = basis
+        self.num_planets = num_planets
         self.planet_letters = planet_letters
+        #self.__setitem__('meta', meta)
+
+    def __reduce__(self):
+
+        red = (self.__class__, (self.num_planets,
+                                self.basis.name,
+                                self.planet_letters),
+                                None,None,self.iteritems())
+        return red
 
     def tex_labels(self, param_list=None):
         """Map RVParameters keys to pretty TeX code representations.
@@ -110,17 +124,6 @@ should have only integers as keys."""
             lett_planet = chr(int(num_planet)+97)
         return '$%s_{%s}$' % (pname, lett_planet) 
 
-    def copy(self, new_basis=None):
-        if new_basis is None:
-            new_basis = self.basis.name
-
-        params_out = RVParameters(
-            self.num_planets, basis=new_basis,
-            planet_letters=self.planet_letters)
-    
-        params_out.update(self)
-        
-        return params_out
     
 class RVModel(object):
     """
@@ -152,7 +155,7 @@ class RVModel(object):
         """
         vel = np.zeros( len(t) )
         params_cps = self.params.basis.to_cps(self.params)
-
+        
         if planet_num == None:
             planets = range(1, self.num_planets+1)
         else:
@@ -171,13 +174,6 @@ class RVModel(object):
         vel+=self.params['curv'] * ( t - self.time_base )**2
         return vel
 
-    def copy(self):
-        params = self.params.copy()
-        time_base = self.time_base
-
-        new = RVModel(params, time_base=time_base)
-
-        return new
 
 # I had to add these methods to get the model object to be
 # pickle-able, so we could run the mcmc in as a in multi-threaded

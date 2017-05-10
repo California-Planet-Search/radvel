@@ -1,6 +1,7 @@
 import numpy as np        
-from collections import OrderedDict
+import copy
 import pandas as pd
+from collections import OrderedDict
 from orbit import timeperi_to_timetrans, timetrans_to_timeperi
 import radvel.model
 
@@ -17,11 +18,14 @@ def _print_valid_basis():
     print "Available bases:"
     print "\n".join(BASIS_NAMES)
 
-def _copy_params(params_in, new_basis):
-    params_out = radvel.model.RVParameters(
-    params_in.num_planets, basis=new_basis,
-    planet_letterrs=params_in.planet_letters)
-    
+def _copy_params(params_in):
+    #meta = params_in['meta'].copy()
+    #num_planets = meta['num_planets']
+    num_planets = params_in.num_planets
+    basis = params_in.basis.name
+    planet_letters = params_in.planet_letters
+    params_out = radvel.model.RVParameters(num_planets, basis=basis,
+                                           planet_letters=planet_letters)
     params_out.update(params_in)
     
     return params_out
@@ -82,11 +86,14 @@ class Basis(object):
 
         """
 
-        params_out = params_in.copy()
-        #import pdb; pdb.set_trace()
+        if isinstance(params_in,pd.core.frame.DataFrame):
+            # Output by emcee
+            params_out = params_in.copy()
+        else:
+            params_out = _copy_params(params_in)
         for num_planet in range(1,1+self.num_planets):
             def _getpar(key):
-                return params_out['{}{}'.format(key,num_planet)]
+                return params_in['{}{}'.format(key,num_planet)]
             def _setpar(key, value):
                 params_out['{}{}'.format(key,num_planet)] = value
             def _delpar(key):
@@ -146,7 +153,7 @@ class Basis(object):
             _setpar('w', w)
             _setpar('k', k)
 
-
+        params_out.basis = Basis('per tp e w k', self.num_planets)
         return params_out
 
 
@@ -171,14 +178,18 @@ class Basis(object):
             _print_valid_basis()
             return None
         
-        params_out = params_in.copy()
+        if isinstance(params_in,pd.core.frame.DataFrame):
+            # Output by emcee
+            params_out = params_in.copy()
+        else:
+            params_out = _copy_params(params_in)
         for num_planet in range(1,1+self.num_planets):
             def _getpar(key):
-                return params_out['{}{}'.format(key,num_planet)]
+                return params_in['{}{}'.format(key,num_planet)]
             def _setpar(key, value):
                 params_out['{}{}'.format(key,num_planet)] = value
             def _delpar(key):
-                if isinstance(params_in,dict):
+                if isinstance(params_in,OrderedDict):
                     del params_out['{}{}'.format(key,num_planet)]
                 elif isinstance(params_in,pd.core.frame.DataFrame):
                     params_out.drop('{}{}'.format(key,num_planet))
@@ -247,5 +258,7 @@ class Basis(object):
                 self.name = newbasis
                 self.params = newbasis.split()
 
+        params_out.basis = Basis(newbasis, self.num_planets)
+                
         return params_out
                 

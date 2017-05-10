@@ -26,8 +26,10 @@ class Likelihood(object):
                 'parameter', 'value', 'vary'
                 )
             keys = self.params.keys()
-            keys.sort()
+            #keys.sort()
             for key in keys:
+                if key == 'meta':
+                    continue
                 if key in self.vary.keys():
                     vstr = str(self.vary[key])
                 else:
@@ -47,8 +49,10 @@ class Likelihood(object):
                 'parameter', 'value', '+/-', 'vary'
                 )
             keys = self.params.keys()
-            keys.sort()
+            #keys.sort()
             for key in keys:
+                if key == 'meta':
+                    continue
                 if key in self.vary.keys():
                     vstr = str(self.vary[key])
                 else:
@@ -70,23 +74,6 @@ class Likelihood(object):
                 
         return s
 
-    def copy(self):
-        model = self.model.copy()
-        x = self.x
-        y = self.y
-        yerr = self.yerr
-        extra_params = self.extra_params
-        decorr_params = self.decorr_params
-        decorr_vectors = self.decorr_vectors
-        
-        new = Likelihood(model, x, y, yerr, extra_params=extra_params,
-                             decorr_params=decorr_params,
-                             decorr_vectors=decorr_vectors)
-
-        print self.vary
-        new.vary = self.vary
-        
-        return new
     
     def set_vary_params(self, params_array):
         i = 0
@@ -103,16 +90,16 @@ class Likelihood(object):
 
     def get_vary_params(self):
         params_array = []
-        for key in self.params.keys():
-            if self.vary[key]:
-                print key, self.params[key]
+        for key in self.list_vary_params():
+            if key != 'meta' and self.vary[key]:
                 params_array += [ self.params[key] ]
                 
         params_array = np.array(params_array)
         return params_array
 
     def list_vary_params(self):
-        return [key for key in self.params if self.vary[key] ]
+        return [key for key in self.params.keys() if key != 'meta'
+                    and key in self.vary.keys() and self.vary[key] ]
 
     def residuals(self):
         return self.y - self.model(self.x) 
@@ -188,11 +175,6 @@ class CompositeLikelihood(Likelihood):
         self.params = params
         self.vary = {}.fromkeys(params.keys(),True)
         self.like_list = like_list
-
-    def copy(self):
-        comp = CompositeLikelihood(self.like_list)
-
-        return comp
         
     def logprob(self):
         """

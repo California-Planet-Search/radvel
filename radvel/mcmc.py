@@ -9,7 +9,7 @@ import time
 from radvel import utils
 
 # Maximum G-R statistic to stop burn-in period
-burnGR = 1.05
+burnGR = 1.03
 
 # Maximum G-R statistic for chains to be deemed well-mixed
 maxGR = 1.01
@@ -71,8 +71,6 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
                 p1 = initial_positions[i]
             else:
                 p1 = None
-            #pos, prob, state = sampler.run_mcmc(p1, checkinterval)
-            #samplers[i] = _crunch(sampler, p1, checkinterval)
             jobs.append(server.submit(_crunch, (sampler, p1, checkinterval)))
             
         for i,j in enumerate(jobs):
@@ -94,10 +92,12 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
         pcomplete = ncomplete/float(totsteps) * 100
         rate = (checkinterval*nwalkers*ensembles) / (t2-t1)
         
-        if ensembles < 2:
+        if ensembles < 3:
+            # if less than 3 ensembles then GR between ensembles does
+            # not work so just calculate is on the last sampler
             tchains = sampler.chain.transpose()
             
-        if pcomplete < 10  and sampler.flatlnprobability.shape[0] <= 1e3*nwalkers:
+        if pcomplete < 5 and sampler.flatlnprobability.shape[0] <= 500*nwalkers:
             (ismixed, maxgr, mintz) = 0, np.inf, -1
         else:
             (ismixed, gr, tz) = gelman_rubin(tchains)
@@ -110,7 +110,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
         # reset sampler
         if not burn_complete and maxgr <= burnGR:
             for sampler in samplers:
-                initial_positions[i] = np.mean(sampler.chain, axis=1)
+                initial_positions[i] = sampler._last_run_mcmc_result[0]
                 sampler.reset()
             msg = (
                 "\nDiscarding burn-in now that the chains are marginally "

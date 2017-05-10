@@ -16,21 +16,22 @@ def maxlike_fitting(post, verbose=True):
         updated their maximum likelihood values
 
     """
-    
-    post0 = post.copy()
+
+    post0 = copy.copy(post)
     if verbose:
         print "Initial loglikelihood = %f" % post0.logprob()
         print "Performing maximum likelihood fit..."
 
+        
     res  = optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method='Powell',
         options=dict(maxiter=100,maxfev=100000,xtol=1e-8)
     )
 
-    cpspost = copy.deepcopy(post)
+    cpspost = copy.copy(post)
     cpsparams = post.params.basis.to_cps(post.params)
     cpspost.params.update(cpsparams)
-
+    
     if verbose:
         print "Final loglikelihood = %f" % post.logprob()
         print "Best-fit parameters:"
@@ -58,7 +59,7 @@ def model_comp(post, verbose=False):
             of that statistic in the second element.
     """
 
-    ipost = copy.deepcopy(post)
+    ipost = copy.copy(post)
         
     num_planets = post.likelihood.model.num_planets
 

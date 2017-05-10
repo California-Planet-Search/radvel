@@ -114,7 +114,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         yscale_auto (bool, optional): Use matplotlib auto y-axis
              scaling (default: False)
         yscale_sigma (float, optional): Scale y-axis limits to be +/-
-             yscale_sigma*(RMS of data plotted)
+             yscale_sigma*(RMS of data plotted) if yscale_auto==False
         telfmts (dict, optional): dictionary of dictionaries mapping
              instrument code to plotting format code.
         nophase (bool, optional): Will omit phase-folded plots if true
@@ -313,6 +313,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         ax.set_ylim(-yscale_sigma * scale, yscale_sigma * scale)
 
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
+    ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
     pl.xlabel('JD - {:d}'.format(int(np.round(e))), weight='bold')

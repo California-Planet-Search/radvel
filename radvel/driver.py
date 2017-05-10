@@ -95,11 +95,11 @@ def fit(args):
 
     P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
     post = radvel.fitting.maxlike_fitting(post, verbose=True)
-
+    
     postfile = os.path.join(args.outputdir,
                             '{}_post_obj.pkl'.format(conf_base))
     post.writeto(postfile)
-
+    
     savestate = {'run': True,
                  'postfile': os.path.abspath(postfile)}
     save_status(os.path.join(args.outputdir,
@@ -127,7 +127,6 @@ def mcmc(args):
     else:
         P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
 
-
     msg = "Running MCMC for {}, nwalkers = {}, nsteps = {} ...".format(
         conf_base, args.nwalkers, args.nsteps)
     print msg
@@ -140,7 +139,7 @@ def mcmc(args):
     # Convert chains into CPS basis
     cpschains = chains.copy()
     for par in post.params.keys():
-        if not post.vary[par]:
+        if par in post.vary.keys() and not post.vary[par]:
             cpschains[par] = post.params[par]
 
     cpschains = post.params.basis.to_cps(cpschains)
