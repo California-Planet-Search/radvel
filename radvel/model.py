@@ -13,6 +13,8 @@ texdict = {
     'tc': 'T\\rm{conj}',
     'secosw': '\\sqrt{e}\\cos{\\omega}',
     'sesinw': '\\sqrt{e}\\sin{\\omega}',
+    'ecosw': 'e\\cos{\\omega}',
+    'esinw': 'e\\sin{\\omega}',
     'e': 'e',
     'w': '\\omega',
     'tp': 'T\\rm{peri}',

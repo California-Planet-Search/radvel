@@ -19,7 +19,7 @@ maxGR = 1.01
 
 # Minimum number of steps per walker before
 # convergence tests are performed
-minsteps = 100
+minsteps = 1000
 
 class StateVars(object):
     def __init__(self):
@@ -225,6 +225,8 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
             statevars.burn_complete = True
 
         if statevars.mixcount >= 5:
+            server.wait()
+            ch.join()
             tf = time.time()
             tdiff = tf - statevars.t0
             tdiff,units = utils.time_print(tdiff)

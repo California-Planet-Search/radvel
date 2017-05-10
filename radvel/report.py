@@ -75,10 +75,9 @@ class RadvelReport():
 
     def _postamble(self):
         return """
-\\lfoot{{\\footnotesize{{report produced by \\texttt{{RadVel}} v{}, \
-documentation available at \\href{{http://radvel.readthedocs.io}}{{http://radvel.readthedocs.io}}}}}}
+\\lfoot{{\\footnotesize{{report produced by \\texttt{{RadVel}} v{}: \
+\\href{{http://radvel.readthedocs.io}}{{http://radvel.readthedocs.io}}}}}}
 \\end{{document}}""".format(radvel.__version__)
-    
 
     def texdoc(self):
         """TeX for entire document

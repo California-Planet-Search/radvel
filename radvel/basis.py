@@ -10,6 +10,7 @@ BASIS_NAMES = [
 'per tp e w k', # The CPS basis
 'per tc secosw sesinw logk',
 'per tc secosw sesinw k',
+'per tc ecosw esinw k',
 'per tc e w k'
 
 ]
@@ -46,6 +47,7 @@ class Basis(object):
         'per tp e w k' (The CPS basis) \n
         'per tc secosw sesinw logk'  \n 
         'per tc secosw sesinw k'  \n
+        'per tc ecosw esinw k'  \n
         'per tc e w k'
     """
     
@@ -145,6 +147,19 @@ class Basis(object):
                 # transform into CPS basis
                 e = secosw**2 + sesinw**2
                 w = np.arctan2(sesinw , secosw)
+                tp = timetrans_to_timeperi(tc, per, e, w)
+
+            if basis_name=='per tc ecosw esinw k':
+                # pull out parameters
+                per = _getpar('per')
+                tc = _getpar('tc')
+                ecosw = _getpar('ecosw')
+                esinw = _getpar('esinw')
+                k = _getpar('k')
+            
+                # transform into CPS basis
+                e = np.sqrt(ecosw**2 + esinw**2)
+                w = np.arctan2(esinw , ecosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
                                 
@@ -259,6 +274,30 @@ class Basis(object):
 
                 self.name = newbasis
                 self.params = newbasis.split()
+
+            if newbasis == 'per tc ecosw esinw k':
+                per = _getpar('per')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                try:
+                    tp = _getpar('tp')
+                except KeyError:
+                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                    _setpar('tp', tp)
+                _setpar('ecosw', e*np.cos(w) )
+                _setpar('esinw', e*np.sin(w) )
+                _setpar('k', k )
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
+
+                if not kwargs.get('keep', True):
+                    _delpar('tp')
+                    _delpar('e')
+                    _delpar('w')
+
+                self.name = newbasis
+                self.params = newbasis.split()
+
 
         params_out.basis = Basis(newbasis, self.num_planets)
                 
