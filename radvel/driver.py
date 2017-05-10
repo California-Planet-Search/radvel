@@ -125,14 +125,16 @@ def mcmc(args):
 
         post = radvel.posterior.load(status.get('fit', 'postfile'))
     else:
-        P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
+        P, post = radvel.utils.initialize_posterior(config_file,
+                                                        decorr=args.decorr)
 
-    msg = "Running MCMC for {}, nwalkers = {}, nsteps = {} ...".format(
-        conf_base, args.nwalkers, args.nsteps)
+    msg = "Running MCMC for {}, N_ensembles = {}, N_walkers = {}, N_steps = {} ...".format(
+        conf_base, args.ensembles, args.nwalkers, args.nsteps)
     print msg
 
     chains = radvel.mcmc(
-        post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles
+        post, nwalkers=args.nwalkers, nrun=args.nsteps,
+        ensembles=args.ensembles
     )
 
 

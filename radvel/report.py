@@ -31,9 +31,11 @@ class RadvelReport():
     Class to handle the creation of the radvel summary PDF
 
     Args:
-        planet (planet object): planet configuration object loaded in `kepfit.py` using `imp.load_source`
-        post (radvel.posterior): radvel.posterior object containing the best-fit parameters in post.params
-        chains (DataFrame): output DataFrame from a `radvel.mcmc` run
+        planet (planet object): planet configuration object loaded in 
+        `kepfit.py` using `imp.load_source` post (radvel.posterior): 
+        radvel.posterior object containing the best-fit parameters in 
+        post.params chains (DataFrame): output DataFrame from a 
+        `radvel.mcmc` run
     """
     
     def __init__(self, planet, post, chains, compstats=None):
@@ -46,17 +48,20 @@ class RadvelReport():
                 
         printpost = copy.deepcopy(post)
         printpost.params = printpost.params.basis.to_cps(printpost.params)
-        printpost.params = printpost.params.basis.from_cps(printpost.params, print_basis)
+        printpost.params = printpost.params.basis.from_cps(printpost.params,
+                                                               print_basis)
         self.latex_dict = printpost.params.tex_labels()
 
-        printchains = copy.deepcopy(chains)
+        printchains = copy.copy(chains)
         for p in post.params.keys():
             if p not in chains.columns:
                 chains[p] = post.params[p]
-        self.chains = printpost.params.basis.to_cps(chains)
-        self.chains = printpost.params.basis.from_cps(chains, print_basis)
-        self.quantiles = chains.quantile([0.159, 0.5, 0.841])
-
+        self.chains = printpost.params.basis.to_cps(chains,
+                                            basis_name=planet.fitting_basis)
+        self.chains = printpost.params.basis.from_cps(self.chains, print_basis)
+        self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
+        print(self.quantiles)
+        
         self.compstats = compstats
         
     def _preamble(self):

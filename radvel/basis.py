@@ -86,6 +86,8 @@ class Basis(object):
 
         """
 
+        basis_name = kwargs.setdefault('basis_name', self.name)
+
         if isinstance(params_in,pd.core.frame.DataFrame):
             # Output by emcee
             params_out = params_in.copy()
@@ -103,7 +105,7 @@ class Basis(object):
                     params_out.drop('{}{}'.format(key,num_planet))
 
             # transform into CPS basis
-            if self.name == 'per tp e w k':
+            if basis_name == 'per tp e w k':
                 # already in the CPS basis
                 per = _getpar('per')
                 tp = _getpar('tp')
@@ -111,7 +113,7 @@ class Basis(object):
                 w = _getpar('w')   
                 k = _getpar('k')
                 
-            if self.name == 'per tc e w k':
+            if basis_name == 'per tc e w k':
                 per = _getpar('per')
                 tc = _getpar('tc')
                 e = _getpar('e')
@@ -119,7 +121,7 @@ class Basis(object):
                 k = _getpar('k')
                 tp = timetrans_to_timeperi(tc, per, e, w)
             
-            if self.name=='per tc secosw sesinw logk':
+            if basis_name=='per tc secosw sesinw logk':
                 # pull out parameters
                 per = _getpar('per')
                 tc = _getpar('tc')
@@ -132,7 +134,7 @@ class Basis(object):
                 w = np.arctan2(sesinw , secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-            if self.name=='per tc secosw sesinw k':
+            if basis_name=='per tc secosw sesinw k':
                 # pull out parameters
                 per = _getpar('per')
                 tc = _getpar('tc')
@@ -231,7 +233,7 @@ class Basis(object):
                     _delpar('w')
                     _delpar('k')
 
-                self.name = newbasis
+                basis_name = newbasis
                 self.params = newbasis.split()
 
                 
