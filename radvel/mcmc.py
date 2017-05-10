@@ -19,7 +19,7 @@ maxGR = 1.01
 
 # Minimum number of steps per walker before
 # convergence tests are performed
-minsteps = 1000
+minsteps = 100
 
 class StateVars(object):
     def __init__(self):
@@ -140,12 +140,12 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
     for par in likelihood.list_vary_params():
         val = likelihood.params[par]
         if par.startswith('per'):
-            pscale = np.abs(val * 0.001*np.log10(val))
+            pscale = np.abs(val * 1e-5*np.log10(val))
             pscale_per = pscale
         elif par.startswith('tc'):
             pscale = pscale_per
         else:
-            pscale = np.abs(0.25 * val)
+            pscale = np.abs(0.10 * val)
 
         pscales.append(pscale)
         

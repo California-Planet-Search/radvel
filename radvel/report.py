@@ -60,21 +60,24 @@ class RadvelReport():
                                             basis_name=planet.fitting_basis)
         self.chains = printpost.params.basis.from_cps(self.chains, print_basis)
         self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
-        print(self.quantiles)
         
         self.compstats = compstats
         
     def _preamble(self):
         return """
-\\documentclass{emulateapj}
-\\usepackage{graphicx,textcomp}
-\\begin{document}
-\\shorttitle{Summary of \\texttt{RADVEL} results for %s}
-""" % (self.starname_tex)
+\\documentclass{{emulateapj}}
+\\usepackage{{graphicx,textcomp,fancyhdr,hyperref}}
+\\begin{{document}}
+\\pagestyle{{fancy}}
+\\pagenumbering{{gobble}}
+\\chead{{Summary of \\texttt{{RadVel}} results for {}}}
+""".format(self.starname_tex)
 
     def _postamble(self):
         return """
-\\end{document}"""
+\\lfoot{{\\footnotesize{{report produced by \\texttt{{RadVel}} v{}, \
+documentation available at \\href{{http://radvel.readthedocs.io}}{{http://radvel.readthedocs.io}}}}}}
+\\end{{document}}""".format(radvel.__version__)
     
 
     def texdoc(self):
@@ -88,11 +91,14 @@ class RadvelReport():
         
         out = self._preamble() + self.tabletex()
         if os.path.exists(self.runname+"_rv_multipanel.pdf"):
-            out += self.figtex(self.runname+"_rv_multipanel.pdf", caption=self._bestfit_caption())
+            out += self.figtex(self.runname+"_rv_multipanel.pdf",
+                                   caption=self._bestfit_caption())
         if os.path.exists(self.runname+"_corner.pdf"):
-            out += self.figtex(self.runname+"_corner.pdf", caption="Posterior distributions for all free parameters.")
+            out += self.figtex(self.runname+"_corner.pdf",
+                caption="Posterior distributions for all free parameters.")
         if os.path.exists(self.runname+"_corner_derived_pars.pdf"):
-            out += self.figtex(self.runname+"_corner_derived_pars.pdf", caption="Posterior distributions for all derived parameters.")
+            out += self.figtex(self.runname+"_corner_derived_pars.pdf",
+                caption="Posterior distributions for all derived parameters.")
 
         out += self._postamble()
         

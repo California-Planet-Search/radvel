@@ -143,7 +143,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     bin_fac = 1.75
     bin_markersize = bin_fac * rcParams['lines.markersize']
     bin_markeredgewidth = bin_fac * rcParams['lines.markeredgewidth']
-    fit_linewidth = 3.0
+    fit_linewidth = 2.0
 
     cpspost = copy.deepcopy(post) 
     model = cpspost.likelihood.model
@@ -250,7 +250,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
    
     #Unphased plot
     ax.axhline(0, color='0.5', linestyle='--')
-    ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.5*fit_linewidth)
+    ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
 
     def labelfig(ax, pltletter):
         text = "{})".format(chr(pltletter))
@@ -444,7 +444,7 @@ def corner_plot(post, chains, saveplot=None):
     
     fig = corner.corner(
         chains[labels], labels=texlabels, label_kwargs={"fontsize": 14},
-        plot_datapoints=False, bins=20, quantiles=[.16,.5,.84],
+        plot_datapoints=False, bins=30, quantiles=[.16,.5,.84],
         show_titles = True, title_kwargs={"fontsize": 14}, smooth=True
     )
     
@@ -501,7 +501,7 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
     rcParams['font.size'] = 12
     fig = corner.corner(
         chains[labels], labels=texlabels, label_kwargs={"fontsize": 14}, 
-        plot_datapoints=False, bins=20, quantiles=[0.16,0.50,0.84],
+        plot_datapoints=False, bins=30, quantiles=[0.16,0.50,0.84],
         show_titles = True, title_kwargs={"fontsize": 14}, smooth=True
     )
     
