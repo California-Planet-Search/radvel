@@ -6,6 +6,10 @@ General Toolkit for Modeling Radial Velocities. Version 0.9.0
 
 Written by BJ Fulton and Erik Petigura, Fulton and Petigura (in prep.).
 
+Please cite the following DOI if you wish to make use of this software in any publication.
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.580817.svg)](https://doi.org/10.5281/zenodo.580817)
+
 ## Documentation
 
 Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io

@@ -21,6 +21,11 @@ By default it is expected to be in your system's path, but you may
 specify a path to pdflatex using the ``--latex-compiler``
 option at the ``radvel report`` step.
 
+Please cite the folloing DOI if you make use of RadVel in any 
+publication.
+
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.580817.svg
+   :target: https://doi.org/10.5281/zenodo.580817
 
 Example Fit
 +++++++
