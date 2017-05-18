@@ -70,11 +70,17 @@ def main():
         description="Perform MCMC exploration"
     )
     psr_mcmc.add_argument(
-        '--nsteps', dest='nsteps', action='store',default=20000, type=float, 
-        help='Number of steps per chain [20000]',)
+        '--nsteps', dest='nsteps', action='store',default=10000, type=float, 
+        help='Number of steps per chain [10000]',)
     psr_mcmc.add_argument(
         '--nwalkers', dest='nwalkers', action='store', default=50, type=int,
         help='Number of walkers. [50]', 
+    )
+    psr_mcmc.add_argument(
+    '--nensembles', dest='ensembles', action='store', default=8, type=int,
+    help='''\
+Number of ensembles. Will be run in parallel on separate CPUs [8]
+'''
     )
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 

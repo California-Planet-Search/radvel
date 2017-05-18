@@ -20,7 +20,7 @@ class Posterior(Likelihood):
         to apply priors in the likelihood calculations.
     """
     
-    def __init__(self,likelihood, setup=None):
+    def __init__(self,likelihood):
         self.likelihood = likelihood
         self.params = likelihood.params
         self.vary = likelihood.vary
@@ -34,7 +34,7 @@ class Posterior(Likelihood):
         for prior in self.priors:
             s +=  prior.__repr__() + "\n"
         return s
-
+    
     def logprob(self):
         """Log probability
 
@@ -102,4 +102,8 @@ def load(filename):
     with open(filename, 'rb') as f:
         post = pickle.load(f)
 
+    for key,val in post.params.items():
+        if val is None:
+            del post.params[key]
+    
     return post

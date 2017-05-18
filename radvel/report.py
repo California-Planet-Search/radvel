@@ -31,9 +31,11 @@ class RadvelReport():
     Class to handle the creation of the radvel summary PDF
 
     Args:
-        planet (planet object): planet configuration object loaded in `kepfit.py` using `imp.load_source`
-        post (radvel.posterior): radvel.posterior object containing the best-fit parameters in post.params
-        chains (DataFrame): output DataFrame from a `radvel.mcmc` run
+        planet (planet object): planet configuration object loaded in 
+        `kepfit.py` using `imp.load_source` post (radvel.posterior): 
+        radvel.posterior object containing the best-fit parameters in 
+        post.params chains (DataFrame): output DataFrame from a 
+        `radvel.mcmc` run
     """
     
     def __init__(self, planet, post, chains, compstats=None):
@@ -46,31 +48,36 @@ class RadvelReport():
                 
         printpost = copy.deepcopy(post)
         printpost.params = printpost.params.basis.to_cps(printpost.params)
-        printpost.params = printpost.params.basis.from_cps(printpost.params, print_basis)
+        printpost.params = printpost.params.basis.from_cps(printpost.params,
+                                                               print_basis)
         self.latex_dict = printpost.params.tex_labels()
 
-        printchains = copy.deepcopy(chains)
+        printchains = copy.copy(chains)
         for p in post.params.keys():
             if p not in chains.columns:
                 chains[p] = post.params[p]
-        self.chains = printpost.params.basis.to_cps(chains)
-        self.chains = printpost.params.basis.from_cps(chains, print_basis)
-        self.quantiles = chains.quantile([0.159, 0.5, 0.841])
-
+        self.chains = printpost.params.basis.to_cps(chains,
+                                            basis_name=planet.fitting_basis)
+        self.chains = printpost.params.basis.from_cps(self.chains, print_basis)
+        self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
+        
         self.compstats = compstats
         
     def _preamble(self):
         return """
-\\documentclass{emulateapj}
-\\usepackage{graphicx,textcomp}
-\\begin{document}
-\\shorttitle{Summary of \\texttt{RADVEL} results for %s}
-""" % (self.starname_tex)
+\\documentclass{{emulateapj}}
+\\usepackage{{graphicx,textcomp,fancyhdr,hyperref}}
+\\begin{{document}}
+\\pagestyle{{fancy}}
+\\pagenumbering{{gobble}}
+\\chead{{Summary of \\texttt{{RadVel}} results for {}}}
+""".format(self.starname_tex)
 
     def _postamble(self):
         return """
-\\end{document}"""
-    
+\\lfoot{{\\footnotesize{{report produced by \\texttt{{RadVel}} v{}: \
+\\href{{http://radvel.readthedocs.io}}{{http://radvel.readthedocs.io}}}}}}
+\\end{{document}}""".format(radvel.__version__)
 
     def texdoc(self):
         """TeX for entire document
@@ -83,11 +90,14 @@ class RadvelReport():
         
         out = self._preamble() + self.tabletex()
         if os.path.exists(self.runname+"_rv_multipanel.pdf"):
-            out += self.figtex(self.runname+"_rv_multipanel.pdf", caption=self._bestfit_caption())
+            out += self.figtex(self.runname+"_rv_multipanel.pdf",
+                                   caption=self._bestfit_caption())
         if os.path.exists(self.runname+"_corner.pdf"):
-            out += self.figtex(self.runname+"_corner.pdf", caption="Posterior distributions for all free parameters.")
+            out += self.figtex(self.runname+"_corner.pdf",
+                caption="Posterior distributions for all free parameters.")
         if os.path.exists(self.runname+"_corner_derived_pars.pdf"):
-            out += self.figtex(self.runname+"_corner_derived_pars.pdf", caption="Posterior distributions for all derived parameters.")
+            out += self.figtex(self.runname+"_corner_derived_pars.pdf",
+                caption="Posterior distributions for all derived parameters.")
 
         out += self._postamble()
         

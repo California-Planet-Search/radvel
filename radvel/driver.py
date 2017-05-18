@@ -95,11 +95,11 @@ def fit(args):
 
     P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
     post = radvel.fitting.maxlike_fitting(post, verbose=True)
-
+    
     postfile = os.path.join(args.outputdir,
                             '{}_post_obj.pkl'.format(conf_base))
     post.writeto(postfile)
-
+    
     savestate = {'run': True,
                  'postfile': os.path.abspath(postfile)}
     save_status(os.path.join(args.outputdir,
@@ -125,22 +125,23 @@ def mcmc(args):
 
         post = radvel.posterior.load(status.get('fit', 'postfile'))
     else:
-        P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
+        P, post = radvel.utils.initialize_posterior(config_file,
+                                                        decorr=args.decorr)
 
-
-    msg = "Running MCMC for {}, nwalkers = {}, nsteps = {} ...".format(
-        conf_base, args.nwalkers, args.nsteps)
+    msg = "Running MCMC for {}, N_ensembles = {}, N_walkers = {}, N_steps = {} ...".format(
+        conf_base, args.ensembles, args.nwalkers, args.nsteps)
     print msg
 
     chains = radvel.mcmc(
-        post, threads=1, nwalkers=args.nwalkers, nrun=args.nsteps
+        post, nwalkers=args.nwalkers, nrun=args.nsteps,
+        ensembles=args.ensembles
     )
 
 
     # Convert chains into CPS basis
     cpschains = chains.copy()
     for par in post.params.keys():
-        if not post.vary[par]:
+        if par in post.vary.keys() and not post.vary[par]:
             cpschains[par] = post.params[par]
 
     cpschains = post.params.basis.to_cps(cpschains)
@@ -204,7 +205,8 @@ def mcmc(args):
                  'nsteps': args.nsteps}
     save_status(statfile, 'mcmc', savestate)
 
-
+    os._exit(0)
+    
 def bic(args):
     """Compare different models and comparative statistics
 

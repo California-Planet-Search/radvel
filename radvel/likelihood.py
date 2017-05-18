@@ -26,8 +26,10 @@ class Likelihood(object):
                 'parameter', 'value', 'vary'
                 )
             keys = self.params.keys()
-            keys.sort()
+            #keys.sort()
             for key in keys:
+                if key == 'meta':
+                    continue
                 if key in self.vary.keys():
                     vstr = str(self.vary[key])
                 else:
@@ -47,8 +49,10 @@ class Likelihood(object):
                 'parameter', 'value', '+/-', 'vary'
                 )
             keys = self.params.keys()
-            keys.sort()
+            #keys.sort()
             for key in keys:
+                if key == 'meta':
+                    continue
                 if key in self.vary.keys():
                     vstr = str(self.vary[key])
                 else:
@@ -70,6 +74,7 @@ class Likelihood(object):
                 
         return s
 
+    
     def set_vary_params(self, params_array):
         i = 0
         for key in self.list_vary_params():
@@ -85,15 +90,16 @@ class Likelihood(object):
 
     def get_vary_params(self):
         params_array = []
-        for key in self.params.keys():
-            if self.vary[key]:
+        for key in self.list_vary_params():
+            if key != 'meta' and self.vary[key]:
                 params_array += [ self.params[key] ]
                 
         params_array = np.array(params_array)
         return params_array
 
     def list_vary_params(self):
-        return [key for key in self.params if self.vary[key] ]
+        return [key for key in self.params.keys() if key != 'meta'
+                    and key in self.vary.keys() and self.vary[key] ]
 
     def residuals(self):
         return self.y - self.model(self.x) 
@@ -133,6 +139,8 @@ class CompositeLikelihood(Likelihood):
         self.yerr = like0.yerr
         self.telvec = like0.telvec
         self.extra_params = like0.extra_params
+        #self.decorr_params = like0.decorr_params
+        #self.decorr_vectors = like0.decorr_vectors
         self.suffixes = like0.suffix
         self.uparams = like0.uparams
         
@@ -145,6 +153,8 @@ class CompositeLikelihood(Likelihood):
             self.yerr = np.append(self.yerr, like.yerr)
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
+            #self.decorr_params = np.append(self.decorr_params, like.decorr_params)
+            #self.decorr_vectors = np.append(self.decorr_vectors, like.decorr_vectors)
             self.suffixes = np.append(self.suffixes, like.suffix)
             try:
                 self.uparams = self.uparams.update(like.uparams)
@@ -165,7 +175,7 @@ class CompositeLikelihood(Likelihood):
         self.params = params
         self.vary = {}.fromkeys(params.keys(),True)
         self.like_list = like_list
-
+        
     def logprob(self):
         """
         See `radvel.likelihood.RVLikelihood.logprob`
@@ -306,6 +316,7 @@ def loglike_jitter(residuals, sigma, sigma_jit):
     sum_sig_quad = sigma**2 + sigma_jit**2
     penalty = np.sum( np.log( np.sqrt( 2 * np.pi * sum_sig_quad ) ) )
     chi2 = np.sum(residuals**2 / sum_sig_quad)
-    loglike = -0.5 * chi2 - penalty 
+    loglike = -0.5 * chi2 - penalty
+    
     return loglike
 

@@ -91,15 +91,22 @@ upper limits must match number of planets."
     def __call__(self, params):
         def _getpar(key, num_planet):
             return params['{}{}'.format(key,num_planet)]
+
+        parnames = params.basis.name.split()
         
         for i,num_planet in enumerate(self.planet_list):
-            try:
+            if 'e' in parnames:
                 ecc = _getpar('e', num_planet)
-            except KeyError:
+            elif 'secosw' in parnames:
                 secosw = _getpar('secosw',num_planet)
                 sesinw = _getpar('sesinw',num_planet)
                 ecc = secosw**2 + sesinw**2 
+            elif 'ecosw' in parnames:
+                ecosw = _getpar('ecosw',num_planet)
+                esinw = _getpar('esinw',num_planet)
+                ecc = np.sqrt(ecosw**2 + esinw**2)
 
+                
             if ecc > self.upperlims[i] or ecc < 0.0:
                 return -np.inf
         
