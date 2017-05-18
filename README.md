@@ -14,6 +14,8 @@ Please cite the following DOI if you wish to make use of this software in any pu
 
 Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
 
+[![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=master)](http://radvel.readthedocs.io/en/master/?badge=master)
+
 ## Features
 
 - Object-oriented (i.e. models, likelihoods, priors, and posteriors are defined as objects)
