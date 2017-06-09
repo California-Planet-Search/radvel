@@ -147,11 +147,11 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
     :return: Doppler semi-amplitude [m/s]
     """
     if Msini_units.lower() == 'jupiter':
-        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.333 * \
-            Mtotal**-0.667
+        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**(-1/3.) * \
+            Mtotal**(-2/3.)
     elif Msini_units.lower() == 'earth':
-        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**-0.333 * \
-            Mtotal**-0.667*(c.M_earth/c.M_jup).value
+        K = K_0 * ( 1 - e**2 )**-0.5 * Msini * ( P / 365.0 )**(-1/3.) * \
+            Mtotal**-(-2/3.)*(c.M_earth/c.M_jup).value
     else: 
         raise Exception("Msini_units must be 'earth', or 'jupiter'")
         
@@ -175,11 +175,11 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
     """
 
     if Msini_units.lower() == 'jupiter':
-        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.667 * \
-            (P/365.0)**0.333
+        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**(2/3.) * \
+            (P/365.0)**(1/3.)
     elif Msini_units.lower() == 'earth':
-        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**0.667 * \
-            (P/365.0)**0.333*(c.M_jup/c.M_earth).value
+        Msini = K / K_0 * np.sqrt(1.0 - e**2.0) * Mtotal**(2/3.) * \
+            (P/365.0)**(1/3.)*(c.M_jup/c.M_earth).value
     else: 
         raise Exception("Msini_units must be 'earth', or 'jupiter'")
     
