@@ -5,14 +5,16 @@ class Likelihood(object):
     """
     Generic Likelihood
     """
-    def __init__(self, model, x, y, yerr, extra_params=[]):
+    def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[], decorr_vectors=[]):
         self.model = model
         self.params = model.params
 
         self.x = np.array(x) # Variables must be arrays.
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
-        self.params.update({}.fromkeys(extra_params, np.nan) ) 
+        self.dvec = [np.array(d) for d in decorr_vectors]
+        self.params.update({}.fromkeys(extra_params, np.nan) )
+        self.params.update({}.fromkeys(decorr_params, 0.0) )
         self.uparams = None
         
         vary = {}.fromkeys(self.params.keys(), True)
@@ -25,8 +27,10 @@ class Likelihood(object):
                 'parameter', 'value', 'vary'
                 )
             keys = self.params.keys()
-            keys.sort()
+            #keys.sort()
             for key in keys:
+                if key == 'meta':
+                    continue
                 if key in self.vary.keys():
                     vstr = str(self.vary[key])
                 else:
@@ -46,8 +50,10 @@ class Likelihood(object):
                 'parameter', 'value', '+/-', 'vary'
                 )
             keys = self.params.keys()
-            keys.sort()
+            #keys.sort()
             for key in keys:
+                if key == 'meta':
+                    continue
                 if key in self.vary.keys():
                     vstr = str(self.vary[key])
                 else:
@@ -69,6 +75,7 @@ class Likelihood(object):
                 
         return s
 
+    
     def set_vary_params(self, params_array):
         i = 0
         for key in self.list_vary_params():
@@ -84,15 +91,16 @@ class Likelihood(object):
 
     def get_vary_params(self):
         params_array = []
-        for key in self.params.keys():
-            if self.vary[key]:
+        for key in self.list_vary_params():
+            if key != 'meta' and self.vary[key]:
                 params_array += [ self.params[key] ]
                 
         params_array = np.array(params_array)
         return params_array
 
     def list_vary_params(self):
-        return [key for key in self.params if self.vary[key] ]
+        return [key for key in self.params.keys() if key != 'meta'
+                    and key in self.vary.keys() and self.vary[key] ]
 
     def residuals(self):
         return self.y - self.model(self.x) 
@@ -128,9 +136,12 @@ class CompositeLikelihood(Likelihood):
         self.model = like0.model
         self.x = like0.x
         self.y = like0.y - params[like0.gamma_param]
-        self.yerr = np.sqrt(like0.yerr**2 + like0.params[like0.jit_param]**2)
+        #self.yerr = np.sqrt(like0.yerr**2 + like0.params[like0.jit_param]**2)
+        self.yerr = like0.yerr
         self.telvec = like0.telvec
         self.extra_params = like0.extra_params
+        #self.decorr_params = like0.decorr_params
+        #self.decorr_vectors = like0.decorr_vectors
         self.suffixes = like0.suffix
         self.uparams = like0.uparams
         
@@ -139,9 +150,12 @@ class CompositeLikelihood(Likelihood):
             
             self.x = np.append(self.x,like.x)
             self.y = np.append(self.y, like.y - like.params[like.gamma_param])
-            self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + like.params[like.jit_param]**2))
+            #self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + like.params[like.jit_param]**2))
+            self.yerr = np.append(self.yerr, like.yerr)
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
+            #self.decorr_params = np.append(self.decorr_params, like.decorr_params)
+            #self.decorr_vectors = np.append(self.decorr_vectors, like.decorr_vectors)
             self.suffixes = np.append(self.suffixes, like.suffix)
             try:
                 self.uparams = self.uparams.update(like.uparams)
@@ -162,7 +176,7 @@ class CompositeLikelihood(Likelihood):
         self.params = params
         self.vary = {}.fromkeys(params.keys(),True)
         self.like_list = like_list
-
+        
     def logprob(self):
         """
         See `radvel.likelihood.RVLikelihood.logprob`
@@ -211,18 +225,28 @@ class RVLikelihood(Likelihood):
 
     """
     
-    def __init__(self, model, t, vel, errvel, suffix=''):
+    def __init__(self, model, t, vel, errvel, suffix='',
+                     decorr_vars=[], decorr_vectors=[]):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
 
-        if suffix.startswith('_'): self.suffix = suffix[1:]
-        else: self.suffix = suffix
+        if suffix.startswith('_'):
+            self.suffix = suffix[1:]
+        else:
+            self.suffix = suffix
 
         self.telvec = np.array([self.suffix]*len(t))
         
         self.extra_params = [self.gamma_param, self.jit_param]
+        self.decorr_params = []
+        self.decorr_vectors = decorr_vectors
+        if len(decorr_vars) > 0:
+            self.decorr_params += ['c1_'+d+suffix for d in decorr_vars]
+            #self.decorr_params += ['c0_'+d+suffix for d in decorr_vars]
+
         super(RVLikelihood, self).__init__(
-            model, t, vel, errvel, extra_params=self.extra_params
+            model, t, vel, errvel, extra_params=self.extra_params,
+            decorr_params = self.decorr_params, decorr_vectors=self.decorr_vectors
             )
 
 
@@ -231,8 +255,23 @@ class RVLikelihood(Likelihood):
 
         Data minus model
         """
+
+        res = self.y - self.params[self.gamma_param] - self.model(self.x)
         
-        return self.y - self.params[self.gamma_param] - self.model(self.x)
+        if len(self.decorr_params) > 0:
+            for parname in self.decorr_params:
+                var = parname.split('_')[1]
+                pars = []
+                for par in self.decorr_params:
+                    if var in par:
+                        pars.append(self.params[par])
+                pars.append(0.0)
+                if np.isfinite(self.decorr_vectors[var]).all():
+                    vec = self.decorr_vectors[var] - np.mean(self.decorr_vectors[var])
+                    p = np.poly1d(pars)
+                    res -= p(vec)
+                    
+        return res
 
     def errorbars(self):
         """
@@ -369,7 +408,7 @@ def loglike_jitter(residuals, sigma, sigma_jit):
     sum_sig_quad = sigma**2 + sigma_jit**2
     penalty = np.sum( np.log( np.sqrt( 2 * np.pi * sum_sig_quad ) ) )
     chi2 = np.sum(residuals**2 / sum_sig_quad)
-    loglike = -0.5 * chi2 - penalty 
+    loglike = -0.5 * chi2 - penalty
+    
     return loglike
-
 

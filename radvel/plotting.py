@@ -28,7 +28,7 @@ telfmts_default = {
     'pfs': dict(color='magenta',fmt='p',label='PFS'),
     'h': dict(color='firebrick',fmt="s",label='HARPS'),
     'harps-n': dict(color='firebrick',fmt='^',label='HARPS-N'),
-    'l': dict(color='g',fmt='+'),
+    'l': dict(color='g',fmt='*'),
 }
 
 telfmts_default['lick'] = telfmts_default['l']
@@ -50,7 +50,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
     y (array): RV
     e (array): RV error
     tel (array): telecsope string key
-    telfmts (dict): dictionary of dictionaries corresponding to kwargs 
+     telfmts (dict): dictionary of dictionaries corresponding to kwargs 
         passed to errorbar. Example:
 
         telfmts = {
@@ -59,7 +59,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
     
     """
 
-    lw = 0.5 * rcParams['lines.linewidth']
+    lw = 1.0
 
     default_colors = ['orange', 'purple', 'magenta' , 'pink']
     ci = 0
@@ -100,7 +100,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
-                       phase_nrows=None, legend=True, rv_phase_space=0.07):
+                       phase_nrows=None, legend=True, rv_phase_space=0.08):
     """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
@@ -114,7 +114,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         yscale_auto (bool, optional): Use matplotlib auto y-axis
              scaling (default: False)
         yscale_sigma (float, optional): Scale y-axis limits to be +/-
-             yscale_sigma*(RMS of data plotted)
+             yscale_sigma*(RMS of data plotted) if yscale_auto==False
         telfmts (dict, optional): dictionary of dictionaries mapping
              instrument code to plotting format code.
         nophase (bool, optional): Will omit phase-folded plots if true
@@ -137,13 +137,13 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     """
     figwidth = 7.5 # spans a page with 0.5in margins
-    phasefac = 1.5
-    ax_rv_height = figwidth * 1/2.
+    phasefac = 1.4
+    ax_rv_height = figwidth * 0.6
     ax_phase_height = ax_rv_height / phasefac
     bin_fac = 1.75
     bin_markersize = bin_fac * rcParams['lines.markersize']
     bin_markeredgewidth = bin_fac * rcParams['lines.markeredgewidth']
-    fit_linewidth = 2.0 * rcParams['lines.linewidth']
+    fit_linewidth = 2.0
 
     cpspost = copy.deepcopy(post) 
     model = cpspost.likelihood.model
@@ -170,7 +170,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         nobin = True
     
     if saveplot != None: 
-        resolution = 1e4
+        resolution = 10000
     else: 
         resolution = 2000
 
@@ -190,9 +190,9 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         
     dt = max(rvtimes) - min(rvtimes)
     rvmodt = np.linspace(
-        min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp, resolution
+        min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp, int(resolution)
     )
-
+    
     rvmod2 = model(rvmodt)
     rvmod = model(rvtimes)
 
@@ -226,14 +226,19 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     figheight = ax_rv_height + ax_phase_height * phase_nrows
     divide = 1 - ax_rv_height / figheight
     fig = pl.figure(figsize=(figwidth,figheight))
-    fig.subplots_adjust(left=0.1)
+    fig.subplots_adjust(left=0.12, right=0.95)
     gs_rv = gridspec.GridSpec(1, 1)
-    gs_rv.update(top=0.95,bottom=divide+rv_phase_space*0.5)
+    gs_rv.update(left=0.12, right=0.93, top=0.93,
+                     bottom=divide+rv_phase_space*0.5)
     gs_phase = gridspec.GridSpec(phase_nrows, phase_ncols)
     if phase_ncols==1:
-        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.001)
+        gs_phase.update(left=0.12, right=0.93,
+                            top=divide-rv_phase_space*0.5,
+                            bottom=0.07,hspace=0.003)
     else:
-        gs_phase.update(top=divide-rv_phase_space*0.5, bottom=0.07,hspace=0.25,wspace=0.25)
+        gs_phase.update(left=0.12, right=0.93,
+                            top=divide-rv_phase_space*0.5,
+                            bottom=0.07,hspace=0.25,wspace=0.25)
 
     axL = []
     axRV = pl.subplot(gs_rv[0, 0])
@@ -245,7 +250,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
    
     #Unphased plot
     ax.axhline(0, color='0.5', linestyle='--')
-    ax.plot(mplttimes,rvmod2,'b-', rasterized=False)
+    ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
 
     def labelfig(ax, pltletter):
         text = "{})".format(chr(pltletter))
@@ -265,7 +270,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     # Legend
     if legend:
-        pl.legend()
+        pl.legend(numpoints=1, fontsize='x-small', loc='best')
     
     # Years on upper axis
     axyrs = axRV.twiny()
@@ -277,6 +282,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     axyrs.plot(decimalyear,decimalyear)
     axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
     axyrs.set_xlim(*decimalyear)
+    axyrs.set_xlabel('Year', fontweight='bold')
     #axyrs.xaxis.set_major_locator(MaxNLocator(8))
 
     if not yscale_auto: 
@@ -307,9 +313,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         ax.set_ylim(-yscale_sigma * scale, yscale_sigma * scale)
 
     ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
+    ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
     xticks = ax.xaxis.get_majorticklocs()
-    pl.xlabel('{} - {:d}'.format(latex['BJDTDB'],int(np.round(e))), weight='bold')
+    pl.xlabel('JD - {:d}'.format(int(np.round(e))), weight='bold')
     ax.set_ylabel('Residuals', weight='bold')
     ax.yaxis.set_major_locator(MaxNLocator(5,prune='both'))
     
@@ -437,7 +444,7 @@ def corner_plot(post, chains, saveplot=None):
     
     fig = corner.corner(
         chains[labels], labels=texlabels, label_kwargs={"fontsize": 14},
-        plot_datapoints=False, bins=20, quantiles=[.16,.5,.84],
+        plot_datapoints=False, bins=30, quantiles=[.16,.5,.84],
         show_titles = True, title_kwargs={"fontsize": 14}, smooth=True
     )
     
@@ -494,7 +501,7 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
     rcParams['font.size'] = 12
     fig = corner.corner(
         chains[labels], labels=texlabels, label_kwargs={"fontsize": 14}, 
-        plot_datapoints=False, bins=20, quantiles=[0.16,0.50,0.84],
+        plot_datapoints=False, bins=30, quantiles=[0.16,0.50,0.84],
         show_titles = True, title_kwargs={"fontsize": 14}, smooth=True
     )
     
@@ -550,6 +557,57 @@ def trend_plot(post, chains, nwalkers, outfile=None):
             pdf.savefig()
             pl.close()
 
+
+def correlation_plot(post, chains=None, outfile=None):
+    """Correlation plot
+
+    Plot parameter correlations.
+
+    Args:
+        post (radvel.Posterior): Radvel Posterior object
+        chains (DataFrame): (optional) MCMC chains output by radvel.mcmc
+        outfile (string): name of output multi-page PDF file
+
+    Returns:
+        None
+        
+    """
+
+    pltind = 1
+    pl.subplot(431)
+    pl.subplots_adjust(top=0.97, left = 0.07, right=0.95,
+                           bottom=0.10, hspace=0.22, wspace=0.22)
+    
+    for like in post.likelihood.like_list:
+        resid = like.residuals()
+        for parname in like.decorr_params:
+            var = parname.split('_')[1]
+            pars = []
+            for par in like.decorr_params:
+                if var in par:
+                    pars.append(like.params[par])
+            pars.append(0.0)
+            if np.isfinite(like.decorr_vectors[var]).all():
+                vec = like.decorr_vectors[var]
+                vec -= np.mean(vec)
+                p = np.poly1d(pars)
+                print var, pars
+                
+                pl.subplot('33%d' % pltind)
+                pl.plot(vec, p(vec), 'b-', lw=3)
+                pl.plot(vec, resid + p(vec), 'ko')
+
+                pl.xlabel("$\Delta$ %s" % '_'.join(parname.split('_')[1:]))
+                pl.ylabel('RV [m s$^{-1}$]')
+                
+                pltind += 1
+
+    if outfile is None:
+        pl.show()
+    else:
+        pl.savefig(outfile)
+
+
 def add_anchored(*args,**kwargs):
     """
     Parameters
@@ -580,3 +638,5 @@ def add_anchored(*args,**kwargs):
 
     ax = pl.gca()
     ax.add_artist(at)
+
+

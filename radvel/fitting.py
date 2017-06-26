@@ -16,21 +16,22 @@ def maxlike_fitting(post, verbose=True):
         updated their maximum likelihood values
 
     """
-    
-    post0 = copy.deepcopy(post)
+
+    post0 = copy.copy(post)
     if verbose:
         print "Initial loglikelihood = %f" % post0.logprob()
         print "Performing maximum likelihood fit..."
 
+        
     res  = optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method='Powell',
         options=dict(maxiter=100,maxfev=100000,xtol=1e-8)
     )
 
-    cpspost = copy.deepcopy(post)
+    cpspost = copy.copy(post)
     cpsparams = post.params.basis.to_cps(post.params)
     cpspost.params.update(cpsparams)
-
+    
     if verbose:
         print "Final loglikelihood = %f" % post.logprob()
         print "Best-fit parameters:"
@@ -59,7 +60,7 @@ def model_comp(post, verbose=False):
     """
 
     ipost = copy.deepcopy(post)
-        
+    
     num_planets = post.likelihood.model.num_planets
 
     statsdict = []
@@ -82,21 +83,26 @@ def model_comp(post, verbose=False):
             except (ValueError, KeyError):
                 pass
 
+        for par in post.vary.keys():
+            if par.startswith('jit'):
+                post.vary[par] = False
+            
         post = maxlike_fitting(post, verbose=False)
 
         ndata = len(post.likelihood.y)
         nfree = len(post.get_vary_params())
-        chi = np.sum((post.likelihood.residuals()/post.likelihood.yerr)**2)
+        #chi = np.sum((post.likelihood.residuals()/post.likelihood.yerr)**2)
+        chi = np.sum((post.likelihood.residuals()/post.likelihood.errorbars())**2)
         chi_red = chi / (ndata - nfree)
 
         if verbose:
             print post
             print "N_free = %d" % nfree
             print "RMS = %4.2f" % np.std(post.likelihood.residuals())
-            print "logprob = %4.2f" % post.logprob()
-            print "chi (no jitter) = %4.2f" % chi
-            print "chi_red (no jitter) = %4.2f" % chi_red
-            print "BIC = %4.2f" % post.bic()
+            print "logprob (jitter fixed) = %4.2f" % post.logprob()
+            print "chi (jitter fixed) = %4.2f" % chi
+            print "chi_red (jitter fixed) = %4.2f" % chi_red
+            print "BIC (jitter fixed) = %4.2f" % post.bic()
         
         pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
         pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
@@ -104,9 +110,9 @@ def model_comp(post, verbose=False):
             np.round(np.std(post.likelihood.residuals()), 2), 
             'RMS of residuals in m s$^{-1}$'
         )
-        pdict['$\\chi^{2}$'] = (np.round(chi,2), "assuming no jitter")
+        pdict['$\\chi^{2}$'] = (np.round(chi,2), "jitter fixed")
         pdict['$\\chi^{2}_{\\nu}$'] = (
-            np.round(chi_red,2), "assuming no jitter"
+            np.round(chi_red,2), "jitter fixed"
         )
         pdict['$\\ln{\\mathcal{L}}$'] = (
             np.round(post.logprob(),2), "natural log of the likelihood"

@@ -9,14 +9,24 @@ from datetime import datetime, timedelta
 
 import radvel
 
-def initialize_posterior(config_file):
+def initialize_posterior(config_file, decorr=False):
 
     system_name = os.path.basename(config_file).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(config_file))
     system_name = P.starname
 
     cpsparams = P.params.basis.to_cps(P.params)
-    params = P.params.basis.from_cps(cpsparams, P.fitting_basis, keep=False)
+    params = P.params.basis.from_cps(cpsparams,
+                                            P.fitting_basis, keep=False)
+
+    if decorr:
+        try:
+            decorr_vars = P.decorr_vars
+        except:
+            raise Exception("--decorr option selected,\
+ but decorr_vars is not found in your setup file.")
+    else:
+        decorr_vars = []
     
     for key in params.keys():
         if key.startswith('logjit'):
@@ -32,22 +42,28 @@ Converting 'logjit' to 'jit' for you now.
             del P.vary[key]
             del params[key]
 
-    iparams = params.copy()
-
+    #iparams = params.copy()
+    iparams = radvel.basis._copy_params(params)
+    
     # Make sure we don't have duplicate indicies in the DataFrame
     P.data = P.data.reset_index(drop=True)
     
     # initialize RVmodel object
     mod = radvel.RVModel(params, time_base=P.time_base)   
-
+    
     # initialize RVlikelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
+        decorr_vectors = {}
+        if decorr:
+            for d in decorr_vars:
+                decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
         likes[inst] = radvel.likelihood.RVLikelihoodGP(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst
+            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst,
+            decorr_vars=decorr_vars, decorr_vectors=decorr_vectors
         )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
@@ -61,6 +77,7 @@ Converting 'logjit' to 'jit' for you now.
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors
+    
     return P, post
 
 
@@ -207,16 +224,26 @@ def round_sig(x, sig=2):
     return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
 
 def t_to_phase(params, t, num_planet, cat=False):
+    if ('tc%i' % num_planet) in params:
+        timeparam = 'tc%i' % num_planet
+    elif ('tp%i' % num_planet) in params:
+        timeparam = 'tp%i' % num_planet
+        
     P = params['per%i' % num_planet]
-    tc = params['tc%i' % num_planet]
+    tc = params[timeparam]
     phase = np.mod(t - tc, P) 
     phase /= P
     if cat: phase = np.concatenate((phase,phase+1))
     return phase
 
 def phase_to_t(params, phase, num_planet):
+    if ('tc%i' % num_planet) in params:
+        timeparam = 'tc%i' % num_planet
+    elif ('tp%i' % num_planet) in params:
+        timeparam = 'tp%i' % num_planet
+        
     P = params['per%i' % num_planet]
-    tc = params['tc%i' % num_planet]
+    tc = params[timeparam]
     t = phase * P
     t += tc
     return t
@@ -292,3 +319,35 @@ def t2dt(atime):
     eoy = datetime(year + 1, 1, 1)
     seconds = remainder * (eoy - boy).total_seconds()
     return boy + timedelta(seconds=seconds)
+
+def geterr(vec, angular=False):
+    """
+    Calculate median, 15.9, and 84.1 percentile values
+    for a given vector."
+
+    Args:
+        vec (array): vector, usually an MCMC chain for one parameter
+        angular (bool): (optional) Is this an angular parameter?
+            if True vec should be in radians. This will perform
+            some checks to ensure proper boundary wrapping.
+
+    Returns:
+        tuple: 50, 15.9 and 84.1 percentiles
+    """
+
+    if angular:
+        val, edges = np.histogram(vec, bins=50)
+        med = edges[np.argmax(val)]
+        if med > np.radians(90):
+            vec[vec<np.radians(0)] = vec[vec<np.radians(0)] + np.radians(360)
+        if med <= np.radians(-90):
+            vec[vec>=np.radians(0)] = vec[vec>=np.radians(0)] - np.radians(360)
+        med = np.median(vec)
+    else:
+        med = np.median(vec)
+        
+    s = sorted(vec)
+    errlow = med - s[int(0.159*len(s))]
+    errhigh = s[int(0.841*len(s))] - med
+            
+    return med, errlow, errhigh

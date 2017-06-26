@@ -24,7 +24,6 @@ units = {'per': 'days',
          'dvdt': 'm s$^{-1}$ day$^{-1}$',
          'curv': 'm s$^{-1}$ day$^{-2}$'}
 
-latex_compiler = 'pdflatex'
 
 class RadvelReport():
     """Radvel report
@@ -32,9 +31,11 @@ class RadvelReport():
     Class to handle the creation of the radvel summary PDF
 
     Args:
-        planet (planet object): planet configuration object loaded in `kepfit.py` using `imp.load_source`
-        post (radvel.posterior): radvel.posterior object containing the best-fit parameters in post.params
-        chains (DataFrame): output DataFrame from a `radvel.mcmc` run
+        planet (planet object): planet configuration object loaded in 
+        `kepfit.py` using `imp.load_source` post (radvel.posterior): 
+        radvel.posterior object containing the best-fit parameters in 
+        post.params chains (DataFrame): output DataFrame from a 
+        `radvel.mcmc` run
     """
     
     def __init__(self, planet, post, chains, compstats=None):
@@ -47,31 +48,36 @@ class RadvelReport():
                 
         printpost = copy.deepcopy(post)
         printpost.params = printpost.params.basis.to_cps(printpost.params)
-        printpost.params = printpost.params.basis.from_cps(printpost.params, print_basis)
+        printpost.params = printpost.params.basis.from_cps(printpost.params,
+                                                               print_basis)
         self.latex_dict = printpost.params.tex_labels()
 
-        printchains = copy.deepcopy(chains)
+        printchains = copy.copy(chains)
         for p in post.params.keys():
             if p not in chains.columns:
                 chains[p] = post.params[p]
-        self.chains = printpost.params.basis.to_cps(chains)
-        self.chains = printpost.params.basis.from_cps(chains, print_basis)
-        self.quantiles = chains.quantile([0.159, 0.5, 0.841])
-
+        self.chains = printpost.params.basis.to_cps(chains,
+                                            basis_name=planet.fitting_basis)
+        self.chains = printpost.params.basis.from_cps(self.chains, print_basis)
+        self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
+        
         self.compstats = compstats
         
     def _preamble(self):
         return """
-\\documentclass{emulateapj}
-\\usepackage{graphicx,textcomp}
-\\begin{document}
-\\shorttitle{Summary of \\texttt{RADVEL} results for %s}
-""" % (self.starname_tex)
+\\documentclass{{emulateapj}}
+\\usepackage{{graphicx,textcomp,fancyhdr,hyperref}}
+\\begin{{document}}
+\\pagestyle{{fancy}}
+\\pagenumbering{{gobble}}
+\\chead{{Summary of \\texttt{{RadVel}} results for {}}}
+""".format(self.starname_tex)
 
     def _postamble(self):
         return """
-\\end{document}"""
-    
+\\lfoot{{\\footnotesize{{report produced by \\texttt{{RadVel}} v{}: \
+\\href{{http://radvel.readthedocs.io}}{{http://radvel.readthedocs.io}}}}}}
+\\end{{document}}""".format(radvel.__version__)
 
     def texdoc(self):
         """TeX for entire document
@@ -84,11 +90,14 @@ class RadvelReport():
         
         out = self._preamble() + self.tabletex()
         if os.path.exists(self.runname+"_rv_multipanel.pdf"):
-            out += self.figtex(self.runname+"_rv_multipanel.pdf", caption=self._bestfit_caption())
+            out += self.figtex(self.runname+"_rv_multipanel.pdf",
+                                   caption=self._bestfit_caption())
         if os.path.exists(self.runname+"_corner.pdf"):
-            out += self.figtex(self.runname+"_corner.pdf", caption="Posterior distributions for all free parameters.")
+            out += self.figtex(self.runname+"_corner.pdf",
+                caption="Posterior distributions for all free parameters.")
         if os.path.exists(self.runname+"_corner_derived_pars.pdf"):
-            out += self.figtex(self.runname+"_corner_derived_pars.pdf", caption="Posterior distributions for all derived parameters.")
+            out += self.figtex(self.runname+"_corner_derived_pars.pdf",
+                caption="Posterior distributions for all derived parameters.")
 
         out += self._postamble()
         
@@ -139,7 +148,7 @@ The phase-folded model for planet %s is shown as the blue line.
 
         return cap
               
-    def compile(self, pdfname, depfiles=[]):
+    def compile(self, pdfname, latex_compiler='pdflatex', depfiles=[]):
         """Compile radvel report
 
         Compile the radvel report from a string containing TeX code
@@ -147,10 +156,11 @@ The phase-folded model for planet %s is shown as the blue line.
 
         Args:
             pdfname (string): name of the output PDF file
-            depfiles (list): list of file names of dependencies needed for LaTex compilation (e.g. figure files)
+            latex_compiler (string): path to latex
+            depfiles (list): list of file names of dependencies needed for 
+                LaTex compilation (e.g. figure files)
         """
         texname = os.path.basename(pdfname).split('.')[0] + '.tex'
-        
         current = os.getcwd()
         temp = tempfile.mkdtemp()
         for fname in depfiles:
@@ -161,22 +171,26 @@ The phase-folded model for planet %s is shown as the blue line.
         f = open(texname, 'w')
         f.write(self.texdoc())
         f.close()
-
-        # LaTex likes to be compiled a few times
-        # to get the table widths correct
-        if radvel.utils.cmd_exists(latex_compiler):
+        try:
             for i in range(3):
-                proc = subprocess.Popen([latex_compiler, texname], stdout=subprocess.PIPE)
-                proc.communicate()
+                # LaTex likes to be compiled a few times
+                # to get the table widths correct
+                proc = subprocess.Popen(
+                    [latex_compiler, texname], stdout=subprocess.PIPE, 
+                )
+                proc.communicate() # Let the subprocess complete
+        except OSError:
+            msg = """ 
+WARNING: REPORT: could not run %s. Ensure that %s is in your PATH
+or pass in the path as an argument
+""" % (latex_compiler, latex_compiler)
+            print msg
+            return 
 
-            shutil.copy(pdfname, current)
-        else:
-            print "WARNING: REPORT: Could not locate %s executable. Failed to generate summary report PDF. \
-            Make sure that %s is installed and in your system's PATH." % (latex_compiler, latex_compiler)
-            
+        shutil.copy(pdfname, current)
         shutil.copy(texname, current)
+        
         shutil.rmtree(temp)
-
         os.chdir(current)
 
 class TexTable(RadvelReport):
@@ -196,9 +210,9 @@ class TexTable(RadvelReport):
     
     def _header(self):
         fstr = """
-\\begin{deluxetable}{lrr}
+\\begin{deluxetable}{lrrr}
 \\tablecaption{MCMC Posteriors}
-\\tablehead{\\colhead{Parameter} & \\colhead{Value} & \\colhead{Units}}
+\\tablehead{\\colhead{Parameter} & \\colhead{Credible Interval} & \\colhead{Maximum Likelihood} & \\colhead{Units}}
 \\startdata
 """
         return fstr
@@ -214,24 +228,31 @@ class TexTable(RadvelReport):
         return fstr
     
     def _row(self, param, unit):
-        med = self.quantiles[param][0.5]
-        low = self.quantiles[param][0.5] - self.quantiles[param][0.159]
-        high = self.quantiles[param][0.841] - self.quantiles[param][0.5]
 
+        if unit == 'radians':
+            med, low, high = radvel.utils.geterr(self.report.chains[param], angular=True)
+        else:
+            med = self.quantiles[param][0.5]
+            low = self.quantiles[param][0.5] - self.quantiles[param][0.159]
+            high = self.quantiles[param][0.841] - self.quantiles[param][0.5]
+
+        maxlike = self.post.maxparams[param]
+        
         tex = self.report.latex_dict[param]
 
         low = radvel.utils.round_sig(low)
         high = radvel.utils.round_sig(high)
+        maxlike, errlow, errhigh = radvel.utils.sigfig(maxlike, low, high)
         med, errlow, errhigh = radvel.utils.sigfig(med, low, high)
 
         if errlow <= 1e-12 or errhigh <= 1e-12:
-            med = "$\\equiv$ %s" % round(self.quantiles[param][0.5],4)
+            med = maxlike = "$\\equiv$ %s" % round(self.quantiles[param][0.5],4)
             errfmt = ''
         else:
             if errhigh == errlow: errfmt = '$\pm %s$' % (errhigh)    
             else: errfmt = '$^{+%s}_{-%s}$' % (errhigh,errlow)
 
-        row = "%s & %s %s & %s\\\\\n" % (tex,med,errfmt,unit)
+        row = "%s & %s %s & %s & %s\\\\\n" % (tex,med,errfmt,maxlike,unit)
 
         return row
 

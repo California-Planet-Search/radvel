@@ -1,0 +1,2 @@
+global-include src/*.pyx
+global-include src/*.c

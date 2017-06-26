@@ -8,35 +8,24 @@ Getting Started
 Installation
 +++++++
 
-Install python dependencies: `emcee`, `corner`, `pandas`,
-`matplotlib-1.5.1`, `cython (tested with 0.22)`, `astropy`,
-`pdflatex` (installed and in your system's path):
+Install ``radvel`` using pip:
 
 .. code-block:: bash
 
-    $ pip install emcee corner pandas matplotlib-1.5.1 cython astropy
+    $ pip install radvel
 
-Make sure that ``pdflatex`` is installed and in your system's
-path. You can get ``pdflatex`` by installing the `TexLive package
+Make sure that ``pdflatex`` is installed. 
+You can get ``pdflatex`` by installing the `TexLive package
 <https://www.tug.org/texlive/>`_ or other LaTeX distributions.
+By default it is expected to be in your system's path, but you may
+specify a path to pdflatex using the ``--latex-compiler``
+option at the ``radvel report`` step.
 
-If ``git`` is installed on your system then clone the repository:
+Please cite the folloing DOI if you make use of RadVel in any 
+publication.
 
-.. code-block:: bash
-
-    $ git clone https://github.com/California-Planet-Search/radvel.git
-
-If ``git`` is not installed in your system then download ``radvel``
-directly from github web interface: `RadVel on GitHub <https://github.com/California-Planet-Search/radvel>`_
-
-Install the package into your system's python environment:
-
-.. code-block:: bash
-		
-    $ cd radvel
-    $ pip install . --upgrade
-
-
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.580821.svg
+   :target: https://doi.org/10.5281/zenodo.580821
 
 Example Fit
 +++++++

@@ -28,8 +28,14 @@ def main():
         configuration file (without .py)"
     )
     psr_parent.add_argument('-s','--setup',
-        dest='setupfn', type=str, nargs='+', 
-        help="Setup file[s]. Can chain multiple."
+        dest='setupfn', type=str, 
+        help="Setup file."
+    )
+    psr_parent.add_argument('--decorr',
+        dest='decorr',
+        action='store_true',
+        default=False,
+        help="Include decorrelation in likelihood."
     )
 
     # Fitting    
@@ -64,11 +70,17 @@ def main():
         description="Perform MCMC exploration"
     )
     psr_mcmc.add_argument(
-        '--nsteps', dest='nsteps', action='store',default=20000, type=float, 
-        help='Number of steps per chain [20000]',)
+        '--nsteps', dest='nsteps', action='store',default=10000, type=float, 
+        help='Number of steps per chain [10000]',)
     psr_mcmc.add_argument(
         '--nwalkers', dest='nwalkers', action='store', default=50, type=int,
         help='Number of walkers. [50]', 
+    )
+    psr_mcmc.add_argument(
+    '--nensembles', dest='ensembles', action='store', default=8, type=int,
+    help='''\
+Number of ensembles. Will be run in parallel on separate CPUs [8]
+'''
     )
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
@@ -115,23 +127,20 @@ def main():
         '--comptype', dest='comptype', action='store',
         default='nplanets', type=str, 
         help='Type of BIC model comparison table to include. \
-Default: nplanets')
+        Default: nplanets')
+
+    psr_report.add_argument(
+        '--latex-compiler', default='pdflatex', type=str, 
+        help='Path to latex compiler'
+        )
 
     psr_report.set_defaults(func=radvel.driver.report)
-
-
-    # Default    
-    #psr_def = subpsr.add_parser(
-    #    'full', parents=[psr_parent],
-    #    description="Perform max-likelihood fitting"
-    #)
-    #psr_def.set_defaults(func=radvel.driver.def)
-
     
     args = psr.parse_args()
 
     if args.outputdir is None:
-        setupfile = args.setupfn[0]
+        setupfile = args.setupfn
+        print setupfile
         system_name = os.path.basename(setupfile).split('.')[0]
         outdir = os.path.join('./', system_name)
         args.outputdir = outdir
