@@ -8,7 +8,7 @@ class Likelihood(object):
     def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[], decorr_vectors=[]):
         self.model = model
         self.params = model.params
-
+        
         self.x = np.array(x) # Variables must be arrays.
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
@@ -369,22 +369,27 @@ class RVLikelihoodGP(Likelihood):
         sigma_jit = self.params[self.jit_param]
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
-
+        
         GP_scale = self.params[self.gp_scale_param]
         GP_per = self.params[self.gp_period_param]
         GP_amp = self.params[self.gp_amp_param]
+        
         if GP_scale <= 0 or GP_per <= 0 or GP_amp < 0:
             gplike = -np.inf
         else:
             #self.gp = george.GP(GP_amp*(george.kernels.ExpSine2Kernel(GP_scale, GP_per)))                                  
-            self.gp = george.GP(GP_amp*george.kernels.ExpSquaredKernel(GP_scale))
+            #self.gp = george.GP(GP_amp*george.kernels.ExpSquaredKernel(GP_scale))
             #self.gp = george.GP(GP_amp*(george.kernels.ExpSine2Kernel(GP_per/GP_scale, GP_per) + george.kernels.ExpSquaredKernel(GP_scale)))
+            self.gp = george.kernels.ConstantKernel(GP_amp) * \
+                      george.kernels.ExpSquaredKernel(GP_scale) * \
+                      george.kernels.ExpSine2Kernel(1.0, GP_per)
             res_preGP = self.y - self.params[self.gamma_param] - self.model(self.x)
             self.gp.compute(self.x, self.errorbars())
             gplike = self.gp.lnlikelihood(res_preGP, self.x)
             
         #gplike = -0.5 * np.sum((res_preGP-self.GPmodel(self.x))**2/self.errorbars()**2)
-        #loglike += gplike
+        print GP_per, GP_scale, GP_amp, gplike, res_preGP[4]
+        loglike += gplike
         
         return loglike
 

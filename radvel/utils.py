@@ -62,14 +62,15 @@ Converting 'logjit' to 'jit' for you now.
         likes[inst] = radvel.likelihood.RVLikelihoodGP(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst,
-            decorr_vars=decorr_vars, decorr_vectors=decorr_vectors
+            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst
         )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
-        likes[inst].params['GP_amp_'+inst] = iparams['gamma_'+inst]
-
+        likes[inst].params['GP_amp_'+inst] = iparams['GP_amp_'+inst]
+        
     like = radvel.likelihood.CompositeLikelihood(likes.values())
+    like.params['GP_scale'] = iparams['GP_scale']
+    like.params['GP_per'] = iparams['GP_per']
 
     # Set fixed/vary parameters
     like.vary.update(P.vary)
