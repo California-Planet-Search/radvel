@@ -148,7 +148,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             pscale = np.abs(val * 1e-5*np.log10(val))
             pscale_per = pscale
         elif par.startswith('tc'):
-            pscale = pscale_per
+            pscale = 0.1
         else:
             pscale = np.abs(0.10 * val)
 
