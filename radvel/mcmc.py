@@ -135,6 +135,11 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
     pi = likelihood.get_vary_params()
     statevars.ndim = pi.size
 
+    if nwalkers < 2*statevars.ndim:
+        print("WARNING: Number of walkers is less than 2 times number \
+of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
+        statevars.nwalkers = 2*statevars.ndim
+
     # set up perturbation size
     pscales = []
     for par in likelihood.list_vary_params():
@@ -143,7 +148,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
             pscale = np.abs(val * 1e-5*np.log10(val))
             pscale_per = pscale
         elif par.startswith('tc'):
-            pscale = pscale_per
+            pscale = 0.1
         else:
             pscale = np.abs(0.10 * val)
 
@@ -157,11 +162,11 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
     for e in range(ensembles):
         lcopy = copy.deepcopy(likelihood)
         pi = lcopy.get_vary_params()
-        p0 = np.vstack([pi]*nwalkers)
-        p0 += [np.random.rand(statevars.ndim)*pscales for i in range(nwalkers)]
+        p0 = np.vstack([pi]*statevars.nwalkers)
+        p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
         statevars.initial_positions.append(p0)
         statevars.samplers.append(emcee.EnsembleSampler( 
-            nwalkers, statevars.ndim, lcopy.logprob_array, threads=1))
+            statevars.nwalkers, statevars.ndim, lcopy.logprob_array, threads=1))
 
         
     num_run = int(np.round(nrun / checkinterval))

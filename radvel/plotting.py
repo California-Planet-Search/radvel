@@ -477,11 +477,16 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
     
     """
 
+    if 'planet_letters' in dir(P):
+        planet_letters = P.planet_letters
+    else:
+        planet_letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k']
+    
     # Determine which columns to include in corner plot
     labels = []
     texlabels = []
     for i in np.arange(1, P.nplanets +1, 1):
-        letter = P.planet_letters[i]
+        letter = planet_letters[i]
 
         for key in 'mpsini rhop'.split():
             label = '{}{}'.format(key,i)
