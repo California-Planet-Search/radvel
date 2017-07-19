@@ -147,6 +147,9 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         if par.startswith('per'):
             pscale = np.abs(val * 1e-5*np.log10(val))
             pscale_per = pscale
+        elif par.startswith('logper'):
+            pscale = np.abs(1e-5 * val)
+            pscale_per = pscale
         elif par.startswith('tc'):
             pscale = 0.1
         else:
