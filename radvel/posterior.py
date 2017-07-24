@@ -59,8 +59,10 @@ class Posterior(Likelihood):
             float: BIC
         """
         
-        return -2.0 * self.logprob() + len(self.likelihood.get_vary_params()) + np.log(len(self.likelihood.y))
-
+        n = len(self.likelihood.y)
+        k = len(self.likelihood.get_vary_params())
+        _bic = np.log(n) * k - 2.0 * self.logprob() 
+        return _bic
     
     def logprob_array(self, params_array):
         """Log probability for parameter vector
