@@ -4,7 +4,6 @@ import numpy as np
 import copy
 import pp
 import threading
-from multiprocessing.pool import Pool
 from scipy import optimize
 import sys
 import time
@@ -207,14 +206,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         ch = CheckThread(convergence_check, statevars.server, statevars.samplers)
         ch.start()
 
-        # Use multiprocessing
-        # result = pool.apply_async(convergence_check,
-        #                 (statevars.server, statevars.samplers))
-
-        # ch = CheckThread(status_message, statevars)
-        # ch.start()
-        
-        #convergence_check(statevars.server, statevars.samplers)
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers
         if not statevars.burn_complete and statevars.maxgr <= burnGR:
