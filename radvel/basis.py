@@ -1,23 +1,21 @@
-import numpy as np        
-import copy
+import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from orbit import timeperi_to_timetrans, timetrans_to_timeperi
 import radvel.model
 
 # List of available bases
-BASIS_NAMES = [
-'per tp e w k', # The CPS basis
-'per tc secosw sesinw logk',
-'per tc secosw sesinw k',
-'per tc ecosw esinw k',
-'per tc e w k'
+BASIS_NAMES = ['per tp e w k',  # The CPS basis
+               'per tc secosw sesinw logk',
+               'per tc secosw sesinw k',
+               'per tc ecosw esinw k',
+               'per tc e w k']
 
-]
-    
+
 def _print_valid_basis():
-    print "Available bases:"
-    print "\n".join(BASIS_NAMES)
+    print("Available bases:")
+    print("\n".join(BASIS_NAMES))
+
 
 def _copy_params(params_in):
     #meta = params_in['meta'].copy()
@@ -30,6 +28,7 @@ def _copy_params(params_in):
     params_out.update(params_in)
     
     return params_out
+
 
 class Basis(object):
     """
@@ -50,21 +49,21 @@ class Basis(object):
         'per tc ecosw esinw k'  \n
         'per tc e w k'
     """
-    
     cps_params = 'per tp e w k'.split()
+
     def __init__(self, *args):
         self.name = None
         self.num_planets = 0
-        if len(args)==0:
+        if len(args) == 0:
             _print_valid_basis()
-            return None
+        #    return None
         
         name, num_planets = args
 
         if BASIS_NAMES.count(name)==0:
-            print "{} not valid basis".format(name)
+            print("{} not valid basis".format(name))
             _print_valid_basis()
-            return None
+        #    return None
 
         self.name = name
         self.num_planets = num_planets
@@ -73,7 +72,6 @@ class Basis(object):
     def __repr__(self):
         return "Basis Object <{}>".format(self.name)
 
-        
     def to_cps(self, params_in, **kwargs):
         """Convert to CPS basis
 
@@ -87,24 +85,27 @@ class Basis(object):
             dict or DataFrame: parameters expressed in the CPS basis
 
         """
-
         basis_name = kwargs.setdefault('basis_name', self.name)
 
-        if isinstance(params_in,pd.core.frame.DataFrame):
+        if isinstance(params_in, pd.core.frame.DataFrame):
             # Output by emcee
             params_out = params_in.copy()
         else:
             params_out = _copy_params(params_in)
+
         for num_planet in range(1,1+self.num_planets):
+
             def _getpar(key):
                 return params_in['{}{}'.format(key,num_planet)]
+
             def _setpar(key, value):
                 params_out['{}{}'.format(key,num_planet)] = value
-            def _delpar(key):
-                if isinstance(params_in,OrderedDict):
-                    del params_out['{}{}'.format(key,num_planet)]
-                elif isinstance(params_in,pd.core.frame.DataFrame):
-                    params_out.drop('{}{}'.format(key,num_planet))
+
+            # def _delpar(key):
+            #    if isinstance(params_in,OrderedDict):
+            #        del params_out['{}{}'.format(key,num_planet)]
+            #    elif isinstance(params_in,pd.core.frame.DataFrame):
+            #        params_out.drop('{}{}'.format(key,num_planet))
 
             # transform into CPS basis
             if basis_name == 'per tp e w k':
@@ -123,7 +124,7 @@ class Basis(object):
                 k = _getpar('k')
                 tp = timetrans_to_timeperi(tc, per, e, w)
             
-            if basis_name=='per tc secosw sesinw logk':
+            if basis_name == 'per tc secosw sesinw logk':
                 # pull out parameters
                 per = _getpar('per')
                 tc = _getpar('tc')
@@ -136,7 +137,7 @@ class Basis(object):
                 w = np.arctan2(sesinw , secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-            if basis_name=='per tc secosw sesinw k':
+            if basis_name == 'per tc secosw sesinw k':
                 # pull out parameters
                 per = _getpar('per')
                 tc = _getpar('tc')
@@ -149,7 +150,7 @@ class Basis(object):
                 w = np.arctan2(sesinw , secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-            if basis_name=='per tc ecosw esinw k':
+            if basis_name == 'per tc ecosw esinw k':
                 # pull out parameters
                 per = _getpar('per')
                 tc = _getpar('tc')
@@ -162,7 +163,6 @@ class Basis(object):
                 w = np.arctan2(esinw , ecosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-                                
             # shoves cps parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
@@ -172,7 +172,6 @@ class Basis(object):
 
         params_out.basis = Basis('per tp e w k', self.num_planets)
         return params_out
-
 
     def from_cps(self, params_in, newbasis, **kwargs):
         """Convert from CPS basis into another basis
@@ -191,7 +190,7 @@ class Basis(object):
         """
         
         if newbasis not in BASIS_NAMES:
-            print "{} not valid basis".format(newbasis)
+            print("{} not valid basis".format(newbasis))
             _print_valid_basis()
             return None
         
@@ -200,17 +199,20 @@ class Basis(object):
             params_out = params_in.copy()
         else:
             params_out = _copy_params(params_in)
+
         for num_planet in range(1,1+self.num_planets):
+
             def _getpar(key):
                 return params_in['{}{}'.format(key,num_planet)]
+
             def _setpar(key, value):
                 params_out['{}{}'.format(key,num_planet)] = value
+
             def _delpar(key):
                 if isinstance(params_in,OrderedDict):
                     del params_out['{}{}'.format(key,num_planet)]
                 elif isinstance(params_in,pd.core.frame.DataFrame):
                     params_out.drop('{}{}'.format(key,num_planet))
-            
 
             if newbasis == 'per tc e w k':
                 per = _getpar('per')
@@ -224,7 +226,6 @@ class Basis(object):
                 if not kwargs.get('keep', True):
                     _delpar('tp')
 
-            
             if newbasis == 'per tc secosw sesinw logk':
                 per = _getpar('per')
                 e = _getpar('e')
@@ -248,9 +249,8 @@ class Basis(object):
                     _delpar('w')
                     _delpar('k')
 
-                basis_name = newbasis
+                # basis_name = newbasis
                 self.params = newbasis.split()
-
                 
             if newbasis == 'per tc secosw sesinw k':
                 per = _getpar('per')
@@ -298,8 +298,6 @@ class Basis(object):
                 self.name = newbasis
                 self.params = newbasis.split()
 
-
         params_out.basis = Basis(newbasis, self.num_planets)
                 
         return params_out
-                
