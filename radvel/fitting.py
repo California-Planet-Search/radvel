@@ -25,7 +25,7 @@ def maxlike_fitting(post, verbose=True):
 
     res = optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method='Powell',
-        options=dict(maxiter=100,maxfev=100000,xtol=1e-8)
+        options=dict(maxiter=200, maxfev=100000, xtol=1e-8)
     )
 
     cpspost = copy.copy(post)

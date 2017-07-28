@@ -184,7 +184,7 @@ The phase-folded model for planet %s is shown as the blue line.
 WARNING: REPORT: could not run %s. Ensure that %s is in your PATH
 or pass in the path as an argument
 """ % (latex_compiler, latex_compiler)
-            print msg
+            print(msg)
             return 
 
         shutil.copy(pdfname, current)

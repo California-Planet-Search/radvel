@@ -1,12 +1,10 @@
-import os
 import string
 import copy
-
 import numpy as np
 import pylab as pl
 import matplotlib
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
-from mpl_toolkits.axes_grid1 import make_axes_locatable, AxesGrid
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.ticker import NullFormatter, MaxNLocator
 from matplotlib import rcParams, gridspec
 from matplotlib.backends.backend_pdf import PdfPages
@@ -14,7 +12,7 @@ from astropy.time import Time
 import corner
 
 import radvel
-from radvel.utils import t_to_phase, fastbin, round_sig, sigfig
+from radvel.utils import t_to_phase, fastbin
 
 latex = {
     'ms':'m s$^{\mathregular{-1}}$',
@@ -42,7 +40,8 @@ cmap = matplotlib.cm.nipy_spectral
 rcParams['font.size'] = 9
 rcParams['lines.markersize'] = 5
 rcParams['axes.grid'] = False
-    
+
+
 def _mtelplot(x, y, e, tel, ax, telfmts={}):
     """Plot data from from multiple telescopes
 
@@ -55,10 +54,8 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 
         telfmts = {
              'hires': dict(fmt='o',label='HIRES',msize=),
-             'harps-n' dict(fmt='s',)}  
-    
+             'harps-n' dict(fmt='s',)}
     """
-
     lw = 1.0
 
     default_colors = ['orange', 'purple', 'magenta' , 'pink']
@@ -97,11 +94,13 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
         matplotlib.ticker.ScalarFormatter(useOffset=False)
     )
 
+
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
                        phase_nrows=None, legend=True, rv_phase_space=0.08):
-    """Multi-panel RV plot to display model using post.params orbital paramters.
+    """Multi-panel RV plot to display model using post.params orbital
+    parameters.
 
     Args:
         post (radvel.Posterior): Radvel posterior object. The model
@@ -136,7 +135,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         list: list of axis objects
 
     """
-    figwidth = 7.5 # spans a page with 0.5in margins
+    figwidth = 7.5  # spans a page with 0.5in margins
     phasefac = 1.4
     ax_rv_height = figwidth * 0.6
     ax_phase_height = ax_rv_height / phasefac
@@ -174,7 +173,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     else: 
         resolution = 2000
 
-
     if isinstance(cpspost.likelihood, radvel.likelihood.CompositeLikelihood):
         like_list = cpspost.likelihood.like_list
     else:
@@ -190,7 +188,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         
     dt = max(rvtimes) - min(rvtimes)
     rvmodt = np.linspace(
-        min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp, int(resolution)
+        min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp,
+        int(resolution)
     )
     
     rvmod2 = model(rvmodt)
@@ -221,24 +220,24 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         + cpsparams['curv'] * (rvtimes-model.time_base)**2
     )
 
-
     # Provision figure
     figheight = ax_rv_height + ax_phase_height * phase_nrows
     divide = 1 - ax_rv_height / figheight
-    fig = pl.figure(figsize=(figwidth,figheight))
+    fig = pl.figure(figsize=(figwidth, figheight))
     fig.subplots_adjust(left=0.12, right=0.95)
     gs_rv = gridspec.GridSpec(1, 1)
     gs_rv.update(left=0.12, right=0.93, top=0.93,
-                     bottom=divide+rv_phase_space*0.5)
+                 bottom=divide+rv_phase_space*0.5)
     gs_phase = gridspec.GridSpec(phase_nrows, phase_ncols)
-    if phase_ncols==1:
+
+    if phase_ncols == 1:
         gs_phase.update(left=0.12, right=0.93,
-                            top=divide-rv_phase_space*0.5,
-                            bottom=0.07,hspace=0.003)
+                        top=divide - rv_phase_space * 0.5,
+                        bottom=0.07, hspace=0.003)
     else:
         gs_phase.update(left=0.12, right=0.93,
-                            top=divide-rv_phase_space*0.5,
-                            bottom=0.07,hspace=0.25,wspace=0.25)
+                        top=divide - rv_phase_space * 0.5,
+                        bottom=0.07, hspace=0.25, wspace=0.25)
 
     axL = []
     axRV = pl.subplot(gs_rv[0, 0])
@@ -248,23 +247,24 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     axL += [axRV]
    
-    #Unphased plot
+    # Unphased plot
     ax.axhline(0, color='0.5', linestyle='--')
     ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
 
     def labelfig(ax, pltletter):
         text = "{})".format(chr(pltletter))
         add_anchored(
-            text,loc=2,prop=dict(fontweight='bold',size='large'),frameon=False
+            text, loc=2, prop=dict(fontweight='bold', size='large'),
+            frameon=False
         )
 
-    labelfig(ax,pltletter)
+    labelfig(ax, pltletter)
 
     pltletter += 1
     _mtelplot(
-        plttimes,rawresid+rvmod,rverr,cpspost.likelihood.telvec, ax, telfmts
+        plttimes, rawresid+rvmod, rverr, cpspost.likelihood.telvec, ax, telfmts
     )
-    ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
+    ax.set_xlim(min(plttimes)-0.01*dt, max(plttimes)+0.01*dt)
     
     pl.setp(axRV.get_xticklabels(), visible=False)
 
@@ -274,16 +274,15 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     
     # Years on upper axis
     axyrs = axRV.twiny()
-#    axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
-
+    # axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
 
     xl = np.array(list(ax.get_xlim())) + e
     decimalyear = Time(xl,format='jd',scale='utc').decimalyear
-    axyrs.plot(decimalyear,decimalyear)
+    axyrs.plot(decimalyear, decimalyear)
     axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
     axyrs.set_xlim(*decimalyear)
     axyrs.set_xlabel('Year', fontweight='bold')
-    #axyrs.xaxis.set_major_locator(MaxNLocator(8))
+    # axyrs.xaxis.set_major_locator(MaxNLocator(8))
 
     if not yscale_auto: 
         scale = np.std(rawresid+rvmod)
@@ -295,19 +294,19 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     divider = make_axes_locatable(axRV)
     axResid = divider.append_axes(
-        "bottom",size="50%",pad=0.0,sharex=axRV,sharey=None
+        "bottom",size="50%", pad=0.0, sharex=axRV, sharey=None
     )
     ax = axResid
     axL += [axResid]
 
-    #Residuals
-    ax.plot(mplttimes,slope,'b-',lw=fit_linewidth)
+    # Residuals
+    ax.plot(mplttimes, slope, 'b-', lw=fit_linewidth)
 
-    labelfig(ax,pltletter)
+    labelfig(ax, pltletter)
 
     pltletter += 1
 
-    _mtelplot(plttimes,resid,rverr, cpspost.likelihood.telvec,ax, telfmts)
+    _mtelplot(plttimes, resid, rverr, cpspost.likelihood.telvec, ax, telfmts)
     if not yscale_auto: 
         scale = np.std(resid)
         ax.set_ylim(-yscale_sigma * scale, yscale_sigma * scale)
@@ -333,7 +332,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         if nophase: break
         
         pnum = i+1
-        #print "Planet %d" % pnum
+        #print("Planet %d" % pnum)
 
         rvdat = rvdat.copy()
         rvmod2 = model(rvmodt, planet_num=pnum) - slope
@@ -396,10 +395,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
                 if hasattr(post, 'medparams'):
                     val = post.medparams["%s%d" % (print_params[l],pnum)]
                 else:
-                    print "WARNING: medparams attribute not found in "+ \
-                          "posterior object will annotate with "+ \
-                          "max-likelihood values and reported uncertainties "+ \
-                          "may not be appropriate."
+                    print("WARNING: medparams attribute not found in " +
+                          "posterior object will annotate with " +
+                          "max-likelihood values and reported uncertainties " +
+                          "may not be appropriate.")
                 err = uparams["%s%d" % (print_params[l],pnum)]
                 if err > 0:
                     val, err, errlow = radvel.utils.sigfig(val, err)
@@ -417,7 +416,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
-        print "RV multi-panel plot saved to %s" % saveplot
+        print("RV multi-panel plot saved to %s" % saveplot)
         
     return fig, axL
 
@@ -450,7 +449,7 @@ def corner_plot(post, chains, saveplot=None):
     
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
-        print "Corner plot saved to %s" % saveplot
+        print("Corner plot saved to %s" % saveplot)
     else:
         pl.show()
 
@@ -512,7 +511,7 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
     
     if saveplot != None:
         pl.savefig(saveplot,dpi=150)
-        print "Corner plot saved to %s" % saveplot
+        print("Corner plot saved to %s" % saveplot)
     else: pl.show()
     rcParams['font.size'] = f
     
@@ -596,7 +595,7 @@ def correlation_plot(post, chains=None, outfile=None):
                 vec = like.decorr_vectors[var]
                 vec -= np.mean(vec)
                 p = np.poly1d(pars)
-                print var, pars
+                print(var, pars)
                 
                 pl.subplot('33%d' % pltind)
                 pl.plot(vec, p(vec), 'b-', lw=3)
