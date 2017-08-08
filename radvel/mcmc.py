@@ -121,7 +121,6 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
         return sampler
 
     server = pp.Server(ncpus=ensembles)
-    pool = Pool(processes=1)
 
     statevars.server = server
     statevars.ensembles = ensembles
