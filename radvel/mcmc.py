@@ -82,7 +82,7 @@ def convergence_check(server, samplers):
 
     # Must have compelted at least 5% or 1000 steps per walker before
     # attempting to calculate GR
-    if statevars.pcomplete < 10 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
+    if statevars.pcomplete < 5 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
     else:
         (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains)
