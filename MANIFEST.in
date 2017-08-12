@@ -1,2 +1,3 @@
 global-include src/*.pyx
 global-include src/*.c
+include requirements.txt
