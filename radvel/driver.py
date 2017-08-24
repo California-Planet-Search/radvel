@@ -10,7 +10,8 @@ import ConfigParser
 from collections import OrderedDict
 import pandas as pd
 
-import numpy as np 
+import numpy as np
+import pdb
 
 import radvel
 
@@ -45,6 +46,8 @@ def plots(args):
             P,_ = radvel.utils.initialize_posterior(config_file)
             if hasattr(P, 'bjd0'):
                 args.plotkw['epoch'] = P.bjd0
+            if hasattr(P, 'gp'):
+                args.plotkw['gp'] = P.gp
             radvel.plotting.rv_multipanel_plot(
                 post, saveplot=saveto, **args.plotkw
             )
@@ -379,6 +382,9 @@ def derive(args):
 
     save_status(statfile, 'derive', savestate)
 
+    csvfn2 =  os.path.join(args.outputdir, conf_base+'_derived.csv')
+    post_summary=chains.quantile([0.159, 0.5, 0.841])
+    post_summary.to_csv(csvfn2)
 
 def report(args):
     """Generate summary report
