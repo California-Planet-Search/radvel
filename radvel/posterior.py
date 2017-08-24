@@ -44,7 +44,7 @@ class Posterior(Likelihood):
         Returns:
             float: log probability of the likelihood + priors
         """
-            
+
         _logprob = self.likelihood.logprob()
         for prior in self.priors:
             _logprob += prior( self.params )
