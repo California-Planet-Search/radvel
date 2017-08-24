@@ -9,7 +9,10 @@ import numpy as np
 import radvel
 
 class RVModelGP(RVModel):
-    #MIGHT NOT NEED KERNEL AS INPUT HERE
+    """
+    RVModel object with GP hyperparams added as params via the gp object. 
+    __call__ method is identical to generic RVModel (for now).
+    """
     def __init__(self, params, gp, time_base=0):
         super(RVModelGP, self).__init__(params, time_base)
         self.gp = gp
@@ -30,12 +33,12 @@ class RVModelGP(RVModel):
 
     
 class RVLikelihoodGP(RVLikelihood):
-    """RV Likelihood
+    """RV Likelihood GP
 
-    The Likelihood object for a radial velocity dataset
+    The RVLikelihood object for GP modeling
 
     Args:
-        model (radvel.model.RVModel): RV model object
+        model (radvel.model.RVModelGP): RV model object, which includes gp params
         t (array): time array
         vel (array): array of velocities
         errvel (array): array of velocity uncertainties
@@ -61,6 +64,9 @@ class RVLikelihoodGP(RVLikelihood):
     def logprob(self):
         """
         Return log-likelihood given the data and model.
+        log-likelihood computed using Cholesky decomposition as:
+           lnL = -0.5*r.T*inverse(K)*r - 0.5*ln[det(K)] - N*ln(2pi)/2, 
+           r = residuals vector, K = covariance matrix, N = number of datapoints.  
         Priors are not applied here.
 
         Returns:
@@ -69,6 +75,7 @@ class RVLikelihoodGP(RVLikelihood):
         hpars = [self.params[self.gp.parnames[n]+'_'+self.suffix] for n in range(self.gp.Npars)]
         r = scipy.matrix([self.residuals()]).T
         K = self.kernel.cov(self.x, self.x, hpars, yerr = self.yerr, jitter = self.params[self.jit_param])
+        #Solve b = inverse(K)*r, K = L*L.T
         L = cho_factor(K)
         b = cho_solve(L, r)
 
@@ -84,9 +91,9 @@ class CompositeLikelihoodGP(CompositeLikelihood):
 
     def __init__(self, like_list):
          
-        """Composite Likelihood
+        """Composite LikelihoodGP
 
-        A thin wrapper to combine multiple `Likelihood`
+        A thin wrapper to combine multiple GP `Likelihood`
         objects. One `Likelihood` applies to a dataset from
         a particular instrument.
 
@@ -103,7 +110,7 @@ class CompositeLikelihoodGP(CompositeLikelihood):
         
     def logprob(self):
         """
-        See `radvel.likelihood.RVLikelihoodGP.logprob`
+        See `RVLikelihoodGP.logprob`
         """
         
         _logprob = 0
@@ -116,6 +123,22 @@ class CompositeLikelihoodGP(CompositeLikelihood):
 class GP(object):
     """
     Object to store GP parameters
+
+    Args:
+        kern (string): Name of GP kernel. 
+                       Name and number of hyperparams must be defined in Kernel class.
+        hyperparams (dict): Keys are instument names (str). 
+                            Values are lists of hyperparams in order defined by Kernel class. 
+                            Same kernel for each instrument, thus same number of hyperparams. 
+        parnames (list of string(s)): Names assigned to hyperparameters. No suffixes here.
+
+        shared:  List of hyperparams to be fit as single free param for all instruments 
+                 (not yet functional)
+
+        xpred (array, optional): X values at which to compute predictive mean and sigma for plotting purposes.
+                                 Default is 10000 evenly spaced values.  
+
+        plot_sigma (List, optional): Confidence interval (units of sigma) over which to shade predictive distribution. Will overplot multiple intervals if multiple values given.                            
     """
     
     def __init__(self, kern, hyperparams, parnames, shared=None, xpred=None, plot_sigma=[1]):
@@ -165,6 +188,16 @@ class GP(object):
 
 
 class Kernel(object):
+    """
+    Object to store kernel info and compute covariance matrix
+
+    Args:
+        name (string): Name of GP kernel. 
+                       New kernels can be added/modified by: 
+                       1. updating the "kernels" attribute {name:N_hyperparams} AND
+                       2. In method "cov", defining computation of covariance matrix if name = (new kernel name)   
+    """
+    
     
     def __init__(self, name):
         self.name=name
@@ -200,6 +233,9 @@ class Kernel(object):
         return 
 
     def cov(self, x1, x2, hpars, yerr = None, jitter = None):
+
+        #Method can be used to compute K, Ks, or Kss depending on x1, x2.
+        
         X1 = scipy.matrix([x1]).T
         X2 = scipy.matrix([x2]).T 
 
