@@ -496,7 +496,7 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
             if not is_column:
                 break
             
-            null_column = chains.isnull().any().iloc[label]
+            null_column = chains.isnull().any().loc[label]
             if null_column:
                 break
 
