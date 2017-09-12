@@ -382,7 +382,7 @@ def derive(args):
 
     save_status(statfile, 'derive', savestate)
 
-    csvfn2 =  os.path.join(args.outputdir, conf_base+'_derived.csv')
+    csvfn2 =  os.path.join(args.outputdir, conf_base+'_derived_summary.csv')
     post_summary=chains.quantile([0.159, 0.5, 0.841])
     post_summary.to_csv(csvfn2)
 
