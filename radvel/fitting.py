@@ -31,7 +31,7 @@ def maxlike_fitting(post, verbose=True):
     cpspost = copy.copy(post)
     cpsparams = post.params.basis.to_cps(post.params)
     cpspost.params.update(cpsparams)
-    
+
     if verbose:
         print "Final loglikelihood = %f" % post.logprob()
         print "Best-fit parameters:"
@@ -76,7 +76,7 @@ def model_comp(post, verbose=False):
                 if num > n:
                     if par.startswith('k') or par.startswith('logk'):
                         post.params[par] = 0.0
-                    post.vary[par] = False
+                    #post.vary[par] = False  # WHY IS THIS LINE HERE, K SHOULD BE COUNTED AS FREE PARAM
                 else:
                     post.params[par] = ipost.params[par]
                     post.vary[par] = ipost.vary[par]

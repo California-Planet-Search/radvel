@@ -112,7 +112,7 @@ should have only integers as keys."""
                         tex_labels[k] = "$%s}$" % k.replace(tex, texdict[tex])
                         
             if k not in tex_labels.keys():
-                tex_labels[k] = k
+                tex_labels[k] = k.split('_')[0] + '$_' + k.split('_')[1] + '$' 
 
         return tex_labels
         
@@ -171,12 +171,13 @@ class RVModel(object):
             w = params_cps['w{}'.format(num_planet)]
             k = params_cps['k{}'.format(num_planet)]
             orbel_cps = np.array([per, tp, e, w, k])
+            
             vel+=kepler.rv_drive(t, orbel_cps)
 
         vel+=self.params['dvdt'] * ( t - self.time_base )
         vel+=self.params['curv'] * ( t - self.time_base )**2
-        return vel
 
+        return vel
 
 # I had to add these methods to get the model object to be
 # pickle-able, so we could run the mcmc in as a in multi-threaded

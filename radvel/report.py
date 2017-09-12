@@ -6,6 +6,7 @@ import tempfile
 import shutil
 
 import radvel
+import pdb
 
 print_basis = 'per tc e w k'
 units = {'per': 'days',
@@ -171,6 +172,7 @@ The phase-folded model for planet %s is shown as the blue line.
         f = open(texname, 'w')
         f.write(self.texdoc())
         f.close()
+
         try:
             for i in range(3):
                 # LaTex likes to be compiled a few times
@@ -332,13 +334,24 @@ class TexTable(RadvelReport):
         ep = ' '.join(ep)
 
         outstr_params = self._header() + \
-                        self._data(self.fitting_basis,
-                            sidehead='\\bf{Modified MCMC Step Parameters}')+\
-                        self._data(print_basis,
-                            sidehead='\\bf{Orbital Parameters}', hline=True)+\
-                        self._data(ep,
-                            sidehead='\\bf{Other Parameters}', hline=True)+\
-                        self._footer()
+            self._data(self.fitting_basis,
+                sidehead='\\bf{Modified MCMC Step Parameters}')+\
+            self._data(print_basis,
+                sidehead='\\bf{Orbital Parameters}', hline=True)+\
+            self._data(ep,
+                sidehead='\\bf{Other Parameters}', hline=True)
+
+        #ADD ANY GP HYPERPARAMS
+        if hasattr(self.post.likelihood, 'gp_params'):
+            hp = []
+            for p in self.post.likelihood.gp_params:
+                hp.append(p) 
+            hp = ' '.join(hp)
+
+            outstr_params += self._data(hp,
+                                sidehead='\\bf{GP Hyperparameters}', hline=True)
+
+        outstr_params += self._footer()
                         
         if tabtype == 'all':
             outstr = self.tex(tabtype='nplanets', compstats=compstats)+ \

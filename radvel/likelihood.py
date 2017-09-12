@@ -1,4 +1,5 @@
 import numpy as np
+import george
 
 class Likelihood(object):
     """
@@ -7,12 +8,12 @@ class Likelihood(object):
     def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[], decorr_vectors=[]):
         self.model = model
         self.params = model.params
-
+        
         self.x = np.array(x) # Variables must be arrays.
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
-        self.params.update({}.fromkeys(extra_params, np.nan) )
+        self.params.update({}.fromkeys(extra_params, 0.0) ) #CHANGED FROM np.nan TO 0.0
         self.params.update({}.fromkeys(decorr_params, 0.0) )
         self.uparams = None
         
@@ -248,6 +249,7 @@ class RVLikelihood(Likelihood):
             decorr_params = self.decorr_params, decorr_vectors=self.decorr_vectors
             )
 
+
     def residuals(self):
         """Residuals
 
@@ -296,6 +298,7 @@ class RVLikelihood(Likelihood):
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
         
         return loglike
+        
 
 def loglike_jitter(residuals, sigma, sigma_jit):
     """

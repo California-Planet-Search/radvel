@@ -13,6 +13,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 from astropy.time import Time
 import corner
 
+import pdb
+
 import radvel
 from radvel.utils import t_to_phase, fastbin, round_sig, sigfig
 
@@ -42,6 +44,7 @@ cmap = matplotlib.cm.nipy_spectral
 rcParams['font.size'] = 9
 rcParams['lines.markersize'] = 5
 rcParams['axes.grid'] = False
+
     
 def _mtelplot(x, y, e, tel, ax, telfmts={}):
     """Plot data from from multiple telescopes
@@ -100,7 +103,9 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
-                       phase_nrows=None, legend=True, rv_phase_space=0.08):
+                       phase_nrows=None, legend=True, rv_phase_space=0.08,
+                       gp = None):
+    
     """Multi-panel RV plot to display model using post.params orbital paramters.
 
     Args:
@@ -119,7 +124,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
              instrument code to plotting format code.
         nophase (bool, optional): Will omit phase-folded plots if true
         epoch (float, optional): Subtract this value from the time axis for
-            more compact axis labels (default: 245000)
+            more compact axis labels (default: 2450000)
         uparams (dict, optional): parameter uncertainties, must
            contain 'per', 'k', and 'e' keys.
         phase_ncols (int, optional): number of columns in the phase
@@ -174,7 +179,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     else: 
         resolution = 2000
 
-
     if isinstance(cpspost.likelihood, radvel.likelihood.CompositeLikelihood):
         like_list = cpspost.likelihood.like_list
     else:
@@ -189,12 +193,18 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     shortp = min(periods)
         
     dt = max(rvtimes) - min(rvtimes)
-    rvmodt = np.linspace(
-        min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp, int(resolution)
-    )
-    
+
+    rvmodt = np.linspace(min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp, int(resolution)
+            )
+    try:
+        if gp.xpred is not None:
+            rvmodt = gp.xpred
+    except (NameError, AttributeError):
+        pass
+        
     rvmod2 = model(rvmodt)
     rvmod = model(rvtimes)
+
 
     if ((rvtimes - e) < -2.4e6).any():
         plttimes = rvtimes
@@ -221,7 +231,19 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         + cpsparams['curv'] * (rvtimes-model.time_base)**2
     )
 
+    if gp:
+        for like in like_list:
+            hpars = [like.params[i+ '_' + like.suffix] for i in gp.parnames]
+            jitter = like.params[like.jit_param]
+          #  pdb.set_trace()
+            
+            mu, err = like.gp.predict(like.x, like.residuals(), rvtimes, hpars, yerr = like.yerr, jitter = jitter, err=True) 
+            mu2, err2 = like.gp.predict(like.x, like.residuals(), rvmodt, hpars, yerr = like.yerr, jitter = jitter, err=True)
+            #rvmod += mu
+            rvmod2 += mu2
+            resid -= mu
 
+    
     # Provision figure
     figheight = ax_rv_height + ax_phase_height * phase_nrows
     divide = 1 - ax_rv_height / figheight
@@ -251,6 +273,13 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     #Unphased plot
     ax.axhline(0, color='0.5', linestyle='--')
     ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
+    if gp:
+        #MAKE ALPHA TUNABLE
+        if gp.plot_sigma is not None:
+            for i, n in enumerate(gp.plot_sigma):
+                ax.fill_between(mplttimes, mu2-err2*n, mu2+err2*n, alpha=0.6-0.1*i)
+        else:
+            ax.fill_between(mplttimes, mu2-err2, mu2+err2, alpha=0.5)
 
     def labelfig(ax, pltletter):
         text = "{})".format(chr(pltletter))
@@ -339,6 +368,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         rvmod2 = model(rvmodt, planet_num=pnum) - slope
         modph = t_to_phase(cpspost.params, rvmodt, pnum, cat=True) - 1
         rvdat = rawresid + model(rvtimes, planet_num=pnum) - slope_low
+        if gp:
+            rvdat -= mu
         phase = t_to_phase(cpspost.params, rvtimes, pnum, cat=True) - 1
         p2 = t_to_phase(cpspost.params, rvtimes, pnum, cat=False) - 1
         rvdatcat = np.concatenate((rvdat,rvdat))

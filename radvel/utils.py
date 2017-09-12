@@ -8,6 +8,7 @@ import numpy as np
 from datetime import datetime, timedelta
 
 import radvel
+import pdb
 
 def initialize_posterior(config_file, decorr=False):
 
@@ -19,6 +20,12 @@ def initialize_posterior(config_file, decorr=False):
     params = P.params.basis.from_cps(cpsparams,
                                             P.fitting_basis, keep=False)
 
+    #Check if GP desired and validate GP inputs
+    try:
+        gp = P.gp
+    except AttributeError:
+        gp = None
+        
     if decorr:
         try:
             decorr_vars = P.decorr_vars
@@ -49,8 +56,11 @@ Converting 'logjit' to 'jit' for you now.
     P.data = P.data.reset_index(drop=True)
     
     # initialize RVmodel object
-    mod = radvel.RVModel(params, time_base=P.time_base)   
-    
+    if gp:
+        mod = radvel.RVModelGP(params, gp, time_base=P.time_base)
+    else:
+        mod = radvel.RVModel(params, time_base=P.time_base)
+
     # initialize RVlikelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
@@ -59,20 +69,34 @@ Converting 'logjit' to 'jit' for you now.
         if decorr:
             for d in decorr_vars:
                 decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
-        likes[inst] = radvel.likelihood.RVLikelihood(
-            mod, P.data.iloc[telgrps[inst]].time,
-            P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst,
-            decorr_vars=decorr_vars, decorr_vectors=decorr_vectors
-        )
+
+        if gp:
+            likes[inst] = radvel.RVLikelihoodGP(
+                mod, P.data.iloc[telgrps[inst]].time,
+                P.data.iloc[telgrps[inst]].mnvel,
+                P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst
+                )
+            #likes[inst].params['GP_amp_'+inst] = iparams['GP_amp_'+inst]
+        else:
+            likes[inst] = radvel.likelihood.RVLikelihood(
+                mod, P.data.iloc[telgrps[inst]].time,
+                P.data.iloc[telgrps[inst]].mnvel,
+                P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst
+                )
+            
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
-
-    like = radvel.likelihood.CompositeLikelihood(likes.values())
+        
+    if gp:
+        like = radvel.CompositeLikelihoodGP(likes.values())
+    else:
+        like = radvel.likelihood.CompositeLikelihood(likes.values())
+   # like.params['GP_scale'] = iparams['GP_scale']
+   # like.params['GP_per'] = iparams['GP_per']
 
     # Set fixed/vary parameters
     like.vary.update(P.vary)
-    
+
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors
@@ -350,3 +374,26 @@ def geterr(vec, angular=False):
     errhigh = s[int(0.841*len(s))] - med
             
     return med, errlow, errhigh
+
+
+
+def multivariate_normal_sample(cov, mean=None, n=1):
+    """
+    cov: covariance matrix
+            
+    mean: Mean of normal distribution (default is all zeros)
+    
+    n: Number of samples to generate (default = 1)
+
+    samples: Samples from the given multivariate normal
+    """
+
+    if mean is None:
+        mean = np.zeros(len(cov))
+
+    samples = np.random.multivariate_normal(mean, cov, size=n)
+    
+    return samples 
+
+
+
