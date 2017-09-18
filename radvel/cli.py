@@ -14,7 +14,12 @@ warnings.simplefilter('once', DeprecationWarning)
 
 def main():
     psr = ArgumentParser(
-        description="RadVel: The Radial Velocity Toolkit", prog='radvel'
+        description="RadVel: The Radial Velocity Toolkit", prog='RadVel'
+    )
+    psr.add_argument('--version',
+        action='version',
+        version="%(prog)s {}".format(radvel.__version__),
+        help="Print version number and exit."
     )
 
     subpsr = psr.add_subparsers(title="subcommands", dest='subcommand')
@@ -37,6 +42,8 @@ def main():
         default=False,
         help="Include decorrelation in likelihood."
     )
+
+
 
     # Fitting    
     psr_fit = subpsr.add_parser(

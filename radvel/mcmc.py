@@ -4,7 +4,6 @@ import numpy as np
 import copy
 import pp
 import threading
-from multiprocessing.pool import Pool
 from scipy import optimize
 import sys
 import time
@@ -83,7 +82,7 @@ def convergence_check(server, samplers):
 
     # Must have compelted at least 5% or 1000 steps per walker before
     # attempting to calculate GR
-    if statevars.pcomplete < 10 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
+    if statevars.pcomplete < 5 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
     else:
         (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains)
@@ -122,7 +121,6 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
         return sampler
 
     server = pp.Server(ncpus=ensembles)
-    pool = Pool(processes=1)
 
     statevars.server = server
     statevars.ensembles = ensembles
@@ -135,6 +133,11 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
     pi = likelihood.get_vary_params()
     statevars.ndim = pi.size
 
+    if nwalkers < 2*statevars.ndim:
+        print("WARNING: Number of walkers is less than 2 times number \
+of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
+        statevars.nwalkers = 2*statevars.ndim
+
     # set up perturbation size
     pscales = []
     for par in likelihood.list_vary_params():
@@ -142,8 +145,11 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
         if par.startswith('per'):
             pscale = np.abs(val * 1e-5*np.log10(val))
             pscale_per = pscale
+        elif par.startswith('logper'):
+            pscale = np.abs(1e-5 * val)
+            pscale_per = pscale
         elif par.startswith('tc'):
-            pscale = pscale_per
+            pscale = 0.1
         else:
             pscale = np.abs(0.10 * val)
 
@@ -157,11 +163,11 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
     for e in range(ensembles):
         lcopy = copy.deepcopy(likelihood)
         pi = lcopy.get_vary_params()
-        p0 = np.vstack([pi]*nwalkers)
-        p0 += [np.random.rand(statevars.ndim)*pscales for i in range(nwalkers)]
+        p0 = np.vstack([pi]*statevars.nwalkers)
+        p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
         statevars.initial_positions.append(p0)
         statevars.samplers.append(emcee.EnsembleSampler( 
-            nwalkers, statevars.ndim, lcopy.logprob_array, threads=1))
+            statevars.nwalkers, statevars.ndim, lcopy.logprob_array, threads=1))
 
         
     num_run = int(np.round(nrun / checkinterval))
@@ -199,14 +205,6 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
         ch = CheckThread(convergence_check, statevars.server, statevars.samplers)
         ch.start()
 
-        # Use multiprocessing
-        # result = pool.apply_async(convergence_check,
-        #                 (statevars.server, statevars.samplers))
-
-        # ch = CheckThread(status_message, statevars)
-        # ch.start()
-        
-        #convergence_check(statevars.server, statevars.samplers)
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers
         if not statevars.burn_complete and statevars.maxgr <= burnGR:

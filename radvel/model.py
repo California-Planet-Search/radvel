@@ -9,6 +9,7 @@ from .basis import Basis
 
 texdict = {
     'per': 'P',
+    'logper': '\\ln{P}',
     'logk': '\\ln{K}',
     'tc': 'T\\rm{conj}',
     'secosw': '\\sqrt{e}\\cos{\\omega}',

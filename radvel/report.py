@@ -88,7 +88,7 @@ class RadvelReport():
         Returns:
             string: TeX code for report
         """
-        
+
         out = self._preamble() + self.tabletex()
         if os.path.exists(self.runname+"_rv_multipanel.pdf"):
             out += self.figtex(self.runname+"_rv_multipanel.pdf",
@@ -123,7 +123,7 @@ class RadvelReport():
         fstr = """
 \\begin{figure*}[!h]
 \\centering
-\\includegraphics[width=6.5in]{%s}
+\\includegraphics[height=8.0in,width=6.0in,keepaspectratio]{%s}
 \\caption{%s}
 \\end{figure*}
 """ % (infile, caption)
@@ -168,7 +168,7 @@ The phase-folded model for planet %s is shown as the blue line.
             shutil.copy2(os.path.join(current,fname), os.path.join(temp,fname))
         
         os.chdir(temp)
-
+        
         f = open(texname, 'w')
         f.write(self.texdoc())
         f.close()
@@ -321,6 +321,7 @@ class TexTable(RadvelReport):
             string: TeX code for the results table in the radvel report.
         """
         # Sort extra params
+
         ep = []
         order = ['gamma', 'dvdt', 'curv', 'jit']
         for o in order:
