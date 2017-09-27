@@ -35,7 +35,7 @@ def plots(args):
     post = radvel.posterior.load(status.get('fit', 'postfile'))
 
     for ptype in args.type:
-        print "Creating {} plot for {}".format(ptype, conf_base)
+        print("Creating {} plot for {}".format(ptype, conf_base))
 
         if ptype == 'rv':
             args.plotkw['uparams'] = post.uparams
@@ -91,7 +91,7 @@ def fit(args):
 
     config_file = args.setupfn
     conf_base = os.path.basename(config_file).split('.')[0]
-    print "Performing max-likelihood fitting for {}".format(conf_base)
+    print("Performing max-likelihood fitting for {}".format(conf_base))
 
     P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
     post = radvel.fitting.maxlike_fitting(post, verbose=True)
@@ -121,7 +121,7 @@ def mcmc(args):
     status = load_status(statfile)
 
     if status.getboolean('fit', 'run'):
-        print "Loading starting positions from previous max-likelihood fit"
+        print("Loading starting positions from previous max-likelihood fit")
 
         post = radvel.posterior.load(status.get('fit', 'postfile'))
     else:
@@ -130,7 +130,7 @@ def mcmc(args):
 
     msg = "Running MCMC for {}, N_ensembles = {}, N_walkers = {}, N_steps = {} ...".format(
         conf_base, args.ensembles, args.nwalkers, args.nsteps)
-    print msg
+    print(msg)
 
     chains = radvel.mcmc(
         post, nwalkers=args.nwalkers, nrun=args.nsteps,
@@ -154,7 +154,7 @@ def mcmc(args):
         if k in post.params.keys():
             post.params[k] = post_summary[k][0.5]
 
-    print "Performing post-MCMC maximum likelihood fit..."
+    print("Performing post-MCMC maximum likelihood fit...")
     post = radvel.fitting.maxlike_fitting(post, verbose=False)
 
     cpspost = copy.deepcopy(post)
@@ -162,7 +162,7 @@ def mcmc(args):
     cpspost.params.update(cpsparams)
 
 
-    print "Calculating uncertainties..."
+    print("Calculating uncertainties...")
     cpspost.uparams = {}
     cpspost.medparams = {}
     cpspost.maxparams = {}
@@ -180,12 +180,12 @@ def mcmc(args):
         cpspost.maxparams[par] = maxlike
 
 
-    print "Final loglikelihood = %f" % post.logprob()
-    print "Final RMS = %f" % post.likelihood.residuals().std()
-    print "Best-fit parameters:"
-    print cpspost
+    print("Final loglikelihood = %f" % post.logprob())
+    print("Final RMS = %f" % post.likelihood.residuals().std())
+    print("Best-fit parameters:")
+    print(cpspost)
 
-    print "Saving output files..."
+    print("Saving output files...")
     saveto = os.path.join(args.outputdir, conf_base+'_post_summary.csv')
     post_summary.to_csv(saveto, sep=',')
 
@@ -229,7 +229,7 @@ def bic(args):
     post = radvel.posterior.load(status.get('fit', 'postfile'))
 
     for btype in args.type:
-        print "performing bic comparison: {}".format(btype)
+        print("Performing bic comparison: {}".format(btype))
 
         if btype == 'nplanets':
             statsdict = radvel.fitting.model_comp(post, verbose=False)
@@ -260,7 +260,7 @@ def tables(args):
     report = radvel.report.RadvelReport(P, post, chains)
 
     for tabtype in args.type:
-        print "Generating LaTeX code for {} table".format(tabtype)                
+        print("Generating LaTeX code for {} table".format(tabtype))
 
         if tabtype == 'params':
             tex = report.tabletex(tabtype=tabtype)
@@ -305,7 +305,7 @@ def derive(args):
     msg = "Multiplying mcmc chains by physical parameters for {}".format(
         conf_base
     )
-    print msg
+    print(msg)
 
     assert status.getboolean('mcmc', 'run'), \
         "Must run MCMC before making tables"
@@ -371,7 +371,7 @@ def derive(args):
         except (AttributeError, KeyError):
             pass
 
-    print "Derived parameters:", outcols
+    print("Derived parameters:", outcols)
 
     csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.tar.bz2')
     chains.to_csv(csvfn, columns=outcols, compression='bz2')
@@ -390,7 +390,7 @@ def report(args):
     
     config_file = args.setupfn
     conf_base = os.path.basename(config_file).split('.')[0]
-    print "Assembling report for {}".format(conf_base)
+    print("Assembling report for {}".format(conf_base))
 
     statfile = os.path.join(args.outputdir,
                             "{}_radvel.stat".format(conf_base))
@@ -404,11 +404,11 @@ def report(args):
     try:
         compstats = eval(status.get('bic', args.comptype))
     except:
-        print "WARNING: Could not find {} BIC model comparison\
+        print("WARNING: Could not find {} BIC model comparison\
 in {}.\nPlease make sure that you have run `radvel bic -t {}` if you would\
 like to include\nthe model comparison table in the report.".format(args.comptype,
                                                             statfile,
-                                                            args.comptype)
+                                                            args.comptype))
         compstats = None
 
     report = radvel.report.RadvelReport(P, post, chains, compstats=compstats)
