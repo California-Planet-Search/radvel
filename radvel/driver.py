@@ -4,9 +4,13 @@ These functions are meant to be used only with\
 the `cli.py` command line interface.
 """
 import os
+import sys
 import pickle
 import copy
-import configparser
+if sys.version_info[0] < 3:
+    import ConfigParser as configparser
+else:
+    import configparser
 from collections import OrderedDict
 import pandas as pd
 
