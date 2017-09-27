@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
-from orbit import timeperi_to_timetrans, timetrans_to_timeperi
+from radvel.orbit import timeperi_to_timetrans, timetrans_to_timeperi
 import radvel.model
 
 BASIS_NAMES = ['per tp e w k',  # The CPS basis
@@ -150,7 +150,6 @@ class Basis(object):
                 w = np.arctan2(sesinw , secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-<<<<<<< HEAD
             if basis_name=='logper tc secosw sesinw k':
                 # pull out parameters
                 logper = _getpar('logper')
@@ -166,9 +165,6 @@ class Basis(object):
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
             if basis_name=='per tc ecosw esinw k':
-=======
-            if basis_name == 'per tc ecosw esinw k':
->>>>>>> RougeAstro-fork/master
                 # pull out parameters
                 per = _getpar('per')
                 tc = _getpar('tc')

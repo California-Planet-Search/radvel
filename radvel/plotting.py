@@ -76,15 +76,16 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 
         # If not explicit format set, look among default formats
         telfmt = {}
-        if not telfmts.has_key(t) and telfmts_default.has_key(t):
+        if t not in telfmts and t in telfmts_default:
             telfmt = telfmts_default[t]
-        if telfmts.has_key(t):
+        if t in telfmts:
             telfmt = telfmts[t]
-        if not telfmts.has_key(t) and not telfmts_default.has_key(t):
+            print(telfmt)
+        if t not in telfmts and t not in telfmts_default:
             ci += 1
         for k in telfmt:
             kw[k] = telfmt[k]
-
+            
         pl.errorbar(xt, yt, yerr=et, **kw)
 
     ax.yaxis.set_major_formatter(
@@ -346,8 +347,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         bint, bindat, binerr = fastbin(phase+1, rvdatcat, nbins=25)
         bint -= 1.0
 
-        i_row = i / phase_ncols
-        i_col = i - i_row * phase_ncols
+        i_row = int(i / phase_ncols)
+        i_col = int(i - i_row * phase_ncols)
         ax = pl.subplot(gs_phase[i_row, i_col])
         axL += [ax]
 
@@ -371,7 +372,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             scale = np.std(rvdatcat)
             pl.ylim(-yscale_sigma*scale, yscale_sigma*scale )
         
-        letters = string.lowercase
+        letters = string.ascii_lowercase
         planetletter = letters[i+1]
         keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
         labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
@@ -654,7 +655,7 @@ def add_anchored(*args,**kwargs):
     """
 
     bbox = {}
-    if kwargs.has_key('bbox'):
+    if 'bbox' in kwargs:
         bbox = kwargs.pop('bbox')
     at = AnchoredText(*args, **kwargs)
     if len(bbox.keys())>0:

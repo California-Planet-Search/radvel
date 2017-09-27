@@ -4,6 +4,6 @@ corner>=2.0
 cython>=0.22
 astropy>=1.1.2
 emcee>=2.2.1
-pp
+pp==1.6.4.4
 lmfit>=0.9.3
 pandas

@@ -164,7 +164,7 @@ class CompositeLikelihood(Likelihood):
                 "Likelihoods must use the same model"
 
             for k in like.params:
-                if params.has_key(k):
+                if k in params:
                     assert like.params[k] is params[k]
                 else:
                     params[k] = like.params[k]

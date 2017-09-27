@@ -6,7 +6,7 @@ the `cli.py` command line interface.
 import os
 import pickle
 import copy
-import ConfigParser
+import configparser
 from collections import OrderedDict
 import pandas as pd
 
@@ -436,7 +436,7 @@ def save_status(statfile, section, statevars):
            the specified section
     """
 
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     
     if os.path.isfile(statfile):
         config.read(statfile)
@@ -454,13 +454,13 @@ def load_status(statfile):
     """Load pipeline status
 
     Args:
-        statfile (string): name of ConfigParser file
+        statfile (string): name of configparser file
 
     Returns:
-        ConfigParser.RawConfigParser
+        configparser.RawConfigParser
     """
     
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     gl = config.read(statfile)
 
     return config

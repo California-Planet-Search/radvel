@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import copy
 import pp
-import threading
 import sys
 import time
 from radvel import utils
@@ -24,17 +23,6 @@ class StateVars(object):
         pass
 
 statevars = StateVars()
-
-
-class CheckThread(threading.Thread):
-    def __init__(self, target, *args):
-        self._target = target
-        self._args = args
-        threading.Thread.__init__(self)
-
-    def run(self):
-        self._target(*self._args)
-
 
 def _status_message(statevars):
     msg = (
@@ -82,12 +70,7 @@ def convergence_check(server, samplers):
 
     # Must have compelted at least 5% or 1000 steps per walker before
     # attempting to calculate GR
-<<<<<<< HEAD
     if statevars.pcomplete < 5 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
-=======
-    if statevars.pcomplete < 10 and \
-            sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
->>>>>>> RougeAstro-fork/master
         (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
     else:
         (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains)
@@ -124,10 +107,6 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50):
         return sampler
 
     server = pp.Server(ncpus=ensembles)
-<<<<<<< HEAD
-=======
-    # pool = Pool(processes=1)
->>>>>>> RougeAstro-fork/master
 
     statevars.server = server
     statevars.ensembles = ensembles
@@ -206,15 +185,12 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         t2 = time.time()
         statevars.interval = t2 - t1
 
-        # Use Threading
-        ch = CheckThread(convergence_check, statevars.server, statevars.samplers)
-        ch.start()
-
+        convergence_check(statevars.server, statevars.samplers)
+        
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers
         if not statevars.burn_complete and statevars.maxgr <= burnGR:
             server.wait()
-            ch.join()
             for i, sampler in enumerate(statevars.samplers):
                 statevars.initial_positions[i] = \
                     sampler._last_run_mcmc_result[0]
@@ -230,7 +206,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
 
         if statevars.mixcount >= 5:
             server.wait()
-            ch.join()
             tf = time.time()
             tdiff = tf - statevars.t0
             tdiff,units = utils.time_print(tdiff)
@@ -262,8 +237,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
         columns=likelihood.list_vary_params())
     df['lnprobability'] = np.hstack(statevars.lnprob)
-
-    ch.join()
     
     return df
 
