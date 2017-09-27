@@ -1,0 +1,17 @@
+[fit]
+postfile = /Users/bluez3303/Desktop/Caltech/Research/radvel/example_planets/HD164922/HD164922_post_obj.pkl
+run = True
+
+[plot]
+rv_plot = /Users/bluez3303/Desktop/Caltech/Research/radvel/example_planets/HD164922/HD164922_rv_multipanel.pdf
+corner_plot = /Users/bluez3303/Desktop/Caltech/Research/radvel/example_planets/HD164922/HD164922_corner.pdf
+trend_plot = /Users/bluez3303/Desktop/Caltech/Research/radvel/example_planets/HD164922/HD164922_trends.pdf
+
+[mcmc]
+run = True
+chainfile = /Users/bluez3303/Desktop/Caltech/Research/radvel/example_planets/HD164922/HD164922_chains.csv.tar.bz2
+summaryfile = /Users/bluez3303/Desktop/Caltech/Research/radvel/example_planets/HD164922/HD164922_post_summary.csv
+nwalkers = 50
+postfile = /Users/bluez3303/Desktop/Caltech/Research/radvel/example_planets/HD164922/HD164922_post_obj.pkl
+nsteps = 10000
+
