@@ -147,7 +147,7 @@ Number of ensembles. Will be run in parallel on separate CPUs [8]
 
     if args.outputdir is None:
         setupfile = args.setupfn
-        print setupfile
+        print(setupfile)
         system_name = os.path.basename(setupfile).split('.')[0]
         outdir = os.path.join('./', system_name)
         args.outputdir = outdir

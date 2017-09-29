@@ -1,8 +1,7 @@
-__all__=['model','likelihood','posterior','mcmc','prior', 'utils', 'fitting', 'report', 'cli', 'driver']
 from .model import *
 from .likelihood import *
 from . import posterior
-from mcmc import *
+from radvel.mcmc import *
 from .prior import *
 from .utils import *
 from .report import *
@@ -11,7 +10,10 @@ from .fitting import *
 import os 
 import sys
 
-__version__ = '0.9.8'
+__all__=['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
+         'fitting', 'report', 'cli', 'driver']
+
+__version__ = '0.9.9'
 
 MODULEDIR, filename = os.path.split(__file__)
-DATADIR = os.path.join(sys.prefix,'radvel_example_data')
+DATADIR = os.path.join(sys.prefix, 'radvel_example_data')
