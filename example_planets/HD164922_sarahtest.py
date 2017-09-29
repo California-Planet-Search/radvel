@@ -33,16 +33,16 @@ params['k2'].value = 1
 # values not in basis must be constructed from scratch
 
 time_base = 2456778          # abscissa for slope and curvature terms (should be near mid-point of time baseline)
-params['dvdt'] = Parameter('dvdt',value=0.0)         # slope: (If rv is m/s and time is days then [dvdt] is m/s/day)
-params['curv'] = Parameter('curv',value=0.0)        # curvature: (If rv is m/s and time is days then [curv] is m/s/day^2)
+params['dvdt'] = Parameter(value=0.0)         # slope: (If rv is m/s and time is days then [dvdt] is m/s/day)
+params['curv'] = Parameter(value=0.0)        # curvature: (If rv is m/s and time is days then [curv] is m/s/day^2)
 
-params['gamma_k'] = Parameter('gamma_k',value=0.0)       # velocity zero-point for hires_rk
-params['gamma_j'] = Parameter('dvdt',value=1.0)       # "                   "   hires_rj
-params['gamma_a'] = Parameter('gamma_a',value=0.0)       # "                   "   hires_apf
+params['gamma_k'] = Parameter(value=0.0)       # velocity zero-point for hires_rk
+params['gamma_j'] = Parameter(value=1.0)       # "                   "   hires_rj
+params['gamma_a'] = Parameter(value=0.0)       # "                   "   hires_apf
 
-params['jit_k'] = Parameter('jit_k',value=2.6)        # jitter for hires_rk
-params['jit_j'] = Parameter('jit_j',value=2.6)         # "      "   hires_rj
-params['jit_a'] = Parameter('jit_a',value=2.6)         # "      "   hires_apf
+params['jit_k'] = Parameter(value=2.6)        # jitter for hires_rk
+params['jit_j'] = Parameter(value=2.6)         # "      "   hires_rj
+params['jit_a'] = Parameter(value=2.6)         # "      "   hires_apf
 
 
 # Load radial velocity data, in this example the data is contained in

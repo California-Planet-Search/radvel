@@ -67,7 +67,7 @@ class Parameters(OrderedDict):
         for num_planet in range(1,1+num_planets):
             for parameter in self.planet_parameters:
                 new_name = self._sparameter(parameter, num_planet)
-                self.__setitem__(new_name, Parameter(new_name))
+                self.__setitem__(new_name, Parameter())
         ##
                 
         if planet_letters is not None:
@@ -138,8 +138,6 @@ class Parameter(object):
     """Object to store attributes of each orbital parameter
 
     Attributes:
-        name (string): description of orbital parameter. Set to
-            parameter's index in Parameters constructor.
         value (float): value of parameter. 
         vary (Bool): True if parameter is allowed to vary in
             MCMC fits, false if fixed.
@@ -147,18 +145,18 @@ class Parameter(object):
 
     TODO: add "isGP (Bool) attribute, implement GP functionality"
     """
-    def __init__(self, name, value=None, vary=True):
-        self.name = name
+    def __init__(self, value=None, vary=True):
         self.value = value
         self.vary = vary
 
 
 if __name__ == "__main__":
     params = Parameters(2, planet_letters={1:'d', 2:'e'})
-    print params['per1'].value, params['per1'].name, params['per1'].vary
+    print params['per1'].value, params['per1'].vary
     params['per1'].value= 1000.
     print params.num_planets
     print params.tex_labels()
+    print params[0]
 
 
     params_out = Parameters(1)
@@ -183,8 +181,8 @@ class RVModel(object):
         self.num_planets = params.num_planets
         self.params = params
     ## SARAH CHANGES
-        self.params['dvdt'] = Parameter('dvdt',value=0)
-        self.params['curv'] = Parameter('curv',value=0)
+        self.params['dvdt'] = Parameter(value=0)
+        self.params['curv'] = Parameter(value=0)
     ##
         self.time_base = time_base
 
@@ -226,8 +224,9 @@ class RVModel(object):
 ## SARAH CHANGES
 if __name__ == "__main__":
     model = RVModel(params)
-  #  print model.params['dvdt'].value
-  #  print model.params['secosw1'].value
+    print model.params['dvdt'].value
+    print model.params['secosw1'].value
+    print model.params.keys()
 ##
 
 
