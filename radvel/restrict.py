@@ -34,5 +34,5 @@ if __name__ == '__main__':
     
     x = np.arange(100,dtype=float) - 40
     y = restrict(x,20,80)
-    print x
-    print y
+    print(x)
+    print(y)

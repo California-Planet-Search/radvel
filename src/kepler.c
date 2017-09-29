@@ -7,8 +7,8 @@ int sign(int x) {
 }
 
 /*
-Solution to Kepler's equation. Given mean anomally, M, and eccentricity, e, 
-solve for E, the eccentric anomally, which must satisfy:
+Solution to Kepler's equation. Given mean anomaly, M, and eccentricity, e,
+solve for E, the eccentric anomaly, which must satisfy:
 
     E - e sin(E) - M = 0
 
@@ -26,7 +26,7 @@ double kepler(double M, double e)
   k = 0.85; // initial guess at input parameter
   count = 0; // how many loops have we done?
 
-  E = M + sign(sin(M)) * k * e; // first guess at E, the eccentric anomally
+  E = M + sign(sin(M)) * k * e; // first guess at E, the eccentric anomaly
 
   // E - e * sin(E) - M should go to 0
   fi = (E - e * sin(E) - M); 

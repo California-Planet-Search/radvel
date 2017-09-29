@@ -78,11 +78,13 @@ class EccentricityPrior(Prior):
 
         if type(num_planets) == int:
             self.planet_list = range(1,num_planets+1)
+            npl = len(self.planet_list)
         else:
             self.planet_list = num_planets
+            npl = num_planets
             
         if type(upperlims) == float:
-            self.upperlims = [upperlims] * len(self.planet_list)
+            self.upperlims = [upperlims] * npl
         else:
             assert len(upperlims) == len(self.planet_list), "Number of eccentricity \
 upper limits must match number of planets."

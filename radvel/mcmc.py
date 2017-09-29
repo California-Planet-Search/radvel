@@ -3,12 +3,9 @@ import pandas as pd
 import numpy as np
 import copy
 import pp
-import threading
-from scipy import optimize
 import sys
 import time
 from radvel import utils
-
 
 # Maximum G-R statistic to stop burn-in period
 burnGR = 1.03
@@ -20,21 +17,12 @@ maxGR = 1.01
 # convergence tests are performed
 minsteps = 1000
 
+
 class StateVars(object):
     def __init__(self):
         pass
 
 statevars = StateVars()
-
-class CheckThread(threading.Thread):
-    def __init__(self, target, *args):
-        self._target = target
-        self._args = args
-        threading.Thread.__init__(self)
-
-    def run(self):
-        self._target(*self._args)
-
 
 def _status_message(statevars):
     msg = (
@@ -96,8 +84,7 @@ def convergence_check(server, samplers):
     _status_message(statevars)
 
 
-def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
-             checkinterval=50):
+def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50):
     """Run MCMC
 
     Run MCMC chains using the emcee EnsambleSampler
@@ -115,7 +102,6 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
         DataFrame: DataFrame containing the MCMC samples
 
     """
-
     def _crunch(sampler, ipos, checkinterval):
         sampler.run_mcmc(ipos, checkinterval)
         return sampler
@@ -133,7 +119,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
     pi = likelihood.get_vary_params()
     statevars.ndim = pi.size
 
-    if nwalkers < 2*statevars.ndim:
+    if nwalkers < 2 * statevars.ndim:
         print("WARNING: Number of walkers is less than 2 times number \
 of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         statevars.nwalkers = 2*statevars.ndim
@@ -157,7 +143,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         
     pscales = np.array(pscales)
 
-    
     statevars.samplers = []
     statevars.initial_positions = []
     for e in range(ensembles):
@@ -169,7 +154,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         statevars.samplers.append(emcee.EnsembleSampler( 
             statevars.nwalkers, statevars.ndim, lcopy.logprob_array, threads=1))
 
-        
     num_run = int(np.round(nrun / checkinterval))
     statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
     statevars.mixcount = 0
@@ -184,7 +168,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     statevars.maxgr = np.inf
     statevars.t0 = time.time()
 
-    
     for r in range(num_run):
         t1 = time.time()
         jobs = []
@@ -193,25 +176,24 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
                 p1 = statevars.initial_positions[i]
             else:
                 p1 = None
-            jobs.append(statevars.server.submit(_crunch, (sampler, p1, checkinterval)))
+            jobs.append(statevars.server.submit(_crunch, (sampler, p1,
+                                                          checkinterval)))
             
-        for i,j in enumerate(jobs):
+        for i, j in enumerate(jobs):
             statevars.samplers[i] = j()
             
         t2 = time.time()
         statevars.interval = t2 - t1
 
-        # Use Threading
-        ch = CheckThread(convergence_check, statevars.server, statevars.samplers)
-        ch.start()
-
+        convergence_check(statevars.server, statevars.samplers)
+        
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers
         if not statevars.burn_complete and statevars.maxgr <= burnGR:
             server.wait()
-            ch.join()
             for i, sampler in enumerate(statevars.samplers):
-                statevars.initial_positions[i] = sampler._last_run_mcmc_result[0]
+                statevars.initial_positions[i] = \
+                    sampler._last_run_mcmc_result[0]
                 sampler.reset()
                 statevars.samplers[i] = sampler
             msg = (
@@ -224,7 +206,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
 
         if statevars.mixcount >= 5:
             server.wait()
-            ch.join()
             tf = time.time()
             tdiff = tf - statevars.t0
             tdiff,units = utils.time_print(tdiff)
@@ -252,13 +233,13 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         print(msg)
         
     df = pd.DataFrame(
-        statevars.tchains.reshape(statevars.ndim,statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
+        statevars.tchains.reshape(statevars.ndim,
+            statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
         columns=likelihood.list_vary_params())
     df['lnprobability'] = np.hstack(statevars.lnprob)
-
-    ch.join()
     
     return df
+
 
 def draw_models_from_chain(mod, chain, t, nsamples=50):
     """Draw Models from Chain
@@ -282,7 +263,7 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
     chain_samples = chain.ix[np.random.choice(chain.index, nsamples)]
     models = []
     for i in chain_samples.index:
-        params = np.array( chain.ix[i, mod.vary_parameters] )
+        params = np.array(chain.ix[i, mod.vary_parameters])
         params = mod.array_to_params(params)
         models += [mod.model(params, t)]
     models = np.vstack(models)
@@ -321,9 +302,7 @@ def gelman_rubin(pars0, minTz=1000, maxGR=maxGR):
             Tz (array): An NPARS element array containing the number
                 of independent draws for each parameter (equation 26)
     """
-
-
-    pars = pars0.copy() # don't modify input parameters
+    pars = pars0.copy()  # don't modify input parameters
     
     sz = pars.shape
     msg = 'MCMC: GELMAN_RUBIN: ERROR: pars must have 3 dimensions'
@@ -367,4 +346,4 @@ def gelman_rubin(pars0, minTz=1000, maxGR=maxGR):
     # well-mixed criteria
     ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR
         
-    return (ismixed, gelmanrubin, tz)
+    return ismixed, gelmanrubin, tz
