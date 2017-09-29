@@ -152,18 +152,18 @@ class Parameter(object):
 
 if __name__ == "__main__":
     params = Parameters(2, planet_letters={1:'d', 2:'e'})
-    print params['per1'].value, params['per1'].vary
+    print(params['per1'].value, params['per1'].vary)
     params['per1'].value= 1000.
-    print params.num_planets
-    print params.tex_labels()
-    print params[0]
+    print(params.num_planets)
+    print(params.tex_labels())
+    print(params[0])
 
 
     params_out = Parameters(1)
-    print params_out['per1'].value
+    print(params_out['per1'].value)
     params_out.update(params)
-    print params_out['per1'].value
-    print params_out['per1'].value
+    print(params_out['per1'].value)
+    print(params_out['per1'].value)
 
 ##
 
@@ -224,9 +224,9 @@ class RVModel(object):
 ## SARAH CHANGES
 if __name__ == "__main__":
     model = RVModel(params)
-    print model.params['dvdt'].value
-    print model.params['secosw1'].value
-    print model.params.keys()
+    print(model.params['dvdt'].value)
+    print(model.params['secosw1'].value)
+    print(model.params.keys())
 ##
 
 
