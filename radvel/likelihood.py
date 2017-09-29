@@ -1,15 +1,16 @@
 import numpy as np
 
+
 class Likelihood(object):
     """
     Generic Likelihood
     """
-    def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[], decorr_vectors=[]):
+    def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[],
+                 decorr_vectors=[]):
         self.model = model
         self.params = model.params
-
-        self.x = np.array(x) # Variables must be arrays.
-        self.y = np.array(y) # Pandas data structures lead to problems.
+        self.x = np.array(x)  # Variables must be arrays.
+        self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
         self.params.update({}.fromkeys(extra_params, Parameter(value=np.nan)) )
@@ -22,11 +23,11 @@ class Likelihood(object):
     def __repr__(self):
         s = ""
         if self.uparams is None:
-            s +=  "{:<20s}{:>15s}{:>10s}\n".format(
+            s += "{:<20s}{:>15s}{:>10s}\n".format(
                 'parameter', 'value', 'vary'
                 )
             keys = self.params.keys()
-            #keys.sort()
+            # keys.sort()
             for key in keys:
                 if key == 'meta':
                     continue
@@ -42,16 +43,16 @@ class Likelihood(object):
                 else:
                     par = self.params[key].value
 
-                s +=  "{:20s}{:15g} {:>10s}\n".format(
+                s += "{:20s}{:15g} {:>10s}\n".format(
                     key, par, vstr
                      )
         else:
             s = ""
-            s +=  "{:<20s}{:>15s}{:>10s}{:>10s}\n".format(
+            s += "{:<20s}{:>15s}{:>10s}{:>10s}\n".format(
                 'parameter', 'value', '+/-', 'vary'
                 )
             keys = self.params.keys()
-            #keys.sort()
+            # keys.sort()
             for key in keys:
                 if key == 'meta':
                     continue
@@ -63,8 +64,8 @@ class Likelihood(object):
                     err = self.uparams[key].value
                 else:
                     err = 0
-                    
-                if (key.startswith('tc') or key.startswith('tp')) and self.params[key].value > 1e6:
+                if (key.startswith('tc') or key.startswith('tp')) and \
+                        self.params[key] > 1e6:
                     par = self.params[key].value - 2450000
                 else:
                     par = self.params[key].value
@@ -72,30 +73,24 @@ class Likelihood(object):
                 s +=  "{:20s}{:15g}{:10g}{:>10s}\n".format(
                     key, par, err, vstr
                      )
-
-                
         return s
 
-    
     def set_vary_params(self, params_array):
         i = 0
         for key in self.list_vary_params():
             # flip sign for negative jitter
             if key.startswith('jit') and params_array[i].value < 0:
                 params_array[i].value = -params_array[i].value
-                    
             self.params[key].value = params_array[i].value
             i+=1
-
-        assert i==len(params_array), \
-            "length of array must match number of varied parameters"
+        assert i == len(params_array), \
+            "Length of array must match number of varied parameters"
 
     def get_vary_params(self):
         params_array = []
         for key in self.list_vary_params():
             if key != 'meta' and self.params[key].vary == True:
-                params_array += [ self.params[key] ]
-                
+                params_array += [self.params[key]]     
         params_array = np.array(params_array)
         return params_array
 
@@ -117,7 +112,9 @@ class Likelihood(object):
         _logprob = self.logprob()
         return _logprob
 
+
 class CompositeLikelihood(Likelihood):
+
     def __init__(self, like_list):
         """Composite Likelihood
 
@@ -128,8 +125,6 @@ class CompositeLikelihood(Likelihood):
         Args:
             like_list (list): list of `radvel.likelihood.RVLikelihood` objects
         """
-    
-        
         self.nlike = len(like_list)
 
         like0 = like_list[0]
@@ -167,11 +162,10 @@ class CompositeLikelihood(Likelihood):
                 "Likelihoods must use the same model"
 
             for k in like.params:
-                if params.has_key(k):
+                if k in params:
                     assert like.params[k] is params[k]
                 else:
                     params[k] = like.params[k]
-
 
         self.extra_params = list(set(self.extra_params))
         self.params = params
@@ -182,7 +176,6 @@ class CompositeLikelihood(Likelihood):
         """
         See `radvel.likelihood.RVLikelihood.logprob`
         """
-        
         _logprob = 0
         for like in self.like_list:
             _logprob += like.logprob()
@@ -209,7 +202,6 @@ class CompositeLikelihood(Likelihood):
 
         return err
 
-        
 
 class RVLikelihood(Likelihood):
     """RV Likelihood
@@ -225,9 +217,8 @@ class RVLikelihood(Likelihood):
            useful when constructing a `CompositeLikelihood` object.
 
     """
-    
-    def __init__(self, model, t, vel, errvel, suffix='',
-                     decorr_vars=[], decorr_vectors=[]):
+    def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[],
+                 decorr_vectors=[]):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
 
@@ -255,7 +246,6 @@ class RVLikelihood(Likelihood):
 
         Data minus model
         """
-
         res = self.y - self.params[self.gamma_param].value - self.model(self.x)
         
         if len(self.decorr_params) > 0:
@@ -270,7 +260,6 @@ class RVLikelihood(Likelihood):
                     vec = self.decorr_vectors[var] - np.mean(self.decorr_vectors[var])
                     p = np.poly1d(pars)
                     res -= p(vec)
-                    
         return res
 
     def errorbars(self):
@@ -299,6 +288,7 @@ class RVLikelihood(Likelihood):
         
         return loglike
 
+
 def loglike_jitter(residuals, sigma, sigma_jit):
     """
     Log-likelihood incorporating jitter
@@ -321,4 +311,3 @@ def loglike_jitter(residuals, sigma, sigma_jit):
     loglike = -0.5 * chi2 - penalty
     
     return loglike
-

@@ -68,7 +68,7 @@ Converting 'logjit' to 'jit' for you now.
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
 
-    like = radvel.likelihood.CompositeLikelihood(likes.values())
+    like = radvel.likelihood.CompositeLikelihood(list(likes.values()))
 
     # Set fixed/vary parameters
     like.vary.update(P.vary)
@@ -159,12 +159,12 @@ def timebin(time, meas, meas_err, binsize):
         wt = wt/np.sum(wt)              #normalized weights
         if ct == 0:
             time_out = [np.sum(wt*time[ind])]
-	    meas_out = [np.sum(wt*meas[ind])]
-	    meas_err_out = [1./np.sqrt(np.sum(1./(meas_err[ind])**2))]
+            meas_out = [np.sum(wt*meas[ind])]
+            meas_err_out = [1./np.sqrt(np.sum(1./(meas_err[ind])**2))]
         else:
             time_out.append(np.sum(wt*time[ind]))
-	    meas_out.append(np.sum(wt*meas[ind]))
-	    meas_err_out.append(1./np.sqrt(np.sum(1./(meas_err[ind])**2)))
+            meas_out.append(np.sum(wt*meas[ind]))
+            meas_err_out.append(1./np.sqrt(np.sum(1./(meas_err[ind])**2)))
         ct += num
 
     return time_out, meas_out, meas_err_out

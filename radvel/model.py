@@ -1,5 +1,4 @@
 import numpy as np
-import copy_reg
 import types
 from collections import OrderedDict
 import lmfit
@@ -87,7 +86,7 @@ should have only integers as keys."""
         red = (self.__class__, (self.num_planets,
                                 self.basis.name,
                                 self.planet_letters),
-                                None,None,self.iteritems())
+                                None,None,iter(self.items()))
         return red
 
     def tex_labels(self, param_list=None):
@@ -249,4 +248,3 @@ def _unpickle_method(func_name, obj, cls):
         else:
             break
     return func.__get__(obj, cls)
-copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)

@@ -3,6 +3,7 @@ import numpy as np
 import copy
 import collections
 
+
 def maxlike_fitting(post, verbose=True):
     """Maximum Likelihood Fitting
 
@@ -19,13 +20,12 @@ def maxlike_fitting(post, verbose=True):
 
     post0 = copy.copy(post)
     if verbose:
-        print "Initial loglikelihood = %f" % post0.logprob()
-        print "Performing maximum likelihood fit..."
+        print("Initial loglikelihood = %f" % post0.logprob())
+        print("Performing maximum likelihood fit...")
 
-        
-    res  = optimize.minimize(
+    res = optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method='Powell',
-        options=dict(maxiter=100,maxfev=100000,xtol=1e-8)
+        options=dict(maxiter=200, maxfev=100000, xtol=1e-8)
     )
 
     cpspost = copy.copy(post)
@@ -33,9 +33,9 @@ def maxlike_fitting(post, verbose=True):
     cpspost.params.update(cpsparams)
     
     if verbose:
-        print "Final loglikelihood = %f" % post.logprob()
-        print "Best-fit parameters:"
-        print cpspost
+        print("Final loglikelihood = %f" % post.logprob())
+        print("Best-fit parameters:")
+        print(cpspost)
         
     return post
     
@@ -58,7 +58,6 @@ def model_comp(post, verbose=False):
             the statistic value as the first element and a description
             of that statistic in the second element.
     """
-
     ipost = copy.deepcopy(post)
     
     num_planets = post.likelihood.model.num_planets
@@ -68,7 +67,7 @@ def model_comp(post, verbose=False):
     for n in range(num_planets+1):
         pdict = collections.OrderedDict()
         if verbose:
-            print "Testing %d planet model.\n\n" % n
+            print("Testing %d planet model.\n\n" % n)
 
         for par in post.params.keys():
             try:
@@ -91,18 +90,18 @@ def model_comp(post, verbose=False):
 
         ndata = len(post.likelihood.y)
         nfree = len(post.get_vary_params())
-        #chi = np.sum((post.likelihood.residuals()/post.likelihood.yerr)**2)
+        # chi = np.sum((post.likelihood.residuals()/post.likelihood.yerr)**2)
         chi = np.sum((post.likelihood.residuals()/post.likelihood.errorbars())**2)
         chi_red = chi / (ndata - nfree)
 
         if verbose:
-            print post
-            print "N_free = %d" % nfree
-            print "RMS = %4.2f" % np.std(post.likelihood.residuals())
-            print "logprob (jitter fixed) = %4.2f" % post.logprob()
-            print "chi (jitter fixed) = %4.2f" % chi
-            print "chi_red (jitter fixed) = %4.2f" % chi_red
-            print "BIC (jitter fixed) = %4.2f" % post.bic()
+            print(post)
+            print("N_free = %d" % nfree)
+            print("RMS = %4.2f" % np.std(post.likelihood.residuals()))
+            print("logprob (jitter fixed) = %4.2f" % post.logprob())
+            print("chi (jitter fixed) = %4.2f" % chi)
+            print("chi_red (jitter fixed) = %4.2f" % chi_red)
+            print("BIC (jitter fixed) = %4.2f" % post.bic())
         
         pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
         pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
