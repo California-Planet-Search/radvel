@@ -485,6 +485,7 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
     # Determine which columns to include in corner plot
     labels = []
     texlabels = []
+    title_fmts = []
     for i in np.arange(1, P.nplanets +1, 1):
         letter = planet_letters[i]
 
@@ -495,12 +496,31 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
             if not is_column:
                 break
             
-            null_column = chains.isnull().any().ix[label]
+            null_column = chains.isnull().any().loc[label]
             if null_column:
                 break
+
+            tl = texlabel(label,letter)
+
+            # add units to label
+            if key == 'mpsini':
+                unit = "M$_{\oplus}$"
+                if np.median(chains[label]) > 100:
+                    unit = "M$_{\\rm Jup}$"
+                    chains[label] *= 0.00315
+                if np.median(chains[label]) > 100:
+                    unit = "M$_{\odot}$"
+                    chains[label] *= 0.000954265748
+
+                tl += " (%s)" % unit
+            else:
+                tl += " (g cm$^{-3}$)"
+
                 
             labels.append(label)
-            texlabels.append(texlabel(label,letter))
+            texlabels.append(tl)
+            
+
 
     f = rcParams['font.size']
     rcParams['font.size'] = 12
