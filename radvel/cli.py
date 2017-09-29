@@ -92,7 +92,7 @@ Number of ensembles. Will be run in parallel on separate CPUs [8]
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
 
-    # Derive hysical parameters
+    # Derive physical parameters
     psr_physical = subpsr.add_parser(
         'derive', parents=[psr_parent],
         description="Multiply MCMC chains by physical parameters. MCMC must"
