@@ -12,12 +12,12 @@ class Likelihood(object):
         self.y = np.array(y) # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
-        self.params.update({}.fromkeys(extra_params, np.nan) )
-        self.params.update({}.fromkeys(decorr_params, 0.0) )
+        self.params.update({}.fromkeys(extra_params, Parameter(value=np.nan)) )
+        self.params.update({}.fromkeys(decorr_params, Parameter(value=0.)) )
         self.uparams = None
         
-        vary = {}.fromkeys(self.params.keys(), True)
-        self.vary = vary
+       # vary = {}.fromkeys(self.params.keys(), True)
+       # self.vary = vary
 
     def __repr__(self):
         s = ""
@@ -30,15 +30,17 @@ class Likelihood(object):
             for key in keys:
                 if key == 'meta':
                     continue
-                if key in self.vary.keys():
-                    vstr = str(self.vary[key])
+               # if key in self.vary.keys():
+               #     vstr = str(self.vary[key])
+                if self.params[key].vary == True or self.params[key.vary] == False:
+                    vstr = str(self.params[key].vary)
                 else:
                     vstr = ""
                 
-                if (key.startswith('tc') or key.startswith('tp')) and self.params[key] > 1e6:
-                    par = self.params[key] - 2450000
+                if (key.startswith('tc') or key.startswith('tp')) and self.params[key].value > 1e6:
+                    par = self.params[key].value - 2450000
                 else:
-                    par = self.params[key]
+                    par = self.params[key].value
 
                 s +=  "{:20s}{:15g} {:>10s}\n".format(
                     key, par, vstr
@@ -53,19 +55,19 @@ class Likelihood(object):
             for key in keys:
                 if key == 'meta':
                     continue
-                if key in self.vary.keys():
-                    vstr = str(self.vary[key])
+                if self.params[key].vary == True or self.params[key.vary] == False:
+                    vstr = str(self.params[key].vary)
                 else:
                     vstr = ""
                 if key in self.uparams.keys():
-                    err = self.uparams[key]
+                    err = self.uparams[key].value
                 else:
                     err = 0
                     
-                if (key.startswith('tc') or key.startswith('tp')) and self.params[key] > 1e6:
-                    par = self.params[key] - 2450000
+                if (key.startswith('tc') or key.startswith('tp')) and self.params[key].value > 1e6:
+                    par = self.params[key].value - 2450000
                 else:
-                    par = self.params[key]
+                    par = self.params[key].value
                     
                 s +=  "{:20s}{:15g}{:10g}{:>10s}\n".format(
                     key, par, err, vstr
@@ -79,10 +81,10 @@ class Likelihood(object):
         i = 0
         for key in self.list_vary_params():
             # flip sign for negative jitter
-            if key.startswith('jit') and params_array[i] < 0:
-                params_array[i] = -params_array[i]
+            if key.startswith('jit') and params_array[i].value < 0:
+                params_array[i].value = -params_array[i].value
                     
-            self.params[key] = params_array[i]
+            self.params[key].value = params_array[i].value
             i+=1
 
         assert i==len(params_array), \
@@ -91,7 +93,7 @@ class Likelihood(object):
     def get_vary_params(self):
         params_array = []
         for key in self.list_vary_params():
-            if key != 'meta' and self.vary[key]:
+            if key != 'meta' and self.params[key].vary == True:
                 params_array += [ self.params[key] ]
                 
         params_array = np.array(params_array)
@@ -99,7 +101,7 @@ class Likelihood(object):
 
     def list_vary_params(self):
         return [key for key in self.params.keys() if key != 'meta'
-                    and key in self.vary.keys() and self.vary[key] ]
+                    and self.params[key].vary == True]
 
     def residuals(self):
         return self.y - self.model(self.x) 
@@ -254,7 +256,7 @@ class RVLikelihood(Likelihood):
         Data minus model
         """
 
-        res = self.y - self.params[self.gamma_param] - self.model(self.x)
+        res = self.y - self.params[self.gamma_param].value - self.model(self.x)
         
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:
@@ -262,7 +264,7 @@ class RVLikelihood(Likelihood):
                 pars = []
                 for par in self.decorr_params:
                     if var in par:
-                        pars.append(self.params[par])
+                        pars.append(self.params[par].value)
                 pars.append(0.0)
                 if np.isfinite(self.decorr_vectors[var]).all():
                     vec = self.decorr_vectors[var] - np.mean(self.decorr_vectors[var])
@@ -280,7 +282,7 @@ class RVLikelihood(Likelihood):
             array: uncertainties
         
         """
-        return np.sqrt(self.yerr**2 + self.params[self.jit_param]**2)
+        return np.sqrt(self.yerr**2 + self.params[self.jit_param].value**2)
 
     def logprob(self):
         """
@@ -291,7 +293,7 @@ class RVLikelihood(Likelihood):
             float: Natural log of likelihood
         """
         
-        sigma_jit = self.params[self.jit_param]
+        sigma_jit = self.params[self.jit_param].value
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
         
