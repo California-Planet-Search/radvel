@@ -22,7 +22,7 @@ def _copy_params(params_in):
     num_planets = params_in.num_planets
     basis = params_in.basis.name
     planet_letters = params_in.planet_letters
-    params_out = radvel.model.RVParameters(num_planets, basis=basis,
+    params_out = radvel.model.Parameters(num_planets, basis=basis,
                                            planet_letters=planet_letters)
     params_out.update(params_in)
     
@@ -75,14 +75,17 @@ class Basis(object):
     def to_cps(self, params_in, **kwargs):
         """Convert to CPS basis
 
-        Convert a dictionary with parameters of a given basis into the
+        Convert Parameters object with parameters of a given basis into the
         cps basis
 
         Args:
-            params_in (dict): planet parameters expressed in current basis
+            params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
+                orbital parameters expressed in current basis
+        noVary (Optional[bool]): if True, set the 'vary' attribute of the returned Parameter objects 
+                to '' (used for displaying best fit parameters)
 
         Returns: 
-            dict or DataFrame: parameters expressed in the CPS basis
+            Parameters or DataFrame: parameters expressed in the CPS basis
 
         """
         basis_name = kwargs.setdefault('basis_name', self.name)
@@ -96,16 +99,26 @@ class Basis(object):
         for num_planet in range(1,1+self.num_planets):
 
             def _getpar(key):
-                return params_in['{}{}'.format(key,num_planet)]
+                if isinstance(params_in, pd.core.frame.DataFrame):
+                    return params_in['{}{}'.format(key,num_planet)]
+                else:
+                    return params_in['{}{}'.format(key,num_planet)].value
 
-            def _setpar(key, value):
-                params_out['{}{}'.format(key,num_planet)] = value
+            def _setpar(key, new_value):
+                key_name = '{}{}'.format(key,num_planet)
 
-            # def _delpar(key):
-            #    if isinstance(params_in,OrderedDict):
-            #        del params_out['{}{}'.format(key,num_planet)]
-            #    elif isinstance(params_in,pd.core.frame.DataFrame):
-            #        params_out.drop('{}{}'.format(key,num_planet))
+                if isinstance(params_in, pd.core.frame.DataFrame):
+                    params_out[key_name] = new_value
+                else:
+                    if key_name in params_in:
+                        local_vary = params_in[key_name].vary
+                    elif kwargs.get('noVary', True):
+                        local_vary = ''
+                    else:
+                        local_vary = True
+
+                    params_out[key_name] = \
+                               radvel.model.Parameter(value=new_value, vary=local_vary)
 
             # transform into CPS basis
             if basis_name == 'per tp e w k':
@@ -184,16 +197,18 @@ class Basis(object):
             _setpar('w', w)
             _setpar('k', k)
 
-        params_out.basis = Basis('per tp e w k', self.num_planets)
+        if isinstance(params_out, radvel.model.Parameters):
+            params_out.basis = Basis('per tp e w k', self.num_planets)
         return params_out
 
-    def from_cps(self, params_in, newbasis, **kwargs):
+    def from_cps(self, params_in, newbasis,  **kwargs):
         """Convert from CPS basis into another basis
 
-        Convert a dictionary with parameters of a given basis into the cps basis
+        Convert instance of Parameters with parameters of a given basis into the cps basis
 
         Args:
-            params_in (dict):  planet parameters expressed in cps basis
+            params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
+                orbital parameters expressed in current basis
             newbasis (string): string corresponding to basis to switch into
             keep (Optional[bool]): keep the parameters expressed in
                 the old basis, else remove them from the output
@@ -217,10 +232,24 @@ class Basis(object):
         for num_planet in range(1,1+self.num_planets):
 
             def _getpar(key):
-                return params_in['{}{}'.format(key,num_planet)]
+                if isinstance(params_in, pd.core.frame.DataFrame):
+                    return params_in['{}{}'.format(key,num_planet)]
+                else:
+                    return params_in['{}{}'.format(key,num_planet)].value
 
-            def _setpar(key, value):
-                params_out['{}{}'.format(key,num_planet)] = value
+            def _setpar(key, new_value):
+                key_name = '{}{}'.format(key,num_planet)
+
+                if isinstance(params_in, pd.core.frame.DataFrame):
+                    params_out[key_name] = new_value
+                else:
+                    if key_name in params_in:
+                        local_vary = params_in[key_name].vary
+                    else:
+                        local_vary = True
+
+                    params_out[key_name] = \
+                               radvel.model.Parameter(value=new_value, vary=local_vary)
 
             def _delpar(key):
                 if isinstance(params_in,OrderedDict):

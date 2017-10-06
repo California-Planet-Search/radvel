@@ -1,4 +1,5 @@
 import numpy as np
+import copy_reg
 import types
 from collections import OrderedDict
 import lmfit
@@ -63,12 +64,10 @@ class Parameters(OrderedDict):
         basis = Basis(basis,num_planets)
         self.planet_parameters = basis.name.split()
 
-        ## SARAH CHANGES
         for num_planet in range(1,1+num_planets):
             for parameter in self.planet_parameters:
                 new_name = self._sparameter(parameter, num_planet)
                 self.__setitem__(new_name, Parameter())
-        ##
                 
         if planet_letters is not None:
             for k in planet_letters.keys():
@@ -79,7 +78,6 @@ should have only integers as keys."""
         self.basis = basis
         self.num_planets = num_planets
         self.planet_letters = planet_letters
-        #self.__setitem__('meta', meta)
 
     def __reduce__(self):
 
@@ -132,7 +130,6 @@ should have only integers as keys."""
 
 
 
-## SARAH CHANGES
 class Parameter(object):
 
     """Object to store attributes of each orbital parameter
@@ -149,23 +146,26 @@ class Parameter(object):
         self.value = value
         self.vary = vary
 
+    def _equals(self, other):
+        """function to assess the equivalence of two Parameter objects"""
+        if isinstance(other,self.__class__):
+            return (self.value == other.value) and (self.vary == other.vary)
 
 if __name__ == "__main__":
     params = Parameters(2, planet_letters={1:'d', 2:'e'})
-    print(params['per1'].value, params['per1'].vary)
+    print(params['per1'].value)
+    print(params['per1'].vary)
     params['per1'].value= 1000.
     print(params.num_planets)
     print(params.tex_labels())
-    print(params[0])
 
 
     params_out = Parameters(1)
     print(params_out['per1'].value)
     params_out.update(params)
+    if params['per1']._equals(params_out['per1']):
+        print("TEST PASSED")
     print(params_out['per1'].value)
-    print(params_out['per1'].value)
-
-##
 
 
 
@@ -180,10 +180,8 @@ class RVModel(object):
     def __init__(self, params, time_base=0):
         self.num_planets = params.num_planets
         self.params = params
-    ## SARAH CHANGES
-        self.params['dvdt'] = Parameter(value=0)
-        self.params['curv'] = Parameter(value=0)
-    ##
+        self.params['dvdt'].value = 0
+        self.params['curv'].value = 0
         self.time_base = time_base
 
     def __call__(self, t, planet_num=None):
@@ -208,31 +206,26 @@ class RVModel(object):
             planets = [planet_num]
         
         for num_planet in planets:
-            per = params_cps['per{}'.format(num_planet)]
-            tp = params_cps['tp{}'.format(num_planet)]
-            e = params_cps['e{}'.format(num_planet)]
-            w = params_cps['w{}'.format(num_planet)]
-            k = params_cps['k{}'.format(num_planet)]
+            per = params_cps['per{}'.format(num_planet)].value
+            tp = params_cps['tp{}'.format(num_planet)].value
+            e = params_cps['e{}'.format(num_planet)].value
+            w = params_cps['w{}'.format(num_planet)].value
+            k = params_cps['k{}'.format(num_planet)].value
             orbel_cps = np.array([per, tp, e, w, k])
             vel+=kepler.rv_drive(t, orbel_cps)
-        ## SARAH CHANGES
         vel+=self.params['dvdt'].value * ( t - self.time_base )
         vel+=self.params['curv'].value * ( t - self.time_base )**2
-        ## SARAH CHANGES
         return vel
 
-## SARAH CHANGES
 if __name__ == "__main__":
     model = RVModel(params)
     print(model.params['dvdt'].value)
     print(model.params['secosw1'].value)
     print(model.params.keys())
-##
 
 
-# I had to add these methods to get the model object to be
-# pickle-able, so we could run the mcmc in as a in multi-threaded
-# mode.
+# tell python how to pickle methods; necessary for running MCMC in multi-
+#   threaded mode.
 def _pickle_method(method):
     func_name = method.im_func.__name__
     obj = method.im_self
@@ -248,3 +241,6 @@ def _unpickle_method(func_name, obj, cls):
         else:
             break
     return func.__get__(obj, cls)
+
+copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+

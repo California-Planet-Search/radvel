@@ -1,5 +1,5 @@
 import numpy as np
-
+import radvel.model
 
 class Likelihood(object):
     """
@@ -13,12 +13,9 @@ class Likelihood(object):
         self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
-        self.params.update({}.fromkeys(extra_params, Parameter(value=np.nan)) )
-        self.params.update({}.fromkeys(decorr_params, Parameter(value=0.)) )
+        self.params.update({}.fromkeys(extra_params, radvel.model.Parameter(value=np.nan)) )
+        self.params.update({}.fromkeys(decorr_params, radvel.model.Parameter(value=0.)) )
         self.uparams = None
-        
-       # vary = {}.fromkeys(self.params.keys(), True)
-       # self.vary = vary
 
     def __repr__(self):
         s = ""
@@ -27,17 +24,8 @@ class Likelihood(object):
                 'parameter', 'value', 'vary'
                 )
             keys = self.params.keys()
-            # keys.sort()
             for key in keys:
-                if key == 'meta':
-                    continue
-               # if key in self.vary.keys():
-               #     vstr = str(self.vary[key])
-                if self.params[key].vary == True or self.params[key.vary] == False:
-                    vstr = str(self.params[key].vary)
-                else:
-                    vstr = ""
-                
+                vstr = str(self.params[key].vary)    
                 if (key.startswith('tc') or key.startswith('tp')) and self.params[key].value > 1e6:
                     par = self.params[key].value - 2450000
                 else:
@@ -52,20 +40,14 @@ class Likelihood(object):
                 'parameter', 'value', '+/-', 'vary'
                 )
             keys = self.params.keys()
-            # keys.sort()
             for key in keys:
-                if key == 'meta':
-                    continue
-                if self.params[key].vary == True or self.params[key.vary] == False:
-                    vstr = str(self.params[key].vary)
-                else:
-                    vstr = ""
+                vstr = str(self.params[key].vary)
                 if key in self.uparams.keys():
-                    err = self.uparams[key].value
+                    err = self.uparams[key]
                 else:
                     err = 0
                 if (key.startswith('tc') or key.startswith('tp')) and \
-                        self.params[key] > 1e6:
+                        self.params[key].value > 1e6:
                     par = self.params[key].value - 2450000
                 else:
                     par = self.params[key].value
@@ -75,28 +57,27 @@ class Likelihood(object):
                      )
         return s
 
-    def set_vary_params(self, params_array):
+    def set_vary_params(self, param_values_array):
         i = 0
         for key in self.list_vary_params():
             # flip sign for negative jitter
-            if key.startswith('jit') and params_array[i].value < 0:
-                params_array[i].value = -params_array[i].value
-            self.params[key].value = params_array[i].value
+            if key.startswith('jit') and param_values_array[i] < 0:
+                param_values_array[i] = -param_values_array[i]
+            self.params[key].value = param_values_array[i]
             i+=1
-        assert i == len(params_array), \
+        assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
 
     def get_vary_params(self):
         params_array = []
         for key in self.list_vary_params():
-            if key != 'meta' and self.params[key].vary == True:
-                params_array += [self.params[key]]     
+            if self.params[key].vary:
+                params_array += [self.params[key].value]     
         params_array = np.array(params_array)
         return params_array
 
     def list_vary_params(self):
-        return [key for key in self.params.keys() if key != 'meta'
-                    and self.params[key].vary == True]
+        return [key for key in self.params.keys() if self.params[key].vary]
 
     def residuals(self):
         return self.y - self.model(self.x) 
@@ -131,7 +112,7 @@ class CompositeLikelihood(Likelihood):
         params = like0.params
         self.model = like0.model
         self.x = like0.x
-        self.y = like0.y - params[like0.gamma_param]
+        self.y = like0.y - params[like0.gamma_param].value
         #self.yerr = np.sqrt(like0.yerr**2 + like0.params[like0.jit_param]**2)
         self.yerr = like0.yerr
         self.telvec = like0.telvec
@@ -145,7 +126,7 @@ class CompositeLikelihood(Likelihood):
             like = like_list[i]
             
             self.x = np.append(self.x,like.x)
-            self.y = np.append(self.y, like.y - like.params[like.gamma_param])
+            self.y = np.append(self.y, like.y - like.params[like.gamma_param].value)
             #self.yerr = np.append(self.yerr, np.sqrt(like.yerr**2 + like.params[like.jit_param]**2))
             self.yerr = np.append(self.yerr, like.yerr)
             self.telvec = np.append(self.telvec, like.telvec)
@@ -163,13 +144,12 @@ class CompositeLikelihood(Likelihood):
 
             for k in like.params:
                 if k in params:
-                    assert like.params[k] is params[k]
+                    assert like.params[k]._equals(params[k])
                 else:
                     params[k] = like.params[k]
 
         self.extra_params = list(set(self.extra_params))
         self.params = params
-        self.vary = {}.fromkeys(params.keys(),True)
         self.like_list = like_list
         
     def logprob(self):
