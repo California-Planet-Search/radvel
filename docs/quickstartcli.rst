@@ -12,7 +12,7 @@ Install ``radvel`` using pip:
 
 .. code-block:: bash
 
-    $ pip install radvel
+    $ pip install radvel --process-dependency-links
 
 Make sure that ``pdflatex`` is installed. 
 You can get ``pdflatex`` by installing the `TexLive package

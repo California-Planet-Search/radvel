@@ -16,7 +16,7 @@ def initialize_posterior(config_file, decorr=False):
     system_name = P.starname
 
     cpsparams = P.params.basis.to_cps(P.params)
-    params = P.params.basis.from_cps(cpsparams,
+    params = P.params.basis.from_cps(cpsparams, 
                                             P.fitting_basis, keep=False)
 
     if decorr:
@@ -37,9 +37,8 @@ Converting 'logjit' to 'jit' for you now.
 """
             warnings.warn(msg, DeprecationWarning, stacklevel=2)
             newkey = key.replace('logjit', 'jit')
-            params[newkey] = np.exp(params[key])
-            P.vary[newkey] = P.vary[key]
-            del P.vary[key]
+            params[newkey] = radvel.model.Parameter(value=np.exp(params[key].value), \
+                                                    vary=params[key].vary)
             del params[key]
 
     #iparams = params.copy()
@@ -47,10 +46,10 @@ Converting 'logjit' to 'jit' for you now.
     
     # Make sure we don't have duplicate indicies in the DataFrame
     P.data = P.data.reset_index(drop=True)
-    
+
     # initialize RVmodel object
-    mod = radvel.RVModel(params, time_base=P.time_base)   
-    
+    mod = radvel.RVModel(params, time_base=P.time_base)
+
     # initialize RVlikelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
@@ -68,15 +67,13 @@ Converting 'logjit' to 'jit' for you now.
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
 
-    like = radvel.likelihood.CompositeLikelihood(likes.values())
+    like = radvel.likelihood.CompositeLikelihood(list(likes.values()))
 
-    # Set fixed/vary parameters
-    like.vary.update(P.vary)
-    
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors
-    
+
+
     return P, post
 
 
@@ -159,12 +156,12 @@ def timebin(time, meas, meas_err, binsize):
         wt = wt/np.sum(wt)              #normalized weights
         if ct == 0:
             time_out = [np.sum(wt*time[ind])]
-	    meas_out = [np.sum(wt*meas[ind])]
-	    meas_err_out = [1./np.sqrt(np.sum(1./(meas_err[ind])**2))]
+            meas_out = [np.sum(wt*meas[ind])]
+            meas_err_out = [1./np.sqrt(np.sum(1./(meas_err[ind])**2))]
         else:
             time_out.append(np.sum(wt*time[ind]))
-	    meas_out.append(np.sum(wt*meas[ind]))
-	    meas_err_out.append(1./np.sqrt(np.sum(1./(meas_err[ind])**2)))
+            meas_out.append(np.sum(wt*meas[ind]))
+            meas_err_out.append(1./np.sqrt(np.sum(1./(meas_err[ind])**2)))
         ct += num
 
     return time_out, meas_out, meas_err_out
@@ -228,8 +225,8 @@ def t_to_phase(params, t, num_planet, cat=False):
     elif ('tp%i' % num_planet) in params:
         timeparam = 'tp%i' % num_planet
         
-    P = params['per%i' % num_planet]
-    tc = params[timeparam]
+    P = params['per%i' % num_planet].value
+    tc = params[timeparam].value
     phase = np.mod(t - tc, P) 
     phase /= P
     if cat: phase = np.concatenate((phase,phase+1))

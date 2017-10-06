@@ -4,8 +4,9 @@ import types
 from collections import OrderedDict
 import lmfit
 
-from . import kepler
-from .basis import Basis
+from radvel import kepler
+from radvel.basis import Basis
+
 
 texdict = {
     'per': 'P',
@@ -27,7 +28,8 @@ texdict = {
     'curv': '\\ddot{\\gamma}'
 }
 
-class RVParameters(OrderedDict):
+class Parameters(OrderedDict):
+
     """Object to store the orbital parameters.
 
     Parameters to describe a radial velocity orbit
@@ -38,7 +40,7 @@ class RVParameters(OrderedDict):
         basis (string): parameterization of orbital parameters. See 
             ``radvel.basis.Basis`` for a list of valid basis strings.
         planet_letters (Dictionary[optional): custom map to match the planet 
-            numbers in the RVParameter object to planet letters.
+            numbers in the Parameter object to planet letters.
             Default {1: 'b', 2: 'c', etc.}. The keys of this dictionary must 
             all be integers.
 
@@ -50,50 +52,49 @@ class RVParameters(OrderedDict):
     
     Examples:
        >>> import radvel
-       # create a RVParameters object for a 2-planet system with
+       # create a Parameters object for a 2-planet system with
        # custom planet number to letter mapping
-       >>> params = radvel.RVParameters(2, planet_letters={1:'d', 2:'e'})
+       >>> params = radvel.Parameters(2, planet_letters={1:'d', 2:'e'})
 
     """
     def __init__(self, num_planets, basis='per tc secosw sesinw logk', 
                  planet_letters=None):
-        super(RVParameters, self).__init__()
-        
+        super(Parameters, self).__init__()
+
         basis = Basis(basis,num_planets)
         self.planet_parameters = basis.name.split()
 
         for num_planet in range(1,1+num_planets):
             for parameter in self.planet_parameters:
-                self.__setitem__(self._sparameter(parameter, num_planet), None)
-
+                new_name = self._sparameter(parameter, num_planet)
+                self.__setitem__(new_name, Parameter())
                 
         if planet_letters is not None:
             for k in planet_letters.keys():
                 assert isinstance(k, int), """\
-RVParameters: ERROR: The planet_letters dictionary \
+Parameters: ERROR: The planet_letters dictionary \
 should have only integers as keys."""
 
         self.basis = basis
         self.num_planets = num_planets
         self.planet_letters = planet_letters
-        #self.__setitem__('meta', meta)
 
     def __reduce__(self):
 
         red = (self.__class__, (self.num_planets,
                                 self.basis.name,
                                 self.planet_letters),
-                                None,None,self.iteritems())
+                                None,None,iter(self.items()))
         return red
 
     def tex_labels(self, param_list=None):
-        """Map RVParameters keys to pretty TeX code representations.
+        """Map Parameters keys to pretty TeX code representations.
 
         Args:
             param_list (list): (optional) Manually pass a list of parameter labels
         
         Returns:
-            dict: dictionary mapping RVParameters keys to TeX code
+            dict: dictionary mapping Parameters keys to TeX code
 
         """
 
@@ -127,7 +128,47 @@ should have only integers as keys."""
             lett_planet = chr(int(num_planet)+97)
         return '$%s_{%s}$' % (pname, lett_planet) 
 
-    
+
+
+class Parameter(object):
+
+    """Object to store attributes of each orbital parameter
+
+    Attributes:
+        value (float): value of parameter. 
+        vary (Bool): True if parameter is allowed to vary in
+            MCMC fits, false if fixed.
+
+
+    TODO: add "isGP (Bool) attribute, implement GP functionality"
+    """
+    def __init__(self, value=None, vary=True):
+        self.value = value
+        self.vary = vary
+
+    def _equals(self, other):
+        """function to assess the equivalence of two Parameter objects"""
+        if isinstance(other,self.__class__):
+            return (self.value == other.value) and (self.vary == other.vary)
+
+if __name__ == "__main__":
+    params = Parameters(2, planet_letters={1:'d', 2:'e'})
+    print(params['per1'].value)
+    print(params['per1'].vary)
+    params['per1'].value= 1000.
+    print(params.num_planets)
+    print(params.tex_labels())
+
+
+    params_out = Parameters(1)
+    print(params_out['per1'].value)
+    params_out.update(params)
+    if params['per1']._equals(params_out['per1']):
+        print("TEST PASSED")
+    print(params_out['per1'].value)
+
+
+
 class RVModel(object):
     """
     Generic RV Model
@@ -139,8 +180,8 @@ class RVModel(object):
     def __init__(self, params, time_base=0):
         self.num_planets = params.num_planets
         self.params = params
-        self.params['dvdt'] = 0
-        self.params['curv'] = 0
+        self.params['dvdt'].value = 0
+        self.params['curv'].value = 0
         self.time_base = time_base
 
     def __call__(self, t, planet_num=None):
@@ -165,22 +206,26 @@ class RVModel(object):
             planets = [planet_num]
         
         for num_planet in planets:
-            per = params_cps['per{}'.format(num_planet)]
-            tp = params_cps['tp{}'.format(num_planet)]
-            e = params_cps['e{}'.format(num_planet)]
-            w = params_cps['w{}'.format(num_planet)]
-            k = params_cps['k{}'.format(num_planet)]
+            per = params_cps['per{}'.format(num_planet)].value
+            tp = params_cps['tp{}'.format(num_planet)].value
+            e = params_cps['e{}'.format(num_planet)].value
+            w = params_cps['w{}'.format(num_planet)].value
+            k = params_cps['k{}'.format(num_planet)].value
             orbel_cps = np.array([per, tp, e, w, k])
             vel+=kepler.rv_drive(t, orbel_cps)
-
-        vel+=self.params['dvdt'] * ( t - self.time_base )
-        vel+=self.params['curv'] * ( t - self.time_base )**2
+        vel+=self.params['dvdt'].value * ( t - self.time_base )
+        vel+=self.params['curv'].value * ( t - self.time_base )**2
         return vel
 
+if __name__ == "__main__":
+    model = RVModel(params)
+    print(model.params['dvdt'].value)
+    print(model.params['secosw1'].value)
+    print(model.params.keys())
 
-# I had to add these methods to get the model object to be
-# pickle-able, so we could run the mcmc in as a in multi-threaded
-# mode.
+
+# tell python how to pickle methods; necessary for running MCMC in multi-
+#   threaded mode.
 def _pickle_method(method):
     func_name = method.im_func.__name__
     obj = method.im_self
@@ -196,4 +241,6 @@ def _unpickle_method(func_name, obj, cls):
         else:
             break
     return func.__get__(obj, cls)
+
 copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
+
