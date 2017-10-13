@@ -15,9 +15,10 @@ def initialize_posterior(config_file, decorr=False):
     P = imp.load_source(system_name, os.path.abspath(config_file))
     system_name = P.starname
 
-    cpsparams = P.params.basis.to_cps(P.params)
-    params = P.params.basis.from_cps(cpsparams, 
-                                            P.fitting_basis, keep=False)
+    params = P.params
+    assert str(params.basis) == "Basis Object <{}>".format(P.fitting_basis), """
+Parameters in config file must be converted to fitting basis.
+"""
 
     if decorr:
         try:

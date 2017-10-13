@@ -29,8 +29,8 @@ def maxlike_fitting(post, verbose=True):
     )
 
     cpspost = copy.copy(post)
-    cpsparams = post.params.basis.to_cps(post.params, noVary = True)
-    cpspost.params.update(cpsparams)
+    cpsparams = post.params.basis.to_cps(post.params, noVary = True) # setting "noVary" assigns each new parameter a vary attribute
+    cpspost.params.update(cpsparams)                                 # of '', for printing purposes
  
     if verbose:
         print("Final loglikelihood = %f" % post.logprob())

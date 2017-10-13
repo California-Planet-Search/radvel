@@ -72,6 +72,21 @@ class Basis(object):
     def __repr__(self):
         return "Basis Object <{}>".format(self.name)
 
+    def to_any_basis(self, params_in, newbasis):
+        """Convenience function for converting Parameters object to an arbitraty basis
+
+        Args:
+            params_in (radvel.Parameters): radvel.Parameters object expressed in current basis
+            newbasis (string): string corresponding to basis to switch into
+        Returns:
+            radvel.Parameters object expressed in the new basis
+
+        """
+        cps_params = self.to_cps(params_in)
+        arbbasis_params = self.from_cps(cps_params,newbasis, keep=False)
+        return arbbasis_params
+
+
     def to_cps(self, params_in, **kwargs):
         """Convert to CPS basis
 
@@ -81,7 +96,7 @@ class Basis(object):
         Args:
             params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
                 orbital parameters expressed in current basis
-        noVary (Optional[bool]): if True, set the 'vary' attribute of the returned Parameter objects 
+            noVary (Optional[bool]): if True, set the 'vary' attribute of the returned Parameter objects 
                 to '' (used for displaying best fit parameters)
 
         Returns: 
@@ -112,13 +127,17 @@ class Basis(object):
                 else:
                     if key_name in params_in:
                         local_vary = params_in[key_name].vary
+                        local_mcmcscale = params_in[key_name].mcmcscale
                     elif kwargs.get('noVary', True):
                         local_vary = ''
+                        local_mcmcscale = None
                     else:
                         local_vary = True
+                        local_mcmcscale = None
 
-                    params_out[key_name] = \
-                               radvel.model.Parameter(value=new_value, vary=local_vary)
+                    params_out[key_name] = radvel.model.Parameter(value=new_value, 
+                                                                  vary=local_vary,
+                                                                  mcmcscale=local_mcmcscale)
 
             # transform into CPS basis
             if basis_name == 'per tp e w k':
@@ -245,11 +264,14 @@ class Basis(object):
                 else:
                     if key_name in params_in:
                         local_vary = params_in[key_name].vary
+                        local_mcmcscale = params_in[key_name].mcmcscale
                     else:
                         local_vary = True
+                        local_mcmcscale = None
 
-                    params_out[key_name] = \
-                               radvel.model.Parameter(value=new_value, vary=local_vary)
+                    params_out[key_name] = radvel.model.Parameter(value=new_value, 
+                                                                  vary=local_vary, 
+                                                                  mcmcscale=local_mcmcscale)
 
             def _delpar(key):
                 if isinstance(params_in,OrderedDict):

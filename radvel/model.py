@@ -138,36 +138,31 @@ class Parameter(object):
         value (float): value of parameter. 
         vary (Bool): True if parameter is allowed to vary in
             MCMC fits, false if fixed.
+        mcmcscale (float): step size to be used for MCMC fitting
 
 
     TODO: add "isGP (Bool) attribute, implement GP functionality"
     """
-    def __init__(self, value=None, vary=True):
+    def __init__(self, value=None, vary=True, mcmcscale=None):
         self.value = value
         self.vary = vary
+        self.mcmcscale = mcmcscale
 
     def _equals(self, other):
-        """function to assess the equivalence of two Parameter objects"""
+        """method to assess the equivalence of two Parameter objects"""
         if isinstance(other,self.__class__):
-            return (self.value == other.value) and (self.vary == other.vary)
+            return (self.value == other.value) and (self.vary == other.vary) \
+                    and (self.mcmcscale == other.mcmcscale)
+
+    def __repr__(self):
+        s = "Parameter object: value = {}, vary = {}, mcmc scale = {}".format(self.value, 
+                                                                              self.vary, self.mcmcscale)
+        return s
 
 if __name__ == "__main__":
-    params = Parameters(2, planet_letters={1:'d', 2:'e'})
-    print(params['per1'].value)
-    print(params['per1'].vary)
-    params['per1'].value= 1000.
-    print(params.num_planets)
-    print(params.tex_labels())
-
-
-    params_out = Parameters(1)
-    print(params_out['per1'].value)
-    params_out.update(params)
-    if params['per1']._equals(params_out['per1']):
-        print("TEST PASSED")
-    print(params_out['per1'].value)
-
-
+    a = Parameter(value=1.3)
+    a.mcmcscale = 100.
+    print(a)
 
 class RVModel(object):
     """
@@ -216,31 +211,4 @@ class RVModel(object):
         vel+=self.params['dvdt'].value * ( t - self.time_base )
         vel+=self.params['curv'].value * ( t - self.time_base )**2
         return vel
-
-if __name__ == "__main__":
-    model = RVModel(params)
-    print(model.params['dvdt'].value)
-    print(model.params['secosw1'].value)
-    print(model.params.keys())
-
-
-# tell python how to pickle methods; necessary for running MCMC in multi-
-#   threaded mode.
-def _pickle_method(method):
-    func_name = method.im_func.__name__
-    obj = method.im_self
-    cls = method.im_class
-    return _unpickle_method, (func_name, obj, cls)
-
-def _unpickle_method(func_name, obj, cls):
-    for cls in cls.mro():
-        try:
-            func = cls.__dict__[func_name]
-        except KeyError:
-            pass
-        else:
-            break
-    return func.__get__(obj, cls)
-
-copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
 
