@@ -7,7 +7,7 @@ python:
 # install dependencies
 install:
   - pip install -r requirements.txt
-  - pip install radvel
+  - python setup.py install
   
 # command to run tests
 script:
