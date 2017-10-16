@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages, Extension
 import numpy
-from Cython.Build import cythonize
+import Cython.Build as cb
 import re
 
 
@@ -16,7 +16,7 @@ setup(
     version=get_property('__version__', 'radvel'),
     author="BJ Fulton, Erik Petigura",
     packages=find_packages(),
-    ext_modules=cythonize(extensions),
+    ext_modules=cb.cythonize(extensions),
     include_dirs=[numpy.get_include()],
     data_files=[
         (
