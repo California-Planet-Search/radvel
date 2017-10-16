@@ -1,11 +1,12 @@
 # Preliminary imports
+import os
+os.chdir("..")
 
 import radvel
 import radvel.likelihood
 import radvel.plotting
 import copy
 import pandas as pd
-import os
 from scipy import optimize
 import corner
 from astropy.time import Time
