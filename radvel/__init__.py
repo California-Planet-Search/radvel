@@ -35,6 +35,6 @@ def _unpickle_method(func_name, obj, cls):
         else:
             break
     return func.__get__(obj, cls)
-if sys.version_info[0] == 2:
+if sys.version_info[0] < 3:
     import copy_reg
     copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
