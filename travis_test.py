@@ -11,6 +11,7 @@ from astropy.time import Time
 import numpy as np
 from numpy import *
 import copy
+import matplotlib.pyplot as plt
 
 def bin_same_night(rv):
     rv['jd_date'] = rv['time'].apply(lambda x: np.int(np.floor(x)))
