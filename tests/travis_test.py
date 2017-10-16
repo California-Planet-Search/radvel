@@ -21,8 +21,9 @@ def bin_same_night(rv):
     rv_mean['errvel'] = rv_mean['errvel'] / np.array(np.sqrt(rv_n))
     return rv_mean
 
-path = os.path.join(radvel.DATADIR,'164922_fixed.txt')
-data = pd.read_csv(path, usecols=(0,1,2,3), delim_whitespace=True)
+#path = os.path.join(radvel.DATADIR,'164922_fixed.txt')
+#data = pd.read_csv(path, usecols=(0,1,2,3), delim_whitespace=True)
+data = pd.read_csv('164922_fixed.txt', usecols=(0,1,2,3), delim_whitespace=True)
 
 rv_hires_rk = data.query("tel == 'k'")
 rv_hires_rj = data.query("tel == 'j'")
