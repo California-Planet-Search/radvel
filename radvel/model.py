@@ -1,5 +1,4 @@
 import numpy as np
-import copy_reg
 import types
 from collections import OrderedDict
 import lmfit
