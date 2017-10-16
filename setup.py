@@ -28,7 +28,7 @@ setup(
         )
     ],
     entry_points={'console_scripts': ['radvel=radvel.cli:main']},
-    dependency_links=['http://www.parallelpython.com/downloads/pp/pp-1.6.4.4.zip#egg=pp-1.6.4.4'],
+#    dependency_links=['http://www.parallelpython.com/downloads/pp/pp-1.6.4.4.zip#egg=pp-1.6.4.4'], # no longer dependent on pp
     install_requires=[line.strip() for line in
                       open('requirements.txt', 'r').readlines()]
 
