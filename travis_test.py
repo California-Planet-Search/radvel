@@ -23,7 +23,7 @@ def bin_same_night(rv):
 
 #path = os.path.join(radvel.DATADIR,'164922_fixed.txt')
 #data = pd.read_csv(path, usecols=(0,1,2,3), delim_whitespace=True)
-data = pd.read_csv('164922_fixed.txt', usecols=(0,1,2,3), delim_whitespace=True)
+data = pd.read_csv('example_data/164922_fixed.txt', usecols=(0,1,2,3), delim_whitespace=True)
 
 rv_hires_rk = data.query("tel == 'k'")
 rv_hires_rj = data.query("tel == 'j'")
