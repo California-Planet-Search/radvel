@@ -138,7 +138,7 @@ print(post)
 
 
 plt.close('all')
-fig,axL = subplots(nrows=2,figsize=(12,8),sharex=True)
+fig,axL = plt.subplots(nrows=2,figsize=(12,8),sharex=True)
 plot_results(like.like_list[0],'black','hires_rj') # plot best fit model
 plot_results(like.like_list[1],'Tomato','hires_rk') # plot best fit model
 plot_results(like.like_list[2],'RoyalBlue','apf') # plot best fit model
