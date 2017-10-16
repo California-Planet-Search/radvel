@@ -136,38 +136,4 @@ print("Initial loglikelihood = %f" % post0.logprob())
 print("Final loglikelihood = %f" % post.logprob())
 print(post)
 
-
-plt.close('all')
-fig,axL = plt.subplots(nrows=2,figsize=(12,8),sharex=True)
-plot_results(like.like_list[0],'black','hires_rj') # plot best fit model
-plot_results(like.like_list[1],'Tomato','hires_rk') # plot best fit model
-plot_results(like.like_list[2],'RoyalBlue','apf') # plot best fit model
-axL[0].legend()
-bjd0 = 2450000
-xlabel('BJD_TBD - %i' % bjd0)
-ylabel('RV')
-[ax.grid() for ax in axL]
-draw()
-
 df = radvel.mcmc(post, nrun=1000)
-
-df_cps = post.params.basis.to_cps(df)
-labels = 'per1 tc1 e1 k1 per2 tc2 e2 k2 gamma_hires_rj gamma_hires_rk gamma_apf '.split()
-df_cps[labels].quantile([0.14,0.5,0.84]).T
-
-#,close all
-labels = 'per1 tc1 e1 k1 per2 tc2 e2 k2 gamma_hires_rj gamma_hires_rk gamma_apf '.split()
-rc('font',size=8)
-dims = len(labels)
-fig,axL = subplots(nrows=dims,ncols=dims,figsize=(10,10))
-corner_kw = dict(
-    labels=labels,
-    levels=[0.68,0.95],
-    plot_datapoints=False,
-    smooth=True,
-    bins=20,
-    )
-corner.corner(df_cps[labels],fig=fig,**corner_kw)
-
-reload(radvel.plotting)
-radvel.plotting.rv_multipanel_plot(post)
