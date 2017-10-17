@@ -12,8 +12,5 @@ install:
   
 # command to run tests
 script:
-   - cd example_planets
-   - pwd
-   - radvel fit -s epic203771098.py
-   - cd ..
+   - radvel fit -s example_planets/epic203771098.py
    - python travis_test.py
