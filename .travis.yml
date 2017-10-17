@@ -10,7 +10,15 @@ install:
   - python setup.py install         # installs radvel
   - python setup.py build_ext -i    # tells radvel how to call kepler c code
   
-# command to run tests
+# run all tests in "getting started" docs
 script:
    - radvel fit -s example_planets/epic203771098.py
-   - python travis_test.py
+   - radvel --help
+   - radvel plot -t rv -s example_planets/epic203771098.py
+   - radvel mcmc -s example_planets/epic203771098.py
+   - radvel plot -t rv corner trend -s example_planets/epic203771098.py
+   - radvel report -s example_planets/epic203771098.py
+   - radvel derive -s example_planets/epic203771098.py
+   - radvel plot -t derived -s example_planets/epic203771098.py
+   - radvel bic -t nplanets -s example_planets/epic203771098.py
+   - radvel table -t params priors nplanets -s example_planets/epic203771098.py
