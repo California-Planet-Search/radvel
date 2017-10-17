@@ -14,7 +14,7 @@ before_script:
 - "sh -e /etc/init.d/xvfb start"
 - sleep 3 # give xvfb some time to start
 
-# run all tests in "getting started" docs
+# run tests in Travis-CI virtual env
 script:
    - radvel --help
    - radvel fit -s example_planets/epic203771098.py
