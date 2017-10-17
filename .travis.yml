@@ -6,7 +6,7 @@ python:
  
 # install dependencies
 install:
-#  - pip install -r requirements.txt # installs all dependencies listed in requirements.txt
+  - pip install -r requirements.txt # installs all dependencies listed in requirements.txt
   - pip install .                   # installs current radvel branch
 # - pip install radvel  
 # - python setup.py install         # updates to this branch of radvel
