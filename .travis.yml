@@ -4,6 +4,12 @@ python:
   - "2.7"
   - "3.4"
  
+notifications:
+  slack:
+    on_success: change  # send a slack notification when build status changes
+                        # (starts failing or gets fixed). Travis-CI runs a build every time 
+                        # something in this repo changes or a pull request is made.
+    
 install:
   - pip install -r requirements.txt    # installs dependencies listed in requirements.txt
   - pip install .                      # installs radvel from current git branch
