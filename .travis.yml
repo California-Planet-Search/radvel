@@ -6,10 +6,11 @@ python:
  
 # install dependencies
 install:
-  - pip install -r requirements.txt # installs all dependencies listed in requirements.txt
-  - pip install radvel
-  - python setup.py install         # updates to this branch of radvel
-#  - python setup.py build_ext -i    # tells radvel how to call kepler c code
+#  - pip install -r requirements.txt # installs all dependencies listed in requirements.txt
+  - pip install .                   # installs current radvel branch
+# - pip install radvel  
+# - python setup.py install         # updates to this branch of radvel
+# - python setup.py build_ext -i    # tells radvel how to call kepler c code
 
 # configure a headless display using xvbf to test plot generation
 before_script: 
