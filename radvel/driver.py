@@ -3,6 +3,7 @@ Driver functions for the radvel pipeline.\
 These functions are meant to be used only with\
 the `cli.py` command line interface.
 """
+from __future__ import print_function
 import os
 import sys
 import pickle
@@ -287,10 +288,7 @@ def tables(args):
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
         )
         with open(saveto, 'w') as f:
-            if sys.version_info[0] < 3:
-                print >>f, tex
-            else:
-                print(tex, file=f)
+            print(tex, file=f)
 
         savestate = {'{}_tex'.format(tabtype): os.path.abspath(saveto)}
         save_status(statfile, 'table', savestate)
