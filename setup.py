@@ -14,7 +14,7 @@ extensions = [Extension("radvel._kepler", ["src/_kepler.pyx"],)]
 setup(
     name="radvel",
     version=get_property('__version__', 'radvel'),
-    author="BJ Fulton, Erik Petigura",
+    author="BJ Fulton, Erik Petigura, Sarah Blunt",
     packages=find_packages(),
     ext_modules=cb.cythonize(extensions),
     include_dirs=[numpy.get_include()],
