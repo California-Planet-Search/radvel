@@ -6,10 +6,12 @@ python:
   
 # install dependencies
 install:
-  - pip install -r requirements.txt
-  - python setup.py install
-  - python setup.py build_ext -i
+  - pip install -r requirements.txt # installs all dependencies listed in requirements.txt
+  - python setup.py install         # installs radvel
+  - python setup.py build_ext -i    # tells radvel how to call kepler c code
   
 # command to run tests
 script:
+   - cd example_planets
+   - radvel fit -s epic203771098.py
    - python travis_test.py
