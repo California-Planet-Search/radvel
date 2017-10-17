@@ -16,8 +16,8 @@ before_script:
 
 # run all tests in "getting started" docs
 script:
-   - radvel fit -s example_planets/epic203771098.py
    - radvel --help
+   - radvel fit -s example_planets/epic203771098.py
    - radvel plot -t rv -s example_planets/epic203771098.py
    - radvel mcmc -s example_planets/epic203771098.py
    - radvel plot -t rv corner trend -s example_planets/epic203771098.py
@@ -26,3 +26,7 @@ script:
    - radvel plot -t derived -s example_planets/epic203771098.py
    - radvel bic -t nplanets -s example_planets/epic203771098.py
    - radvel table -t params priors nplanets -s example_planets/epic203771098.py
+   - radvel fit -s example_planets/HD164922.py
+   - radvel mcmc -s example_planets/HD164922.py
+   - radvel derive -s example_planets/HD164922.py
+   - radvel bic -t nplanets -s example_planets/HD164922.py
