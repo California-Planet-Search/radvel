@@ -287,7 +287,10 @@ def tables(args):
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
         )
         with open(saveto, 'w') as f:
-            print >>f, tex
+            if sys.version_info[0] < 3:
+                print >>f, tex
+            else:
+                print(tex, file=f)
 
         savestate = {'{}_tex'.format(tabtype): os.path.abspath(saveto)}
         save_status(statfile, 'table', savestate)
