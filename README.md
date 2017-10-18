@@ -2,6 +2,9 @@
 
 General Toolkit for Modeling Radial Velocities.
 
+[![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.org/California-Planet-Search/radvel.svg?branch=sara)](https://travis-ci.org/California-Planet-Search/radvel)
+
 ## Attribution
 
 Written by BJ Fulton, Erik Petigura, and Sarah Blunt. Fulton and Petigura (in prep.).
@@ -13,8 +16,6 @@ Please cite the following DOI if you wish to make use of this software in any pu
 ## Documentation
 
 Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
-
-[![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
 
 ## Features
 
