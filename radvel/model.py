@@ -140,7 +140,6 @@ class Parameter(object):
         mcmcscale (float): step size to be used for MCMC fitting
 
 
-    TODO: add "isGP (Bool) attribute, implement GP functionality"
     """
     def __init__(self, value=None, vary=True, mcmcscale=None):
         self.value = value
