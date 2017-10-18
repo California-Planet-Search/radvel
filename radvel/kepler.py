@@ -117,9 +117,9 @@ def profile():
     
     ecc = 0.20
     orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
-    numloops = 10000
+    numloops = 5000
 
-    for size in [10,30,100,300,1000,3000]:
+    for size in [10,30,100,300,1000]:
 
         setup = """\
 from radvel.kepler import rv_drive
@@ -135,13 +135,13 @@ t = np.linspace(2455000, 2457000, %d)
 
         print("\nProfiling pure C code for an RV time series with {} "
               "observations".format(size))
-        tc = timeit.timeit('rv_drive(t, orbel, use_C_kepler_solver=True)',
+        tc = timeit.timeit('rv_drive(t, orbel, use_c_kepler_solver=True)',
                            setup=setup, number=numloops)
         print("Ran %d model calculations in %5.3f seconds" % (numloops, tc))
 
         print("Profiling Python code for an RV time series with {} "
               "observations".format(size))
-        tp = timeit.timeit('rv_drive(t, orbel, use_C_kepler_solver=False)',
+        tp = timeit.timeit('rv_drive(t, orbel, use_c_kepler_solver=False)',
                            setup=setup, number=numloops)
         print("Ran %d model calculations in %5.3f seconds" % (numloops, tp))
         print("The C version runs %5.2f times faster" % (tp/tc))
