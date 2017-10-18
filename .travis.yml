@@ -7,6 +7,7 @@ python:
 install:
     - pip install -r requirements.txt    # installs dependencies listed in requirements.txt
     - pip install .                      # installs radvel from current git branch
+    - pip install coveralls
 
 # configure a headless display using xvbf to test plot generation
 before_script:
