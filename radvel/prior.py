@@ -21,7 +21,7 @@ class Gaussian(Prior):
         self.sigma = sigma
         self.param = param
     def __call__(self, params):
-        x = params[self.param]
+        x = params[self.param].value
         return -0.5 * ( ( x - self.mu ) / self.sigma )**2
     def __repr__(self):
         s = "Gaussian prior on {}, mu={}, sigma={}".format(
@@ -31,7 +31,7 @@ class Gaussian(Prior):
     def __str__(self):
         try:
             d = {self.param: self.mu}
-            tex = model.RVParameters(9).tex_labels(param_list=[self.param])[self.param]
+            tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
             
             s = "Gaussian prior on {}: ${} \\pm {}$ \\\\".format(tex, self. mu, self.sigma)
         except KeyError:
@@ -64,7 +64,7 @@ class EccentricityPrior(Prior):
         return msg[:-1]
     
     def __str__(self):
-        tex = model.RVParameters(9, basis='per tc e w k').tex_labels()
+        tex = model.Parameters(9, basis='per tc e w k').tex_labels()
 
         msg = ""
         for i,num_planet in enumerate(self.planet_list):
@@ -92,7 +92,7 @@ upper limits must match number of planets."
     
     def __call__(self, params):
         def _getpar(key, num_planet):
-            return params['{}{}'.format(key,num_planet)]
+            return params['{}{}'.format(key,num_planet)].value
 
         parnames = params.basis.name.split()
         
@@ -136,7 +136,7 @@ class PositiveKPrior(Prior):
     
     def __call__(self, params):
         def _getpar(key, num_planet):
-            return params['{}{}'.format(key,num_planet)]
+            return params['{}{}'.format(key,num_planet)].value
 
         for num_planet in range(1,self.num_planets+1):
             try:
@@ -165,7 +165,7 @@ class HardBounds(Prior):
         self.maxval = maxval
         self.param = param
     def __call__(self, params):
-        x = params[self.param]
+        x = params[self.param].value
         if x < self.minval or x > self.maxval:
             return -np.inf
         else:
@@ -178,7 +178,7 @@ class HardBounds(Prior):
     def __str__(self):
         try:
             d = {self.param: self.minval}
-            tex = model.RVParameters(9).tex_labels(param_list=[self.param])[self.param]
+            tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
             
             s = "Bounded prior: ${} < {} < {}$".format(self.minval,
                                                        tex.replace('$',''),

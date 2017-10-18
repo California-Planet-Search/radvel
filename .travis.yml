@@ -1,0 +1,38 @@
+language: python
+
+python:
+  - "2.7"
+  - "3.4"
+ 
+notifications:
+  slack:
+    on_success: change  # send a slack notification when build status changes
+                        # (starts failing or gets fixed). Travis-CI runs a build every time 
+                        # something in this repo changes or a pull request is made.
+    
+install:
+  - pip install -r requirements.txt    # installs dependencies listed in requirements.txt
+  - pip install .                      # installs radvel from current git branch
+
+# configure a headless display using xvbf to test plot generation
+before_script: 
+- "export DISPLAY=:99.0"
+- "sh -e /etc/init.d/xvfb start"
+- sleep 3 # give xvfb some time to start
+
+# run tests in Travis-CI virtual env
+script:
+   - radvel --help
+   - radvel fit -s example_planets/epic203771098.py
+   - radvel plot -t rv -s example_planets/epic203771098.py
+   - radvel mcmc -s example_planets/epic203771098.py
+   - radvel plot -t rv corner trend -s example_planets/epic203771098.py
+   - radvel report -s example_planets/epic203771098.py
+   - radvel derive -s example_planets/epic203771098.py
+   - radvel plot -t derived -s example_planets/epic203771098.py
+   - radvel bic -t nplanets -s example_planets/epic203771098.py
+   - radvel table -t params priors nplanets -s example_planets/epic203771098.py
+   - radvel fit -s example_planets/HD164922.py
+   - radvel mcmc -s example_planets/HD164922.py
+   - radvel derive -s example_planets/HD164922.py
+   - radvel bic -t nplanets -s example_planets/HD164922.py
