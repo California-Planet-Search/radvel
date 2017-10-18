@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import types
 from collections import OrderedDict
@@ -212,3 +211,4 @@ class RVModel(object):
         vel+=self.params['dvdt'].value * ( t - self.time_base )
         vel+=self.params['curv'].value * ( t - self.time_base )**2
         return vel
+
