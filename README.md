@@ -2,8 +2,8 @@
 
 General Toolkit for Modeling Radial Velocities.
 
-[![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
 [![Build Status](https://travis-ci.org/California-Planet-Search/radvel.svg?branch=next-release)](https://travis-ci.org/California-Planet-Search/radvel)
+[![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
 
 ## Attribution
 
