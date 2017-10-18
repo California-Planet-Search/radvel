@@ -94,6 +94,7 @@ def test_basis():
 def test_kepler():
     """
     Profile and test C-based Kepler solver
+    (turned off due to issue building on Travis CI)
     """
     radvel.kepler.profile()
     
