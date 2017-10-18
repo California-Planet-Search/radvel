@@ -139,9 +139,7 @@ def mcmc(args):
     print(msg)
 
     chains = radvel.mcmc(
-        post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles
-    )
-
+            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles)
 
     # Convert chains into CPS basis
     cpschains = chains.copy()
@@ -210,8 +208,6 @@ def mcmc(args):
                  'nwalkers': args.nwalkers,
                  'nsteps': args.nsteps}
     save_status(statfile, 'mcmc', savestate)
-
-    os._exit(0)
     
 def bic(args):
     """Compare different models and comparative statistics
