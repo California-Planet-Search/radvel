@@ -7,7 +7,7 @@ General Toolkit for Modeling Radial Velocities.
 
 ## Attribution
 
-Written by BJ Fulton, Erik Petigura, and Sarah Blunt. Fulton and Petigura (in prep.).
+Written by BJ Fulton, Erik Petigura, and Sarah Blunt. Fulton et al. (in prep.)
 
 Please cite the following DOI if you wish to make use of this software in any publication.
 
@@ -41,13 +41,3 @@ Follow examples in
 - `radvel/tests/SyntheticData.ipynb`
 - `radvel/tests/EPIC-2037_Fitting+MCMC.ipynb`
 - `radvel/tests/164922_Fitting+MCMC.ipynb`
-
-You'll need the following dependencies
-
-- emcee
-- corner 
-- pandas (to read in hdf5)
-- matplotlib-1.5.0
-- cython (tested with 0.22)
-- pdflatex installed and in your system's path
-

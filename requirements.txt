@@ -5,4 +5,4 @@ cython>=0.22
 astropy>=1.1.2
 emcee>=2.2.1
 lmfit>=0.9.3
-pandas
+pandas>=0.20.0
