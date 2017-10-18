@@ -14,7 +14,7 @@ Please cite the following DOI if you wish to make use of this software in any pu
 
 Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
 
-[![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=master)](http://radvel.readthedocs.io/en/master/?badge=master)
+[![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
 
 ## Features
 
