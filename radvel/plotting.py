@@ -3,7 +3,7 @@ import copy
 import numpy as np
 import pylab as pl
 import matplotlib
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredText
+from mpl_toolkits.axes_grid.anchored_artists import AnchoredText
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.ticker import NullFormatter, MaxNLocator
 from matplotlib import rcParams, gridspec
