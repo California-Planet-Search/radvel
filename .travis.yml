@@ -3,12 +3,6 @@ language: python
 python:
   - "2.7"
   - "3.4"
- 
-notifications:
-  slack:
-    on_success: change  # send a slack notification when build status changes
-                        # (starts failing or gets fixed). Travis-CI runs a build every time 
-                        # something in this repo changes or a pull request is made.
     
 install:
   - pip install -r requirements.txt    # installs dependencies listed in requirements.txt
@@ -36,3 +30,9 @@ script:
    - radvel mcmc -s example_planets/HD164922.py
    - radvel derive -s example_planets/HD164922.py
    - radvel bic -t nplanets -s example_planets/HD164922.py
+
+notifications:
+  slack:
+    on_failure: always  # send a slack notification when build fails.
+                        # Travis-CI runs a build every time something 
+                        # in this repo changes or a pull request is made.
