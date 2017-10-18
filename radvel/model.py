@@ -174,9 +174,11 @@ class RVModel(object):
     def __init__(self, params, time_base=0):
         self.num_planets = params.num_planets
         self.params = params
-        self.params['dvdt'].value = 0
-        self.params['curv'].value = 0
         self.time_base = time_base
+        if 'dvdt' not in params.keys():
+            self.params['dvdt']=Parameter(value=0.)
+        if 'curv' not in params.keys():
+            self.params['curv']=Parameter(value=0.)
 
     def __call__(self, t, planet_num=None):
         """Compute the radial velocity
