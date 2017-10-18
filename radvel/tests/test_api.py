@@ -42,9 +42,17 @@ def _standard_run(setupfn):
 
         
 def test_k2(setupfn='example_planets/epic203771098.py'):
+    """
+    Run through K2-24 example
+    """
+    
     _standard_run(setupfn)
 
 def test_hd(setupfn='example_planets/HD164922.py'):
+    """
+    Check multi-instrument fit
+    """
+    
     args = _args()
     args.setupfn = setupfn
 
@@ -94,7 +102,6 @@ def test_basis():
 def test_kepler():
     """
     Profile and test C-based Kepler solver
-    (turned off due to issue building on Travis CI)
     """
     radvel.kepler.profile()
     
