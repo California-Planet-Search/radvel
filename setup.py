@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages, Extension
-from Cython.Build import cythonize
 import numpy
+import Cython.Build as cb
 import re
 
 
@@ -14,9 +14,9 @@ extensions = [Extension("radvel._kepler", ["src/_kepler.pyx"],)]
 setup(
     name="radvel",
     version=get_property('__version__', 'radvel'),
-    author="BJ Fulton, Erik Petigura",
+    author="BJ Fulton, Erik Petigura, Sarah Blunt",
     packages=find_packages(),
-    ext_modules=cythonize(extensions),
+    ext_modules=cb.cythonize(extensions),
     include_dirs=[numpy.get_include()],
     data_files=[
         (
@@ -28,7 +28,7 @@ setup(
         )
     ],
     entry_points={'console_scripts': ['radvel=radvel.cli:main']},
-    dependency_links=['http://www.parallelpython.com/downloads/pp/pp-1.6.4.4.zip#egg=pp-1.6.4.4'],
+#    dependency_links=['http://www.parallelpython.com/downloads/pp/pp-1.6.4.4.zip#egg=pp-1.6.4.4'], # no longer dependent on pp
     install_requires=[line.strip() for line in
                       open('requirements.txt', 'r').readlines()]
 

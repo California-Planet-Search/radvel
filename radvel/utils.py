@@ -15,9 +15,10 @@ def initialize_posterior(config_file, decorr=False):
     P = imp.load_source(system_name, os.path.abspath(config_file))
     system_name = P.starname
 
-    cpsparams = P.params.basis.to_cps(P.params)
-    params = P.params.basis.from_cps(cpsparams,
-                                            P.fitting_basis, keep=False)
+    params = P.params
+    assert str(params.basis) == "Basis Object <{}>".format(P.fitting_basis), """
+Parameters in config file must be converted to fitting basis.
+"""
 
     if decorr:
         try:
@@ -37,9 +38,8 @@ Converting 'logjit' to 'jit' for you now.
 """
             warnings.warn(msg, DeprecationWarning, stacklevel=2)
             newkey = key.replace('logjit', 'jit')
-            params[newkey] = np.exp(params[key])
-            P.vary[newkey] = P.vary[key]
-            del P.vary[key]
+            params[newkey] = radvel.model.Parameter(value=np.exp(params[key].value), \
+                                                    vary=params[key].vary)
             del params[key]
 
     #iparams = params.copy()
@@ -47,10 +47,10 @@ Converting 'logjit' to 'jit' for you now.
     
     # Make sure we don't have duplicate indicies in the DataFrame
     P.data = P.data.reset_index(drop=True)
-    
+
     # initialize RVmodel object
-    mod = radvel.RVModel(params, time_base=P.time_base)   
-    
+    mod = radvel.RVModel(params, time_base=P.time_base)
+
     # initialize RVlikelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
@@ -70,13 +70,11 @@ Converting 'logjit' to 'jit' for you now.
 
     like = radvel.likelihood.CompositeLikelihood(list(likes.values()))
 
-    # Set fixed/vary parameters
-    like.vary.update(P.vary)
-    
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors
-    
+
+
     return P, post
 
 
@@ -228,8 +226,8 @@ def t_to_phase(params, t, num_planet, cat=False):
     elif ('tp%i' % num_planet) in params:
         timeparam = 'tp%i' % num_planet
         
-    P = params['per%i' % num_planet]
-    tc = params[timeparam]
+    P = params['per%i' % num_planet].value
+    tc = params[timeparam].value
     phase = np.mod(t - tc, P) 
     phase /= P
     if cat: phase = np.concatenate((phase,phase+1))

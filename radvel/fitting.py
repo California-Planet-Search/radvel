@@ -29,9 +29,9 @@ def maxlike_fitting(post, verbose=True):
     )
 
     cpspost = copy.copy(post)
-    cpsparams = post.params.basis.to_cps(post.params)
-    cpspost.params.update(cpsparams)
-    
+    cpsparams = post.params.basis.to_cps(post.params, noVary = True) # setting "noVary" assigns each new parameter a vary attribute
+    cpspost.params.update(cpsparams)                                 # of '', for printing purposes
+ 
     if verbose:
         print("Final loglikelihood = %f" % post.logprob())
         print("Best-fit parameters:")
@@ -74,17 +74,17 @@ def model_comp(post, verbose=False):
                 num = int(par[-1])
                 if num > n:
                     if par.startswith('k') or par.startswith('logk'):
-                        post.params[par] = 0.0
-                    post.vary[par] = False
+                        post.params[par].value = 0.0
+                    post.params[par].vary = False
                 else:
-                    post.params[par] = ipost.params[par]
-                    post.vary[par] = ipost.vary[par]
+                    post.params[par].value = ipost.params[par].value
+                    post.params[par].vary = ipost.params[par].vary
             except (ValueError, KeyError):
                 pass
 
-        for par in post.vary.keys():
+        for par in post.params:
             if par.startswith('jit'):
-                post.vary[par] = False
+                post.params[par].vary = False
             
         post = maxlike_fitting(post, verbose=False)
 

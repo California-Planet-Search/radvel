@@ -4,7 +4,7 @@ General Toolkit for Modeling Radial Velocities.
 
 ## Attribution
 
-Written by BJ Fulton and Erik Petigura, Fulton and Petigura (in prep.).
+Written by BJ Fulton, Erik Petigura, and Sarah Blunt. Fulton and Petigura (in prep.).
 
 Please cite the following DOI if you wish to make use of this software in any publication.
 
@@ -30,9 +30,8 @@ Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
 
 ## Future Improvements...
 
-- Bundle up examples in convenient test cases
 - PERF: Optimizations for low eccentricity orbits
-- Streamline API
+- Add Gaussian Process (GP) functionality
 
 ## Tutorials 
 

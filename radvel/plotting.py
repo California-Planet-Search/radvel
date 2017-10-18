@@ -182,7 +182,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     if not nophase:
         periods = []
         for i in range(num_planets):
-            periods.append(cpsparams['per%d' % (i+1)])
+            periods.append(cpsparams['per%d' % (i+1)].value)
             
     longp = max(periods)
     shortp = min(periods)
@@ -209,16 +209,16 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     rawresid = cpspost.likelihood.residuals()
     resid = (
-        rawresid + cpsparams['dvdt']*(rvtimes-model.time_base) 
-        + cpsparams['curv']*(rvtimes-model.time_base)**2
+        rawresid + cpsparams['dvdt'].value*(rvtimes-model.time_base) 
+        + cpsparams['curv'].value*(rvtimes-model.time_base)**2
     )
     slope = (
-        cpsparams['dvdt'] * (rvmodt-model.time_base) 
-        + cpsparams['curv'] * (rvmodt-model.time_base)**2
+        cpsparams['dvdt'].value * (rvmodt-model.time_base) 
+        + cpsparams['curv'].value * (rvmodt-model.time_base)**2
     )
     slope_low = (
-        cpsparams['dvdt'] * (rvtimes-model.time_base) 
-        + cpsparams['curv'] * (rvtimes-model.time_base)**2
+        cpsparams['dvdt'].value * (rvtimes-model.time_base) 
+        + cpsparams['curv'].value * (rvtimes-model.time_base)**2
     )
 
     # Provision figure
@@ -388,7 +388,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
         anotext = []
         for l, p in enumerate(print_params):
-            val = cpsparams["%s%d" % (print_params[l],pnum)]
+            val = cpsparams["%s%d" % (print_params[l],pnum)].value
             
             if uparams is None:
                 _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$",""), val, units[p])
@@ -436,7 +436,7 @@ def corner_plot(post, chains, saveplot=None):
         None
     
     """
-    labels = [k for k in post.vary.keys() if post.vary[k]]
+    labels = [k for k in post.params.keys() if post.params[k].vary]
     texlabels = [post.params.tex_labels().get(l, l) for l in labels]
     
     f = rcParams['font.size']
@@ -552,7 +552,7 @@ def trend_plot(post, chains, nwalkers, outfile=None):
         
     """
 
-    labels = sorted([k for k in post.vary.keys() if post.vary[k]])
+    labels = sorted([k for k in post.params.keys() if post.params[k].vary])
     texlabels = [post.params.tex_labels().get(l, l) for l in labels]
     colors = [ cmap(x) for x in np.linspace(0.05, 0.95, nwalkers)]
 

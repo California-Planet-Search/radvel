@@ -3,6 +3,7 @@ Driver functions for the radvel pipeline.\
 These functions are meant to be used only with\
 the `cli.py` command line interface.
 """
+from __future__ import print_function
 import os
 import sys
 import pickle
@@ -98,6 +99,7 @@ def fit(args):
     print("Performing max-likelihood fitting for {}".format(conf_base))
 
     P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
+
     post = radvel.fitting.maxlike_fitting(post, verbose=True)
     
     postfile = os.path.join(args.outputdir,
@@ -132,31 +134,31 @@ def mcmc(args):
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
 
-    msg = "Running MCMC for {}, N_ensembles = {}, N_walkers = {}, N_steps = {} ...".format(
-        conf_base, args.ensembles, args.nwalkers, args.nsteps)
+    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {} ...".format(
+        conf_base, args.nwalkers, args.nsteps, args.ensembles)
     print(msg)
 
     chains = radvel.mcmc(
-        post, nwalkers=args.nwalkers, nrun=args.nsteps,
-        ensembles=args.ensembles
+        post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles
     )
 
 
     # Convert chains into CPS basis
     cpschains = chains.copy()
     for par in post.params.keys():
-        if par in post.vary.keys() and not post.vary[par]:
-            cpschains[par] = post.params[par]
+        if not post.params[par].vary:
+            cpschains[par] = post.params[par].value
 
     cpschains = post.params.basis.to_cps(cpschains)
     cps_quantile = cpschains.quantile([0.159, 0.5, 0.841])
 
-    # Get quantiles and update posterior object
+    # Get quantiles and update posterior object to median 
+    #   values returned by MCMC chains
     post_summary=chains.quantile([0.159, 0.5, 0.841])        
 
     for k in chains.keys():
         if k in post.params.keys():
-            post.params[k] = post_summary[k][0.5]
+            post.params[k].value = post_summary[k][0.5]
 
     print("Performing post-MCMC maximum likelihood fit...")
     post = radvel.fitting.maxlike_fitting(post, verbose=False)
@@ -171,7 +173,7 @@ def mcmc(args):
     cpspost.medparams = {}
     cpspost.maxparams = {}
     for par in cpspost.params.keys():
-        maxlike = cpspost.params[par]
+        maxlike = cpspost.params[par].value
         med = cps_quantile[par][0.5]
         high = cps_quantile[par][0.841] - med
         low = med - cps_quantile[par][0.159]
@@ -286,7 +288,7 @@ def tables(args):
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
         )
         with open(saveto, 'w') as f:
-            print >>f, tex
+            print(tex, file=f)
 
         savestate = {'{}_tex'.format(tabtype): os.path.abspath(saveto)}
         save_status(statfile, 'table', savestate)
@@ -326,8 +328,8 @@ def derive(args):
     # Convert chains into CPS basis
     cpschains = chains.copy()
     for par in post.params.keys():
-        if (par not in post.vary.keys()) or (not post.vary[par]):
-            cpschains[par] = post.params[par]
+        if not post.params[par].vary:
+            cpschains[par] = post.params[par].value
 
 
     cpschains = post.params.basis.to_cps(cpschains)
@@ -344,7 +346,7 @@ def derive(args):
             if _has_col(key):
                 return cpschains['{}{}'.format(key,i)]
             else:
-                return P.params['{}{}'.format(key,i)]
+                return P.params['{}{}'.format(key,i)].value
 
         def _set_param(key, value):
             chains['{}{}'.format(key,i)] = value

@@ -1,4 +1,5 @@
 # Example Keplerian fit configuration file
+
 # Required packages for setup
 import os
 import pandas as pd
@@ -15,26 +16,41 @@ fitting_basis = 'per tc secosw sesinw k'    # Fitting basis, see radvel.basis.BA
 bjd0 = 2454833.
 planet_letters = {1: 'b', 2:'c'}
 
-# Define prior centers (initial guesses) here.
-params = radvel.RVParameters(nplanets,basis='per tc e w k')    # initialize RVparameters object
+# Define prior centers (initial guesses) in a basis of your choice (need not be in the fitting basis)
+anybasis_params = radvel.Parameters(nplanets,basis='per tc e w k')    # initialize Parameters object
 
-params['per1'] = 20.885258     # period of 1st planet
-params['tc1'] = 2072.79438    # time of inferior conjunction of 1st planet
-params['e1'] = 0.01          # eccentricity of 'per tc secosw sesinw logk'1st planet
-params['w1'] = np.pi/2.      # argument of periastron of the star's orbit for 1st planet
-params['k1'] = 10.0         # velocity semi-amplitude for 1st planet
-params['per2'] = 42.363011    # same parameters for 2nd planet ...
-params['tc2'] = 2082.62516
-params['e2'] = 0.01
-params['w2'] = np.pi/2.
-params['k2'] = 10.0
+anybasis_params['per1'] = radvel.Parameter(value=20.885258)    # period of 1st planet
+anybasis_params['tc1'] = radvel.Parameter(value=2072.79438)    # time of inferior conjunction of 1st planet
+anybasis_params['e1'] = radvel.Parameter(value=0.01)          # eccentricity of 'per tc secosw sesinw logk'1st planet
+anybasis_params['w1'] = radvel.Parameter(value=np.pi/2.)      # argument of periastron of the star's orbit for 1st planet
+anybasis_params['k1'] = radvel.Parameter(value=10.0)         # velocity semi-amplitude for 1st planet
+anybasis_params['per2'] = radvel.Parameter(value=42.363011)    # same parameters for 2nd planet ...
+anybasis_params['tc2'] = radvel.Parameter(value=2082.62516)
+anybasis_params['e2'] = radvel.Parameter(value=0.01)
+anybasis_params['w2'] = radvel.Parameter(value=np.pi/2.)
+anybasis_params['k2'] = radvel.Parameter(value=10.0)
 
-params['dvdt'] = 0.0         # slope
-params['curv'] = 0.0         # curvature
+anybasis_params['dvdt'] = radvel.Parameter(value=0.0)        # slope
+anybasis_params['curv'] = radvel.Parameter(value=0.0)         # curvature
 
-params['gamma_j'] = 1.0      # "                   "   hires_rj
-params['jit_j'] = 2.6        # "      "   hires_rj
+anybasis_params['gamma_j'] = radvel.Parameter(1.0)      # velocity zero-point for hires_rj
+anybasis_params['jit_j'] = radvel.Parameter(value=2.6)        # jitter for hires_rj
 
+
+# Convert input orbital parameters into the fitting basis
+params = anybasis_params.basis.to_any_basis(anybasis_params,fitting_basis)
+
+# Set the 'vary' attributes of each of the parameters in the fitting basis. A parameter's 'vary' attribute should
+# 	be set to False if you wish to hold it fixed during the fitting process. By default, all 'vary' parameters
+#	are set to True.
+params['secosw1'].vary = False
+params['sesinw1'].vary = False
+params['secosw2'].vary = False
+params['sesinw2'].vary = False
+params['tc1'].vary = False
+params['per1'].vary = False
+params['tc2'].vary = False
+params['per2'].vary = False
 
 # Load radial velocity data, in this example the data is contained in an hdf file,
 # the resulting dataframe or must have 'time', 'mnvel', 'errvel', and 'tel' keys
@@ -46,33 +62,14 @@ data['mnvel'] = data.vel
 data['errvel'] = data.errvel
 data['tel'] = 'j'
 
-
-# Set parameters to be held constant (default is for all parameters to vary). Must be defined in the fitting basis
-vary = dict(
-    dvdt =True,
-    curv = True,
-    jit_j = True,
-    per1 = False,
-    tc1 = False,
-    secosw1 =False,
-    sesinw1 = False,
-    e1=False,
-    w1=False,
-    per2 = False,
-    tc2 = False,
-    secosw2 = False,
-    sesinw2 = False
-)
-
-
 # Define prior shapes and widths here.
 priors = [
     radvel.prior.EccentricityPrior( nplanets ),           # Keeps eccentricity < 1
     radvel.prior.PositiveKPrior( nplanets ),             # Keeps K > 0
-    radvel.prior.Gaussian('tc1', params['tc1'], 0.01), # Gaussian prior on tc1 with center at tc1 and width 0.01 days
-    radvel.prior.Gaussian('per1', params['per1'], 0.01),
-    radvel.prior.Gaussian('tc2', params['tc2'], 0.01),
-    radvel.prior.Gaussian('per2', params['per2'], 0.01),
+    radvel.prior.Gaussian('tc1', params['tc1'].value, 0.01), # Gaussian prior on tc1 with center at tc1 and width 0.01 days
+    radvel.prior.Gaussian('per1', params['per1'].value, 0.01),
+    radvel.prior.Gaussian('tc2', params['tc2'].value, 0.01),
+    radvel.prior.Gaussian('per2', params['per2'].value, 0.01),
     radvel.prior.HardBounds('jit_j', 0.0, 15.0)
 ]
 
