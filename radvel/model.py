@@ -1,7 +1,6 @@
 import numpy as np
 import types
 from collections import OrderedDict
-import lmfit
 
 from radvel import kepler
 from radvel.basis import Basis
