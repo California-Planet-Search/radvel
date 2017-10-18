@@ -1,17 +1,21 @@
 
-import commands
+import subprocess
 
 import radvel
 
 
 def _run_cmd(cmd):
-    status, output = commands.getstatusoutput(cmd)
+    p = subprocess.Popen(cmd.split())
+    p.wait()
+    status = p.poll()
+    out,stderr = p.communicate()
 
-    return (status, output)
+    return (status, out)
 
 def test_help():
-    stat, out = _run_cmd('radvel --help')
-    print(out)
+    cmd = 'radvel --help'
+    stat,out = _run_cmd(cmd)
+    #print(out)
     assert stat == 0, "{} failed with exit code {}".format(cmd,stat)
 
 
