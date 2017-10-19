@@ -1,12 +1,18 @@
-import emcee
-import pandas as pd
-import numpy as np
-import copy
-from multiprocessing import Pool
-from scipy import optimize
+import os
 import sys
 import time
+import copy
+
+from multiprocessing import Pool
+
+import pandas as pd
+import numpy as np
+from scipy import optimize
+
+import emcee
+
 from radvel import utils, likelihood
+
 
 # Maximum G-R statistic to stop burn-in period
 burnGR = 1.03
@@ -89,6 +95,7 @@ def _domcmc(input_tuple):
     ipos = input_tuple[1]
     check_interval = input_tuple[2]
     sampler.run_mcmc(ipos, check_interval)
+    
     return sampler
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8,
@@ -171,7 +178,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     statevars.mintz = -1
     statevars.maxgr = np.inf
     statevars.t0 = time.time()
-    
+
     for r in range(num_run):
         t1 = time.time()
         mcmc_input_array = []

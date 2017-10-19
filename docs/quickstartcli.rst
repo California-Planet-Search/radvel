@@ -12,55 +12,54 @@ Install ``radvel`` using pip:
 
 .. code-block:: bash
 
-    $ pip install radvel --process-dependency-links
+    $ pip install radvel
 
-Make sure that ``pdflatex`` is installed. 
+Make sure that ``pdflatex`` is installed and in your system's path. 
 You can get ``pdflatex`` by installing the `TexLive package
 <https://www.tug.org/texlive/>`_ or other LaTeX distributions.
 By default it is expected to be in your system's path, but you may
 specify a path to pdflatex using the ``--latex-compiler``
 option at the ``radvel report`` step.
 
-Please cite the folloing DOI if you make use of RadVel in any 
-publication.
-
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.580821.svg
-   :target: https://doi.org/10.5281/zenodo.580821
 
 Example Fit
 +++++++
 
 Test your installation by running through one of the included
-examples. We will use the ``radvel`` command line interface to execute a fit.
+examples. We will use the ``radvel`` command line interface to execute
+a multi-planet, multi-instrument fit.
 
 The ``radvel`` binary should have been automatically placed in your system's path by the
-``python setup.py install`` command (see :ref:`installation`).
+``pip`` command (see :ref:`installation`). If your system can not find
+the ``radvel`` executable then try running ``python setup.py install``
+from within the top-level ``radvel`` directory.
 
 First lets look at ``radvel --help`` for the available options:
 
 .. code-block:: bash
 		
     $ radvel --help
-    usage: radvel [-h] {fit,plot,mcmc,derive,bic,table,report} ...
+    usage: RadVel [-h] [--version] {fit,plot,mcmc,derive,bic,table,report} ...
 
     RadVel: The Radial Velocity Toolkit
 
     optional arguments:
-        -h, --help            show this help message and exit
+      -h, --help            show this help message and exit
+      --version             Print version number and exit.
 
     subcommands:
-    {fit,plot,mcmc,derive,bic,table,report}
+      {fit,plot,mcmc,derive,bic,table,report}
 
 
 Here is an example workflow to
 run a simple fit using the included `HD164922.py` example
 configuration file:
 
-Perform a maximum-likelihood fit. You should almost always do this first:
+Perform a maximum-likelihood fit. You almost always will need to do this first:
 
 .. code-block:: bash
 
-    $ radvel fit -s /path/to/HD164922.py
+    $ radvel fit -s /path/to/radvel/example_planets/HD164922.py
 
    
 By default the results will be placed in a directory with the same name as
@@ -75,7 +74,7 @@ best-fit solution contained in that file:
 
 .. code-block:: bash
 
-    $ radvel plot -t rv -s /path/to/HD164922.py
+    $ radvel plot -t rv -s /path/to/radvel/example_planets/HD164922.py
 
 This should produce a plot named
 `HD164922_rv_multipanel.pdf` that looks something like this.
@@ -87,7 +86,7 @@ assess parameter uncertainties.
 
 .. code-block:: bash
 
-    $ radvel mcmc -s /path/to/HD164922.py
+    $ radvel mcmc -s /path/to/radvel/example_planets/HD164922.py
 
 Once the MCMC chains finish running there will be another new file
 called `HD164922_mcmc_chains.csv.tar.bz2`. This is a compressed csv
@@ -99,14 +98,14 @@ results and generate the full suite of plots.
 
 .. code-block:: bash
 
-    $ radvel plot -t rv corner trend -s /path/to/HD164922.py
+    $ radvel plot -t rv corner trend -s /path/to/radvel/example_planets/HD164922.py
 
 Then create a LaTeX document and corresponding PDF to summarize the
 results.
 
 .. code-block:: bash
 
-    $ radvel report -s /path/to/HD164922.py
+    $ radvel report -s /path/to/radvel/example_planets/HD164922.py
 
 The report PDF will be saved as `HD164922_results.pdf`. It should
 contain a table reporting the parameter values and uncertainties, a
@@ -119,29 +118,30 @@ Optional Features
 
 Combine the measured properties of the RV time-series with
 the properties of the host star defined in the setup file to
-derive physical parameters for the planetary system.
+derive physical parameters for the planetary system. Have a look at the
+`epic203771098.py` example setup file to see how to include stellar parameters.
 
 .. code-block:: bash
 
-    $ radvel derive -s /path/to/HD164922.py
+    $ radvel derive -s /path/to/radvel/example_planets/HD164922.py
 
 Generate a corner plot for the derived parameters. This plot will also be
 included in the summary report if available.
 
 .. code-block:: bash
 
-    $ radvel plot -t derived -s /path/to/HD164922.py
+    $ radvel plot -t derived -s /path/to/radvel/example_planets/HD164922.py
 
 Perform a model comparison testing models with progressively fewer
 planets. If this is run a new table will be included in the summary report.
 
 .. code-block:: bash
 
-    $ radvel bic -t nplanets -s /path/to/HD164922.py
+    $ radvel bic -t nplanets -s /path/to/radvel/example_planets/HD164922.py
 
 Generate and save only the TeX code for any/all of the tables.
 
 .. code-block:: bash
 
-    $ radvel table -t params priors nplanets -s /path/to/HD164922.py
+    $ radvel table -t params priors nplanets -s /path/to/radvel/example_planets/HD164922.py
 

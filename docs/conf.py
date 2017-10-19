@@ -15,7 +15,14 @@
 import sys
 import os
 import shlex
+
+import matplotlib
+matplotlib.use('agg')
+
 import radvel
+
+autodoc_mock_imports = ['_tkinter']
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the

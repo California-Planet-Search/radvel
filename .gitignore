@@ -3,6 +3,7 @@
 *~
 .*
 docs/_*
+dist
 build
 src/*.o
 radvel.egg-info/
