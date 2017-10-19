@@ -1,2 +1,2 @@
-tests/*.ipynb linguist-language=Python
+*.ipynb linguist-vendored
 docs/* linguist-documentation
