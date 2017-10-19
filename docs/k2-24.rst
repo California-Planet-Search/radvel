@@ -14,15 +14,15 @@ Perform some preliminary imports:
 .. code:: python
     
     import os
-    
+
     import matplotlib
     import numpy as np
     import pylab as pl
     import pandas as pd
     from scipy import optimize
-    
+
     import corner
-    
+
     import radvel
     import radvel.plotting
     
@@ -33,20 +33,20 @@ Define a function that we will use to initialize the
 
     def initialize_model():
         time_base = 2420
-        params = radvel.RVParameters(2,basis='per tc secosw sesinw logk')
-        params['per1'] = 20.885258
-	params['tc1'] = 2072.79438
-        params['secosw1'] = 0.01
-        params['sesinw1'] = 0.01
-        params['logk1'] = 1.1
-        params['per2'] = 42.363011
-        params['tc2'] = 2082.62516
-        params['secosw2'] = 0.01
-        params['sesinw2'] = 0.01
-        params['logk2'] = 1.1
+        params = radvel.Parameters(2,basis='per tc secosw sesinw logk') # number of planets = 2
+        params['per1'] = radvel.Parameter(value=20.885258)
+        params['tc1'] = radvel.Parameter(value=2072.79438)
+        params['secosw1'] = radvel.Parameter(value=0.01)
+        params['sesinw1'] = radvel.Parameter(value=0.01)
+        params['logk1'] = radvel.Parameter(value=1.1)
+        params['per2'] = radvel.Parameter(value=42.363011)
+        params['tc2'] = radvel.Parameter(value=2082.62516)
+        params['secosw2'] = radvel.Parameter(value=0.01)
+        params['sesinw2'] = radvel.Parameter(value=0.01)
+        params['logk2'] = radvel.Parameter(value=1.1)
         mod = radvel.RVModel(params, time_base=time_base)
-        mod.params['dvdt'] = -0.02
-        mod.params['curv'] = 0.01
+        mod.params['dvdt'] = radvel.Parameter(value=-0.02)
+        mod.params['curv'] = radvel.Parameter(value=0.01)
         return mod
 
 
@@ -58,12 +58,12 @@ residuals
     def plot_results(like):
         fig = pl.figure(figsize=(12,4))
         fig = pl.gcf()
+        fig.set_tight_layout(True)
         pl.errorbar(
             like.x, like.model(t)+like.residuals(), 
             yerr=like.yerr, fmt='o'
             )
         pl.plot(ti, like.model(ti))
-        fig.set_tight_layout(True)
         pl.xlabel('Time')
         pl.ylabel('RV')
         pl.draw()
@@ -73,10 +73,9 @@ starting guesses are stored in an HD5 file
 
 .. code:: python
 
-    path = os.path.join(radvel.DATADIR,'epic203771098.hdf')
-    planet = pd.read_hdf(path,'planet')
-    rv = pd.read_hdf(path,'rv')
-    
+    path = os.path.join(radvel.DATADIR,'epic203771098.csv')
+    rv = pd.read_csv(path)
+
     t = np.array(rv.t)
     vel = np.array(rv.vel)
     errvel = rv.errvel
@@ -91,42 +90,41 @@ Set initial guesses for the parameters
 
     mod = initialize_model()
     like = radvel.likelihood.RVLikelihood(mod, t, vel, errvel)
-    like.params['gamma'] = 0.1
-    like.params['jit'] = 1.0
+    like.params['gamma'].value = 0.1
+    like.params['jit'].value = 1.0
 
-Choose which parameters to vary or fix
+Choose which parameters to vary or fix. By default, all ``radvel.Parameter`` objects will vary, so you only have to worry about setting the ones you want to hold fixed.
 
 .. code:: python
 
-    like.vary['secosw1'] = False
-    like.vary['sesinw1'] = False
-    like.vary['secosw2'] = False
-    like.vary['sesinw2'] = False
-    like.vary['per1'] = False
-    like.vary['per2'] = False
-    like.vary['tc1'] = False
-    like.vary['tc2'] = False
-    like.vary['curv'] = True
-    print like
+    like.params['secosw1'].vary = False
+    like.params['sesinw1'].vary = False
+    like.params['secosw2'].vary = False
+    like.params['sesinw2'].vary = False
+    like.params['per1'].vary = False
+    like.params['per2'].vary = False
+    like.params['tc1'].vary = False
+    like.params['tc2'].vary = False
+    print(like)
 
 
 .. parsed-literal::
 
     parameter                     value      vary
-    curv                           0.01       True
-    dvdt                          -0.02       True
-    gamma                           0.1       True
-    jit                               1       True
-    logk1                           1.1       True
-    logk2                           1.1       True
-    per1                        20.8851      False
-    per2                        42.3638      False
+    per1                        20.8853      False
+    tc1                         2072.79      False
     secosw1                        0.01      False
-    secosw2                        0.01      False
     sesinw1                        0.01      False
+    logk1                           1.1       True
+    per2                         42.363      False
+    tc2                         2082.63      False
+    secosw2                        0.01      False
     sesinw2                        0.01      False
-    tc1                    -2.44793e+06      False
-    tc2                    -2.44792e+06      False
+    logk2                           1.1       True
+    dvdt                          -0.02       True
+    curv                           0.01       True
+    jit                               1       True
+    gamma                             1       True
     
 
 
@@ -162,28 +160,29 @@ Maximize the likelihood and print the updated posterior object
         post.get_vary_params(),    # initial variable parameters
         method='Powell',           # Nelder-Mead also works
         )
-    
+
     plot_results(like)             # plot best fit model
-    print post
+    print(post)
 
 
 .. parsed-literal::
 
     parameter                     value      vary
-    curv                       0.001804       True
-    dvdt                     -0.0299544       True
-    gamma                      -3.97918       True
-    jit                         2.06908       True
-    logk1                        1.5468       True
-    logk2                       1.37737       True
-    per1                        20.8851      False
-    per2                        42.3638      False
+    per1                        20.8853      False
+    tc1                         2072.79      False
     secosw1                        0.01      False
-    secosw2                        0.01      False
     sesinw1                        0.01      False
+    logk1                       1.56037       True
+    per2                         42.363      False
+    tc2                         2082.63      False
+    secosw2                        0.01      False
     sesinw2                        0.01      False
-    tc1                    -2.44793e+06      False
-    tc2                    -2.44792e+06      False
+    logk2                       1.80937       True
+    dvdt                     -0.0364432       True
+    curv                    -0.00182455       True
+    jit                         2.62376       True
+    gamma                       2.62376       True
+
     Priors
     ------
     Gaussian prior on jit, mu=1.09861228867, sigma=0.5
@@ -228,10 +227,10 @@ Allow ``secosw`` and ``sesinw`` parameters to vary
 
 .. code:: python
 
-    like.vary.update(secosw1=True,
-                     sesinw1=True,
-                     secosw2=True,
-                     sesinw2=True)
+    like.params['secosw1'].vary = True
+    like.params['sesinw1'].vary = True
+    like.params['secosw2'].vary = True
+    like.params['sesinw2'].vary = True
 
 Add an ``EccentricityPrior`` to ensure that eccentricity stays below
 1.0. In this example we will also add a Gaussian prior on the jitter
@@ -251,7 +250,7 @@ Optimize the parameters by maximizing the likelihood and plot the result
         post.neglogprob_array, 
         post.get_vary_params(), 
         method='Nelder-Mead',)
-    
+
     plot_results(like)
     print post
 
@@ -259,70 +258,31 @@ Optimize the parameters by maximizing the likelihood and plot the result
 .. parsed-literal::
 
     parameter                     value      vary
-    curv                     0.00189763       True
-    dvdt                      -0.030585       True
-    gamma                      -4.45199       True
-    jit                         1.89795       True
-    logk1                       1.69415       True
-    logk2                       1.49037       True
-    per1                        20.8851      False
-    per2                        42.3638      False
-    secosw1                    0.416534       True
-    secosw2                   -0.157138       True
-    sesinw1                   -0.326439       True
-    sesinw2                  -0.0489288       True
-    tc1                    -2.44793e+06      False
-    tc2                    -2.44792e+06      False
+    per1                        20.8853      False
+    tc1                         2072.79      False
+    secosw1                   0.0821103       True
+    sesinw1                    0.402699       True
+    logk1                       1.15535       True
+    per2                         42.363      False
+    tc2                         2082.63      False
+    secosw2                   -0.187327       True
+    sesinw2                    -0.71348       True
+    logk2                       2.25931       True
+    dvdt                     -0.0189353       True
+    curv                    -0.00144404       True
+    jit                         3.46874       True
+    gamma                       3.46874       True
+
     Priors
     ------
-    Eccentricity constrained to be < 0.99
+    e1 constrained to be < 0.99
+    e2 constrained to be < 0.99
     Gaussian prior on jit, mu=0.69314718056, sigma=-2.30258509299
     
 
 
 
 .. image:: plots/output_28_1.png
-
-
-Run the MCMC again
-
-.. code:: python
-
-    df = radvel.mcmc(post,threads=1,nwalkers=20,nrun=1000)
-
-
-Convert into more physical parameters and make another corner plot
-
-.. code:: python
-
-    df['k1'] = np.exp(df['logk1'])
-    df['k2'] = np.exp(df['logk2'])
-    df['jit'] = np.exp(df['jit'])
-    df['e1'] = df['secosw1']**2 + df['sesinw1']**2
-    df['e2'] = df['secosw2']**2 + df['sesinw2']**2
-    
-    df['ecosw1'] = df['secosw1']*np.sqrt(df['e1'])
-    df['esinw1'] = df['sesinw1']*np.sqrt(df['e1'])
-    
-    df['ecosw2'] = df['secosw2']*np.sqrt(df['e2'])
-    df['esinw2'] = df['sesinw2']*np.sqrt(df['e2'])
-    
-    
-    labels = 'k1 k2 jit e1 e2'.split()
-    fig = corner.corner(
-        df[labels],
-        labels=labels,
-        levels=[0.68,0.95],
-        plot_datapoints=False,
-        smooth=True,
-        bins=20,
-        quantiles=[.14,.5,.84]
-        )
-
-
-
-.. image:: plots/output_32_0.png
-
 
 Plot the final solution
 

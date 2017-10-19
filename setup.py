@@ -1,25 +1,24 @@
 from setuptools import setup, find_packages, Extension
-from Cython.Build import cythonize
 import numpy
+import Cython.Build as cb
 import re
+
 
 def get_property(prop, project):
     result = re.search(r'{}\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop),
                        open(project + '/__init__.py').read())
     return result.group(1)
 
-extensions = [
-    Extension("radvel._kepler", ["src/_kepler.pyx"],)
-]
+extensions = [Extension("radvel._kepler", ["src/_kepler.pyx"],)]
 
 setup(
-    name = "radvel",
-    version = get_property('__version__', 'radvel'),
-    author = "BJ Fulton, Erik Petigura",
-    packages = find_packages(),
-    ext_modules = cythonize(extensions),
-    include_dirs = [numpy.get_include()],
-    data_files = [
+    name="radvel",
+    version=get_property('__version__', 'radvel'),
+    author="BJ Fulton, Erik Petigura, Sarah Blunt",
+    packages=find_packages(),
+    ext_modules=cb.cythonize(extensions),
+    include_dirs=[numpy.get_include()],
+    data_files=[
         (
             'radvel_example_data', 
             [
@@ -28,9 +27,8 @@ setup(
             ]
         )
     ],
-    entry_points = {'console_scripts': ['radvel=radvel.cli:main']},
-    install_requires = [line.strip() for line in \
-         open('requirements.txt', 'r').readlines()]
+    entry_points={'console_scripts': ['radvel=radvel.cli:main']},
+    install_requires=[line.strip() for line in
+                      open('requirements.txt', 'r').readlines()]
 
 )
-

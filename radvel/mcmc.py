@@ -1,13 +1,17 @@
-import emcee
-import pandas as pd
-import numpy as np
-import copy
-import pp
-import threading
-from scipy import optimize
+import os
 import sys
 import time
-from radvel import utils
+import copy
+
+from multiprocessing import Pool
+
+import pandas as pd
+import numpy as np
+from scipy import optimize
+
+import emcee
+
+from radvel import utils, likelihood
 
 
 # Maximum G-R statistic to stop burn-in period
@@ -26,16 +30,6 @@ class StateVars(object):
 
 statevars = StateVars()
 
-class CheckThread(threading.Thread):
-    def __init__(self, target, *args):
-        self._target = target
-        self._args = args
-        threading.Thread.__init__(self)
-
-    def run(self):
-        self._target(*self._args)
-
-
 def _status_message(statevars):
     msg = (
         "{:d}/{:d} ({:3.1f}%) steps complete; "
@@ -48,14 +42,11 @@ def _status_message(statevars):
     sys.stdout.flush()
 
 
-def convergence_check(server, samplers):
+def convergence_check(samplers):
     """Check for convergence
-
-    Check for convergence for a list of running emcee samplers
+    Check for convergence for a list of emcee samplers
     
     Args:
-        server (pp.server): Parallel Python server object running the
-            samplers
         samplers (list): List of emcee sampler objects
     """
     
@@ -95,34 +86,37 @@ def convergence_check(server, samplers):
 
     _status_message(statevars)
 
+def _domcmc(input_tuple):
+    # Function to be run in parallel on different CPUs
+    #
+    # Input is a tuple: first element is an emcee sampler object, second is an array of 
+    #   initial positions, third is number of steps to run before doing a convergence check
+    sampler = input_tuple[0]
+    ipos = input_tuple[1]
+    check_interval = input_tuple[2]
+    sampler.run_mcmc(ipos, check_interval)
+    
+    return sampler
 
-def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8,
              checkinterval=50):
     """Run MCMC
-
     Run MCMC chains using the emcee EnsambleSampler
-
     Args:
-        likelihood (radvel.likelihood): radvel likelihood object
+        post (radvel.posterior): radvel posterior object
         nwalkers (int): number of MCMC walkers
         nrun (int): number of steps to take
         ensembles (int): number of ensembles to run. Will be run
             in parallel on separate CPUs
         checkinterval (int): check MCMC convergence statistics every 
             `checkinterval` steps
-
     Returns:
         DataFrame: DataFrame containing the MCMC samples
-
     """
 
-    def _crunch(sampler, ipos, checkinterval):
-        sampler.run_mcmc(ipos, checkinterval)
-        return sampler
+   # server = pp.Server(ncpus=ensembles)
 
-    server = pp.Server(ncpus=ensembles)
-
-    statevars.server = server
+   # statevars.server = server
     statevars.ensembles = ensembles
     statevars.nwalkers = nwalkers
     statevars.checkinterval = checkinterval
@@ -130,7 +124,7 @@ def mcmc(likelihood, nwalkers=50, nrun=10000, ensembles=8,
     nrun = int(nrun)
         
     # Get an initial array value
-    pi = likelihood.get_vary_params()
+    pi = post.get_vary_params()
     statevars.ndim = pi.size
 
     if nwalkers < 2*statevars.ndim:
@@ -140,28 +134,29 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
 
     # set up perturbation size
     pscales = []
-    for par in likelihood.list_vary_params():
-        val = likelihood.params[par]
-        if par.startswith('per'):
-            pscale = np.abs(val * 1e-5*np.log10(val))
-            pscale_per = pscale
-        elif par.startswith('logper'):
-            pscale = np.abs(1e-5 * val)
-            pscale_per = pscale
-        elif par.startswith('tc'):
-            pscale = 0.1
+    for par in post.list_vary_params():
+        val = post.params[par].value
+        if post.params[par].mcmcscale is None:
+            if par.startswith('per'):
+                pscale = np.abs(val * 1e-5*np.log10(val))
+            #    pscale_per = pscale
+            elif par.startswith('logper'):
+                pscale = np.abs(1e-5 * val)
+            #    pscale_per = pscale
+            elif par.startswith('tc'):
+                pscale = 0.1
+            else:
+                pscale = np.abs(0.10 * val)
+            post.params[par].mcmc_scale = pscale
         else:
-            pscale = np.abs(0.10 * val)
-
+            pscale = post.params[par].mcmcscale
         pscales.append(pscale)
-        
     pscales = np.array(pscales)
-
     
     statevars.samplers = []
     statevars.initial_positions = []
     for e in range(ensembles):
-        lcopy = copy.deepcopy(likelihood)
+        lcopy = copy.deepcopy(post)
         pi = lcopy.get_vary_params()
         p0 = np.vstack([pi]*statevars.nwalkers)
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
@@ -184,32 +179,32 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     statevars.maxgr = np.inf
     statevars.t0 = time.time()
 
-    
     for r in range(num_run):
         t1 = time.time()
-        jobs = []
-        for i,sampler in enumerate(statevars.samplers):
+        mcmc_input_array = []
+        for i, sampler in enumerate(statevars.samplers):
             if sampler.flatlnprobability.shape[0] == 0:
                 p1 = statevars.initial_positions[i]
             else:
                 p1 = None
-            jobs.append(statevars.server.submit(_crunch, (sampler, p1, checkinterval)))
-            
-        for i,j in enumerate(jobs):
-            statevars.samplers[i] = j()
-            
+            mcmc_input = (sampler, p1, checkinterval)
+            mcmc_input_array.append(mcmc_input)
+
+        pool = Pool(statevars.ensembles)
+        statevars.samplers = pool.map(_domcmc, mcmc_input_array)
+        pool.close() #terminates worker processes once all work is done
+        pool.join() #waits for all processes to finish before proceeding
+
         t2 = time.time()
         statevars.interval = t2 - t1
 
-        # Use Threading
-        ch = CheckThread(convergence_check, statevars.server, statevars.samplers)
-        ch.start()
+        convergence_check(statevars.samplers)
+
+
 
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers
         if not statevars.burn_complete and statevars.maxgr <= burnGR:
-            server.wait()
-            ch.join()
             for i, sampler in enumerate(statevars.samplers):
                 statevars.initial_positions[i] = sampler._last_run_mcmc_result[0]
                 sampler.reset()
@@ -223,8 +218,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             statevars.burn_complete = True
 
         if statevars.mixcount >= 5:
-            server.wait()
-            ch.join()
             tf = time.time()
             tdiff = tf - statevars.t0
             tdiff,units = utils.time_print(tdiff)
@@ -235,7 +228,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             print(msg)
             break
 
-    server.destroy()
             
     print("\n")        
     if statevars.ismixed and statevars.mixcount < 5: 
@@ -253,11 +245,10 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         
     df = pd.DataFrame(
         statevars.tchains.reshape(statevars.ndim,statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
-        columns=likelihood.list_vary_params())
+        columns=post.list_vary_params())
     df['lnprobability'] = np.hstack(statevars.lnprob)
 
-    ch.join()
-    
+
     return df
 
 def draw_models_from_chain(mod, chain, t, nsamples=50):
@@ -265,7 +256,6 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
     
     Given an MCMC chain of parameters, draw representative parameters
     and synthesize models.
-
     Args:
         mod (radvel.RVmodel) : RV model
         chain (DataFrame): pandas DataFrame with different values from MCMC 
@@ -275,7 +265,6 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
     
     Returns:
         array: 2D array with the different models as different rows
-
     """
 
     np.random.seed(0)
@@ -291,29 +280,24 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
 
 def gelman_rubin(pars0, minTz=1000, maxGR=maxGR):
     """Gelman-Rubin Statistic
-
     Calculates the Gelman-Rubin statistic and the number of
     independent draws for each parameter, as defined by Ford et
     al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
     The chain is considered well-mixed if all parameters have a
     Gelman-Rubin statistic of <= 1.03 and >= 1000 independent draws.
-
     History: 
         2010/03/01 - Written: Jason Eastman - The Ohio State University        
         2012/10/08 - Ported to Python by BJ Fulton - University of Hawaii, 
             Institute for Astronomy
         2016/04/20 - Adapted for use in radvel. Removed "angular" parameter.
-
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
             parameter values
         minTz (int): (optional) minimum Tz to consider well-mixed
         maxGR (float): (optional) maximum Gelman-Rubin statistic to
             consider well-mixed
-
     Returns:
         (tuple): tuple containing:
-
             ismixed (bool): Are the chains well-mixed?
             gelmanrubin (array): An NPARS element array containing the
                 Gelman-Rubin statistic for each parameter (equation

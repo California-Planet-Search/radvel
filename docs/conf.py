@@ -15,7 +15,14 @@
 import sys
 import os
 import shlex
+
+import matplotlib
+matplotlib.use('agg')
+
 import radvel
+
+autodoc_mock_imports = ['_tkinter']
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -55,7 +62,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'radvel'
 copyright = u'2015, BJ Fulton and Erik Petigura'
-author = u'BJ Fulton and Erik Petigura'
+author = u'BJ Fulton, Erik Petigura, and Sarah Blunt'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -230,7 +237,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'radvel.tex', u'radvel Documentation',
-   u'BJ Fulton and Erik Petigura', 'manual'),
+   u'BJ Fulton, Erik Petigura, and Sarah Blunt', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

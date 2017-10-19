@@ -2,9 +2,14 @@
 
 General Toolkit for Modeling Radial Velocities.
 
+[![Build Status](https://travis-ci.org/California-Planet-Search/radvel.svg?branch=master)](https://travis-ci.org/California-Planet-Search/radvel)
+[![Coverage Status](https://coveralls.io/repos/github/California-Planet-Search/radvel/badge.svg?branch=master)](https://coveralls.io/github/California-Planet-Search/radvel?branch=master)
+[![Code Health](https://landscape.io/github/California-Planet-Search/radvel/master/landscape.svg?style=flat)](https://landscape.io/github/California-Planet-Search/radvel/master)
+[![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
+
 ## Attribution
 
-Written by BJ Fulton and Erik Petigura, Fulton and Petigura (in prep.).
+Written by BJ Fulton, Erik Petigura, and Sarah Blunt. Fulton et al. (in prep.)
 
 Please cite the following DOI if you wish to make use of this software in any publication.
 
@@ -13,8 +18,6 @@ Please cite the following DOI if you wish to make use of this software in any pu
 ## Documentation
 
 Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
-
-[![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=master)](http://radvel.readthedocs.io/en/master/?badge=master)
 
 ## Features
 
@@ -30,9 +33,8 @@ Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
 
 ## Future Improvements...
 
-- Bundle up examples in convenient test cases
 - PERF: Optimizations for low eccentricity orbits
-- Streamline API
+- Add Gaussian Process (GP) functionality
 
 ## Tutorials 
 
@@ -41,13 +43,3 @@ Follow examples in
 - `radvel/tests/SyntheticData.ipynb`
 - `radvel/tests/EPIC-2037_Fitting+MCMC.ipynb`
 - `radvel/tests/164922_Fitting+MCMC.ipynb`
-
-You'll need the following dependencies
-
-- emcee
-- corner 
-- pandas (to read in hdf5)
-- matplotlib-1.5.0
-- cython (tested with 0.22)
-- pdflatex installed and in your system's path
-

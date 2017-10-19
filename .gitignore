@@ -3,5 +3,9 @@
 *~
 .*
 docs/_*
+dist
 build
 src/*.o
+radvel.egg-info/
+radvel/_kepler.so
+src/_kepler.c

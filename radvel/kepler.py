@@ -5,11 +5,12 @@ try:
     from . import _kepler 
     cext = True
 except ImportError:
-    print "WARNING: KEPLER: Unable to import C-based Kepler's\
-equation solver. Falling back to the slower NumPy implementation."
+    print("WARNING: KEPLER: Unable to import C-based Kepler's\
+equation solver. Falling back to the slower NumPy implementation.")
     cext = False
 
-def rv_drive(t, orbel, use_C_kepler_solver=cext):
+
+def rv_drive(t, orbel, use_c_kepler_solver=cext):
     """RV Drive
     
     Args:
@@ -17,7 +18,7 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
         orbel (array of floats): [per, tp, e, om, K].\
             Omega is expected to be\
             in radians
-        use_C_kepler_solver (bool): (default: True) If \
+        use_c_kepler_solver (bool): (default: True) If \
             True use the Kepler solver written in C, else \
             use the Python/NumPy version.
 
@@ -31,27 +32,30 @@ def rv_drive(t, orbel, use_C_kepler_solver=cext):
     
     # Error checking
     if e == 0.0:
-        M = 2 * np.pi * ( ((t - tp) / per) - np.floor( (t - tp) / per ) )
-        return k * np.cos( M + om )
+        M = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
+        return k * np.cos(M + om)
     
-    if per < 0: per = 1e-4
-    if e < 0: e = 0
-    if e > 0.99: e = 0.99
-
+    if per < 0:
+        per = 1e-4
+    if e < 0:
+        e = 0
+    if e > 0.99:
+        e = 0.99
 
     # Calculate the approximate eccentric anomaly, E1, via the mean anomaly  M.
-    if use_C_kepler_solver:
+    if use_c_kepler_solver:
         rv = _kepler.rv_drive_array(t, per, tp, e, om, k)
     else:
-        M = 2 * np.pi * ( ((t - tp) / per) - np.floor( (t - tp) / per ) )
+        M = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
         eccarr = np.zeros(t.size) + e
         E1 = kepler(M, eccarr)
         # Calculate nu
-        nu = 2 * np.arctan( ( (1+e) / (1-e) )**0.5 * np.tan( E1 / 2 ) )
+        nu = 2 * np.arctan( ( (1+e) / (1-e) )**0.5 * np.tan(E1 / 2))
         # Calculate the radial velocity
-        rv = k * ( np.cos( nu + om ) + e * np.cos( om ) ) 
+        rv = k * (np.cos(nu + om) + e * np.cos(om))
     
     return rv
+
 
 def kepler(inbigM, inecc):
     """Solve Kepler's Equation
@@ -74,7 +78,7 @@ def kepler(inbigM, inecc):
     # fiarr should go to zero when converges
     fiarr = ( Earr - eccarr * np.sin(Earr) - Marr)  
     convd = np.abs(fiarr) > conv  # which indices have not converged
-    nd = np.sum(convd == True) # number of converged elements
+    nd = np.sum(convd == True)  # number of converged elements
     count = 0
 
     while nd > 0:  # while unconverged elements exist
@@ -96,13 +100,14 @@ def kepler(inbigM, inecc):
         E = E + d3
         Earr[convd] = E
         fiarr = ( Earr - eccarr * np.sin( Earr ) - Marr) # how well did we do?
-        convd = np.abs(fiarr) > conv  #test for convergence
+        convd = np.abs(fiarr) > conv  # test for convergence
         nd = np.sum(convd == True)
         
     if Earr.size > 1: 
         return Earr
     else: 
         return Earr[0]
+
 
 def profile():
     # Profile and compare C-based Kepler solver with
@@ -112,10 +117,9 @@ def profile():
     
     ecc = 0.20
     orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
-    numloops = 10000
+    numloops = 5000
 
-    
-    for size in [10,30,100,300,1000,3000]:
+    for size in [10,30,100,300,1000]:
 
         setup = """\
 from radvel.kepler import rv_drive
@@ -128,13 +132,16 @@ orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
 
 t = np.linspace(2455000, 2457000, %d)
 """ % (ecc, size)
-        
-        
-        print "\nProfiling pure C code for an RV time series with {} observations".format(size)
-        tc = timeit.timeit('rv_drive(t, orbel, use_C_kepler_solver=True)', setup=setup, number=numloops)
-        print "Ran %d model calculations in %5.3f seconds" % (numloops, tc)
 
-        print "Profiling Python code for an RV time series with {} observations".format(size)
-        tp = timeit.timeit('rv_drive(t, orbel, use_C_kepler_solver=False)', setup=setup, number=numloops)
-        print "Ran %d model calculations in %5.3f seconds" % (numloops, tp)
-        print "The C version runs %5.2f times faster" % (tp/tc)
+        print("\nProfiling pure C code for an RV time series with {} "
+              "observations".format(size))
+        tc = timeit.timeit('rv_drive(t, orbel, use_c_kepler_solver=True)',
+                           setup=setup, number=numloops)
+        print("Ran %d model calculations in %5.3f seconds" % (numloops, tc))
+
+        print("Profiling Python code for an RV time series with {} "
+              "observations".format(size))
+        tp = timeit.timeit('rv_drive(t, orbel, use_c_kepler_solver=False)',
+                           setup=setup, number=numloops)
+        print("Ran %d model calculations in %5.3f seconds" % (numloops, tp))
+        print("The C version runs %5.2f times faster" % (tp/tc))

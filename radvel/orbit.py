@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import  brentq
-from kepler import kepler
+from radvel.kepler import kepler
 from astropy.time import Time
 from astropy import constants as c
 from astropy import units as u
@@ -99,32 +99,6 @@ def true_anomaly(t, P, e):
         nu+=2*np.pi
     return nu
 
-
-
-def next_epoch(P, epoch, now, nnext=10):
-    """
-    Given a reference epoch and a period, compute the next times this period and epoch will occur
-    """
-    
-    phase_now = np.mod((now - epoch) / P,1)
-    i = np.arange(1,nnext+1)
-    time_from_now = (i - phase_now) * P
-    time = now + time_from_now
-    return time
-
-
-def sqrtecosom_sqrtesinom_to_e_om(sqrtecosom,sqrtesinom):
-    e = sqrtecosom**2 + sqrtesinom**2
-    om = np.arctan2(sqrtesinom,sqrtecosom) * 360 / 2 / np.pi
-    om = np.mod(om + 360, 360) # omega is positive
-    return e,om
-
-def e_om_to_ecosom_esinom(e,om):
-    dtorad = 2 * np.pi / 360.
-    ecosom = e * np.cos( dtorad*om )
-    esinom = e * np.sin( dtorad*om )
-    return ecosom, esinom
-
 def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
     """
     Compute Doppler semi-amplitude
@@ -211,45 +185,4 @@ def density(mass,radius, MR_units='earth'):
     return rho
 
 
-def Lstar(Rstar,Teff):
-    """
-    :param Rstar: Radius (solar units)
-    :type Rstar: float
-    
-    :param Teff: Teff (K)
-    :type Teff: float
-    
-
-    :return: Luminosity (solar units)
-    """
-    return (Rstar)**2*(Teff/5770)**4
-
-
-def Sinc(Lstar,A):
-    """
-    :param Lstar: Luminosity (solar-units)
-    :type Lstar: float
-    
-    :param A: Semi-major axis (AU)
-    :type A: float
-
-
-    :return: Insolation (Earth-units)
-    """
-    Sinc = Lstar / A**2
-    return Sinc
-
-
-def Teq(Sinc):
-    """
-    :param Sinc: Insolation (Earth-units)
-    :type Sinc: float
-
-    :return: Equilibrium temperature
-    """
-    Sinc = np.array(Sinc)
-    Se = 1300*u.W*u.m**-2
-    Teq = (Sinc*Se / 4 / c.sigma_sb)**0.25 # Kelvin
-    Teq = Teq.to(u.K).value
-    return Teq
          

@@ -13,7 +13,7 @@ class Posterior(Likelihood):
 
     Args:
         likelihood (radvel.likelihood.Likelihood): Likelihood object
-        params (radvel.model.RVParameters): parameters object
+        params (radvel.model.Parameters): parameters object
 
     Note:
         Append `radvel.prior.Prior` objects to the Posterior.priors list
@@ -23,7 +23,6 @@ class Posterior(Likelihood):
     def __init__(self,likelihood):
         self.likelihood = likelihood
         self.params = likelihood.params
-        self.vary = likelihood.vary
         self.uparams = likelihood.uparams
         self.priors = []
     
@@ -48,7 +47,7 @@ class Posterior(Likelihood):
         _logprob = self.likelihood.logprob()
         for prior in self.priors:
             _logprob += prior( self.params )
-
+            
         return _logprob
 
     def bic(self):
@@ -58,26 +57,26 @@ class Posterior(Likelihood):
         Returns:
             float: BIC
         """
-        
+    
         n = len(self.likelihood.y)
         k = len(self.likelihood.get_vary_params())
-        _bic = np.log(n) * k - 2.0 * self.logprob() 
+        _bic = np.log(n) * k - 2.0 * self.logprob()
         return _bic
     
-    def logprob_array(self, params_array):
+    def logprob_array(self, param_values_array):
         """Log probability for parameter vector
 
         Same as `self.logprob`, but will take a vector of
         parameter values. Useful as the objective function
         for routines that optimize a vector of parameter values
-        instead of the dictionary-like format of the `radvel.model.RVParameters` object.
+        instead of the dictionary-like format of the `radvel.model.Parameters` object.
 
         Returns:
             float: log probability of the likelihood + priors
 
         """
         
-        self.likelihood.set_vary_params(params_array)
+        self.likelihood.set_vary_params(param_values_array)
         _logprob = self.logprob()
                 
         return _logprob
