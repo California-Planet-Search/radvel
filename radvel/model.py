@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from radvel import kepler
 from radvel.basis import Basis
+from radvel import gp
 
 
 texdict = {
@@ -135,7 +136,7 @@ class Parameter(object):
     Attributes:
         value (float): value of parameter. 
         vary (Bool): True if parameter is allowed to vary in
-            MCMC fits, false if fixed.
+            MCMC or max likelihood fits, false if fixed.
         mcmcscale (float): step size to be used for MCMC fitting
 
 
@@ -210,4 +211,19 @@ class RVModel(object):
         vel+=self.params['dvdt'].value * ( t - self.time_base )
         vel+=self.params['curv'].value * ( t - self.time_base )**2
         return vel
+
+class GPModel(RVModel):
+
+    def __init__(self, params, kernel_name="QuasiPer", time_base=0):
+
+        super(GPModel, self).__init__(params,time_base)
+
+        assert kernel_name in gp.KERNELS.keys(), \
+            'GP Kernel not recognized: ' + self.name + '\n' + \
+            'Available kernels: ' + str(KERNELS.keys())
+
+        kernel = getattr(gp, kernel_name + "Kernel") 
+        self.kernel = kernel(self.params)
+
+
 

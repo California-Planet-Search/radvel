@@ -156,13 +156,13 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     statevars.samplers = []
     statevars.initial_positions = []
     for e in range(ensembles):
-        lcopy = copy.deepcopy(post)
-        pi = lcopy.get_vary_params()
+        pcopy = copy.deepcopy(post)
+        pi = pcopy.get_vary_params()
         p0 = np.vstack([pi]*statevars.nwalkers)
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
         statevars.initial_positions.append(p0)
         statevars.samplers.append(emcee.EnsembleSampler( 
-            statevars.nwalkers, statevars.ndim, lcopy.logprob_array, threads=1))
+            statevars.nwalkers, statevars.ndim, pcopy.logprob_array, threads=1))
 
         
     num_run = int(np.round(nrun / checkinterval))
