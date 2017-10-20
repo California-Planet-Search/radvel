@@ -218,12 +218,13 @@ class GPModel(RVModel):
 
         super(GPModel, self).__init__(params,time_base)
 
+        self.kernel_name = kernel_name
         assert kernel_name in gp.KERNELS.keys(), \
-            'GP Kernel not recognized: ' + self.name + '\n' + \
-            'Available kernels: ' + str(KERNELS.keys())
+            'GP Kernel not recognized: ' + self.kernel_name + '\n' + \
+            'Available kernels: ' + str(gp.KERNELS.keys())
 
-        kernel = getattr(gp, kernel_name + "Kernel") 
-        self.kernel = kernel(self.params)
+        kernelcall = getattr(gp, self.kernel_name + "Kernel") 
+        self.kernel = kernelcall(self.params)
 
 
 

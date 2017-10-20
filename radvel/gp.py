@@ -14,7 +14,7 @@ KERNELS = {"SqExp":"squared exponential",
 #    X2 = scipy.matrix([x2]).T 
 
 if sys.version_info[0] < 3:
-    ABC = ABCMeta('ABC', (), {})
+    ABC = abc.ABCMeta('ABC', (), {})
 else:
     ABC = abc.ABC
 
