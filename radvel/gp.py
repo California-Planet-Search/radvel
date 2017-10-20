@@ -1,7 +1,7 @@
 import sys
 import radvel
 import scipy
-from abc import ABCMeta, abstractproperty, abstractmethod
+import abc
 import numpy as np
 
 # implemented kernels
@@ -15,6 +15,8 @@ KERNELS = {"SqExp":"squared exponential",
 
 if sys.version_info[0] < 3:
     ABC = ABCMeta('ABC', (), {})
+else:
+    ABC = abc.ABC
 
 class Kernel(ABC):
     """
@@ -26,11 +28,11 @@ class Kernel(ABC):
     Evan Sinukoff and Sarah Blunt, 2017
     """
 
-    @abstractproperty
+    @abc.abstractproperty
     def name(self):
         pass
 
-    @abstractmethod
+    @abc.abstractmethod
     def compute_covmatrix(self, X1, X2):
         pass
     """
@@ -55,7 +57,7 @@ class SqExpKernel(Kernel):
                 self.amp = params[par].value
 
     def __repr__(self):
-    	return "SqExp Kernel with length: {}, amp: {}".format(self.length, self.amp)
+        return "SqExp Kernel with length: {}, amp: {}".format(self.length, self.amp)
 
     def compute_covmatrix(self, X1, X2):
         dist = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
@@ -80,7 +82,7 @@ class PerKernel(Kernel):
                 self.per = params[par].value
 
     def __repr__(self):
-    	return "Per Kernel with length: {}, amp: {}, per: {}".format(self.length, 
+        return "Per Kernel with length: {}, amp: {}, per: {}".format(self.length, 
                                                                      self.amp, self.per)
 
     def compute_covmatrix(self, X1, X2):
@@ -105,7 +107,7 @@ class QuasiPerKernel(Kernel):
                 self.per = params[par].value
 
     def __repr__(self):
-    	return "QuasiPer Kernel with length: {}, amp: {}, per: {}".format(self.length, 
+        return "QuasiPer Kernel with length: {}, amp: {}, per: {}".format(self.length, 
                                                                           self.amp, self.per)
 
     def compute_covmatrix(self, X1, X2):
@@ -115,4 +117,3 @@ class QuasiPerKernel(Kernel):
                          * scipy.exp(-2.*np.sin(np.pi*dist_p/self.per)**2.
                                      / (self.length**2))
                          * scipy.exp(-dist_se/(2.*self.length**2)))
-
