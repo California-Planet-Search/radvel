@@ -9,10 +9,6 @@ KERNELS = {"SqExp":"squared exponential",
            "Per": "periodic",
            "QuasiPer": "quasi periodic"}
 
-## TO PUT IN GP LIKELIHOOD
-#    X1 = scipy.matrix([x1]).T
-#    X2 = scipy.matrix([x2]).T 
-
 if sys.version_info[0] < 3:
     ABC = abc.ABCMeta('ABC', (), {})
 else:
@@ -35,8 +31,6 @@ class Kernel(ABC):
     @abc.abstractmethod
     def compute_covmatrix(self, X1, X2):
         pass
-    """
-    Abstract method for computing a covariance matrix."""
 
     def add_diagonal_errors(cls, errors):
         cls.covmatrix += (errors**2.) * np.identity(cls.covmatrix.shape[0])
@@ -61,7 +55,7 @@ class SqExpKernel(Kernel):
 
     def compute_covmatrix(self, X1, X2):
         dist = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
-        K = scipy.matrix(self.amp**2 * scipy.exp(-dist/(2.*self.length**2)))
+        K = scipy.matrix(self.amp**2 * scipy.exp(-dist/(self.length**2)))
         self.covmatrix = K
 
 
@@ -87,8 +81,9 @@ class PerKernel(Kernel):
 
     def compute_covmatrix(self, X1, X2):
         dist = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
-        K = scipy.matrix(self.amp**2 * scipy.exp(-2.*np.sin(np.pi*dist/self.per)**2.
-                                                 /(self.length**2)))
+        K = scipy.matrix(self.amp**2 * scipy.exp(-np.sin(np.pi*dist/self.per)**2.
+                                                 /(2.*self.length**2)))
+        self.covmatrix = K
 
 class QuasiPerKernel(Kernel):
 
@@ -114,6 +109,9 @@ class QuasiPerKernel(Kernel):
         dist_p = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
         dist_se = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
         K = scipy.matrix(self.amp**2
-                         * scipy.exp(-2.*np.sin(np.pi*dist_p/self.per)**2.
-                                     / (self.length**2))
-                         * scipy.exp(-dist_se/(2.*self.length**2)))
+                         * scipy.exp(-np.sin(np.pi*dist_p/self.per)**2.
+                                     / (2.*self.length**2))
+                         * scipy.exp(-dist_se/(self.length**2)))
+        self.covmatrix = K
+
+

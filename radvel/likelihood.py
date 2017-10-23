@@ -1,5 +1,8 @@
 import numpy as np
 import radvel.model
+import radvel.gp
+from scipy.linalg import cho_factor, cho_solve
+from scipy import matrix
 
 class Likelihood(object):
     """
@@ -92,7 +95,6 @@ class Likelihood(object):
         self.set_vary_params(params_array)
         _logprob = self.logprob()
         return _logprob
-
 
 class CompositeLikelihood(Likelihood):
 
@@ -208,7 +210,6 @@ class RVLikelihood(Likelihood):
         self.decorr_vectors = decorr_vectors
         if len(decorr_vars) > 0:
             self.decorr_params += ['c1_'+d+suffix for d in decorr_vars]
-            #self.decorr_params += ['c0_'+d+suffix for d in decorr_vars]
 
         super(RVLikelihood, self).__init__(
             model, t, vel, errvel, extra_params=self.extra_params,
@@ -261,6 +262,67 @@ class RVLikelihood(Likelihood):
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
         
         return loglike
+
+class GPLikelihood(RVLikelihood):
+    """GP Likelihood
+
+    The Likelihood object for a radial velocity dataset modeled with a GP
+
+    Args:
+        model (radvel.model.GPModel): GP model object
+        t (array): time array
+        vel (array): array of velocities
+        errvel (array): array of velocity uncertainties
+        suffix (string): suffix to identify this Likelihood object
+           useful when constructing a `CompositeLikelihood` object.
+
+    This class written by Evan Sinukoff and Sarah Blunt, 2017
+    """
+    def __init__(self, model, t, vel, errvel, suffix=''):
+        self.suffix = suffix
+        self.gammavalue = model.params['gamma_'+suffix].value
+        super(GPLikelihood, self).__init__(
+              model, t, vel, errvel, suffix=self.suffix, decorr_vars = [], decorr_vectors=[]
+            )
+        self.kernel = self.model.kernel
+        self.params[self.gamma_param].value = self.gammavalue
+
+    def residuals(self):
+        """Residuals
+
+        Data minus model. No fancy GP stuff here.
+        """
+        res = self.y - self.params[self.gamma_param].value - self.model(self.x)
+        return res
+
+    def logprob(self):
+        """
+        Return GP log-likelihood given the data and model.
+        log-likelihood computed using Cholesky decomposition as:
+           lnL = -0.5*r.T*inverse(K)*r - 0.5*ln[det(K)] - N*ln(2pi)/2, 
+           r = residuals vector, K = covariance matrix, N = number of datapoints. 
+        Priors are not applied here.
+
+        Returns:
+            float: Natural log of likelihood
+
+        """
+        r = self.residuals()
+
+        X = matrix([self.x]).T
+        self.kernel.compute_covmatrix(X,X)
+        K = self.kernel.covmatrix
+
+        # solve alpha = inverse(K)*r
+        alpha = cho_solve(cho_factor(K),r)
+
+        # compute determinant of K
+        (s,d) = np.linalg.slogdet(K)
+
+        # calculate likelihood
+        like = -.5 * (np.dot(r,alpha) + d)
+
+        return like
 
 
 def loglike_jitter(residuals, sigma, sigma_jit):
