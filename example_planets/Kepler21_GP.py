@@ -6,7 +6,7 @@ import radvel
 from radvel import gp
 from radvel import model
 
-# data from López-Moralez+ 2016
+# data from Lopez-Moralez+ 2016
 instnames = ['harps'] # for now, we'll just use data from one telescope
 data = pd.read_csv(os.path.join(radvel.DATADIR,'kepler21b.txt'), sep=' ')
 t = np.array(data['time'])
