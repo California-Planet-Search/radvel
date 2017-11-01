@@ -68,7 +68,7 @@ def convergence_check(samplers):
 
     if statevars.ensembles < 3:
         # if less than 3 ensembles then GR between ensembles does
-        # not work so just calculate is on the last sampler
+        # not work so just calculate it on the last sampler
         statevars.tchains = sampler.chain.transpose()
 
     # Must have compelted at least 5% or 1000 steps per walker before
@@ -99,7 +99,7 @@ def _domcmc(input_tuple):
     return sampler
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8,
-             checkinterval=50):
+             checkinterval=50, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -110,6 +110,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8,
             in parallel on separate CPUs
         checkinterval (int): check MCMC convergence statistics every 
             `checkinterval` steps
+        serial (Bool): set to true if MCMC should be run in serial
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
@@ -190,10 +191,18 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             mcmc_input = (sampler, p1, checkinterval)
             mcmc_input_array.append(mcmc_input)
 
-        pool = Pool(statevars.ensembles)
-        statevars.samplers = pool.map(_domcmc, mcmc_input_array)
-        pool.close() #terminates worker processes once all work is done
-        pool.join() #waits for all processes to finish before proceeding
+        if serial:
+            statevars.samplers = []
+            for i in range(ensembles):
+                result = _domcmc(mcmc_input_array[i])
+                statevars.samplers.append(result)
+        else:
+            pool = Pool(statevars.ensembles)
+            statevars.samplers = pool.map(_domcmc, mcmc_input_array)
+            pool.close() #terminates worker processes once all work is done
+            pool.join() #waits for all processes to finish before proceeding
+            
+
 
         t2 = time.time()
         statevars.interval = t2 - t1

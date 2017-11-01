@@ -62,6 +62,12 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     args.plotkw = {}
     radvel.driver.plots(args)
 
+def test_kepler21(setupfn='example_planets/Kepler21_GP.py'):
+    """
+    Run through GP example
+    """
+    _standard_run(setupfn)
+
 def test_basis():
     """
     Test basis conversions

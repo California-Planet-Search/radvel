@@ -24,7 +24,11 @@ texdict = {
     'logjit_': '\\ln{\\sigma_{\\rm jit}}_{\\rm ',
     'jit_': '\\sigma_{\\rm ',
     'dvdt': '\\dot{\\gamma}',
-    'curv': '\\ddot{\\gamma}'
+    'curv': '\\ddot{\\gamma}',
+    'gp_amp': '\\eta_1',
+    'gp_explength': '\\eta_2',
+    'gp_per': '\\eta_3',
+    'gp_perlength': '\\eta_4'
 }
 
 class Parameters(OrderedDict):
@@ -138,23 +142,33 @@ class Parameter(object):
         vary (Bool): True if parameter is allowed to vary in
             MCMC or max likelihood fits, false if fixed.
         mcmcscale (float): step size to be used for MCMC fitting
+        isGP (Bool): True if parameter is a GP hyperparameter
+        telsshared (list of string): List of telescopes whose data share
+            this parameter (useful for GP fits)
 
 
     """
-    def __init__(self, value=None, vary=True, mcmcscale=None):
+    def __init__(self, value=None, vary=True, mcmcscale=None, isGP=False,
+                 telsshared=None):
         self.value = value
         self.vary = vary
         self.mcmcscale = mcmcscale
+        self.isGP = isGP
+        self.telsshared = telsshared
 
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
         if isinstance(other,self.__class__):
-            return (self.value == other.value) and (self.vary == other.vary) \
-                    and (self.mcmcscale == other.mcmcscale)
+            return (self.value == other.value) \
+                    and (self.vary == other.vary) \
+                    and (self.mcmcscale == other.mcmcscale) \
+                    and (self.isGP == other.isGP) \
+                    and (self.telsshared == other.telsshared)
 
     def __repr__(self):
-        s = "Parameter object: value = {}, vary = {}, mcmc scale = {}".format(self.value, 
-                                                                              self.vary, self.mcmcscale)
+        s = (
+          "Parameter object: value = {}, vary = {}, mcmc scale = {}, isGP = {}, telsshared = {}"
+        ).format(self.value, self.vary, self.mcmcscale,self.isGP, self.telsshared)
         return s
 
 if __name__ == "__main__":
@@ -211,20 +225,6 @@ class RVModel(object):
         vel+=self.params['dvdt'].value * ( t - self.time_base )
         vel+=self.params['curv'].value * ( t - self.time_base )**2
         return vel
-
-class GPModel(RVModel):
-
-    def __init__(self, params, kernel_name="QuasiPer", time_base=0):
-
-        super(GPModel, self).__init__(params,time_base)
-
-        self.kernel_name = kernel_name
-        assert kernel_name in gp.KERNELS.keys(), \
-            'GP Kernel not recognized: ' + self.kernel_name + '\n' + \
-            'Available kernels: ' + str(gp.KERNELS.keys())
-
-        kernelcall = getattr(gp, self.kernel_name + "Kernel") 
-        self.kernel = kernelcall(self.params)
 
 
 
