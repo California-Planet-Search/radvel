@@ -4,6 +4,14 @@ from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
 from scipy import matrix
 
+import numpy as np
+import pandas as pd
+from scipy import optimize
+import os
+import radvel
+from radvel import gp
+from radvel import model
+
 # Data from Lopez-Moralez+ 2016
 instnames = ['hires', 'harps'] 
 data = pd.read_csv(os.path.join(radvel.DATADIR,'kepler21b.txt'), sep=' ')
@@ -106,5 +114,8 @@ gppost.priors += [radvel.prior.Gaussian('jit_harps', 0.9, 0.1)]
 #  for jit_harps, but in the text they say they use a Gaussian.)
 
 print gppost
+print gppost.neglogprob_array
+print gppost.get_vary_params()
+gppost.set_vary_params(gppost.get_vary_params())
 
 res = optimize.minimize(gppost.neglogprob_array, gppost.get_vary_params(), method="Nelder-Mead")
