@@ -110,6 +110,3 @@ def test_kepler21():
 	print("Final log-likelihood:" + str(gppost.logprob()))
 	print(gppost)
 
-	# Run MCMC on our posterior object.  
-	df = radvel.mcmc(gppost,nrun=10,ensembles=3,serial=True) # parallel MCMC not yet implemented for GPs
-
