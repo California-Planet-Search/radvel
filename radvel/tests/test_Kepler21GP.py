@@ -105,7 +105,7 @@ gppost.priors += [radvel.prior.Gaussian('jit_harps', 0.9, 0.1)]
 
 def test_kepler21():
 	# Find max likelihood orbital parameters, noise parameters, and hyperparameters. 
-	res = optimize.minimize(gppost.neglogprob_array, gppost.get_vary_params(), method="Nelder-Mead",options=dict(maxiter=200))
+	res = optimize.minimize(gppost.neglogprob_array, gppost.get_vary_params(), method="Nelder-Mead",options=dict(maxiter=5))
 
 	print("Final log-likelihood:" + str(gppost.logprob()))
 	print(gppost)
