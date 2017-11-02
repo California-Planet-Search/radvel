@@ -119,4 +119,14 @@ print gppost.get_vary_params()
 gppost.set_vary_params(gppost.get_vary_params())
 print gppost.neglogprob_array(gppost.get_vary_params())
 
-res = optimize.minimize(gppost.neglogprob_array, gppost.get_vary_params(), method="Powell", options=dict(maxiter=200))
+Nfeval = 1
+
+def callbackF(Xi):
+    global Nfeval
+    print '{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], gppost.neglogprob_array(Xi))
+    Nfeval += 1
+
+res = optimize.minimize(gppost.neglogprob_array, gppost.get_vary_params(), method="Nelder-Mead", options=dict(maxiter=200), callback=callbackF)
+
+
+
