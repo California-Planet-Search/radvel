@@ -11,7 +11,7 @@ class _args(object):
         self.decorr = False
 
         self.nwalkers = 50
-        self.nsteps = 3000
+        self.nsteps = 100
         self.ensembles = 8
 
 def _standard_run(setupfn):
@@ -61,6 +61,15 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
+
+def test_kepler21(setupfn='example_planets/Kepler21_GP.py'):
+    """
+    Run through GP example
+    """
+   # _standard_run(setupfn)
+    args = _args()
+    args.setupfn = setupfn
+    radvel.driver.fit(args)
 
 def test_basis():
     """

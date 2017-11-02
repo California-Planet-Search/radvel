@@ -14,17 +14,20 @@ class Posterior(Likelihood):
     Args:
         likelihood (radvel.likelihood.Likelihood): Likelihood object
         params (radvel.model.Parameters): parameters object
+        isGP (Bool): convenience attribute; True if the posterior is 
+                     calculated using a GP
 
     Note:
         Append `radvel.prior.Prior` objects to the Posterior.priors list
         to apply priors in the likelihood calculations.
     """
     
-    def __init__(self,likelihood):
+    def __init__(self,likelihood,isGP=False):
         self.likelihood = likelihood
         self.params = likelihood.params
         self.uparams = likelihood.uparams
         self.priors = []
+        self.isGP = isGP
     
     def __repr__(self):
         s = super(Posterior, self).__repr__()

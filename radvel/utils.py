@@ -51,6 +51,15 @@ Converting 'logjit' to 'jit' for you now.
     # initialize RVmodel object
     mod = radvel.RVModel(params, time_base=P.time_base)
 
+    # check if GP
+    liketype = radvel.likelihood.RVLikelihood
+    isGP = False
+    for key in params:
+        if params[key].isGP:
+            liketype =radvel.likelihood.GPLikelihood
+            isGP = True
+            break
+
     # initialize RVlikelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
@@ -59,7 +68,7 @@ Converting 'logjit' to 'jit' for you now.
         if decorr:
             for d in decorr_vars:
                 decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
-        likes[inst] = radvel.likelihood.RVLikelihood(
+        likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
             P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst,
@@ -71,7 +80,7 @@ Converting 'logjit' to 'jit' for you now.
     like = radvel.likelihood.CompositeLikelihood(list(likes.values()))
 
     # Initialize Posterior object
-    post = radvel.posterior.Posterior(like)
+    post = radvel.posterior.Posterior(like,isGP=isGP)
     post.priors = P.priors
 
 

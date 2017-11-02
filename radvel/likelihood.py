@@ -1,6 +1,6 @@
 import numpy as np
 import radvel.model
-import radvel.gp
+from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
 from scipy import matrix
 
@@ -197,6 +197,14 @@ class RVLikelihood(Likelihood):
                  decorr_vectors=[]):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
+        self.extra_params = [self.gamma_param, self.jit_param]
+
+
+        # define instrument-specific granulation param
+   #     if 'gran'+suffix in model.params:
+   #         self.gran_param = 'gran' + suffix
+   #         self.extra_params.append(self.gran_param)
+   #         self.nights_array = np.floor(t) # array of night each point was taken
 
         if suffix.startswith('_'):
             self.suffix = suffix[1:]
@@ -205,7 +213,6 @@ class RVLikelihood(Likelihood):
 
         self.telvec = np.array([self.suffix]*len(t))
         
-        self.extra_params = [self.gamma_param, self.jit_param]
         self.decorr_params = []
         self.decorr_vectors = decorr_vectors
         if len(decorr_vars) > 0:
@@ -240,13 +247,28 @@ class RVLikelihood(Likelihood):
     def errorbars(self):
         """
         Return uncertainties with jitter added
-        in quadrature.
+        in quadrature. If fitting for granulation
+        errors, they are determined here and added in.
 
         Returns:
             array: uncertainties
         
         """
-        return np.sqrt(self.yerr**2 + self.params[self.jit_param].value**2)
+    #    try:
+    #        if self.params[self.gran_param].vary:
+    #            gran_error = np.zeros(len(self.x))
+    #            for i in self.x:
+    #                gran_error[i] = 
+    #                self.nights_array
+
+            #redefine self.gran_param
+    #        else:
+    #            gran_error = self.params[self.gran_param].value
+    #    else:
+    #        gran_error = 0.
+        gran_error = 0.
+
+        return np.sqrt(self.yerr**2 + gran_error**2 + self.params[self.jit_param].value**2)
 
     def logprob(self):
         """
@@ -278,14 +300,39 @@ class GPLikelihood(RVLikelihood):
 
     This class written by Evan Sinukoff and Sarah Blunt, 2017
     """
-    def __init__(self, model, t, vel, errvel, suffix=''):
+    def __init__(self, model, t, vel, errvel, suffix='', kernel_name="QuasiPer", **kwargs):
         self.suffix = suffix
-        self.gammavalue = model.params['gamma_'+suffix].value
         super(GPLikelihood, self).__init__(
-              model, t, vel, errvel, suffix=self.suffix, decorr_vars = [], decorr_vectors=[]
+              model, t, vel, errvel, suffix=self.suffix, 
+              decorr_vars = [], decorr_vectors={}
             )
-        self.kernel = self.model.kernel
-        self.params[self.gamma_param].value = self.gammavalue
+
+        assert kernel_name in gp.KERNELS.keys(), \
+            'GP Kernel not recognized: ' + self.kernel_name + '\n' + \
+            'Available kernels: ' + str(gp.KERNELS.keys())
+
+        self.hyperparams = {}
+        for key in self.params:
+            if self.params[key].isGP and self.suffix in self.params[key].telsshared:
+                self.hyperparams[key] = self.params[key]
+
+        self.kernel_call = getattr(gp, kernel_name + "Kernel") 
+        self.kernel = self.kernel_call(self.hyperparams)
+
+    def set_vary_params(self, param_values_array):
+        i = 0
+        for key in self.list_vary_params():
+            if key.startswith('jit') and param_values_array[i] < 0:
+                param_values_array[i] = -param_values_array[i]
+            self.params[key].value = param_values_array[i]
+            if self.params[key].isGP:
+                self.hyperparams[key] = self.params[key]
+            i+=1
+        assert i == len(param_values_array), \
+            "Length of array must match number of varied parameters"
+
+        # update kernel hyperparams
+        self.kernel = self.kernel_call(self.hyperparams)
 
     def residuals(self):
         """Residuals
@@ -299,18 +346,23 @@ class GPLikelihood(RVLikelihood):
         """
         Return GP log-likelihood given the data and model.
         log-likelihood computed using Cholesky decomposition as:
-           lnL = -0.5*r.T*inverse(K)*r - 0.5*ln[det(K)] - N*ln(2pi)/2, 
+           lnL = -0.5*r.T*inverse(K)*r - 0.5*ln[det(K)] 
            r = residuals vector, K = covariance matrix, N = number of datapoints. 
-        Priors are not applied here.
+        Priors are not applied here. 
+        Constant has been omitted.
 
         Returns:
             float: Natural log of likelihood
 
         """
-        r = self.residuals()
+        r = self.residuals()        
 
         X = matrix([self.x]).T
         self.kernel.compute_covmatrix(X,X)
+
+        # add white noise jitter & error bars along diagonal
+        self.kernel.add_diagonal_errors(self.errorbars())
+
         K = self.kernel.covmatrix
 
         # solve alpha = inverse(K)*r
