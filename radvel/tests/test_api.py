@@ -11,7 +11,7 @@ class _args(object):
         self.decorr = False
 
         self.nwalkers = 50
-        self.nsteps = 3000
+        self.nsteps = 100
         self.ensembles = 8
 
 def _standard_run(setupfn):
