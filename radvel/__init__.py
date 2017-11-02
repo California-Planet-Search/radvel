@@ -11,7 +11,7 @@ import os
 import sys
 
 __all__=['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
-         'fitting', 'report', 'cli', 'driver']
+         'fitting', 'report', 'cli', 'driver', 'gp']
 
 __version__ = '1.0.0'
 

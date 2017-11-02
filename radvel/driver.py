@@ -138,8 +138,14 @@ def mcmc(args):
         conf_base, args.nwalkers, args.nsteps, args.ensembles)
     print(msg)
 
+    serial=False
+    if post.isGP:
+        serial = True # for now, run GP fits in serial
+
     chains = radvel.mcmc(
-            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles)
+             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, 
+             serial=serial
+             )
 
     # Convert chains into CPS basis
     cpschains = chains.copy()
