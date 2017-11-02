@@ -114,7 +114,7 @@ gppost.priors += [radvel.prior.Gaussian('jit_harps', 0.9, 0.1)]
 #  for jit_harps, but in the text they say they use a Gaussian.)
 
 print gppost
-print gppost.neglogprob_array
+print gppost.neglogprob_array()
 print gppost.get_vary_params()
 gppost.set_vary_params(gppost.get_vary_params())
 
