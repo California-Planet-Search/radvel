@@ -119,4 +119,4 @@ print gppost.get_vary_params()
 gppost.set_vary_params(gppost.get_vary_params())
 print gppost.neglogprob_array(gppost.get_vary_params())
 
-res = optimize.minimize(gppost.neglogprob_array, gppost.get_vary_params(), method="Powell")
+res = optimize.minimize(gppost.neglogprob_array, gppost.get_vary_params(), method="Powell", options=dict(maxiter=200))
