@@ -66,7 +66,8 @@ def test_kepler21(setupfn='example_planets/Kepler21_GP.py'):
     """
     Run through GP example
     """
-    _standard_run(setupfn)
+   # _standard_run(setupfn)
+   radvel.driver.fit(args)
 
 def test_basis():
     """
