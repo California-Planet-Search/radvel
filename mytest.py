@@ -126,7 +126,7 @@ def callbackF(Xi):
     print '{0:4d}   {1: 3.6f}   {2: 3.6f}   {3: 3.6f}   {4: 3.6f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], gppost.neglogprob_array(Xi))
     Nfeval += 1
 
-res = optimize.minimize(gppost.neglogprob_array, gppost.get_vary_params(), method="Nelder-Mead", options=dict(maxiter=200), callback=callbackF)
+res = optimize.minimize(gppost.neglogprob_array, gppost.get_vary_params(), method="Nelder-Mead", options=dict(maxiter=200)) #, callback=callbackF)
 
 
 
