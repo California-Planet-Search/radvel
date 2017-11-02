@@ -25,7 +25,8 @@ def maxlike_fitting(post, verbose=True):
 
     if post.isGP: # Nelder-Mead works better than Powell for GP Likelihoods
         res = optimize.minimize(
-            post.neglogprob_array, post.get_vary_params(), method='Nelder-Mead'
+            post.neglogprob_array, post.get_vary_params(), method='Nelder-Mead',
+            options=dict(maxiter=200, maxfev=100000, xatol=1e-8)
         ) 
     else:
         res = optimize.minimize(
