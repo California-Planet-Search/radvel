@@ -18,7 +18,8 @@ before_script:
 
 # run tests in Travis-CI virtual env
 script:
-     - radvel fit -s example_planets/Kepler21_GP.py
+     - python mytest.py
+#     - radvel fit -s example_planets/Kepler21_GP.py
 #    - nosetests radvel --with-coverage --cover-package=radvel
 
 after_success:
