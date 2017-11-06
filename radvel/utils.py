@@ -233,17 +233,6 @@ def t_to_phase(params, t, num_planet, cat=False):
     if cat: phase = np.concatenate((phase,phase+1))
     return phase
 
-def phase_to_t(params, phase, num_planet):
-    if ('tc%i' % num_planet) in params:
-        timeparam = 'tc%i' % num_planet
-    elif ('tp%i' % num_planet) in params:
-        timeparam = 'tp%i' % num_planet
-        
-    P = params['per%i' % num_planet]
-    tc = params[timeparam]
-    t = phase * P
-    t += tc
-    return t
 
 @contextmanager
 def working_directory(dir):
@@ -300,22 +289,6 @@ def jd2date(jd):
 
     return dt
 
-def t2dt(atime):
-    """
-    Convert fractional year (a float) to datetime
-
-    Args:
-        atime (float): Decimal year
-    Returns:
-        datetime.datetime: calendar date
-
-    """
-    year = int(atime)
-    remainder = atime - year
-    boy = datetime(year, 1, 1)
-    eoy = datetime(year + 1, 1, 1)
-    seconds = remainder * (eoy - boy).total_seconds()
-    return boy + timedelta(seconds=seconds)
 
 def geterr(vec, angular=False):
     """
