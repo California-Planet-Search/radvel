@@ -360,7 +360,7 @@ def derive(args):
         k = _get_param('k')
         e = _get_param('e')
 
-        mpsini = radvel.orbit.Msini(k, per, mstar, e, Msini_units='earth')
+        mpsini = radvel.utils.Msini(k, per, mstar, e, Msini_units='earth')
         _set_param('mpsini',mpsini)
 
         outcols.append(_get_colname('mpsini'))
@@ -373,7 +373,7 @@ def derive(args):
             )
 
             _set_param('rp',rp)
-            _set_param('rhop', radvel.orbit.density(mpsini, rp))
+            _set_param('rhop', radvel.utils.density(mpsini, rp))
 
             outcols.append(_get_colname('rhop'))
         except (AttributeError, KeyError):
