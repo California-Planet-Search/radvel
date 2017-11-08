@@ -1,4 +1,6 @@
+
 import numpy as np
+import radvel
 
 # Try to import Kepler's equation solver written in C
 try:
@@ -27,10 +29,10 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
     
     """
     
-    # unpack array
+    # unpack array of parameters
     per, tp, e, om, k = orbel
     
-    # Error checking
+    # Performance boost for circular orbits
     if e == 0.0:
         M = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
         return k * np.cos(M + om)
@@ -46,12 +48,7 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
     if use_c_kepler_solver:
         rv = _kepler.rv_drive_array(t, per, tp, e, om, k)
     else:
-        M = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
-        eccarr = np.zeros(t.size) + e
-        E1 = kepler(M, eccarr)
-        # Calculate nu
-        nu = 2 * np.arctan( ( (1+e) / (1-e) )**0.5 * np.tan(E1 / 2))
-        # Calculate the radial velocity
+        nu = radvel.orbit.true_anomaly(t, tp, per, e)
         rv = k * (np.cos(nu + om) + e * np.cos(om))
     
     return rv
@@ -61,11 +58,11 @@ def kepler(inbigM, inecc):
     """Solve Kepler's Equation
 
     Args:
-        inbigM (array): input Mean annomaly
+        inbigM (array): input Mean anomaly
         inecc (array): eccentricity
 
     Returns:
-        eccentric annomaly: array
+        eccentric anomaly: array
     
     """
     

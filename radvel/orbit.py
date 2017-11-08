@@ -1,6 +1,6 @@
 
 import numpy as np
-from radvel.kepler import kepler
+import radvel
 
 
 def timetrans_to_timeperi(tc, per, ecc, omega):
@@ -18,12 +18,13 @@ def timetrans_to_timeperi(tc, per, ecc, omega):
 
     """
     try:
-        if ecc >= 1: return tc
+        if ecc >= 1:
+            return tc
     except ValueError:
         pass
     
-    f = np.pi/2   - omega
-    EE = 2 * np.arctan( np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)) )  # eccentric anomaly
+    f = np.pi/2 - omega
+    EE = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
     tp = tc - per/(2*np.pi) * (EE - ecc*np.sin(EE))      # time of periastron
     
     return tp
@@ -59,33 +60,26 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=0):
     return tc
 
 
-def true_anomaly(t, P, e):
+def true_anomaly(t, tp, per, e):
     """
-    Calculate the true annomoly for a given time, period, eccentricity.
+    Calculate the true anomoly for a given time, period, eccentricity.
 
-    :param t: time (BJD_TDB)
-    :type t: float
+    Args:
+        t (array): array of times in JD
+        tp (float): time of periastron, same units as t
+        per (float): orbital period in days
+        e (float): eccentricity
 
-    :param P: period [days]
-    :type P: float
-
-    :param e: eccentricity
-    :type e: float
-
-
-    :return: True Annomoly
-    
+    Returns:
+        array: true anomoly at each time
     """
 
-    
     # f in Murray and Dermott p. 27
-    tp = 0
-    t = np.array([t])
-    m = 2. * np.pi * (((t - tp) / P) - np.floor((t - tp) / P))
-    e1 = kepler(m, np.array([e]))
+    M = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
+    eccarr = np.zeros(t.size) + e
+    E1 = radvel.kepler.kepler(M, eccarr)
     n1 = 1.0 + e
     n2 = 1.0 - e
-    nu = 2.0 * np.arctan((n1 / n2)**0.5 * np.tan(e1 / 2.e0))
-    if nu < 0:
-        nu+=2*np.pi
+    nu = 2.0 * np.arctan((n1 / n2)**0.5 * np.tan(E1 / 2.0))
+
     return nu
