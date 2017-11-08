@@ -7,6 +7,8 @@ import warnings
 
 import numpy as np
 from datetime import datetime, timedelta
+from astropy import constants as c
+from astropy import units as u
 
 import radvel
 

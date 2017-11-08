@@ -7,6 +7,7 @@ from __future__ import print_function
 import os
 import sys
 import copy
+from collections import OrderedDict
 if sys.version_info[0] < 3:
     import ConfigParser as configparser
 else:
