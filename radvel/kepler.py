@@ -34,8 +34,8 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
     
     # Performance boost for circular orbits
     if e == 0.0:
-        M = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
-        return k * np.cos(M + om)
+        m = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
+        return k * np.cos(m + om)
     
     if per < 0:
         per = 1e-4
@@ -75,7 +75,7 @@ def kepler(inbigM, inecc):
     # fiarr should go to zero when converges
     fiarr = ( Earr - eccarr * np.sin(Earr) - Marr)  
     convd = np.abs(fiarr) > conv  # which indices have not converged
-    nd = np.sum(convd == True)  # number of converged elements
+    nd = np.sum(convd is True)  # number of converged elements
     count = 0
 
     while nd > 0:  # while unconverged elements exist
@@ -86,19 +86,19 @@ def kepler(inbigM, inecc):
         E = Earr[convd]
 
         fi = fiarr[convd]  # fi = E - e*np.sin(E)-M    ; should go to 0
-        fip = 1 - ecc * np.cos(E) # d/dE(fi) ;i.e.,  fi^(prime)
-        fipp = ecc * np.sin(E) # d/dE(d/dE(fi)) ;i.e.,  fi^(\prime\prime)
+        fip = 1 - ecc * np.cos(E)  # d/dE(fi) ;i.e.,  fi^(prime)
+        fipp = ecc * np.sin(E)  # d/dE(d/dE(fi)) ;i.e.,  fi^(\prime\prime)
         fippp = 1 - fip  # d/dE(d/dE(d/dE(fi))) ;i.e.,  fi^(\prime\prime\prime)
 
         # first, second, and third order corrections to E
         d1 = -fi / fip 
         d2 = -fi / (fip + d1 * fipp / 2.0)
-        d3 = -fi / (fip + d2 * fipp/ 2.0 + d2 * d2 * fippp / 6.0) 
+        d3 = -fi / (fip + d2 * fipp / 2.0 + d2 * d2 * fippp / 6.0)
         E = E + d3
         Earr[convd] = E
         fiarr = ( Earr - eccarr * np.sin( Earr ) - Marr) # how well did we do?
         convd = np.abs(fiarr) > conv  # test for convergence
-        nd = np.sum(convd == True)
+        nd = np.sum(convd is True)
         
     if Earr.size > 1: 
         return Earr
@@ -113,10 +113,9 @@ def profile():
     import timeit
     
     ecc = 0.20
-    orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
     numloops = 5000
 
-    for size in [10,30,100,300,1000]:
+    for size in [10, 30, 100, 300, 1000]:
 
         setup = """\
 from radvel.kepler import rv_drive

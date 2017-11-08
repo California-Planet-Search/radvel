@@ -24,13 +24,13 @@ def timetrans_to_timeperi(tc, per, ecc, omega):
         pass
     
     f = np.pi/2 - omega
-    EE = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
-    tp = tc - per/(2*np.pi) * (EE - ecc*np.sin(EE))      # time of periastron
+    ee = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
+    tp = tc - per/(2*np.pi) * (ee - ecc*np.sin(ee))      # time of periastron
     
     return tp
     
 
-def timeperi_to_timetrans(tp, per, ecc, omega, secondary=0):
+def timeperi_to_timetrans(tp, per, ecc, omega, secondary=False):
     """
     Convert Time of Periastron to Time of Transit
 
@@ -39,23 +39,25 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=0):
         per (float): period [days]
         ecc (float): eccentricity
         omega (float): argument of peri (radians)
+        secondary (bool): calculate time of secondary eclipse instead
 
     Returns:
         float: time of inferior conjuntion (time of transit if system is transiting)
     
     """
     try:
-        if ecc >= 1: return tp
+        if ecc >= 1:
+            return tp
     except ValueError:
         pass
     
     if secondary:
         f = 3*np.pi/2 - omega                      # true anomaly during secondary eclipse
     else:
-        f = np.pi/2   - omega                      # true anomaly during transit
+        f = np.pi/2 - omega                      # true anomaly during transit
 
-    EE = 2 * np.arctan( np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)) )  # eccentric anomaly
-    tc = tp + per/(2*np.pi) * (EE - ecc*np.sin(EE))         # time of conjunction
+    ee = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
+    tc = tp + per/(2*np.pi) * (ee - ecc*np.sin(ee))         # time of conjunction
 
     return tc
 
@@ -75,11 +77,11 @@ def true_anomaly(t, tp, per, e):
     """
 
     # f in Murray and Dermott p. 27
-    M = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
+    m = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
     eccarr = np.zeros(t.size) + e
-    E1 = radvel.kepler.kepler(M, eccarr)
+    e1 = radvel.kepler.kepler(m, eccarr)
     n1 = 1.0 + e
     n2 = 1.0 - e
-    nu = 2.0 * np.arctan((n1 / n2)**0.5 * np.tan(E1 / 2.0))
+    nu = 2.0 * np.arctan((n1 / n2)**0.5 * np.tan(e1 / 2.0))
 
     return nu
