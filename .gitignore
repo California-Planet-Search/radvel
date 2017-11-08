@@ -7,5 +7,6 @@ dist
 build
 src/*.o
 radvel.egg-info/
-radvel/_kepler.so
+radvel/_kepler*
 src/_kepler.c
+Dockerfile
