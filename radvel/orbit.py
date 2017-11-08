@@ -1,15 +1,6 @@
+
 import numpy as np
-from scipy.optimize import  brentq
 from radvel.kepler import kepler
-from astropy.time import Time
-from astropy import constants as c
-from astropy import units as u
-
-
-# Normalization. 
-#RV m/s of a 1.0 Jupiter mass planet tugging on a 1.0
-# solar mass star on a 1.0 year orbital period
-K_0 = 28.4329
 
 
 def timetrans_to_timeperi(tc, per, ecc, omega):
