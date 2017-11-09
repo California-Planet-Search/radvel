@@ -13,8 +13,10 @@ class Likelihood(object):
         self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
-        self.params.update({}.fromkeys(extra_params, radvel.model.Parameter(value=np.nan)) )
-        self.params.update({}.fromkeys(decorr_params, radvel.model.Parameter(value=0.)) )
+        for key in extra_params:
+            self.params[key] = radvel.model.Parameter(value=np.nan)
+        for key in decorr_params:
+            self.params[key] = radvel.model.Parameter(value=0.0)
         self.uparams = None
 
     def __repr__(self):
