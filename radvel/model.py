@@ -142,33 +142,23 @@ class Parameter(object):
         vary (Bool): True if parameter is allowed to vary in
             MCMC or max likelihood fits, false if fixed.
         mcmcscale (float): step size to be used for MCMC fitting
-        isGP (Bool): True if parameter is a GP hyperparameter
-        telsshared (list of string): List of telescopes whose data share
-            this parameter (useful for GP fits)
-
-
     """
-    def __init__(self, value=None, vary=True, mcmcscale=None, isGP=False,
-                 telsshared=None):
+    def __init__(self, value=None, vary=True, mcmcscale=None):
         self.value = value
         self.vary = vary
         self.mcmcscale = mcmcscale
-        self.isGP = isGP
-        self.telsshared = telsshared
 
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
         if isinstance(other,self.__class__):
             return (self.value == other.value) \
                     and (self.vary == other.vary) \
-                    and (self.mcmcscale == other.mcmcscale) \
-                    and (self.isGP == other.isGP) \
-                    and (self.telsshared == other.telsshared)
+                    and (self.mcmcscale == other.mcmcscale)
 
     def __repr__(self):
         s = (
-          "Parameter object: value = {}, vary = {}, mcmc scale = {}, isGP = {}, telsshared = {}"
-        ).format(self.value, self.vary, self.mcmcscale,self.isGP, self.telsshared)
+          "Parameter object: value = {}, vary = {}, mcmc scale = {}"
+        ).format(self.value, self.vary, self.mcmcscale)
         return s
 
 if __name__ == "__main__":

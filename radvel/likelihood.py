@@ -194,7 +194,7 @@ class RVLikelihood(Likelihood):
 
     """
     def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[],
-                 decorr_vectors=[]):
+                 decorr_vectors=[], *args):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
         self.extra_params = [self.gamma_param, self.jit_param]
@@ -295,12 +295,16 @@ class GPLikelihood(RVLikelihood):
         t (array): time array
         vel (array): array of velocities
         errvel (array): array of velocity uncertainties
+        hparam_names (list of string): keys corresponding to Parameter objects in model.params
+                                  that are GP hyperparameters
         suffix (string): suffix to identify this Likelihood object
            useful when constructing a `CompositeLikelihood` object.
 
     This class written by Evan Sinukoff and Sarah Blunt, 2017
     """
-    def __init__(self, model, t, vel, errvel, suffix='', kernel_name="QuasiPer", **kwargs):
+    def __init__(self, model, t, vel, errvel, hparam_names, suffix='', 
+                 kernel_name="QuasiPer", **kwargs):
+
         self.suffix = suffix
         super(GPLikelihood, self).__init__(
               model, t, vel, errvel, suffix=self.suffix, 
@@ -311,10 +315,8 @@ class GPLikelihood(RVLikelihood):
             'GP Kernel not recognized: ' + self.kernel_name + '\n' + \
             'Available kernels: ' + str(gp.KERNELS.keys())
 
-        self.hyperparams = {}
-        for key in self.params:
-            if self.params[key].isGP and self.suffix in self.params[key].telsshared:
-                self.hyperparams[key] = self.params[key]
+        self.hnames =  hparam_names # list of string names of hyperparameters
+        self.hyperparams = {k: model.params[k] for k in self.hnames}
 
         self.kernel_call = getattr(gp, kernel_name + "Kernel") 
         self.kernel = self.kernel_call(self.hyperparams)
@@ -324,14 +326,14 @@ class GPLikelihood(RVLikelihood):
         for key in self.list_vary_params():
             if key.startswith('jit') and param_values_array[i] < 0:
                 param_values_array[i] = -param_values_array[i]
+            if key in self.hnames: # update values of hyperparameters
+                self.hyperparams[key].value = param_values_array[i]
             self.params[key].value = param_values_array[i]
-            if self.params[key].isGP:
-                self.hyperparams[key] = self.params[key]
             i+=1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
 
-        # update kernel hyperparams
+        # update kernel hyperparams by instantiating new kernel object
         self.kernel = self.kernel_call(self.hyperparams)
 
     def residuals(self):
@@ -375,6 +377,38 @@ class GPLikelihood(RVLikelihood):
         like = -.5 * (np.dot(r,alpha) + d)
 
         return like
+
+    def predict(self, xpred):
+        """ Realize the GP using the current values of the hyperparams at values x=xpred.
+
+            Args:
+                xpred (np.array): numpy array of x values for realizing the GP
+            Returns:
+                mu (np.array): numpy array of predictive means
+                stdev (np.array): numpy array of predictive standard deviations
+        """
+
+        r = matrix(self.residuals()).T
+
+        X = matrix([self.x]).T
+        K = self.kernel.compute_covmatrix(X,X)
+        K = self.kernel.add_diagonal_errors(self.errorbars())
+
+        Xpred = matrix([xpred]).T
+        Ks = self.kernel.compute_covmatrix(Xpred,X)
+
+        L = cho_factor(K)
+        alpha = cho_solve(L,r)
+        mu = np.array(Ks*alpha).flatten()
+
+
+        Kss = self.kernel.compute_covmatrix(Xpred, Xpred)
+        B = cho_solve(L, Ks.T) 
+        var = np.array(np.diag(Kss - Ks * matrix(B))).flatten()
+        stdev = np.sqrt(var)
+
+        return mu, stdev
+
 
 
 def loglike_jitter(residuals, sigma, sigma_jit):

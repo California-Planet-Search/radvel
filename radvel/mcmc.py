@@ -87,10 +87,10 @@ def convergence_check(samplers):
     _status_message(statevars)
 
 def _domcmc(input_tuple):
-    # Function to be run in parallel on different CPUs
-    #
-    # Input is a tuple: first element is an emcee sampler object, second is an array of 
-    #   initial positions, third is number of steps to run before doing a convergence check
+    """Function to be run in parallel on different CPUs
+    Input is a tuple: first element is an emcee sampler object, second is an array of 
+    initial positions, third is number of steps to run before doing a convergence check
+    """
     sampler = input_tuple[0]
     ipos = input_tuple[1]
     check_interval = input_tuple[2]

@@ -54,10 +54,12 @@ Converting 'logjit' to 'jit' for you now.
     # check if GP
     liketype = radvel.likelihood.RVLikelihood
     isGP = False
+    hnames = None
     for key in params:
-        if params[key].isGP:
+        if key.startswith('gp'):
             liketype =radvel.likelihood.GPLikelihood
             isGP = True
+            hnames = P.hyperparam_names
             break
 
     # initialize RVlikelihood objects for each instrument
@@ -71,7 +73,7 @@ Converting 'logjit' to 'jit' for you now.
         likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst,
+            P.data.iloc[telgrps[inst]].errvel, hnames, suffix='_'+inst,
             decorr_vars=decorr_vars, decorr_vectors=decorr_vectors
         )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]

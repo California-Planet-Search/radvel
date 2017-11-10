@@ -34,6 +34,7 @@ class Kernel(ABC):
 
     def add_diagonal_errors(cls, errors):
         cls.covmatrix += (errors**2) * np.identity(cls.covmatrix.shape[0])
+        return cls.covmatrix
 
 
 class SqExpKernel(Kernel):
@@ -68,6 +69,7 @@ class SqExpKernel(Kernel):
         dist = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
         K = scipy.matrix(self.amp**2 * scipy.exp(-dist/(self.length**2)))
         self.covmatrix = K
+        return self.covmatrix
 
 
 class PerKernel(Kernel):
@@ -106,6 +108,7 @@ class PerKernel(Kernel):
         K = scipy.matrix(self.amp**2 * scipy.exp(-np.sin(np.pi*dist/self.per)**2.
                                                  /(2.*self.length**2)))
         self.covmatrix = K
+        return self.covmatrix
 
 class QuasiPerKernel(Kernel):
 
@@ -149,5 +152,4 @@ class QuasiPerKernel(Kernel):
                                      / (self.perlength**2))
                          * scipy.exp(-dist_se/(self.explength**2)))
         self.covmatrix = K
-
-
+        return self.covmatrix
