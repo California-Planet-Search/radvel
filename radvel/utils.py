@@ -1,3 +1,4 @@
+
 import imp
 import os
 from decimal import Decimal
@@ -6,8 +7,16 @@ import warnings
 
 import numpy as np
 from datetime import datetime, timedelta
+from astropy import constants as c
+from astropy import units as u
 
 import radvel
+
+# Normalization.
+# RV m/s of a 1.0 Jupiter mass planet tugging on a 1.0
+# solar mass star on a 1.0 year orbital period
+K_0 = 28.4329
+
 
 def initialize_posterior(config_file, decorr=False):
 
@@ -38,11 +47,9 @@ Converting 'logjit' to 'jit' for you now.
 """
             warnings.warn(msg, DeprecationWarning, stacklevel=2)
             newkey = key.replace('logjit', 'jit')
-            params[newkey] = radvel.model.Parameter(value=np.exp(params[key].value), \
-                                                    vary=params[key].vary)
+            params[newkey] = radvel.model.Parameter(value=np.exp(params[key].value), vary=params[key].vary)
             del params[key]
 
-    #iparams = params.copy()
     iparams = radvel.basis._copy_params(params)
     
     # Make sure we don't have duplicate indicies in the DataFrame
@@ -66,6 +73,9 @@ Converting 'logjit' to 'jit' for you now.
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
+        assert inst in P.data.groupby('tel').groups.keys(), \
+            "No data found for instrument '{}'.\nInstruments found in this dataset: {}".format(inst,
+                                            list(telgrps.keys()))
         decorr_vectors = {}
         if decorr:
             for d in decorr_vars:
@@ -104,6 +114,7 @@ def round_sig(x, sig=2):
     if x == 0 or np.isnan(x): return 0.0
     return round(x, sig-int(floor(log10(abs(x))))-1)
 
+
 def sigfig(med, errlow, errhigh=None):
     """
     Format values with errors into an equal number of signficant figures.
@@ -121,7 +132,8 @@ def sigfig(med, errlow, errhigh=None):
     if errhigh==None: errhigh = errlow
         
     ndec = Decimal(str(errlow)).as_tuple().exponent
-    if abs(Decimal(str(errhigh)).as_tuple().exponent) > abs(ndec): ndec = Decimal(str(errhigh)).as_tuple().exponent
+    if abs(Decimal(str(errhigh)).as_tuple().exponent) > abs(ndec):
+        ndec = Decimal(str(errhigh)).as_tuple().exponent
     if ndec < -1:
             tmpmed = round(med,abs(ndec))
             p = 0
@@ -137,6 +149,7 @@ def sigfig(med, errlow, errhigh=None):
 
     return med, errlow, errhigh
 
+
 def time_print(tdiff):
     units = 'seconds'
     if tdiff > 60:
@@ -149,6 +162,7 @@ def time_print(tdiff):
                 tdiff /= 24
                 units = 'days'
     return tdiff, units
+
 
 def timebin(time, meas, meas_err, binsize):
 #  This routine bins a set of times, measurements, and measurement errors 
@@ -207,6 +221,7 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
         
     return rvtimes, rvdat, rverr, newtelvec
 
+
 def fastbin(x,y,nbins=30):
     n, _ = np.histogram(x, bins=nbins)
     sy, _ = np.histogram(x, bins=nbins, weights=y)
@@ -227,9 +242,11 @@ def fastbin(x,y,nbins=30):
     binerr = binerr[pos]
     return bint,bindat,binerr
 
+
 def round_sig(x, sig=2):
     if x == 0: return 0.0
     return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
+
 
 def t_to_phase(params, t, num_planet, cat=False):
     if ('tc%i' % num_planet) in params:
@@ -265,10 +282,12 @@ def working_directory(dir):
     finally:
         os.chdir(cwd)
 
+
 def cmd_exists(cmd):
     return any(
         os.access(os.path.join(path, cmd), os.X_OK) 
         for path in os.environ["PATH"].split(os.pathsep))
+
 
 def date2jd(date):
     """
@@ -283,6 +302,7 @@ def date2jd(date):
     jd_td = date - datetime(2000,1,1,12,0,0)
     jd = 2451545.0 + jd_td.days + jd_td.seconds/86400.0
     return jd
+
 
 def jd2date(jd):
     """
@@ -332,3 +352,89 @@ def geterr(vec, angular=False):
     errhigh = s[int(0.841*len(s))] - med
             
     return med, errlow, errhigh
+
+
+def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
+    """
+    Compute Doppler semi-amplitude
+
+    :param Msini: mass of planet [Mjup]
+    :type Msini: float
+
+    :param P: Orbital period [days]
+    :type P: float
+
+    :param Mtotal: Mass of star + mass of planet [Msun]
+    :type Mtotal: float
+
+    :param e: eccentricity
+    :type e: float
+
+    :param Msini_units: Units of returned Msini. Must be 'earth', or 'jupiter' (default 'jupiter').
+    :type Msini_units: string
+
+    :return: Doppler semi-amplitude [m/s]
+    """
+    if Msini_units.lower() == 'jupiter':
+        K = K_0 * (1 - e ** 2) ** -0.5 * Msini * (P / 365.0) ** (-1 / 3.) * \
+            Mtotal ** (-2 / 3.)
+    elif Msini_units.lower() == 'earth':
+        K = K_0 * (1 - e ** 2) ** -0.5 * Msini * (P / 365.0) ** (-1 / 3.) * \
+            Mtotal ** -(-2 / 3.) * (c.M_earth / c.M_jup).value
+    else:
+        raise Exception("Msini_units must be 'earth', or 'jupiter'")
+
+    return K
+
+
+def Msini(K, P, Mtotal, e, Msini_units='earth'):
+    """Calculate Msini
+
+    Calculate Msini for a given K, P, stellar mass, and e
+
+    Args:
+        K (float): Doppler semi-amplitude [m/s]
+        P (float): Orbital period [days]
+        Mtotal (float): Mass of star + mass of planet [Msun]
+        e (float): eccentricity
+        Msini_units = (optional) Units of returned Msini. Must be 'earth', or 'jupiter' (default 'earth').
+    Returns:
+        float: Msini [units = Msini_units]
+
+    """
+
+    if Msini_units.lower() == 'jupiter':
+        Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * Mtotal ** (2 / 3.) * \
+                (P / 365.0) ** (1 / 3.)
+    elif Msini_units.lower() == 'earth':
+        Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * Mtotal ** (2 / 3.) * \
+                (P / 365.0) ** (1 / 3.) * (c.M_jup / c.M_earth).value
+    else:
+        raise Exception("Msini_units must be 'earth', or 'jupiter'")
+
+    return Msini
+
+
+def density(mass, radius, MR_units='earth'):
+    """
+    :param mass: mass, units = MR_units
+    :type mass: float
+
+    :param radius: radius, units = MR_units
+    :type radius: float
+
+    :param MR_units: (optional) units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
+
+    :return: density (g/cc)
+    """
+    mass = np.array(mass)
+    radius = np.array(radius)
+    if MR_units.lower() == 'earth':
+        vol = 4. / 3. * np.pi * (radius * c.R_earth) ** 3
+        rho = ((mass * c.M_earth / vol).to(u.g / u.cm ** 3)).value
+    elif MR_units.lower() == 'jupiter':
+        vol = 4. / 3. * np.pi * (radius * c.R_jup) ** 3
+        rho = ((mass * c.M_jup / vol).to(u.g / u.cm ** 3)).value
+    else:
+        raise Exception("MR_units must be 'earth', or 'jupiter'")
+    return rho
