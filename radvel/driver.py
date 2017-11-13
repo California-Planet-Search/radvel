@@ -6,18 +6,18 @@ the `cli.py` command line interface.
 from __future__ import print_function
 import os
 import sys
-import pickle
 import copy
+from collections import OrderedDict
 if sys.version_info[0] < 3:
     import ConfigParser as configparser
 else:
     import configparser
-from collections import OrderedDict
 import pandas as pd
 
 import numpy as np 
 
 import radvel
+
 
 def plots(args):
     """
@@ -111,7 +111,8 @@ def fit(args):
     save_status(os.path.join(args.outputdir,
                              '{}_radvel.stat'.format(conf_base)),
                              'fit', savestate)
-            
+
+
 def mcmc(args):
     """Perform MCMC error analysis
 
@@ -208,7 +209,8 @@ def mcmc(args):
                  'nwalkers': args.nwalkers,
                  'nsteps': args.nsteps}
     save_status(statfile, 'mcmc', savestate)
-    
+
+
 def bic(args):
     """Compare different models and comparative statistics
 
@@ -239,6 +241,7 @@ def bic(args):
 
 
     save_status(statfile, 'bic', savestate)
+
 
 def tables(args):
     """Generate TeX code for tables in summary report
@@ -289,7 +292,6 @@ def tables(args):
         savestate = {'{}_tex'.format(tabtype): os.path.abspath(saveto)}
         save_status(statfile, 'table', savestate)
 
-                
 
 def derive(args):
     """Derive physical parameters from posterior samples
@@ -354,7 +356,7 @@ def derive(args):
         k = _get_param('k')
         e = _get_param('e')
 
-        mpsini = radvel.orbit.Msini(k, per, mstar, e, Msini_units='earth')
+        mpsini = radvel.utils.Msini(k, per, mstar, e, Msini_units='earth')
         _set_param('mpsini',mpsini)
 
         outcols.append(_get_colname('mpsini'))
@@ -367,7 +369,7 @@ def derive(args):
             )
 
             _set_param('rp',rp)
-            _set_param('rhop', radvel.orbit.density(mpsini, rp))
+            _set_param('rhop', radvel.utils.density(mpsini, rp))
 
             outcols.append(_get_colname('rhop'))
         except (AttributeError, KeyError):
@@ -451,6 +453,7 @@ def save_status(statfile, section, statevars):
 
     with open(statfile, 'w') as f:
         config.write(f)
+
 
 def load_status(statfile):
     """Load pipeline status
