@@ -135,6 +135,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         figure: current matplotlib figure object
         list: list of axis objects
 
+    GP plotting functionality contributed by Evan Sinukoff and Sarah Blunt, 2017.
     """
     figwidth = 7.5  # spans a page with 0.5in margins
     phasefac = 1.4
@@ -251,23 +252,15 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     ax.axhline(0, color='0.5', linestyle='--')
 
-    # GP bands # # # #
-    # TODO: if GP, residuals = data - max likelihood GP model mean
-
     # Default formatting
     lw = 0.01
     ci = 0
     default_colors = ['orange', 'purple', 'magenta' , 'pink']
 
-    if cpspost.isGP:
-        
-        gp_subtractme = []
-        for like in like_list:
-
+    for like in like_list:
+        if isinstance(like, radvel.likelihood.GPLikelihood): 
+            
             t = like.suffix
-
-            gp_means, _ = like.predict(like.x)
-            gp_subtractme.append(gp_means)
 
             kw = dict(
             fmt='o', capsize=0, mew=0, 
@@ -287,9 +280,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             for k in telfmt:
                 kw[k] = telfmt[k]
 
-            t = like.suffix
-
-            xpred = np.linspace(np.min(like.x),np.max(like.x),num=3e3)
+            xpred = np.linspace(np.min(like.x),np.max(like.x),num=int(3e3))
             gpmu, stddev = like.predict(xpred)
 
             if ((xpred - e) < -2.4e6).any():
@@ -307,13 +298,11 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             ax.fill_between(xpred, gpmu+orbit_model-stddev, gpmu+orbit_model+stddev, 
                             color=kw['color'], alpha=0.5, lw=0
                             )
-            ax.plot(xpred, gpmu+orbit_model, 'b-', rasterized=False, lw=0.1) 
+            ax.plot(xpred, gpmu+orbit_model, 'b-', rasterized=False, lw=0.1)
 
-        # update residuals: subtract off max likleihood GP model mean
-        resid = resid - np.array(np.subtractme)
-    else:
-        # Unphased plot
-        ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
+        else:
+            # Unphased plot
+            ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
 
     # # # # # # # #
 

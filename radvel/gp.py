@@ -29,7 +29,11 @@ class Kernel(ABC):
         pass
 
     @abc.abstractmethod
-    def compute_covmatrix(self, X1, X2):
+    def compute_distances(self, X1, X2):
+        pass
+
+    @abc.abstractmethod
+    def compute_covmatrix(self):
         pass
 
     def add_diagonal_errors(cls, errors):
@@ -44,30 +48,32 @@ class SqExpKernel(Kernel):
         return "SqExp"
 
     def __init__(self, hparams, covmatrix=None):
+        self.hparams = hparams
         self.covmatrix = covmatrix
 
         assert len(hparams) == 2, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to SqExp Kernel "
 
-        for par in hparams:
-            if par.startswith('gp_length'):
-                self.length = hparams[par].value
-            elif par.startswith('gp_amp'):
-                self.amp = hparams[par].value
-
         try:
-            self.length
-            self.amp
+            self.hparams['gp_length'].value
+            self.hparams['gp_amp'].value
         except:
-            "KERNEL ERROR: SqExp Kernel requires hyperparameters 'length' and 'amp'"
+            "KERNEL ERROR: SqExp Kernel requires hyperparameters 'gp_length' and 'gp_amp'"
 
 
     def __repr__(self):
-        return "SqExp Kernel with length: {}, amp: {}".format(self.length, self.amp)
+        length = self.hparams['gp_length'].value
+        amp = self.hparams['gp_amp'].value
+        return "SqExp Kernel with length: {}, amp: {}".format(length, amp)
 
-    def compute_covmatrix(self, X1, X2):
-        dist = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
-        K = scipy.matrix(self.amp**2 * scipy.exp(-dist/(self.length**2)))
+    def compute_distances(self, X1, X2):
+        self.dist = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
+
+    def compute_covmatrix(self):
+        length = self.hparams['gp_length'].value
+        amp = self.hparams['gp_amp'].value
+
+        K = scipy.matrix(amp**2 * scipy.exp(-self.dist/(length**2)))
         self.covmatrix = K
         return self.covmatrix
 
@@ -79,34 +85,35 @@ class PerKernel(Kernel):
         return "Per"
 
     def __init__(self, hparams, covmatrix=None):
+        self.hparams = hparams
         self.covmatrix = covmatrix
 
         assert len(hparams) == 3, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to Per Kernel "
 
-        for par in hparams:
-            if par.startswith('gp_length'):
-                self.length = hparams[par].value
-            if par.startswith('gp_amp'):
-                self.amp = hparams[par].value
-            if par.startswith('gp_per'):
-                self.per = hparams[par].value
-
         try:
-            self.length
-            self.amp
-            self.per
+            self.hparams['gp_length'].value
+            self.hparams['gp_amp'].value
+            self.hparams['gp_per'].value
         except:
-            "KERNEL ERROR: Per Kernel requires hyperparameters 'length', 'amp', and 'per'"
+            "KERNEL ERROR: Per Kernel requires hyperparameters 'gp_length', 'gp_amp', and 'gp_per'"
 
     def __repr__(self):
-        return "Per Kernel with length: {}, amp: {}, per: {}".format(self.length, 
-                                                                     self.amp, self.per)
+        length= self.hparams['gp_length'].value
+        amp = self.hparams['gp_amp'].value
+        per = self.hparams['gp_per'].value
+        return "Per Kernel with length: {}, amp: {}, per: {}".format(length, amp, per)
 
-    def compute_covmatrix(self, X1, X2):
-        dist = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
-        K = scipy.matrix(self.amp**2 * scipy.exp(-np.sin(np.pi*dist/self.per)**2.
-                                                 /(2.*self.length**2)))
+    def compute_distances(self, X1, X2):
+        self.dist = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
+
+    def compute_covmatrix(self):
+        length= self.hparams['gp_length'].value
+        amp = self.hparams['gp_amp'].value
+        per = self.hparams['gp_per'].value
+
+        K = scipy.matrix(amp**2 * scipy.exp(-np.sin(np.pi*self.dist/per)**2.
+                                                 / (2.*length**2)))
         self.covmatrix = K
         return self.covmatrix
 
@@ -117,39 +124,64 @@ class QuasiPerKernel(Kernel):
         return "QuasiPer"
 
     def __init__(self, hparams, covmatrix=None):
+        self.hparams = hparams
         self.covmatrix = covmatrix
 
         assert len(hparams) == 4, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to QuasiPer Kernel "
 
-        for par in hparams:
-            if par.startswith('gp_perlength'):
-                self.perlength = hparams[par].value
-            if par.startswith('gp_amp'):
-                self.amp = hparams[par].value
-            if par.startswith('gp_per'):
-                self.per = hparams[par].value
-            if par.startswith('gp_explength'):
-                self.explength = hparams[par].value
         try:
-            self.perlength
-            self.amp
-            self.per
-            self.explength
+            self.hparams['gp_perlength'].value
+            self.hparams['gp_amp'].value
+            self.hparams['gp_per'].value
+            self.hparams['gp_explength'].value
         except:
-            "KERNEL ERROR: QuasiPer Kernel requires hyperparameters 'perlength', 'amp', 'per', and 'explength'"
+            "KERNEL ERROR: QuasiPer Kernel requires hyperparameters 'gp_perlength', 'gp_amp', 'gp_per', and 'gp_explength'"
 
     def __repr__(self):
-        return "QuasiPer Kernel with amp: {}, per length: {}, per: {}, \
-                exp length: {}".format(self.amp, self.perlength, self.per, self.explength)
+        perlength = self.hparams['gp_perlength'].value
+        amp = self.hparams['gp_amp'].value
+        per = self.hparams['gp_per'].value
+        explength = self.hparams['gp_explength'].value
 
-    #Lopez-Moralez+ 2016 eq 2
-    def compute_covmatrix(self, X1, X2):
-        dist_p = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
-        dist_se = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
-        K = scipy.matrix(self.amp**2
-                         * scipy.exp(-np.sin(np.pi*dist_p/self.per)**2.
-                                     / (self.perlength**2))
-                         * scipy.exp(-dist_se/(self.explength**2)))
+        msg = (
+            "QuasiPer Kernel with amp: {}, per length: {}, per: {}, " 
+            "exp length: {}"
+        ).format(amp, perlength, per, explength)
+        return msg
+
+    def compute_distances(self, X1, X2):
+        self.dist_p = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
+        self.dist_se = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
+
+    def compute_covmatrix(self):
+        perlength = self.hparams['gp_perlength'].value
+        amp = self.hparams['gp_amp'].value
+        per = self.hparams['gp_per'].value
+        explength = self.hparams['gp_explength'].value
+
+        # Grunblatt+ 2015 Table 2
+        K = scipy.matrix(amp**2
+                         * scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.)
+                                     / (2.*perlength**2))
+                         * scipy.exp(-self.dist_se/(explength**2)))
         self.covmatrix = K
         return self.covmatrix
+
+
+
+if __name__ == "__main__":
+    hparams = {
+            'gp_perlength': radvel.Parameter(value=1.),
+            'gp_amp' : radvel.Parameter(value=1.),
+            'gp_per' : radvel.Parameter(value=1.),
+            'gp_explength' : radvel.Parameter(value=1.)
+    }
+    my_kern = QuasiPerKernel(hparams)
+    x = np.array([np.array([1,2,3])]).T
+    my_kern.compute_distances(x,x)
+    my_kern.compute_covmatrix()
+    print(my_kern)
+
+
+

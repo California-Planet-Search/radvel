@@ -33,7 +33,7 @@ texdict = {
 
 class Parameters(OrderedDict):
 
-    """Object to store the orbital parameters.
+    """Object to store the model parameters.
 
     Parameters to describe a radial velocity orbit
     stored as an OrderedDict

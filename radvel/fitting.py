@@ -23,7 +23,7 @@ def maxlike_fitting(post, verbose=True):
         print("Initial loglikelihood = %f" % post0.logprob())
         print("Performing maximum likelihood fit...")
 
-    if post.isGP: # Nelder-Mead works better than Powell for GP Likelihoods
+    if [key for key in post0.params.keys() if key.startswith('gp_')]: # Nelder-Mead works better than Powell for GP Likelihoods
         res = optimize.minimize(
             post.neglogprob_array, post.get_vary_params(), method='Nelder-Mead',
             options=dict(maxiter=200, maxfev=100000, xatol=1e-8)

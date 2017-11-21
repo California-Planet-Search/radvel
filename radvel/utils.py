@@ -60,14 +60,16 @@ Converting 'logjit' to 'jit' for you now.
 
     # check if GP
     liketype = radvel.likelihood.RVLikelihood
-    isGP = False
     hnames = None
-    for key in params:
-        if key.startswith('gp'):
-            liketype =radvel.likelihood.GPLikelihood
-            isGP = True
-            hnames = P.hyperparam_names
-            break
+    if [key for key in params.keys() if key.startswith('gp_')]:
+        liketype = radvel.likelihood.GPLikelihood
+        hnames = P.hnames
+        try:
+            kernel_name = P.kernel_name
+        except:
+            kernel_name = "QuasiPer"
+
+
 
     # initialize RVlikelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
@@ -83,8 +85,9 @@ Converting 'logjit' to 'jit' for you now.
         likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, hnames, suffix='_'+inst,
-            decorr_vars=decorr_vars, decorr_vectors=decorr_vectors
+            P.data.iloc[telgrps[inst]].errvel, hnames, suffix='_'+inst, 
+            kernel_name=kernel_name, decorr_vars=decorr_vars, 
+            decorr_vectors=decorr_vectors
         )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
@@ -92,7 +95,7 @@ Converting 'logjit' to 'jit' for you now.
     like = radvel.likelihood.CompositeLikelihood(list(likes.values()))
 
     # Initialize Posterior object
-    post = radvel.posterior.Posterior(like,isGP=isGP)
+    post = radvel.posterior.Posterior(like)
     post.priors = P.priors
 
 

@@ -3,31 +3,29 @@ import copy
 import time
 import numpy as np
 import pickle
+import radvel
 
 class Posterior(Likelihood):
     """Posterior object
 
     Posterior object to be sent to the fitting routines.
-    It is essentially the same as the Liklihood object,
+    It is essentially the same as the Likelihood object,
     but priors are applied here.
 
     Args:
         likelihood (radvel.likelihood.Likelihood): Likelihood object
         params (radvel.model.Parameters): parameters object
-        isGP (Bool): convenience attribute; True if the posterior is 
-                     calculated using a GP
 
     Note:
         Append `radvel.prior.Prior` objects to the Posterior.priors list
         to apply priors in the likelihood calculations.
     """
     
-    def __init__(self,likelihood,isGP=False):
+    def __init__(self,likelihood):
         self.likelihood = likelihood
         self.params = likelihood.params
         self.uparams = likelihood.uparams
         self.priors = []
-        self.isGP = isGP
     
     def __repr__(self):
         s = super(Posterior, self).__repr__()
@@ -65,7 +63,7 @@ class Posterior(Likelihood):
         k = len(self.likelihood.get_vary_params())
         _bic = np.log(n) * k - 2.0 * self.logprob()
         return _bic
-    
+
     def logprob_array(self, param_values_array):
         """Log probability for parameter vector
 

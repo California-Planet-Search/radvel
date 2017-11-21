@@ -24,7 +24,8 @@ setup(
             [
                 'example_data/164922_fixed.txt', 
                 'example_data/epic203771098.csv',
-                'example_data/kepler21b.txt'
+                'example_data/kepler21b.txt',
+                'example_data/epic228b.txt'
             ]
         )
     ],

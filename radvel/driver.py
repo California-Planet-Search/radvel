@@ -134,14 +134,14 @@ def mcmc(args):
     else:
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
+    serial=False
+    if [key for key in post.params.keys() if key.startswith('gp_')]:
+        serial = True # for now, run GP fits in serial
+        args.ensembles = 3
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {} ...".format(
         conf_base, args.nwalkers, args.nsteps, args.ensembles)
     print(msg)
-
-    serial=False
-    if post.isGP:
-        serial = True # for now, run GP fits in serial
 
     chains = radvel.mcmc(
              post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, 

@@ -167,7 +167,7 @@ class CompositeLikelihood(Likelihood):
             res = np.append(res,like.residuals())
 
         return res
-
+        
     def errorbars(self):
         """
         See `radvel.likelihood.RVLikelihood.errorbars`
@@ -194,7 +194,7 @@ class RVLikelihood(Likelihood):
 
     """
     def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[],
-                 decorr_vectors=[], *args):
+                 decorr_vectors=[], *args, **kwargs):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
         self.extra_params = [self.gamma_param, self.jit_param]
@@ -295,15 +295,17 @@ class GPLikelihood(RVLikelihood):
         t (array): time array
         vel (array): array of velocities
         errvel (array): array of velocity uncertainties
-        hparam_names (list of string): keys corresponding to Parameter objects in model.params
-                                  that are GP hyperparameters
+        hnames (list of string): keys corresponding to Parameter objects in model.params
+                                 that are GP hyperparameters
         suffix (string): suffix to identify this Likelihood object
            useful when constructing a `CompositeLikelihood` object.
 
+    Tips: 
+
     This class written by Evan Sinukoff and Sarah Blunt, 2017
     """
-    def __init__(self, model, t, vel, errvel, hparam_names, suffix='', 
-                 kernel_name="QuasiPer", **kwargs):
+    def __init__(self, model, t, vel, errvel, hnames,
+                 suffix='', kernel_name="QuasiPer", **kwargs):
 
         self.suffix = suffix
         super(GPLikelihood, self).__init__(
@@ -315,11 +317,14 @@ class GPLikelihood(RVLikelihood):
             'GP Kernel not recognized: ' + self.kernel_name + '\n' + \
             'Available kernels: ' + str(gp.KERNELS.keys())
 
-        self.hnames =  hparam_names # list of string names of hyperparameters
-        self.hyperparams = {k: model.params[k] for k in self.hnames}
+        self.hnames =  hnames # list of string names of hyperparameters
+        self.hyperparams = {k: self.params[k] for k in self.hnames}
 
         self.kernel_call = getattr(gp, kernel_name + "Kernel") 
         self.kernel = self.kernel_call(self.hyperparams)
+
+        X = np.array([self.x]).T
+        self.kernel.compute_distances(X,X)
 
     def set_vary_params(self, param_values_array):
         i = 0
@@ -327,21 +332,27 @@ class GPLikelihood(RVLikelihood):
             if key.startswith('jit') and param_values_array[i] < 0:
                 param_values_array[i] = -param_values_array[i]
             if key in self.hnames: # update values of hyperparameters
-                self.hyperparams[key].value = param_values_array[i]
+                self.kernel.hparams[key].value = param_values_array[i]
             self.params[key].value = param_values_array[i]
             i+=1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
 
-        # update kernel hyperparams by instantiating new kernel object
-        self.kernel = self.kernel_call(self.hyperparams)
+    def _resids(self):
+        """Residuals for internal GP calculations
+
+        Data minus orbit model. For internal use in GP calculations ONLY.
+        """
+        res = self.y - self.params[self.gamma_param].value - self.model(self.x)
+        return res
 
     def residuals(self):
         """Residuals
 
-        Data minus model. No fancy GP stuff here.
+        Data minus (orbit model + predicted mean of GP noise model)
         """
-        res = self.y - self.params[self.gamma_param].value - self.model(self.x)
+        mu_pred, _ = self.predict(self.x)
+        res = self.y - self.params[self.gamma_param].value - self.model(self.x) - mu_pred
         return res
 
     def logprob(self):
@@ -349,7 +360,7 @@ class GPLikelihood(RVLikelihood):
         Return GP log-likelihood given the data and model.
         log-likelihood computed using Cholesky decomposition as:
            lnL = -0.5*r.T*inverse(K)*r - 0.5*ln[det(K)] 
-           r = residuals vector, K = covariance matrix, N = number of datapoints. 
+           r = _resids vector, K = covariance matrix, N = number of datapoints. 
         Priors are not applied here. 
         Constant has been omitted.
 
@@ -357,10 +368,9 @@ class GPLikelihood(RVLikelihood):
             float: Natural log of likelihood
 
         """
-        r = self.residuals()        
+        r = self._resids()        
 
-        X = matrix([self.x]).T
-        self.kernel.compute_covmatrix(X,X)
+        self.kernel.compute_covmatrix()
 
         # add white noise jitter & error bars along diagonal
         self.kernel.add_diagonal_errors(self.errorbars())
@@ -388,24 +398,30 @@ class GPLikelihood(RVLikelihood):
                 stdev (np.array): numpy array of predictive standard deviations
         """
 
-        r = matrix(self.residuals()).T
+        r = matrix(self._resids()).T
 
-        X = matrix([self.x]).T
-        K = self.kernel.compute_covmatrix(X,X)
+        X = np.array([self.x]).T
+        self.kernel.compute_distances(X,X)
+        K = self.kernel.compute_covmatrix()
         K = self.kernel.add_diagonal_errors(self.errorbars())
 
-        Xpred = matrix([xpred]).T
-        Ks = self.kernel.compute_covmatrix(Xpred,X)
+        Xpred = np.array([xpred]).T
+        self.kernel.compute_distances(Xpred,X)
+        Ks = self.kernel.compute_covmatrix()
 
         L = cho_factor(K)
         alpha = cho_solve(L,r)
         mu = np.array(Ks*alpha).flatten()
 
 
-        Kss = self.kernel.compute_covmatrix(Xpred, Xpred)
+        self.kernel.compute_distances(Xpred,Xpred)
+        Kss = self.kernel.compute_covmatrix()
         B = cho_solve(L, Ks.T) 
         var = np.array(np.diag(Kss - Ks * matrix(B))).flatten()
         stdev = np.sqrt(var)
+
+        # set the default distances back to their regular values
+        self.kernel.compute_distances(X,X)
 
         return mu, stdev
 
