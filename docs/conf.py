@@ -21,7 +21,7 @@ matplotlib.use('agg')
 
 import radvel
 
-autodoc_mock_imports = ['_tkinter']
+autodoc_mock_imports = ['_tkinter', 'numpy', 'pandas']
 
 
 # If extensions (or modules to document with autodoc) are in another directory,
