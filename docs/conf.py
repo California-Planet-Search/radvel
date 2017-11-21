@@ -18,11 +18,12 @@ import sys
 import matplotlib
 matplotlib.use('agg')
 
-import radvel
-
 autodoc_mock_imports = ['_tkinter', 'pandas', 'numpy', 'numpy.core.multiarray']
 for mod_name in autodoc_mock_imports:
     sys.modules[mod_name] = mock.Mock()
+
+import radvel
+
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
