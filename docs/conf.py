@@ -20,7 +20,7 @@ matplotlib.use('agg')
 
 import radvel
 
-autodoc_mock_imports = ['_tkinter', 'pandas']
+autodoc_mock_imports = ['_tkinter', 'pandas', 'numpy']
 for mod_name in autodoc_mock_imports:
     sys.modules[mod_name] = mock.Mock()
 
