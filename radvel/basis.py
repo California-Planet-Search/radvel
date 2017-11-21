@@ -1,5 +1,5 @@
 import numpy as np
-import pandas
+import pandas as pd
 from collections import OrderedDict
 from radvel.orbit import timeperi_to_timetrans, timetrans_to_timeperi
 import radvel.model
@@ -105,7 +105,7 @@ class Basis(object):
         """
         basis_name = kwargs.setdefault('basis_name', self.name)
 
-        if isinstance(params_in, pandas.core.frame.DataFrame):
+        if isinstance(params_in, pd.core.frame.DataFrame):
             # Output by emcee
             params_out = params_in.copy()
         else:
@@ -114,7 +114,7 @@ class Basis(object):
         for num_planet in range(1,1+self.num_planets):
 
             def _getpar(key):
-                if isinstance(params_in, pandas.core.frame.DataFrame):
+                if isinstance(params_in, pd.core.frame.DataFrame):
                     return params_in['{}{}'.format(key,num_planet)]
                 else:
                     return params_in['{}{}'.format(key,num_planet)].value
@@ -122,7 +122,7 @@ class Basis(object):
             def _setpar(key, new_value):
                 key_name = '{}{}'.format(key,num_planet)
 
-                if isinstance(params_in, pandas.core.frame.DataFrame):
+                if isinstance(params_in, pd.core.frame.DataFrame):
                     params_out[key_name] = new_value
                 else:
                     if key_name in params_in:
@@ -242,7 +242,7 @@ class Basis(object):
             _print_valid_basis()
             return None
         
-        if isinstance(params_in,pandas.core.frame.DataFrame):
+        if isinstance(params_in,pd.core.frame.DataFrame):
             # Output by emcee
             params_out = params_in.copy()
         else:
@@ -251,7 +251,7 @@ class Basis(object):
         for num_planet in range(1,1+self.num_planets):
 
             def _getpar(key):
-                if isinstance(params_in, pandas.core.frame.DataFrame):
+                if isinstance(params_in, pd.core.frame.DataFrame):
                     return params_in['{}{}'.format(key,num_planet)]
                 else:
                     return params_in['{}{}'.format(key,num_planet)].value
@@ -259,7 +259,7 @@ class Basis(object):
             def _setpar(key, new_value):
                 key_name = '{}{}'.format(key,num_planet)
 
-                if isinstance(params_in, pandas.core.frame.DataFrame):
+                if isinstance(params_in, pd.core.frame.DataFrame):
                     params_out[key_name] = new_value
                 else:
                     if key_name in params_in:
@@ -276,7 +276,7 @@ class Basis(object):
             def _delpar(key):
                 if isinstance(params_in,OrderedDict):
                     del params_out['{}{}'.format(key, num_planet)]
-                elif isinstance(params_in, pandas.core.frame.DataFrame):
+                elif isinstance(params_in, pd.core.frame.DataFrame):
                     params_out.drop('{}{}'.format(key, num_planet))
 
             if newbasis == 'per tc e w k':
