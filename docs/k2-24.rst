@@ -50,8 +50,7 @@ Define a function that we will use to initialize the
         return mod
 
 
-Define a simple plotting function to display the data, model, and
-residuals
+Define a simple plotting function to display the data and model.
 
 .. code:: python
 
@@ -68,8 +67,7 @@ residuals
         pl.ylabel('RV')
         pl.draw()
 
-Load up the K2-24 data. In this example the RV data and parameter
-starting guesses are stored in an HD5 file
+Load up the K2-24 data. In this example the RV data is stored in an CSV file
 
 .. code:: python
 
@@ -84,7 +82,9 @@ starting guesses are stored in an HD5 file
 Circular Orbits
 ~~~~~~~~~~~~
 
-Set initial guesses for the parameters
+Use the function we just defined to initialize a model object and add a few additional parameters
+into the ``radvel.likelihood.Likelihood`` object that are not associated with the Keplerian orbital model
+but still needed to calculate a likelihood.
 
 .. code:: python
 
@@ -93,8 +93,8 @@ Set initial guesses for the parameters
     like.params['gamma'] = radvel.Parameter(value=0.1)
     like.params['jit'] = radvel.Parameter(value=1.0)
 
-Choose which parameters to vary or fix. By default, all ``radvel.Parameter`` objects will vary, so you only have to
-worry about setting the ones you want to hold fixed.
+Choose which parameters to vary or fix. By default, all ``radvel.Parameter`` objects will vary,
+so you only have to worry about setting the ones you want to hold fixed.
 
 .. code:: python
 
