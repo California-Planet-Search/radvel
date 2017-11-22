@@ -1,4 +1,3 @@
-import os
 import sys
 import time
 import copy
@@ -7,11 +6,10 @@ from multiprocessing import Pool
 
 import pandas as pd
 import numpy as np
-from scipy import optimize
 
 import emcee
 
-from radvel import utils, likelihood
+from radvel import utils
 
 
 # Maximum G-R statistic to stop burn-in period

@@ -1,4 +1,4 @@
-from scipy import optimize
+import scipy.optimize
 import numpy as np
 import copy
 import collections
@@ -23,7 +23,7 @@ def maxlike_fitting(post, verbose=True):
         print("Initial loglikelihood = %f" % post0.logprob())
         print("Performing maximum likelihood fit...")
 
-    res = optimize.minimize(
+    res = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method='Powell',
         options=dict(maxiter=200, maxfev=100000, xtol=1e-8)
     )
