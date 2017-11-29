@@ -1,9 +1,11 @@
 import numpy as np
 from radvel import model
 
+
 class Prior(object):
     def __repr__(self):
         return "Generic Prior"
+
 
 class Gaussian(Prior):
     """Gaussian prior
@@ -38,6 +40,7 @@ class Gaussian(Prior):
             s = self.__repr__()
             
         return s
+
 
 class EccentricityPrior(Prior):
     """Physical eccentricities
@@ -113,7 +116,8 @@ upper limits must match number of planets."
                 return -np.inf
         
         return 0
-        
+
+
 class PositiveKPrior(Prior):
     """K must be positive
 
@@ -147,6 +151,7 @@ class PositiveKPrior(Prior):
             if k < 0.0:    
                 return -np.inf
         return 0
+
 
 class HardBounds(Prior):
     """Prior for hard boundaries
@@ -187,3 +192,60 @@ class HardBounds(Prior):
             s = self.__repr__()
             
         return s
+
+
+class SecondaryEclipse(Prior):
+    """Secondary eclipse prior
+
+    Prior on eccentricity and omega derived from secondary eclipse timing measurements
+
+    Args:
+        planet_num (int): Planet number to apply the secondary eclipse prior.
+        eclipse_times (list of tuples): List of secondary eclipse midpoint times and associated uncertainties.
+            Should be in the same units as the timestamps of your data.
+    """
+
+    def __repr__(self):
+        msg = ""
+        for tt in enumerate(self.eclipse_times):
+            msg += "secondary eclipse constraint: {} ± {}\n".format(tt[0], tt[1])
+
+        return msg[:-1]
+
+    def __str__(self):
+        msg = ""
+        for i, tt in enumerate(self.eclipse_times):
+            msg += "$T_\{S,{}\} = {} \pm {}$ \\\\\\\\\n".format(i+1, tt[0], tt[1])
+
+        return msg[:-5]
+
+    def __init__(self, planet_num, eclipse_times):
+
+        self.planet_num = planet_num
+        self.eclipse_times = eclipse_times
+
+        for tt in eclipse_times:
+            assert len(tt) == 2, "Secondary eclipse times must be specified as a list of 2-element tuples."
+
+    def __call__(self, params):
+        def _getpar(key, num_planet):
+            return params['{}{}'.format(key, num_planet)].value
+
+        parnames = params.basis.name.split()
+
+        for i, num_planet in enumerate(self.planet_list):
+            if 'e' in parnames:
+                ecc = _getpar('e', num_planet)
+            elif 'secosw' in parnames:
+                secosw = _getpar('secosw', num_planet)
+                sesinw = _getpar('sesinw', num_planet)
+                ecc = secosw ** 2 + sesinw ** 2
+            elif 'ecosw' in parnames:
+                ecosw = _getpar('ecosw', num_planet)
+                esinw = _getpar('esinw', num_planet)
+                ecc = np.sqrt(ecosw ** 2 + esinw ** 2)
+
+            if ecc > self.upperlims[i] or ecc < 0.0:
+                return -np.inf
+
+        return 0
