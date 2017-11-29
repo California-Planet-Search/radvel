@@ -48,7 +48,7 @@ class Basis(object):
         'per tc ecosw esinw k'  \n
         'per tc e w k' \n
         'logper tc secosw sesinw k'\n
-        'logper tc secosw sesinw k'
+        'logper tc secosw sesinw logk'
     """
     cps_params = 'per tp e w k'.split()
 
