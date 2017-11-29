@@ -202,7 +202,7 @@ class HardBounds(Prior):
 
 
 class SecondaryEclipsePrior(Prior):
-    """Secondary eclipse priors
+    """Secondary eclipse prior
 
     Implied prior on eccentricity and omega by specifying measured secondary eclipse time
 
