@@ -13,7 +13,7 @@ import sys
 __all__=['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver']
 
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 
 MODULEDIR, filename = os.path.split(__file__)
 DATADIR = os.path.join(sys.prefix, 'radvel_example_data')

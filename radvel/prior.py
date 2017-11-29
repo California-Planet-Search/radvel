@@ -200,38 +200,34 @@ class HardBounds(Prior):
         return s
 
 
-class SecondaryEclipse(Prior):
+class SecondaryEclipsePrior(Prior):
     """Secondary eclipse priors
 
-    Implied prior on eccentricity and omega by specifying measured secondary eclipse times
+    Implied prior on eccentricity and omega by specifying measured secondary eclipse time
 
     Args:
-        planet_num (int): Number of planet with measured secondary eclipses
-        eclipse_times (list of tuples): List of secondary eclipse midpoint times and associated uncertainties.
+        planet_num (int): Number of planet with measured secondary eclipse
+        ts (float): Secondary eclipse midpoint time.
             Should be in the same units as the timestamps of your data.
+        ts_err (float): Uncertainty on secondary eclipse time
     """
 
     def __repr__(self):
         msg = ""
-        for tt in enumerate(self.eclipse_times):
-            msg += "secondary eclipse constraint: {} +/- {}\n".format(tt[0], tt[1])
+        msg += "secondary eclipse constraint: {} +/- {}\n".format(self.ts, self.ts_err)
 
         return msg[:-1]
 
     def __str__(self):
-        msg = ""
-        for i, tt in enumerate(self.eclipse_times):
-            msg += "$T_\{S,{}\} = {} \pm {}$ \\\\\\\\\n".format(i+1, tt[0], tt[1])
+        msg = "secondary eclipse prior: ${} \pm {}$ \\\\\\\\\n".format(self.ts, self.ts_err)
 
         return msg[:-5]
 
-    def __init__(self, planet_num, eclipse_times):
+    def __init__(self, planet_num, ts, ts_err):
 
         self.planet_num = planet_num
-        self.eclipse_times = eclipse_times
-
-        for tt in eclipse_times:
-            assert len(tt) == 2, "Secondary eclipse times must be specified as a list of 2-element tuples."
+        self.ts = ts
+        self.ts_err = ts_err
 
     def __call__(self, params):
         def _getpar(key):
@@ -242,16 +238,14 @@ class SecondaryEclipse(Prior):
         tp = _getpar('tp')
         per = _getpar('per')
         ecc = _getpar('e')
-        omega = _gepar('w')
+        omega = _getpar('w')
 
         ts = orbit.timeperi_to_timetrans(tp, per, ecc, omega, secondary=True)
         ts_phase = utils.t_to_phase(params, ts, self.planet_num)
 
-        penalty = 0.0
-        for tt in self.eclipse_times:
-            pts = utils.t_to_phase(params, tt[0], self.planet_num)
-            epts = tt[1] / per
+        pts = utils.t_to_phase(params, self.ts, self.planet_num)
+        epts = self.ts_err / per
 
-            penalty += -0.5 * ((ts_phase - pts) / epts)**2
+        penalty = -0.5 * ((ts_phase - pts) / epts)**2
 
         return penalty
