@@ -401,6 +401,7 @@ class Basis(object):
                     _delpar('tp')
                     _delpar('e')
                     _delpar('w')
+                    _delpar('k')
 
                 self.name = newbasis
                 self.params = newbasis.split()
