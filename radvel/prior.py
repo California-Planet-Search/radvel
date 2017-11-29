@@ -5,6 +5,7 @@ from radvel import model
 from radvel import orbit
 from radvel import utils
 
+
 class Prior(object):
     def __repr__(self):
         return "Generic Prior"

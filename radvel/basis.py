@@ -426,8 +426,8 @@ class Basis(object):
                     _delpar('e')
                     _delpar('w')
 
-            self.name = newbasis
-            self.params = newbasis.split()
+                self.name = newbasis
+                self.params = newbasis.split()
 
         params_out.basis = Basis(newbasis, self.num_planets)
                 
