@@ -241,9 +241,9 @@ class SecondaryEclipsePrior(Prior):
         omega = _getpar('w')
 
         ts = orbit.timeperi_to_timetrans(tp, per, ecc, omega, secondary=True)
-        ts_phase = utils.t_to_phase(params, ts, self.planet_num)
+        ts_phase = utils.t_to_phase(cps_params, ts, self.planet_num)
 
-        pts = utils.t_to_phase(params, self.ts, self.planet_num)
+        pts = utils.t_to_phase(cps_params, self.ts, self.planet_num)
         epts = self.ts_err / per
 
         penalty = -0.5 * ((ts_phase - pts) / epts)**2

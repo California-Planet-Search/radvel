@@ -405,7 +405,6 @@ class Basis(object):
                 self.name = newbasis
                 self.params = newbasis.split()
 
-
             if newbasis == 'per tc ecosw esinw k':
                 per = _getpar('per')
                 e = _getpar('e')
