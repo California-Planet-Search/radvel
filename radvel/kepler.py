@@ -74,8 +74,8 @@ def kepler(inbigM, inecc):
     Earr = Marr + np.sign(np.sin(Marr)) * k * eccarr  # first guess at E
     # fiarr should go to zero when converges
     fiarr = ( Earr - eccarr * np.sin(Earr) - Marr)  
-    convd = np.abs(fiarr) > conv  # which indices have not converged
-    nd = np.sum(convd is True)  # number of converged elements
+    convd = np.where(np.abs(fiarr) > conv)[0]  # which indices have not converged
+    nd = len(convd)  # number of unconverged elements
     count = 0
 
     while nd > 0:  # while unconverged elements exist

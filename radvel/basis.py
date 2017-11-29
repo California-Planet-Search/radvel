@@ -8,7 +8,9 @@ BASIS_NAMES = ['per tp e w k',  # The CPS basis
                'per tc secosw sesinw logk',
                'per tc secosw sesinw k',
                'per tc ecosw esinw k',
-               'per tc e w k']
+               'per tc e w k',
+               'logper tc secosw sesinw k',
+               'logper tc secosw sesinw logk']
 
 
 def _print_valid_basis():
@@ -45,6 +47,7 @@ class Basis(object):
         'per tc secosw sesinw k'  \n
         'per tc ecosw esinw k'  \n
         'per tc e w k' \n
+        'logper tc secosw sesinw k'\n
         'logper tc secosw sesinw logk'
     """
     cps_params = 'per tp e w k'.split()
@@ -190,6 +193,21 @@ class Basis(object):
                 # transform into CPS basis
                 per = np.exp(logper)
                 e = secosw**2 + sesinw**2
+                w = np.arctan2(sesinw, secosw)
+                tp = timetrans_to_timeperi(tc, per, e, w)
+
+            if basis_name == 'logper tc secosw sesinw logk':
+                # pull out parameters
+                logper = _getpar('logper')
+                tc = _getpar('tc')
+                secosw = _getpar('secosw')
+                sesinw = _getpar('sesinw')
+                k = _getpar('logk')
+
+                # transform into CPS basis
+                per = np.exp(logper)
+                e = secosw ** 2 + sesinw ** 2
+                k = np.exp(k)
                 w = np.arctan2(sesinw, secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
@@ -358,6 +376,32 @@ class Basis(object):
                     _delpar('tp')
                     _delpar('e')
                     _delpar('w')
+
+                self.name = newbasis
+                self.params = newbasis.split()
+
+            if newbasis == 'logper tc secosw sesinw logk':
+                per = _getpar('per')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                try:
+                    tp = _getpar('tp')
+                except KeyError:
+                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                    _setpar('tp', tp)
+                _setpar('logper', np.log(per))
+                _setpar('secosw', np.sqrt(e)*np.cos(w))
+                _setpar('sesinw', np.sqrt(e)*np.sin(w))
+                _setpar('logk', np.log(k))
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
+
+                if not kwargs.get('keep', True):
+                    _delpar('per')
+                    _delpar('tp')
+                    _delpar('e')
+                    _delpar('w')
+                    _delpar('k')
 
                 self.name = newbasis
                 self.params = newbasis.split()

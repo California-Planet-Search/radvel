@@ -1,3 +1,4 @@
+
 # RadVel
 
 General Toolkit for Modeling Radial Velocities.
@@ -16,29 +17,44 @@ Please cite the following DOI if you wish to make use of this software in any pu
 
 ## Documentation
 
-Documentation is available on ReadTheDocs.org: http://radvel.readthedocs.io
+Documentation is available [here](http://radvel.readthedocs.io/)
 
 ## Features
 
-- Object-oriented (i.e. models, likelihoods, priors, and posteriors are defined as objects)
-- Extensible (i.e. naturally define new likelihoods, priors, parameterizatoins)
-- Convenient API to fix/float parameters
-- Easily plugs in to the the suite of `scipy.optimize` routines for max-likelihood fitting 
-- Works with `emcee` MCMC
-- parameters are represented as dicts not arrays
-- Can handle data from multiple telescopes
-- Easily convert between different parameterizations
-- Computation of Kepler's equation (numerically intensive) written in C
 
-## Future Improvements...
+With RadVel you can
 
-- PERF: Optimizations for low eccentricity orbits
-- Add Gaussian Process (GP) functionality
+
+- *Optimize*
+  - leverages the suite of minimizers in [scipy.optimize](https://docs.scipy.org/doc/scipy/reference/optimize.html)
+- *Run MCMC*
+  - leverages [emcee](http://dfm.io/emcee/) package for MCMC exploration of posterior
+- *Visualize*
+  - creates quicklook summary plots and statistics
+ 
+RadVel is
+
+- *Flexible*
+  - fix/float parameters that are indexed as strings (emulates [lmfit](https://github.com/lmfit/lmfit-py/) API)
+  - convert between different parameterizations e.g. `e omega <-> sqrtecosw sqrtesinw`
+  - incorporate RVs from multiple telescopes
+- *Extensible* 
+  - Object-oriented programing makes adding new likelihoods, priors, etc. easy
+- *Scriptable*
+  - Code can be run through convenient Command-line Interface (CLI) 
+- *Fast*
+   - Kepler's equation solved in C (slower pure python solver available)
+   - MCMC is multi-threaded
+
+## Future Improvements
+
+- Gaussian Process (GP) functionality
 
 ## Tutorials 
 
 Follow examples in
 
 - `radvel/tests/SyntheticData.ipynb`
-- `radvel/tests/EPIC-2037_Fitting+MCMC.ipynb`
+- `radvel/tests/K2-24_Fitting+MCMC.ipynb`
 - `radvel/tests/164922_Fitting+MCMC.ipynb`
+
