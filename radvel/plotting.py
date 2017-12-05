@@ -15,18 +15,18 @@ import radvel
 from radvel.utils import t_to_phase, fastbin
 
 latex = {
-    'ms':'m s$^{\mathregular{-1}}$',
-    'BJDTDB':'BJD$_{\mathregular{TDB}}$'
+    'ms': 'm s$^{\mathregular{-1}}$',
+    'BJDTDB': 'BJD$_{\mathregular{TDB}}$'
 }
 
 telfmts_default = {
-    'j': dict(color='k',fmt='o',mfc='none',label='HIRES',mew=1),
-    'k': dict(color='k',fmt='s',mfc='none',label='HIRES pre 2004',mew=1),
-    'a': dict(color='g',fmt='d',label='APF'),
-    'pfs': dict(color='magenta',fmt='p',label='PFS'),
-    'h': dict(color='firebrick',fmt="s",label='HARPS'),
-    'harps-n': dict(color='firebrick',fmt='^',label='HARPS-N'),
-    'l': dict(color='g',fmt='*'),
+    'j': dict(color='k', fmt='o', mfc='none', label='HIRES', mew=1),
+    'k': dict(color='k', fmt='s', mfc='none', label='HIRES pre 2004', mew=1),
+    'a': dict(color='g', fmt='d', label='APF'),
+    'pfs': dict(color='magenta', fmt='p', label='PFS'),
+    'h': dict(color='firebrick', fmt="s", label='HARPS'),
+    'harps-n': dict(color='firebrick', fmt='^', label='HARPS-N'),
+    'l': dict(color='g', fmt='*'),
 }
 
 telfmts_default['lick'] = telfmts_default['l']
@@ -58,7 +58,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
     """
     lw = 1.0
 
-    default_colors = ['orange', 'purple', 'magenta' , 'pink']
+    default_colors = ['orange', 'purple', 'magenta', 'pink']
     ci = 0
     
     utel = np.unique(tel)
@@ -70,8 +70,8 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
         # Default formatting
         kw = dict(
             fmt='o', capsize=0, mew=0, 
-            ecolor='0.6', lw = lw, color=default_colors[ci],
-            label = t
+            ecolor='0.6', lw=lw, color=default_colors[ci],
+            label=t
         )
 
         # If not explicit format set, look among default formats
@@ -150,7 +150,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     cpsparams = post.params.basis.to_cps(post.params)
     cpspost.params.update(cpsparams)
     rvtimes = cpspost.likelihood.x
-    rvdat = cpspost.likelihood.y
     rverr = cpspost.likelihood.errorbars()
     num_planets = model.num_planets
 
@@ -169,24 +168,18 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     if len(post.likelihood.x) < 20: 
         nobin = True
     
-    if saveplot != None: 
+    if saveplot is not None:
         resolution = 10000
     else: 
         resolution = 2000
 
-    if isinstance(cpspost.likelihood, radvel.likelihood.CompositeLikelihood):
-        like_list = cpspost.likelihood.like_list
-    else:
-        like_list = [ cpspost.likelihood ]
-    
     if not nophase:
         periods = []
         for i in range(num_planets):
             periods.append(cpsparams['per%d' % (i+1)].value)
             
     longp = max(periods)
-    shortp = min(periods)
-        
+
     dt = max(rvtimes) - min(rvtimes)
     rvmodt = np.linspace(
         min(rvtimes) - 0.05 * dt, max(rvtimes) + 0.05 * dt + longp,
@@ -240,26 +233,25 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
                         top=divide - rv_phase_space * 0.5,
                         bottom=0.07, hspace=0.25, wspace=0.25)
 
-    axL = []
-    axRV = pl.subplot(gs_rv[0, 0])
-    plotindex = 1
+    ax_list = []
+    ax_rv = pl.subplot(gs_rv[0, 0])
     pltletter = ord('a')
-    ax = axRV
+    ax = ax_rv
 
-    axL += [axRV]
+    ax_list += [ax_rv]
    
     # Unphased plot
     ax.axhline(0, color='0.5', linestyle='--')
-    ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
+    ax.plot(mplttimes, rvmod2, 'b-', rasterized=False, lw=0.1)
 
-    def labelfig(ax, pltletter):
-        text = "{})".format(chr(pltletter))
+    def labelfig(letter):
+        text = "{})".format(chr(letter))
         add_anchored(
             text, loc=2, prop=dict(fontweight='bold', size='large'),
             frameon=False
         )
 
-    labelfig(ax, pltletter)
+    labelfig(pltletter)
 
     pltletter += 1
     _mtelplot(
@@ -267,18 +259,18 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     )
     ax.set_xlim(min(plttimes)-0.01*dt, max(plttimes)+0.01*dt)
     
-    pl.setp(axRV.get_xticklabels(), visible=False)
+    pl.setp(ax_rv.get_xticklabels(), visible=False)
 
     # Legend
     if legend:
         pl.legend(numpoints=1, fontsize='x-small', loc='best')
     
     # Years on upper axis
-    axyrs = axRV.twiny()
+    axyrs = ax_rv.twiny()
     # axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
 
     xl = np.array(list(ax.get_xlim())) + e
-    decimalyear = Time(xl,format='jd',scale='utc').decimalyear
+    decimalyear = Time(xl, format='jd', scale='utc').decimalyear
     axyrs.plot(decimalyear, decimalyear)
     axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
     axyrs.set_xlim(*decimalyear)
@@ -287,23 +279,23 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     if not yscale_auto: 
         scale = np.std(rawresid+rvmod)
-        ax.set_ylim(-yscale_sigma * scale , yscale_sigma * scale)
+        ax.set_ylim(-yscale_sigma * scale, yscale_sigma * scale)
 
     ax.set_ylabel('RV [{ms:}]'.format(**latex), weight='bold')
     ticks = ax.yaxis.get_majorticklocs()
     ax.yaxis.set_ticks(ticks[1:])
 
-    divider = make_axes_locatable(axRV)
-    axResid = divider.append_axes(
-        "bottom",size="50%", pad=0.0, sharex=axRV, sharey=None
+    divider = make_axes_locatable(ax_rv)
+    ax_resid = divider.append_axes(
+        "bottom", size="50%", pad=0.0, sharex=ax_rv, sharey=None
     )
-    ax = axResid
-    axL += [axResid]
+    ax = ax_resid
+    ax_list += [ax_resid]
 
     # Residuals
     ax.plot(mplttimes, slope, 'b-', lw=fit_linewidth)
 
-    labelfig(ax, pltletter)
+    labelfig(pltletter)
 
     pltletter += 1
 
@@ -312,69 +304,62 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         scale = np.std(resid)
         ax.set_ylim(-yscale_sigma * scale, yscale_sigma * scale)
 
-    ax.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
+    ax.set_xlim(min(plttimes)-0.01*dt, max(plttimes)+0.01*dt)
     ticks = ax.yaxis.get_majorticklocs()
-    ax.yaxis.set_ticks([ticks[0],0.0,ticks[-1]])
-    xticks = ax.xaxis.get_majorticklocs()
+    ax.yaxis.set_ticks([ticks[0], 0.0, ticks[-1]])
     pl.xlabel('JD - {:d}'.format(int(np.round(e))), weight='bold')
     ax.set_ylabel('Residuals', weight='bold')
-    ax.yaxis.set_major_locator(MaxNLocator(5,prune='both'))
+    ax.yaxis.set_major_locator(MaxNLocator(5, prune='both'))
     
     # Define the locations for the axes
     axbounds = ax.get_position().bounds
     bottom = axbounds[1]
     height = (bottom - 0.15) / num_planets
-    textloc = bottom / 2
     bottom -= height + 0.05
-    left, width = 0.10, 0.72
 
-    #Phase plots
+    # Phase plots
     for i in range(num_planets):
-        if nophase: break
+        if nophase:
+            break
         
         pnum = i+1
-        #print("Planet %d" % pnum)
 
-        rvdat = rvdat.copy()
         rvmod2 = model(rvmodt, planet_num=pnum) - slope
         modph = t_to_phase(cpspost.params, rvmodt, pnum, cat=True) - 1
         rvdat = rawresid + model(rvtimes, planet_num=pnum) - slope_low
         phase = t_to_phase(cpspost.params, rvtimes, pnum, cat=True) - 1
-        p2 = t_to_phase(cpspost.params, rvtimes, pnum, cat=False) - 1
-        rvdatcat = np.concatenate((rvdat,rvdat))
-        rverrcat = np.concatenate((rverr,rverr))
-        rvmod2cat = np.concatenate((rvmod2,rvmod2))
+        rvdatcat = np.concatenate((rvdat, rvdat))
+        rverrcat = np.concatenate((rverr, rverr))
+        rvmod2cat = np.concatenate((rvmod2, rvmod2))
         bint, bindat, binerr = fastbin(phase+1, rvdatcat, nbins=25)
         bint -= 1.0
 
         i_row = int(i / phase_ncols)
         i_col = int(i - i_row * phase_ncols)
         ax = pl.subplot(gs_phase[i_row, i_col])
-        axL += [ax]
+        ax_list += [ax]
 
         ax.axhline(0, color='0.5', linestyle='--', )
-        ax.plot(sorted(modph),rvmod2cat[np.argsort(modph)],'b-',linewidth=fit_linewidth)
-        labelfig(ax,pltletter)
+        ax.plot(sorted(modph), rvmod2cat[np.argsort(modph)], 'b-', linewidth=fit_linewidth)
+        labelfig(pltletter)
 
         pltletter += 1
-        telcat = np.concatenate((cpspost.likelihood.telvec,cpspost.likelihood.telvec))
+        telcat = np.concatenate((cpspost.likelihood.telvec, cpspost.likelihood.telvec))
 
-        _mtelplot(phase,rvdatcat, rverrcat, telcat, ax, telfmts)
+        _mtelplot(phase, rvdatcat, rverrcat, telcat, ax, telfmts)
         if not nobin and len(rvdat) > 10: 
             ax.errorbar(
-                bint, bindat, yerr=binerr, fmt='ro',mec='w', ms=bin_markersize, 
+                bint, bindat, yerr=binerr, fmt='ro', mec='w', ms=bin_markersize,
                 mew=bin_markeredgewidth
             )
 
-        pl.xlim(-0.5,0.5)
+        pl.xlim(-0.5, 0.5)
 
         if not yscale_auto: 
             scale = np.std(rvdatcat)
-            pl.ylim(-yscale_sigma*scale, yscale_sigma*scale )
+            pl.ylim(-yscale_sigma*scale, yscale_sigma*scale)
         
-        letters = string.ascii_lowercase
-        planetletter = letters[i+1]
-        keys = [p+str(pnum) for p in ['per', 'k', 'e'] ]
+        keys = [p+str(pnum) for p in ['per', 'k', 'e']]
         labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
         if i < num_planets-1:
             ticks = ax.yaxis.get_majorticklocs()
@@ -384,28 +369,29 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         pl.xlabel('Phase', weight='bold')
 
         print_params = ['per', 'k', 'e']
-        units = {'per':'days','k':latex['ms'],'e':''}
+        units = {'per': 'days', 'k': latex['ms'], 'e': ''}
 
         anotext = []
         for l, p in enumerate(print_params):
-            val = cpsparams["%s%d" % (print_params[l],pnum)].value
+            val = cpsparams["%s%d" % (print_params[l], pnum)].value
             
             if uparams is None:
                 _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
             else:
                 if hasattr(post, 'medparams'):
-                    val = post.medparams["%s%d" % (print_params[l],pnum)]
+                    val = post.medparams["%s%d" % (print_params[l], pnum)]
                 else:
                     print("WARNING: medparams attribute not found in " +
                           "posterior object will annotate with " +
                           "max-likelihood values and reported uncertainties " +
                           "may not be appropriate.")
-                err = uparams["%s%d" % (print_params[l],pnum)]
+                err = uparams["%s%d" % (print_params[l], pnum)]
                 if err > 0:
                     val, err, errlow = radvel.utils.sigfig(val, err)
-                    _anotext = '$\\mathregular{%s}$ = %s $\\mathregular{\\pm}$ %s %s' % (labels[l].replace("$",""), val, err, units[p])
+                    _anotext = '$\\mathregular{%s}$ = %s $\\mathregular{\\pm}$ %s %s' \
+                               % (labels[l].replace("$", ""), val, err, units[p])
                 else:
-                    _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$",""), val, units[p])
+                    _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
 
             anotext += [_anotext] 
 
@@ -415,11 +401,11 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             bbox=dict(ec='none', fc='w', alpha=0.8)
         )
 
-    if saveplot != None:
-        pl.savefig(saveplot,dpi=150)
+    if saveplot is not None:
+        pl.savefig(saveplot, dpi=150)
         print("RV multi-panel plot saved to %s" % saveplot)
         
-    return fig, axL
+    return fig, ax_list
 
     
 def corner_plot(post, chains, saveplot=None):
@@ -442,33 +428,35 @@ def corner_plot(post, chains, saveplot=None):
     f = rcParams['font.size']
     rcParams['font.size'] = 12
     
-    fig = corner.corner(
+    _ = corner.corner(
         chains[labels], labels=texlabels, label_kwargs={"fontsize": 14},
-        plot_datapoints=False, bins=30, quantiles=[.16,.5,.84],
-        show_titles = True, title_kwargs={"fontsize": 14}, smooth=True
+        plot_datapoints=False, bins=30, quantiles=[0.16, 0.5, 0.84],
+        show_titles=True, title_kwargs={"fontsize": 14}, smooth=True
     )
     
-    if saveplot != None:
-        pl.savefig(saveplot,dpi=150)
+    if saveplot is not None:
+        pl.savefig(saveplot, dpi=150)
         print("Corner plot saved to %s" % saveplot)
     else:
         pl.show()
 
     rcParams['font.size'] = f
 
+
 def texlabel(key, letter):
-    if key.count('mpsini')==1:
+    if key.count('mpsini') == 1:
         return '$M_' + letter + '\\sin i$'
-    if key.count('rhop')==1:
+    if key.count('rhop') == 1:
         return '$\\rho_' + letter + '$'
-        
-def corner_plot_derived_pars(chains, P, saveplot=None):
+
+
+def corner_plot_derived_pars(chains, planet, saveplot=None):
     """
     Make a corner plot from the output MCMC chains and a posterior object.
 
     Args:
         chains (DataFrame): MCMC chains output by radvel.mcmc
-        pars (list): 
+        planet (Planet object): Planet configuration object
         saveplot (Optional[string]: Name of output file, will show as 
             interactive matplotlib window if not defined.
 
@@ -477,22 +465,21 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
     
     """
 
-    if 'planet_letters' in dir(P):
-        planet_letters = P.planet_letters
+    if 'planet_letters' in dir(planet):
+        planet_letters = planet.planet_letters
     else:
-        planet_letters = {1:'b', 2:'c', 3:'d', 4:'e', 5:'f', 6:'g', 7:'h', 8:'i', 9:'j', 10:'k'}
+        planet_letters = {1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f', 6: 'g', 7: 'h', 8: 'i', 9: 'j', 10: 'k'}
     
     # Determine which columns to include in corner plot
     labels = []
     texlabels = []
-    title_fmts = []
-    for i in np.arange(1, P.nplanets +1, 1):
+    for i in np.arange(1, planet.nplanets + 1, 1):
         letter = planet_letters[i]
 
         for key in 'mpsini rhop'.split():
-            label = '{}{}'.format(key,i)
+            label = '{}{}'.format(key, i)
             
-            is_column = list(chains.columns).count(label)==1
+            is_column = list(chains.columns).count(label) == 1
             if not is_column:
                 break
             
@@ -500,7 +487,7 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
             if null_column:
                 break
 
-            tl = texlabel(label,letter)
+            tl = texlabel(label, letter)
 
             # add units to label
             if key == 'mpsini':
@@ -515,27 +502,26 @@ def corner_plot_derived_pars(chains, P, saveplot=None):
                 tl += " (%s)" % unit
             else:
                 tl += " (g cm$^{-3}$)"
-
                 
             labels.append(label)
             texlabels.append(tl)
-            
-
 
     f = rcParams['font.size']
     rcParams['font.size'] = 12
-    fig = corner.corner(
+    _ = corner.corner(
         chains[labels], labels=texlabels, label_kwargs={"fontsize": 14}, 
-        plot_datapoints=False, bins=30, quantiles=[0.16,0.50,0.84],
-        show_titles = True, title_kwargs={"fontsize": 14}, smooth=True
+        plot_datapoints=False, bins=30, quantiles=[0.16, 0.50, 0.84],
+        show_titles=True, title_kwargs={"fontsize": 14}, smooth=True
     )
     
-    if saveplot != None:
-        pl.savefig(saveplot,dpi=150)
+    if saveplot is not None:
+        pl.savefig(saveplot, dpi=150)
         print("Corner plot saved to %s" % saveplot)
-    else: pl.show()
+    else:
+        pl.show()
     rcParams['font.size'] = f
-    
+
+
 def trend_plot(post, chains, nwalkers, outfile=None):
     """MCMC trend plot
 
@@ -554,24 +540,21 @@ def trend_plot(post, chains, nwalkers, outfile=None):
 
     labels = sorted([k for k in post.params.keys() if post.params[k].vary])
     texlabels = [post.params.tex_labels().get(l, l) for l in labels]
-    colors = [ cmap(x) for x in np.linspace(0.05, 0.95, nwalkers)]
-
-    quantiles = chains.quantile([0.1587, 0.5, 0.8413])
+    colors = [cmap(x) for x in np.linspace(0.05, 0.95, nwalkers)]
 
     with PdfPages(outfile) as pdf:
-        for param,tex in zip(labels,texlabels):
+        for param, tex in zip(labels, texlabels):
             flatchain = chains[param].values
-            wchain = flatchain.reshape((nwalkers,-1))
-        
-        
-            fig = pl.figure(figsize=(18,10))
+            wchain = flatchain.reshape((nwalkers, -1))
+
+            _ = pl.figure(figsize=(18, 10))
             for w in range(nwalkers):
                 pl.plot(
-                    wchain[w,:], '.', rasterized=True, color=colors[w], 
+                    wchain[w, :], '.', rasterized=True, color=colors[w],
                     markersize=3
                 )
 
-            pl.xlim(0,wchain.shape[1])
+            pl.xlim(0, wchain.shape[1])
 
             pl.xlabel('Step Number')
             pl.ylabel(tex)
@@ -583,14 +566,13 @@ def trend_plot(post, chains, nwalkers, outfile=None):
             pl.close()
 
 
-def correlation_plot(post, chains=None, outfile=None):
+def correlation_plot(post, outfile=None):
     """Correlation plot
 
     Plot parameter correlations.
 
     Args:
         post (radvel.Posterior): Radvel Posterior object
-        chains (DataFrame): (optional) MCMC chains output by radvel.mcmc
         outfile (string): name of output multi-page PDF file
 
     Returns:
@@ -600,8 +582,8 @@ def correlation_plot(post, chains=None, outfile=None):
 
     pltind = 1
     pl.subplot(431)
-    pl.subplots_adjust(top=0.97, left = 0.07, right=0.95,
-                           bottom=0.10, hspace=0.22, wspace=0.22)
+    pl.subplots_adjust(top=0.97, left=0.07, right=0.95,
+                       bottom=0.10, hspace=0.22, wspace=0.22)
     
     for like in post.likelihood.like_list:
         resid = like.residuals()
@@ -633,7 +615,7 @@ def correlation_plot(post, chains=None, outfile=None):
         pl.savefig(outfile)
 
 
-def add_anchored(*args,**kwargs):
+def add_anchored(*args, **kwargs):
     """
     Parameters
     ----------
@@ -658,10 +640,8 @@ def add_anchored(*args,**kwargs):
     if 'bbox' in kwargs:
         bbox = kwargs.pop('bbox')
     at = AnchoredText(*args, **kwargs)
-    if len(bbox.keys())>0:
-        pl.setp(at.patch,**bbox)
+    if len(bbox.keys()) > 0:
+        pl.setp(at.patch, **bbox)
 
     ax = pl.gca()
     ax.add_artist(at)
-
-
