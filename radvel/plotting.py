@@ -391,7 +391,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             val = cpsparams["%s%d" % (print_params[l],pnum)].value
             
             if uparams is None:
-                _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$",""), val, units[p])
+                _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
             else:
                 if hasattr(post, 'medparams'):
                     val = post.medparams["%s%d" % (print_params[l],pnum)]
