@@ -22,7 +22,7 @@ anybasis_params = radvel.Parameters(nplanets,basis='per tc e w k', planet_letter
 anybasis_params['per1'] = radvel.Parameter(value=1206.3)      # period of 1st planet
 anybasis_params['tc1'] = radvel.Parameter(value=2456779.)     # time of inferior conjunction of 1st planet
 anybasis_params['e1'] = radvel.Parameter(value=0.01)          # eccentricity of 1st planet
-anybasis_params['w1'] = radvel.Parameter(value=np.pi/2.)      # argument of periastron of the planet's orbit for 1st planet
+anybasis_params['w1'] = radvel.Parameter(value=np.pi/2.)      # argument of periastron of the star's orbit for 1st planet
 anybasis_params['k1'] = radvel.Parameter(value=10.0)          # velocity semi-amplitude for 1st planet
 anybasis_params['per2'] = radvel.Parameter(value=75.771)      # same parameters for 2nd planet ...
 anybasis_params['tc2'] = radvel.Parameter(value=2456277.6)
