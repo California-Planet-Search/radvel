@@ -207,19 +207,3 @@ class QuasiPerKernel(Kernel):
         return self.covmatrix
 
 
-
-if __name__ == "__main__":
-    hparams = {
-            'gp_perlength': radvel.Parameter(value=1.),
-            'gp_amp' : radvel.Parameter(value=1.),
-            'gp_per' : radvel.Parameter(value=1.),
-            'gp_explength' : radvel.Parameter(value=1.)
-    }
-    my_kern = QuasiPerKernel(hparams)
-    x = np.array([np.array([1,2,3])]).T
-    my_kern.compute_distances(x,x)
-    my_kern.compute_covmatrix()
-    print(my_kern)
-
-
-

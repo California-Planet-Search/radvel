@@ -203,7 +203,8 @@ class Jeffreys(Prior):
     Args:
         param (string): parameter label
         minval (float): minimum allowed value
-        maxval (float): maximum allowed value
+        maxval (float): maximum allowed value (set to numpy.inf 
+            if no upper bound desired)
     """
     
     def __init__(self, param, minval, maxval):
