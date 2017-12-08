@@ -42,14 +42,14 @@ def _standard_run(setupfn):
     radvel.driver.report(args)
 
         
-def test_k2(setupfn='../../example_planets/epic203771098.py'):
+def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
     """
     
     _standard_run(setupfn)
 
-def test_hd(setupfn='../../example_planets/HD164922.py'):
+def test_hd(setupfn='example_planets/HD164922.py'):
     """
     Check multi-instrument fit
     """
@@ -63,7 +63,7 @@ def test_hd(setupfn='../../example_planets/HD164922.py'):
     args.plotkw = {}
     radvel.driver.plots(args)
 
-def test_k2131(setupfn='../../example_planets/k2-131.py'):
+def test_k2131(setupfn='example_planets/k2-131.py'):
     """
     Check multi-instrument fit
     """
