@@ -194,7 +194,7 @@ class RVLikelihood(Likelihood):
 
     """
     def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[],
-                 decorr_vectors=[], *args, **kwargs):
+                 decorr_vectors=[], **kwargs):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
         self.extra_params = [self.gamma_param, self.jit_param]
@@ -295,16 +295,15 @@ class GPLikelihood(RVLikelihood):
         t (array): time array
         vel (array): array of velocities
         errvel (array): array of velocity uncertainties
-        hnames (list of string): keys corresponding to Parameter objects in model.params
-                                 that are GP hyperparameters
-        suffix (string): suffix to identify this Likelihood object
-           useful when constructing a `CompositeLikelihood` object.
-
-    Tips: 
+        hnames (list of string): keys corresponding to radvel.Parameter 
+           objects in model.params that are GP hyperparameters
+        suffix (string): suffix to identify this Likelihood object;
+           useful when constructing a `CompositeLikelihood` object
 
     This class written by Evan Sinukoff and Sarah Blunt, 2017
     """
-    def __init__(self, model, t, vel, errvel, hnames,
+    def __init__(self, model, t, vel, errvel, 
+                 hnames=['gp_per','gp_perlength','gp_explength','gp_amp'],
                  suffix='', kernel_name="QuasiPer", **kwargs):
 
         self.suffix = suffix
@@ -349,7 +348,7 @@ class GPLikelihood(RVLikelihood):
     def residuals(self):
         """Residuals
 
-        Data minus (orbit model + predicted mean of GP noise model)
+        Data minus (orbit model + predicted mean of GP noise model). For making GP plots.
         """
         mu_pred, _ = self.predict(self.x)
         res = self.y - self.params[self.gamma_param].value - self.model(self.x) - mu_pred
@@ -389,7 +388,8 @@ class GPLikelihood(RVLikelihood):
         return like
 
     def predict(self, xpred):
-        """ Realize the GP using the current values of the hyperparams at values x=xpred.
+        """ Realize the GP using the current values of the hyperparameters at values x=xpred.
+            Used for making GP plots.
 
             Args:
                 xpred (np.array): numpy array of x values for realizing the GP

@@ -2,18 +2,22 @@ import numpy as np
 import pandas as pd
 import os
 import radvel
-from radvel import prior
+
+# IMPORTANT: This config file uses Gaussian Process (GP) regression to model stellar activity.
+#            Don't start here. Make sure you understand how RadVel works using the basic configuration
+#            files (radvel/example_planets/epic203771098.py and radvel/example_planets/HD164922.py)
+#            before coming back to this configuration file.
 
 # Data from Dai+ 2017
-instnames = ['harps','pfs'] 
-data = pd.read_csv(os.path.join(radvel.DATADIR,'epic228b.txt'), sep=' ')
+instnames = ['harps-n','pfs'] 
+data = pd.read_csv(os.path.join(radvel.DATADIR,'k2-131.txt'), sep=' ')
 t = np.array(data['time']) 
 vel = np.array(data['mnvel'])
 errvel = np.array(data['errvel'])
 telgrps = data.groupby('tel').groups
 bjd = 0. 
 
-starname = 'epic228732031'
+starname = 'k2-131'
 ntels = len(instnames)      
 planet_letters = {1: 'b'}   
 
@@ -23,12 +27,12 @@ fitting_basis = 'per tc secosw sesinw k'
 # Numbers for priors used in Dai+ 2017
 gp_explength_mean = 9.5*np.sqrt(2.) # sqrt(2)*tau in Dai+ 2017 [days]
 gp_explength_unc = 1.0*np.sqrt(2.)
-gp_perlength_mean = np.sqrt(1./(2.*4.18)) #np.sqrt(1./(2.*3.32)) # sqrt(1/(2*gamma)) in Dai+ 2017
-gp_perlength_unc = 0.05
+gp_perlength_mean = np.sqrt(1./(2*3.32)) # sqrt(1/2*gamma) in Dai+ 2017
+gp_perlength_unc = 0.04
 # NOTE: this prior isn't equivalent to the one Dai+ 2017 use. However,
-#	our formulation of the quasi-periodic kernel keeps the covariance
-#	matrix postitive semi-definite, so we use this instead. The orbit model
-#	results aren't affected.
+#    our formulation of the quasi-periodic kernel keeps the covariance
+#    matrix postitive semi-definite, so we use this instead. The orbit model
+#    results aren't affected.
 
 gp_per_mean = 9.64 # T_bar in Dai+ 2017 [days]
 gp_per_unc = 0.12
@@ -62,31 +66,31 @@ hnames = [
     'gp_perlength', # GP periodic characteristic length
 ]
 
-jit_guesses = {'harps':2.0, 'pfs':5.3}
+jit_guesses = {'harps-n':2.0, 'pfs':5.3}
 
 def initialize_instparams(tel_suffix):
 
-	indices = telgrps[tel_suffix]
+    indices = telgrps[tel_suffix]
 
-	params['gamma_'+tel_suffix] = radvel.Parameter(value=np.mean(vel[indices]))
-	params['jit_'+tel_suffix] = radvel.Parameter(value=jit_guesses[tel_suffix]) 
+    params['gamma_'+tel_suffix] = radvel.Parameter(value=np.mean(vel[indices]))
+    params['jit_'+tel_suffix] = radvel.Parameter(value=jit_guesses[tel_suffix]) 
 
 
 for tel in instnames:
-	initialize_instparams(tel)
+    initialize_instparams(tel)
 
 # Add in priors (Dai+ Section 7.2.1)
 priors = [radvel.prior.Gaussian('per1', Porb, Porb_unc),
-		  radvel.prior.Gaussian('tc1', Tc, Tc_unc),
-		  radvel.prior.Jeffreys('k1', 0.01, 10.), # min and max for Jeffrey's priors estimated by Sarah
-		  radvel.prior.Jeffreys('gp_amp', 0.01, 100.),
-		  radvel.prior.Jeffreys('jit_pfs', 0.01, 10.),
-		  radvel.prior.Jeffreys('jit_harps', 0.01,10.),
-		  radvel.prior.Gaussian('gp_explength', gp_explength_mean, gp_explength_unc),
-		  radvel.prior.Gaussian('gp_per', gp_per_mean, gp_per_unc),
-		  radvel.prior.Gaussian('gp_perlength', gp_perlength_mean, gp_perlength_unc)]
+          radvel.prior.Gaussian('tc1', Tc, Tc_unc),
+          radvel.prior.Jeffreys('k1', 0.01, 10.), # min and max for Jeffrey's priors estimated by Sarah
+          radvel.prior.Jeffreys('gp_amp', 0.01, 100.),
+          radvel.prior.Jeffreys('jit_pfs', 0.01, 10.),
+          radvel.prior.Jeffreys('jit_harps-n', 0.01,10.),
+          radvel.prior.Gaussian('gp_explength', gp_explength_mean, gp_explength_unc),
+          radvel.prior.Gaussian('gp_per', gp_per_mean, gp_per_unc),
+          radvel.prior.Gaussian('gp_perlength', gp_perlength_mean, gp_perlength_unc)]
 
 # Currently, defining some likelihoods to be GPs and some to be standard chi-square likelihoods
-#	requires working with the API. The same for definining different GP hyperparameters
-#	for different likleihoods. Sarah is working on fixing this.
+#    requires working with the API. The same for definining different GP hyperparameters
+#    for different likleihoods. 
 

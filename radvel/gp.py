@@ -4,10 +4,10 @@ import scipy
 import abc
 import numpy as np
 
-# implemented kernels
-KERNELS = {"SqExp":"squared exponential",
-           "Per": "periodic",
-           "QuasiPer": "quasi periodic"}
+# implemented kernels & list of their associated hyperparameters
+KERNELS = {"SqExp":['gp_length','gp_amp'],
+           "Per": ['gp_per','gp_length','gp_amp'],
+           "QuasiPer": ['gp_per','gp_perlength','gp_explength','gp_amp']}
 
 if sys.version_info[0] < 3:
     ABC = abc.ABCMeta('ABC', (), {})
@@ -16,12 +16,9 @@ else:
 
 class Kernel(ABC):
     """
-    Abstract class to store kernel info and compute covariance matrix
+    Abstract base class to store kernel info and compute covariance matrix.
     All kernel objects inherit from this class
 
-
-    This class and all classes that inherit from it written by 
-    Evan Sinukoff and Sarah Blunt, 2017
     """
 
     @abc.abstractproperty
@@ -42,14 +39,27 @@ class Kernel(ABC):
 
 
 class SqExpKernel(Kernel):
+    """
+    Class that computes and stores a squared exponential kernel matrix.
+    An arbitrary element, C_ij, of the matrix is:
+
+        C_ij = eta_1^2 * exp( -|t_i - t_j|^2/(eta_2^2) )
+
+    Args:
+        hparams (dict of radvel.Parameter): dictionary containing
+            radvel.Parameter objects that are GP hyperparameters
+            of this kernel. Must contain exactly two objects, 'gp_length'
+            and 'gp_amp'.
+
+    """
 
     @property
     def name(self):
         return "SqExp"
 
-    def __init__(self, hparams, covmatrix=None):
+    def __init__(self, hparams):
         self.hparams = hparams
-        self.covmatrix = covmatrix
+        self.covmatrix = None
 
         assert len(hparams) == 2, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to SqExp Kernel "
@@ -79,14 +89,31 @@ class SqExpKernel(Kernel):
 
 
 class PerKernel(Kernel):
+    """
+    Class that computes and stores a periodic kernel matrix.
+    An arbitrary element, C_ij, of the matrix is:
+
+    C_{ij} = eta_1^2 * exp( -sin^2(pi*|t_i-t_j|/eta_3^2) / (2*eta_2^2) )
+
+    Args:
+        hparams (dict of radvel.Parameter): dictionary containing
+            radvel.Parameter objects that are GP hyperparameters
+            of this kernel. Must contain exactly three objects, 'gp_length',
+            'gp_amp', and 'gp_per'.
+
+
+
+    This class written by 
+    Evan Sinukoff and Sarah Blunt, 2017
+    """
 
     @property
     def name(self):
         return "Per"
 
-    def __init__(self, hparams, covmatrix=None):
+    def __init__(self, hparams):
         self.hparams = hparams
-        self.covmatrix = covmatrix
+        self.covmatrix = None
 
         assert len(hparams) == 3, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to Per Kernel "
@@ -118,14 +145,26 @@ class PerKernel(Kernel):
         return self.covmatrix
 
 class QuasiPerKernel(Kernel):
+    """
+    Class that computes and stores a quasi periodic kernel matrix.
+    An arbitrary element, C_ij, of the matrix is:
 
+    C_ij = eta_1^2 * exp( -|t_i - t_j|^2/(eta_2^2) ) * exp( -sin^2(pi*|t_i-t_j|/eta_3^2) / (2*eta_4^2) )     
+
+    Args:
+        hparams (dict of radvel.Parameter): dictionary containing
+            radvel.Parameter objects that are GP hyperparameters
+            of this kernel. Must contain exactly four objects, 'gp_explength',
+            'gp_amp', 'gp_per', and 'gp_perlength'.
+
+    """
     @property
     def name(self):
         return "QuasiPer"
 
-    def __init__(self, hparams, covmatrix=None):
+    def __init__(self, hparams):
         self.hparams = hparams
-        self.covmatrix = covmatrix
+        self.covmatrix = None
 
         assert len(hparams) == 4, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to QuasiPer Kernel "
@@ -160,11 +199,10 @@ class QuasiPerKernel(Kernel):
         per = self.hparams['gp_per'].value
         explength = self.hparams['gp_explength'].value
 
-        # Grunblatt+ 2015 Table 2
         K = scipy.matrix(amp**2
+                         * scipy.exp(-self.dist_se/(explength**2))
                          * scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.)
-                                     / (2.*perlength**2))
-                         * scipy.exp(-self.dist_se/(explength**2)))
+                                      / (2.*perlength**2)))
         self.covmatrix = K
         return self.covmatrix
 

@@ -4,6 +4,7 @@ warnings.simplefilter('once', DeprecationWarning)
 
 import radvel
 import radvel.driver
+import numpy as np
 
 class _args(object):
     def __init__(self):
@@ -41,14 +42,28 @@ def _standard_run(setupfn):
     radvel.driver.report(args)
 
         
-def test_k2(setupfn='example_planets/epic203771098.py'):
+def test_k2(setupfn='../../example_planets/epic203771098.py'):
     """
     Run through K2-24 example
     """
     
     _standard_run(setupfn)
 
-def test_hd(setupfn='example_planets/HD164922.py'):
+def test_hd(setupfn='../../example_planets/HD164922.py'):
+    """
+    Check multi-instrument fit
+    """
+    
+    args = _args()
+    args.setupfn = setupfn
+
+    radvel.driver.fit(args)
+    
+    args.type = ['rv']
+    args.plotkw = {}
+    radvel.driver.plots(args)
+
+def test_k2131(setupfn='../../example_planets/k2-131.py'):
     """
     Check multi-instrument fit
     """
@@ -99,6 +114,26 @@ def test_basis():
                     "Parameters do not match after basis conversion: \
 {}, {} != {}".format(par, before, after) 
 
+def test_kernels():
+    """
+    Test basic functionality of all GP kernels
+    """
+
+    kernel_list = radvel.gp.KERNELS
+
+    for kernel in kernel_list:
+        hnames = kernel_list[kernel] # gets list of hyperparameter name strings
+        hyperparams = {k: radvel.Parameter(value=1.) for k in hnames}
+        kernel_call = getattr(radvel.gp, kernel + "Kernel") 
+        test_kernel = kernel_call(hyperparams)
+
+        x = np.array([np.array([1.,2.,3.])]).T
+        test_kernel.compute_distances(x,x)
+        test_kernel.compute_covmatrix()
+        test_kernel.add_diagonal_errors(x)
+
+
+
 def test_kepler():
     """
     Profile and test C-based Kepler solver
@@ -106,4 +141,5 @@ def test_kepler():
     radvel.kepler.profile()
     
 if __name__ == '__main__':
+    test_kernels()
     test_kepler()

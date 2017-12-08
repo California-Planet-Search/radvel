@@ -28,7 +28,8 @@ texdict = {
     'gp_amp': '\\eta_1',
     'gp_explength': '\\eta_2',
     'gp_per': '\\eta_3',
-    'gp_perlength': '\\eta_4'
+    'gp_perlength': '\\eta_4',
+    'gp_length':'\\eta_2'
 }
 
 class Parameters(OrderedDict):

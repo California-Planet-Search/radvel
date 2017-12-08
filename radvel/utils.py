@@ -61,6 +61,7 @@ Converting 'logjit' to 'jit' for you now.
     # check if GP
     liketype = radvel.likelihood.RVLikelihood
     hnames = None
+    kernel_name = None
     if [key for key in params.keys() if key.startswith('gp_')]:
         liketype = radvel.likelihood.GPLikelihood
         hnames = P.hnames
@@ -71,7 +72,7 @@ Converting 'logjit' to 'jit' for you now.
 
 
 
-    # initialize RVlikelihood objects for each instrument
+    # initialize Likelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
@@ -85,7 +86,7 @@ Converting 'logjit' to 'jit' for you now.
         likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, hnames, suffix='_'+inst, 
+            P.data.iloc[telgrps[inst]].errvel, hnames=hnames, suffix='_'+inst, 
             kernel_name=kernel_name, decorr_vars=decorr_vars, 
             decorr_vectors=decorr_vectors
         )

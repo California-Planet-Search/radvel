@@ -20,6 +20,13 @@ burnGR = 1.03
 # Maximum G-R statistic for chains to be deemed well-mixed
 maxGR = 1.01
 
+# Min Tz statistic for chains to be deemed well-mixed
+minTZ = 1000
+
+# If quick results are desired....
+#maxGR = 1.03
+#minTZ = 100.
+
 # Minimum number of steps per walker before
 # convergence tests are performed
 minsteps = 1000
@@ -76,7 +83,7 @@ def convergence_check(samplers):
     if statevars.pcomplete < 5 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
     else:
-        (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains)
+        (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains, minTz=minTZ)
         statevars.mintz = min(tz)
         statevars.maxgr = max(gr)
         if statevars.ismixed:
