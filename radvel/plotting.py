@@ -135,6 +135,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         figure: current matplotlib figure object
         list: list of axis objects
 
+    GP plotting functionality contributed by Evan Sinukoff and Sarah Blunt, 2017.
     """
     figwidth = 7.5  # spans a page with 0.5in margins
     phasefac = 1.4
@@ -240,10 +241,62 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     ax_list += [ax_rv]
    
-    # Unphased plot
-    ax.axhline(0, color='0.5', linestyle='--')
-    ax.plot(mplttimes, rvmod2, 'b-', rasterized=False, lw=0.1)
 
+    ax.axhline(0, color='0.5', linestyle='--')
+
+    # Default formatting
+    lw = 0.01
+    ci = 0
+    default_colors = ['orange', 'purple', 'magenta' , 'pink']
+
+    for like in like_list:
+        if isinstance(like, radvel.likelihood.GPLikelihood): 
+            
+            t = like.suffix
+
+            kw = dict(
+            fmt='o', capsize=0, mew=0, 
+            ecolor='0.6', lw = lw, color=default_colors[ci],
+            label = t
+            )
+
+            # If not explicit format set, look among default formats
+            telfmt = {}
+            if t not in telfmts and t in telfmts_default:
+                telfmt = telfmts_default[t]
+            if t in telfmts:
+                telfmt = telfmts[t]
+                print(telfmt)
+            if t not in telfmts and t not in telfmts_default:
+                ci += 1
+            for k in telfmt:
+                kw[k] = telfmt[k]
+
+            xpred = np.linspace(np.min(like.x),np.max(like.x),num=int(3e3))
+            gpmu, stddev = like.predict(xpred)
+
+            if ((xpred - e) < -2.4e6).any():
+                pass
+            elif e == 0:
+                e = 2450000
+                xpred = xpred - e
+            else:
+                xpred = xpred - e
+
+            orbit_model = like.model(xpred)
+            ax.fill_between(xpred, gpmu+orbit_model-2.*stddev, gpmu+orbit_model+2.*stddev, 
+                            color=kw['color'], alpha=0.25, lw=0
+                            )
+            ax.fill_between(xpred, gpmu+orbit_model-stddev, gpmu+orbit_model+stddev, 
+                            color=kw['color'], alpha=0.5, lw=0
+                            )
+            ax.plot(xpred, gpmu+orbit_model, 'b-', rasterized=False, lw=0.1)
+
+        else:
+            # Unphased plot
+            ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
+
+            
     def labelfig(letter):
         text = "{})".format(chr(letter))
         add_anchored(
@@ -254,6 +307,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     labelfig(pltletter)
 
     pltletter += 1
+
     _mtelplot(
         plttimes, rawresid+rvmod, rverr, cpspost.likelihood.telvec, ax, telfmts
     )
@@ -645,3 +699,78 @@ def add_anchored(*args, **kwargs):
 
     ax = pl.gca()
     ax.add_artist(at)
+
+
+def gp_plot(post, saveplot=None, telfmts={}):
+    """ Plots residuals (data points - best fit orbital signal)
+        and max likelihood GP realizations.
+
+        Args:
+            post: a radvel.Posterior object with a radvel.CompositeLikelihood
+                object as attribute. The radvel.CompositeLikelihood must be 
+                a list of radvel.GPLikelihood objects.
+            saveplot (str, optional):  Name of output file, will show as 
+                interactive matplotlib window if not defined.
+            telfmts (dict): dictionary of dictionaries corresponding to kwargs 
+                passed to errorbar. Example:
+
+                telfmts = {
+                    'hires': dict(fmt='o',label='HIRES',msize=),
+                    'harps-n': dict(fmt='s',)}
+
+    This function written by Evan Sinukoff and Sarah Blunt, 2017.
+    """
+    fig = pl.figure(figsize=(18,10))
+
+    lw = 1.0
+    ci = 0
+    default_colors = ['orange', 'purple', 'magenta' , 'pink']
+        
+    for like in post.likelihood.like_list:
+
+
+        # Default formatting
+        kw = dict(
+            fmt='o', capsize=0, mew=0, 
+            ecolor='0.6', lw = lw, color='black',
+            label = t
+        )
+
+        # If not explicit format set, look among default formats
+        telfmt = {}
+        if t not in telfmts and t in telfmts_default:
+            telfmt = telfmts_default[t]
+        if t in telfmts:
+            telfmt = telfmts[t]
+            print(telfmt)
+        if t not in telfmts and t not in telfmts_default:
+            ci += 1
+        for k in telfmt:
+            kw[k] = telfmt[k]
+        r = like.residuals() # data - gamma - orbit model
+        t = like.suffix
+
+        xpred = np.linspace(np.min(like.x),np.max(like.x),num=1e3)
+        mu, stddev = like.predict(xpred)
+
+        orbit_model = like.model(xpred)
+        pl.plot(xpred, mu+orbit_model, color=kw['color']) 
+        pl.fill_between(xpred, mu+orbit_model-stddev, mu+orbit_model+stddev, 
+                        color=kw['color'], alpha=0.5, lw=0
+                        )
+        pl.fill_between(xpred, mu+orbit_model-2.*stddev, mu+orbit_model+2.*stddev, 
+                        color='red', alpha=0.25, lw=0
+                        )
+      #  kw['color']='black'
+      #  kw['ecolor']='black'
+        pl.errorbar(like.x, like.y-like.params[like.gamma_param].value, like.yerr,**kw)
+
+        pl.xlabel('BJD')
+        pl.ylabel('RV [m s$^{-1}$]')
+
+
+    if saveplot != None:
+        pl.savefig(saveplot,dpi=150)
+        print("GP plot saved to {}".format(saveplot))
+    else:
+        pl.show()

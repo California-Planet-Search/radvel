@@ -58,4 +58,4 @@ Follow examples in
 - `radvel/tests/SyntheticData.ipynb`
 - `radvel/tests/K2-24_Fitting+MCMC.ipynb`
 - `radvel/tests/164922_Fitting+MCMC.ipynb`
-
+- `radvel/tests/GaussianProcess-tutorial.ipynb`

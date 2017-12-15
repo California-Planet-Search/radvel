@@ -1,5 +1,8 @@
 import numpy as np
 import radvel.model
+from radvel import gp
+from scipy.linalg import cho_factor, cho_solve
+from scipy import matrix
 
 class Likelihood(object):
     """
@@ -95,7 +98,6 @@ class Likelihood(object):
         _logprob = self.logprob()
         return _logprob
 
-
 class CompositeLikelihood(Likelihood):
 
     def __init__(self, like_list):
@@ -167,7 +169,7 @@ class CompositeLikelihood(Likelihood):
             res = np.append(res,like.residuals())
 
         return res
-
+        
     def errorbars(self):
         """
         See `radvel.likelihood.RVLikelihood.errorbars`
@@ -194,9 +196,17 @@ class RVLikelihood(Likelihood):
 
     """
     def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[],
-                 decorr_vectors=[]):
+                 decorr_vectors=[], **kwargs):
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
+        self.extra_params = [self.gamma_param, self.jit_param]
+
+
+        # define instrument-specific granulation param
+   #     if 'gran'+suffix in model.params:
+   #         self.gran_param = 'gran' + suffix
+   #         self.extra_params.append(self.gran_param)
+   #         self.nights_array = np.floor(t) # array of night each point was taken
 
         if suffix.startswith('_'):
             self.suffix = suffix[1:]
@@ -205,12 +215,10 @@ class RVLikelihood(Likelihood):
 
         self.telvec = np.array([self.suffix]*len(t))
         
-        self.extra_params = [self.gamma_param, self.jit_param]
         self.decorr_params = []
         self.decorr_vectors = decorr_vectors
         if len(decorr_vars) > 0:
             self.decorr_params += ['c1_'+d+suffix for d in decorr_vars]
-            #self.decorr_params += ['c0_'+d+suffix for d in decorr_vars]
 
         super(RVLikelihood, self).__init__(
             model, t, vel, errvel, extra_params=self.extra_params,
@@ -241,13 +249,28 @@ class RVLikelihood(Likelihood):
     def errorbars(self):
         """
         Return uncertainties with jitter added
-        in quadrature.
+        in quadrature. If fitting for granulation
+        errors, they are determined here and added in.
 
         Returns:
             array: uncertainties
         
         """
-        return np.sqrt(self.yerr**2 + self.params[self.jit_param].value**2)
+    #    try:
+    #        if self.params[self.gran_param].vary:
+    #            gran_error = np.zeros(len(self.x))
+    #            for i in self.x:
+    #                gran_error[i] = 
+    #                self.nights_array
+
+            #redefine self.gran_param
+    #        else:
+    #            gran_error = self.params[self.gran_param].value
+    #    else:
+    #        gran_error = 0.
+        gran_error = 0.
+
+        return np.sqrt(self.yerr**2 + gran_error**2 + self.params[self.jit_param].value**2)
 
     def logprob(self):
         """
@@ -263,6 +286,147 @@ class RVLikelihood(Likelihood):
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
         
         return loglike
+
+class GPLikelihood(RVLikelihood):
+    """GP Likelihood
+
+    The Likelihood object for a radial velocity dataset modeled with a GP
+
+    Args:
+        model (radvel.model.GPModel): GP model object
+        t (array): time array
+        vel (array): array of velocities
+        errvel (array): array of velocity uncertainties
+        hnames (list of string): keys corresponding to radvel.Parameter 
+           objects in model.params that are GP hyperparameters
+        suffix (string): suffix to identify this Likelihood object;
+           useful when constructing a `CompositeLikelihood` object
+
+    This class written by Evan Sinukoff and Sarah Blunt, 2017
+    """
+    def __init__(self, model, t, vel, errvel, 
+                 hnames=['gp_per','gp_perlength','gp_explength','gp_amp'],
+                 suffix='', kernel_name="QuasiPer", **kwargs):
+
+        self.suffix = suffix
+        super(GPLikelihood, self).__init__(
+              model, t, vel, errvel, suffix=self.suffix, 
+              decorr_vars = [], decorr_vectors={}
+            )
+
+        assert kernel_name in gp.KERNELS.keys(), \
+            'GP Kernel not recognized: ' + self.kernel_name + '\n' + \
+            'Available kernels: ' + str(gp.KERNELS.keys())
+
+        self.hnames =  hnames # list of string names of hyperparameters
+        self.hyperparams = {k: self.params[k] for k in self.hnames}
+
+        self.kernel_call = getattr(gp, kernel_name + "Kernel") 
+        self.kernel = self.kernel_call(self.hyperparams)
+
+        X = np.array([self.x]).T
+        self.kernel.compute_distances(X,X)
+
+    def set_vary_params(self, param_values_array):
+        i = 0
+        for key in self.list_vary_params():
+            if key.startswith('jit') and param_values_array[i] < 0:
+                param_values_array[i] = -param_values_array[i]
+            if key in self.hnames: # update values of hyperparameters
+                self.kernel.hparams[key].value = param_values_array[i]
+            self.params[key].value = param_values_array[i]
+            i+=1
+        assert i == len(param_values_array), \
+            "Length of array must match number of varied parameters"
+
+    def _resids(self):
+        """Residuals for internal GP calculations
+
+        Data minus orbit model. For internal use in GP calculations ONLY.
+        """
+        res = self.y - self.params[self.gamma_param].value - self.model(self.x)
+        return res
+
+    def residuals(self):
+        """Residuals
+
+        Data minus (orbit model + predicted mean of GP noise model). For making GP plots.
+        """
+        mu_pred, _ = self.predict(self.x)
+        res = self.y - self.params[self.gamma_param].value - self.model(self.x) - mu_pred
+        return res
+
+    def logprob(self):
+        """
+        Return GP log-likelihood given the data and model.
+        log-likelihood computed using Cholesky decomposition as:
+           lnL = -0.5*r.T*inverse(K)*r - 0.5*ln[det(K)] 
+           r = _resids vector, K = covariance matrix, N = number of datapoints. 
+        Priors are not applied here. 
+        Constant has been omitted.
+
+        Returns:
+            float: Natural log of likelihood
+
+        """
+        r = self._resids()        
+
+        self.kernel.compute_covmatrix()
+
+        # add white noise jitter & error bars along diagonal
+        self.kernel.add_diagonal_errors(self.errorbars())
+
+        K = self.kernel.covmatrix
+
+        # solve alpha = inverse(K)*r
+        alpha = cho_solve(cho_factor(K),r)
+
+        # compute determinant of K
+        (s,d) = np.linalg.slogdet(K)
+
+        # calculate likelihood
+        like = -.5 * (np.dot(r,alpha) + d)
+
+        return like
+
+    def predict(self, xpred):
+        """ Realize the GP using the current values of the hyperparameters at values x=xpred.
+            Used for making GP plots.
+
+            Args:
+                xpred (np.array): numpy array of x values for realizing the GP
+            Returns:
+                mu (np.array): numpy array of predictive means
+                stdev (np.array): numpy array of predictive standard deviations
+        """
+
+        r = matrix(self._resids()).T
+
+        X = np.array([self.x]).T
+        self.kernel.compute_distances(X,X)
+        K = self.kernel.compute_covmatrix()
+        K = self.kernel.add_diagonal_errors(self.errorbars())
+
+        Xpred = np.array([xpred]).T
+        self.kernel.compute_distances(Xpred,X)
+        Ks = self.kernel.compute_covmatrix()
+
+        L = cho_factor(K)
+        alpha = cho_solve(L,r)
+        mu = np.array(Ks*alpha).flatten()
+
+
+        self.kernel.compute_distances(Xpred,Xpred)
+        Kss = self.kernel.compute_covmatrix()
+        B = cho_solve(L, Ks.T) 
+        var = np.array(np.diag(Kss - Ks * matrix(B))).flatten()
+        stdev = np.sqrt(var)
+
+        # set the default distances back to their regular values
+        self.kernel.compute_distances(X,X)
+
+        return mu, stdev
+
 
 
 def loglike_jitter(residuals, sigma, sigma_jit):

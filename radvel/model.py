@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from radvel import kepler
 from radvel.basis import Basis
+from radvel import gp
 
 
 texdict = {
@@ -23,12 +24,17 @@ texdict = {
     'logjit_': '\\ln{\\sigma_{\\rm jit}}_{\\rm ',
     'jit_': '\\sigma_{\\rm ',
     'dvdt': '\\dot{\\gamma}',
-    'curv': '\\ddot{\\gamma}'
+    'curv': '\\ddot{\\gamma}',
+    'gp_amp': '\\eta_1',
+    'gp_explength': '\\eta_2',
+    'gp_per': '\\eta_3',
+    'gp_perlength': '\\eta_4',
+    'gp_length':'\\eta_2'
 }
 
 class Parameters(OrderedDict):
 
-    """Object to store the orbital parameters.
+    """Object to store the model parameters.
 
     Parameters to describe a radial velocity orbit
     stored as an OrderedDict
@@ -135,10 +141,8 @@ class Parameter(object):
     Attributes:
         value (float): value of parameter. 
         vary (Bool): True if parameter is allowed to vary in
-            MCMC fits, false if fixed.
+            MCMC or max likelihood fits, false if fixed.
         mcmcscale (float): step size to be used for MCMC fitting
-
-
     """
     def __init__(self, value=None, vary=True, mcmcscale=None):
         self.value = value
@@ -148,12 +152,14 @@ class Parameter(object):
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
         if isinstance(other,self.__class__):
-            return (self.value == other.value) and (self.vary == other.vary) \
+            return (self.value == other.value) \
+                    and (self.vary == other.vary) \
                     and (self.mcmcscale == other.mcmcscale)
 
     def __repr__(self):
-        s = "Parameter object: value = {}, vary = {}, mcmc scale = {}".format(self.value, 
-                                                                              self.vary, self.mcmcscale)
+        s = (
+          "Parameter object: value = {}, vary = {}, mcmc scale = {}"
+        ).format(self.value, self.vary, self.mcmcscale)
         return s
 
 if __name__ == "__main__":
@@ -210,4 +216,6 @@ class RVModel(object):
         vel+=self.params['dvdt'].value * ( t - self.time_base )
         vel+=self.params['curv'].value * ( t - self.time_base )**2
         return vel
+
+
 
