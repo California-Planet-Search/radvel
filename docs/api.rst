@@ -9,6 +9,7 @@ API
    model
    orbit
    basis
+   gp
    likelihood
    posterior
    prior

@@ -18,6 +18,13 @@ burnGR = 1.03
 # Maximum G-R statistic for chains to be deemed well-mixed
 maxGR = 1.01
 
+# Min Tz statistic for chains to be deemed well-mixed
+minTZ = 1000
+
+# If quick results are desired....
+#maxGR = 1.03
+#minTZ = 100.
+
 # Minimum number of steps per walker before
 # convergence tests are performed
 minsteps = 1000
@@ -66,7 +73,7 @@ def convergence_check(samplers):
 
     if statevars.ensembles < 3:
         # if less than 3 ensembles then GR between ensembles does
-        # not work so just calculate is on the last sampler
+        # not work so just calculate it on the last sampler
         statevars.tchains = sampler.chain.transpose()
 
     # Must have compelted at least 5% or 1000 steps per walker before
@@ -74,7 +81,7 @@ def convergence_check(samplers):
     if statevars.pcomplete < 5 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
     else:
-        (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains)
+        (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains, minTz=minTZ)
         statevars.mintz = min(tz)
         statevars.maxgr = max(gr)
         if statevars.ismixed:
@@ -85,10 +92,10 @@ def convergence_check(samplers):
     _status_message(statevars)
 
 def _domcmc(input_tuple):
-    # Function to be run in parallel on different CPUs
-    #
-    # Input is a tuple: first element is an emcee sampler object, second is an array of 
-    #   initial positions, third is number of steps to run before doing a convergence check
+    """Function to be run in parallel on different CPUs
+    Input is a tuple: first element is an emcee sampler object, second is an array of 
+    initial positions, third is number of steps to run before doing a convergence check
+    """
     sampler = input_tuple[0]
     ipos = input_tuple[1]
     check_interval = input_tuple[2]
@@ -97,7 +104,7 @@ def _domcmc(input_tuple):
     return sampler
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8,
-             checkinterval=50):
+             checkinterval=50, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -108,6 +115,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8,
             in parallel on separate CPUs
         checkinterval (int): check MCMC convergence statistics every 
             `checkinterval` steps
+        serial (Bool): set to true if MCMC should be run in serial
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
@@ -154,13 +162,13 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     statevars.samplers = []
     statevars.initial_positions = []
     for e in range(ensembles):
-        lcopy = copy.deepcopy(post)
-        pi = lcopy.get_vary_params()
+        pcopy = copy.deepcopy(post)
+        pi = pcopy.get_vary_params()
         p0 = np.vstack([pi]*statevars.nwalkers)
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
         statevars.initial_positions.append(p0)
         statevars.samplers.append(emcee.EnsembleSampler( 
-            statevars.nwalkers, statevars.ndim, lcopy.logprob_array, threads=1))
+            statevars.nwalkers, statevars.ndim, pcopy.logprob_array, threads=1))
 
         
     num_run = int(np.round(nrun / checkinterval))
@@ -188,10 +196,18 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             mcmc_input = (sampler, p1, checkinterval)
             mcmc_input_array.append(mcmc_input)
 
-        pool = Pool(statevars.ensembles)
-        statevars.samplers = pool.map(_domcmc, mcmc_input_array)
-        pool.close() #terminates worker processes once all work is done
-        pool.join() #waits for all processes to finish before proceeding
+        if serial:
+            statevars.samplers = []
+            for i in range(ensembles):
+                result = _domcmc(mcmc_input_array[i])
+                statevars.samplers.append(result)
+        else:
+            pool = Pool(statevars.ensembles)
+            statevars.samplers = pool.map(_domcmc, mcmc_input_array)
+            pool.close() #terminates worker processes once all work is done
+            pool.join() #waits for all processes to finish before proceeding
+            
+
 
         t2 = time.time()
         statevars.interval = t2 - t1
