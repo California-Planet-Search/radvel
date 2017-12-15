@@ -184,8 +184,9 @@ def mcmc(args):
         low = med - cps_quantile[par][0.159]
         err = np.mean([high,low])
         err = radvel.utils.round_sig(err)
-        med, err, errhigh = radvel.utils.sigfig(med, err)
-        maxlike, err, errhigh = radvel.utils.sigfig(maxlike, err)
+        if err > 0.0:
+            med, err, errhigh = radvel.utils.sigfig(med, err)
+            maxlike, err, errhigh = radvel.utils.sigfig(maxlike, err)
         cpspost.uparams[par] = err
         cpspost.medparams[par] = med
         cpspost.maxparams[par] = maxlike

@@ -12,16 +12,17 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import mock
 import sys
-import os
-import shlex
 
 import matplotlib
 matplotlib.use('agg')
 
-import radvel
+autodoc_mock_imports = ['_tkinter', 'pandas', 'scipy.optimize']
+for mod_name in autodoc_mock_imports:
+    sys.modules[mod_name] = mock.Mock()
 
-autodoc_mock_imports = ['_tkinter']
+import radvel
 
 
 # If extensions (or modules to document with autodoc) are in another directory,

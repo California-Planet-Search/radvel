@@ -53,7 +53,9 @@ First lets look at ``radvel --help`` for the available options:
 
 Here is an example workflow to
 run a simple fit using the included `HD164922.py` example
-configuration file:
+configuration file. This example configuration file can be found in the ``example_planets``
+subdirectory on the `GitHub repository page
+<https://github.com/California-Planet-Search/radvel/tree/master/example_planets>`_.
 
 Perform a maximum-likelihood fit. You almost always will need to do this first:
 

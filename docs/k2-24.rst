@@ -27,7 +27,7 @@ Perform some preliminary imports:
     import radvel.plotting
     
 Define a function that we will use to initialize the
-``radvel.RVParameters`` and ``radvel.RVModel`` objects
+``radvel.Parameters`` and ``radvel.RVModel`` objects
 
 .. code:: python
 
@@ -50,8 +50,7 @@ Define a function that we will use to initialize the
         return mod
 
 
-Define a simple plotting function to display the data, model, and
-residuals
+Define a simple plotting function to display the data and model.
 
 .. code:: python
 
@@ -60,7 +59,7 @@ residuals
         fig = pl.gcf()
         fig.set_tight_layout(True)
         pl.errorbar(
-            like.x, like.model(t)+like.residuals(), 
+            like.x, like.model(t)+like.residuals(),
             yerr=like.yerr, fmt='o'
             )
         pl.plot(ti, like.model(ti))
@@ -68,8 +67,7 @@ residuals
         pl.ylabel('RV')
         pl.draw()
 
-Load up the K2-24 data. In this example the RV data and parameter
-starting guesses are stored in an HD5 file
+Load up the K2-24 data. In this example the RV data is stored in an CSV file
 
 .. code:: python
 
@@ -84,16 +82,19 @@ starting guesses are stored in an HD5 file
 Circular Orbits
 ~~~~~~~~~~~~
 
-Set initial guesses for the parameters
+Use the function we just defined to initialize a model object and add a few additional parameters
+into the ``radvel.likelihood.Likelihood`` object that are not associated with the Keplerian orbital model
+but still needed to calculate a likelihood.
 
 .. code:: python
 
     mod = initialize_model()
     like = radvel.likelihood.RVLikelihood(mod, t, vel, errvel)
-    like.params['gamma'].value = 0.1
-    like.params['jit'].value = 1.0
+    like.params['gamma'] = radvel.Parameter(value=0.1)
+    like.params['jit'] = radvel.Parameter(value=1.0)
 
-Choose which parameters to vary or fix. By default, all ``radvel.Parameter`` objects will vary, so you only have to worry about setting the ones you want to hold fixed.
+Choose which parameters to vary or fix. By default, all ``radvel.Parameter`` objects will vary,
+so you only have to worry about setting the ones you want to hold fixed.
 
 .. code:: python
 
@@ -106,7 +107,6 @@ Choose which parameters to vary or fix. By default, all ``radvel.Parameter`` obj
     like.params['tc1'].vary = False
     like.params['tc2'].vary = False
     print(like)
-
 
 .. parsed-literal::
 
@@ -123,10 +123,8 @@ Choose which parameters to vary or fix. By default, all ``radvel.Parameter`` obj
     logk2                           1.1       True
     dvdt                          -0.02       True
     curv                           0.01       True
+    gamma                           0.1       True
     jit                               1       True
-    gamma                             1       True
-    
-
 
 Plot the initial model
 
@@ -164,7 +162,6 @@ Maximize the likelihood and print the updated posterior object
     plot_results(like)             # plot best fit model
     print(post)
 
-
 .. parsed-literal::
 
     parameter                     value      vary
@@ -189,8 +186,6 @@ Maximize the likelihood and print the updated posterior object
     Gaussian prior on logk2, mu=1.60943791243, sigma=10
     Gaussian prior on logk1, mu=1.60943791243, sigma=10
     Gaussian prior on gamma, mu=0, sigma=10
-    
-
 
 
 .. image:: plots/output_18_1.png
@@ -252,7 +247,7 @@ Optimize the parameters by maximizing the likelihood and plot the result
         method='Nelder-Mead',)
 
     plot_results(like)
-    print post
+    print(post)
 
 
 .. parsed-literal::
@@ -260,26 +255,24 @@ Optimize the parameters by maximizing the likelihood and plot the result
     parameter                     value      vary
     per1                        20.8853      False
     tc1                         2072.79      False
-    secosw1                   0.0821103       True
-    sesinw1                    0.402699       True
-    logk1                       1.15535       True
+    secosw1                    0.389104       True
+    sesinw1                    0.059227       True
+    logk1                       1.65139       True
     per2                         42.363      False
     tc2                         2082.63      False
-    secosw2                   -0.187327       True
-    sesinw2                    -0.71348       True
-    logk2                       2.25931       True
-    dvdt                     -0.0189353       True
-    curv                    -0.00144404       True
-    jit                         3.46874       True
-    gamma                       3.46874       True
+    secosw2                    0.194769       True
+    sesinw2                   -0.422685       True
+    logk2                        1.6278       True
+    dvdt                      -0.027433       True
+    curv                     0.00152703       True
+    gamma                      -4.38996       True
+    jit                          2.2025       True
 
     Priors
     ------
     e1 constrained to be < 0.99
     e2 constrained to be < 0.99
-    Gaussian prior on jit, mu=0.69314718056, sigma=-2.30258509299
-    
-
+    Gaussian prior on jit, mu=0.6931471805599453, sigma=-2.3025850929940455
 
 
 .. image:: plots/output_28_1.png
