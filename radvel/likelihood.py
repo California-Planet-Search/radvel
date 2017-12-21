@@ -142,7 +142,8 @@ class CompositeLikelihood(Likelihood):
 
             for k in like.params:
                 if k in params:
-                    assert like.params[k]._equals(params[k])
+                    assert like.params[k]._equals(params[k]), \
+                    "Name={} {} != {}".format(k, like.params[k], params[k])
                 else:
                     params[k] = like.params[k]
 
