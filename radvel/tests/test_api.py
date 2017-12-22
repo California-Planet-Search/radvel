@@ -1,9 +1,12 @@
 import warnings
-warnings.filterwarnings("ignore")
-warnings.simplefilter('once', DeprecationWarning)
 
 import radvel
 import radvel.driver
+import radvel.prior
+
+warnings.filterwarnings("ignore")
+warnings.simplefilter('once', DeprecationWarning)
+
 
 class _args(object):
     def __init__(self):
@@ -13,6 +16,7 @@ class _args(object):
         self.nwalkers = 50
         self.nsteps = 3000
         self.ensembles = 8
+
 
 def _standard_run(setupfn):
     """
@@ -48,6 +52,7 @@ def test_k2(setupfn='example_planets/epic203771098.py'):
     
     _standard_run(setupfn)
 
+
 def test_hd(setupfn='example_planets/HD164922.py'):
     """
     Check multi-instrument fit
@@ -61,6 +66,7 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
+
 
 def test_basis():
     """
@@ -99,11 +105,13 @@ def test_basis():
                     "Parameters do not match after basis conversion: \
 {}, {} != {}".format(par, before, after) 
 
+
 def test_kepler():
     """
     Profile and test C-based Kepler solver
     """
     radvel.kepler.profile()
-    
+
+
 if __name__ == '__main__':
     test_kepler()
