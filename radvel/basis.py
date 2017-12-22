@@ -4,7 +4,7 @@ from collections import OrderedDict
 from radvel.orbit import timeperi_to_timetrans, timetrans_to_timeperi
 import radvel.model
 
-BASIS_NAMES = ['per tp e w k',  # The CPS basis
+BASIS_NAMES = ['per tp e w k',  # The synth basis
                'per tc secosw sesinw logk',
                'per tc secosw sesinw k',
                'per tc ecosw esinw k',
@@ -38,11 +38,11 @@ class Basis(object):
         num_planets (int): number of planets
 
     Attributes:
-        cps_params (str): name of CPS basis
+        synth_params (str): name of synth basis
 
     Note:
         Valid basis functions: \n
-        'per tp e w k' (The CPS basis) \n
+        'per tp e w k' (The synthesis basis) \n
         'per tc secosw sesinw logk'  \n 
         'per tc secosw sesinw k'  \n
         'per tc ecosw esinw k'  \n
@@ -51,7 +51,7 @@ class Basis(object):
         'logper tc secosw sesinw logk'\n
         'per tc se w k'
     """
-    cps_params = 'per tp e w k'.split()
+    synth_params = 'per tp e w k'.split()
 
     def __init__(self, *args):
         self.name = None
@@ -84,15 +84,15 @@ class Basis(object):
             radvel.Parameters object expressed in the new basis
 
         """
-        cps_params = self.to_cps(params_in)
-        arbbasis_params = self.from_cps(cps_params, newbasis, keep=False)
+        synth_params = self.to_synth(params_in)
+        arbbasis_params = self.from_synth(synth_params, newbasis, keep=False)
         return arbbasis_params
 
-    def to_cps(self, params_in, **kwargs):
-        """Convert to CPS basis
+    def to_synth(self, params_in, **kwargs):
+        """Convert to synth basis
 
         Convert Parameters object with parameters of a given basis into the
-        cps basis
+        synth basis
 
         Args:
             params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
@@ -101,7 +101,7 @@ class Basis(object):
                 to '' (used for displaying best fit parameters)
 
         Returns: 
-            Parameters or DataFrame: parameters expressed in the CPS basis
+            Parameters or DataFrame: parameters expressed in the synth basis
 
         """
         basis_name = kwargs.setdefault('basis_name', self.name)
@@ -140,9 +140,9 @@ class Basis(object):
                                                                   vary=local_vary,
                                                                   mcmcscale=local_mcmcscale)
 
-            # transform into CPS basis
+            # transform into synth basis
             if basis_name == 'per tp e w k':
-                # already in the CPS basis
+                # already in the synth basis
                 per = _getpar('per')
                 tp = _getpar('tp')
                 e = _getpar('e')
@@ -188,7 +188,7 @@ class Basis(object):
                 sesinw = _getpar('sesinw')
                 k = _getpar('k')
             
-                # transform into CPS basis
+                # transform into synth basis
                 e = secosw**2 + sesinw**2
                 w = np.arctan2(sesinw, secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
@@ -201,7 +201,7 @@ class Basis(object):
                 sesinw = _getpar('sesinw')
                 k = _getpar('k')
             
-                # transform into CPS basis
+                # transform into synth basis
                 per = np.exp(logper)
                 e = secosw**2 + sesinw**2
                 w = np.arctan2(sesinw, secosw)
@@ -215,7 +215,7 @@ class Basis(object):
                 sesinw = _getpar('sesinw')
                 k = _getpar('logk')
 
-                # transform into CPS basis
+                # transform into synth basis
                 per = np.exp(logper)
                 e = secosw ** 2 + sesinw ** 2
                 k = np.exp(k)
@@ -230,12 +230,12 @@ class Basis(object):
                 esinw = _getpar('esinw')
                 k = _getpar('k')
             
-                # transform into CPS basis
+                # transform into synth basis
                 e = np.sqrt(ecosw**2 + esinw**2)
                 w = np.arctan2(esinw, ecosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-            # shoves cps parameters from namespace into param_out
+            # shoves synth parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
             _setpar('e', e)
@@ -246,10 +246,10 @@ class Basis(object):
             params_out.basis = Basis('per tp e w k', self.num_planets)
         return params_out
 
-    def from_cps(self, params_in, newbasis,  **kwargs):
-        """Convert from CPS basis into another basis
+    def from_synth(self, params_in, newbasis,  **kwargs):
+        """Convert from synth basis into another basis
 
-        Convert instance of Parameters with parameters of a given basis into the cps basis
+        Convert instance of Parameters with parameters of a given basis into the synth basis
 
         Args:
             params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
