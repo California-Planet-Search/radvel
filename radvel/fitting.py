@@ -30,7 +30,7 @@ def maxlike_fitting(post, verbose=True):
     synthpost = copy.copy(post)
     synthparams = post.params.basis.to_synth(post.params, noVary = True) # setting "noVary" assigns each new parameter a vary attribute
     synthpost.params.update(synthparams)                                 # of '', for printing purposes
- 
+
     if verbose:
         print("Final loglikelihood = %f" % post.logprob())
         print("Best-fit parameters:")
