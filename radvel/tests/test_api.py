@@ -68,7 +68,7 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     args.plotkw = {}
     radvel.driver.plots(args)
 
-<<<<<<< HEAD
+
 def test_k2131(setupfn='example_planets/k2-131.py'):
     """
     Check multi-instrument fit
@@ -82,8 +82,7 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
-=======
->>>>>>> paper-release
+
 
 def test_basis():
     """

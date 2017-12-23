@@ -174,10 +174,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     else: 
         resolution = 2000
 
-    if isinstance(cpspost.likelihood, radvel.likelihood.CompositeLikelihood):
-        like_list = cpspost.likelihood.like_list
+    if isinstance(synthpost.likelihood, radvel.likelihood.CompositeLikelihood):
+        like_list = synthpost.likelihood.like_list
     else:
-        like_list = [ cpspost.likelihood ]
+        like_list = [ synthpost.likelihood ]
 
     if not nophase:
         periods = []
