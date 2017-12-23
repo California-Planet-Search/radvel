@@ -6,5 +6,3 @@ cython>=0.22
 astropy>=1.1.2
 emcee>=2.2.1
 pandas>=0.20.0
-nbformat
-nbconvert
