@@ -146,12 +146,12 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     bin_markeredgewidth = bin_fac * rcParams['lines.markeredgewidth']
     fit_linewidth = 2.0
 
-    cpspost = copy.deepcopy(post) 
-    model = cpspost.likelihood.model
-    cpsparams = post.params.basis.to_cps(post.params)
-    cpspost.params.update(cpsparams)
-    rvtimes = cpspost.likelihood.x
-    rverr = cpspost.likelihood.errorbars()
+    synthpost = copy.deepcopy(post)
+    model = synthpost.likelihood.model
+    synthparams = post.params.basis.to_synth(post.params)
+    synthpost.params.update(synthparams)
+    rvtimes = synthpost.likelihood.x
+    rverr = synthpost.likelihood.errorbars()
     num_planets = model.num_planets
 
     if nophase:
@@ -182,7 +182,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     if not nophase:
         periods = []
         for i in range(num_planets):
-            periods.append(cpsparams['per%d' % (i+1)].value)
+            periods.append(synthparams['per%d' % (i+1)].value)
             
     longp = max(periods)
 
@@ -206,18 +206,18 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         plttimes = rvtimes - e
         mplttimes = rvmodt - e
 
-    rawresid = cpspost.likelihood.residuals()
+    rawresid = synthpost.likelihood.residuals()
     resid = (
-        rawresid + cpsparams['dvdt'].value*(rvtimes-model.time_base) 
-        + cpsparams['curv'].value*(rvtimes-model.time_base)**2
+        rawresid + synthparams['dvdt'].value*(rvtimes-model.time_base)
+        + synthparams['curv'].value*(rvtimes-model.time_base)**2
     )
     slope = (
-        cpsparams['dvdt'].value * (rvmodt-model.time_base) 
-        + cpsparams['curv'].value * (rvmodt-model.time_base)**2
+        synthparams['dvdt'].value * (rvmodt-model.time_base)
+        + synthparams['curv'].value * (rvmodt-model.time_base)**2
     )
     slope_low = (
-        cpsparams['dvdt'].value * (rvtimes-model.time_base) 
-        + cpsparams['curv'].value * (rvtimes-model.time_base)**2
+        synthparams['dvdt'].value * (rvtimes-model.time_base)
+        + synthparams['curv'].value * (rvtimes-model.time_base)**2
     )
 
     # Provision figure
@@ -314,7 +314,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     pltletter += 1
 
     _mtelplot(
-        plttimes, rawresid+rvmod, rverr, cpspost.likelihood.telvec, ax, telfmts
+        plttimes, rawresid+rvmod, rverr, synthpost.likelihood.telvec, ax, telfmts
     )
     ax.set_xlim(min(plttimes)-0.01*dt, max(plttimes)+0.01*dt)
     
@@ -358,7 +358,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     pltletter += 1
 
-    _mtelplot(plttimes, resid, rverr, cpspost.likelihood.telvec, ax, telfmts)
+    _mtelplot(plttimes, resid, rverr, synthpost.likelihood.telvec, ax, telfmts)
     if not yscale_auto: 
         scale = np.std(resid)
         ax.set_ylim(-yscale_sigma * scale, yscale_sigma * scale)
@@ -384,9 +384,9 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         pnum = i+1
 
         rvmod2 = model(rvmodt, planet_num=pnum) - slope
-        modph = t_to_phase(cpspost.params, rvmodt, pnum, cat=True) - 1
+        modph = t_to_phase(synthpost.params, rvmodt, pnum, cat=True) - 1
         rvdat = rawresid + model(rvtimes, planet_num=pnum) - slope_low
-        phase = t_to_phase(cpspost.params, rvtimes, pnum, cat=True) - 1
+        phase = t_to_phase(synthpost.params, rvtimes, pnum, cat=True) - 1
         rvdatcat = np.concatenate((rvdat, rvdat))
         rverrcat = np.concatenate((rverr, rverr))
         rvmod2cat = np.concatenate((rvmod2, rvmod2))
@@ -403,7 +403,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         labelfig(pltletter)
 
         pltletter += 1
-        telcat = np.concatenate((cpspost.likelihood.telvec, cpspost.likelihood.telvec))
+        telcat = np.concatenate((synthpost.likelihood.telvec, synthpost.likelihood.telvec))
 
         _mtelplot(phase, rvdatcat, rverrcat, telcat, ax, telfmts)
         if not nobin and len(rvdat) > 10: 
@@ -419,7 +419,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             pl.ylim(-yscale_sigma*scale, yscale_sigma*scale)
         
         keys = [p+str(pnum) for p in ['per', 'k', 'e']]
-        labels = [cpspost.params.tex_labels().get(k, k) for k in keys]
+        labels = [synthpost.params.tex_labels().get(k, k) for k in keys]
         if i < num_planets-1:
             ticks = ax.yaxis.get_majorticklocs()
             ax.yaxis.set_ticks(ticks[1:-1])
@@ -432,7 +432,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
         anotext = []
         for l, p in enumerate(print_params):
-            val = cpsparams["%s%d" % (print_params[l], pnum)].value
+            val = synthparams["%s%d" % (print_params[l], pnum)].value
             
             if uparams is None:
                 _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
