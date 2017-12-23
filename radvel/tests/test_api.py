@@ -60,9 +60,10 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     
     args = _args()
     args.setupfn = setupfn
+    args.outputdir = None
 
     radvel.driver.fit(args)
-    
+
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
