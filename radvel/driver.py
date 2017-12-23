@@ -142,14 +142,14 @@ def mcmc(args):
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles)
 
-    # Convert chains into CPS basis
-    cpschains = chains.copy()
+    # Convert chains into synth basis
+    synthchains = chains.copy()
     for par in post.params.keys():
         if not post.params[par].vary:
-            cpschains[par] = post.params[par].value
+            synthchains[par] = post.params[par].value
 
-    cpschains = post.params.basis.to_cps(cpschains)
-    cps_quantile = cpschains.quantile([0.159, 0.5, 0.841])
+    synthchains = post.params.basis.to_synth(synthchains)
+    synth_quantile = synthchains.quantile([0.159, 0.5, 0.841])
 
     # Get quantiles and update posterior object to median 
     #   values returned by MCMC chains
@@ -162,33 +162,34 @@ def mcmc(args):
     print("Performing post-MCMC maximum likelihood fit...")
     post = radvel.fitting.maxlike_fitting(post, verbose=False)
 
-    cpspost = copy.deepcopy(post)
-    cpsparams = post.params.basis.to_cps(post.params)
-    cpspost.params.update(cpsparams)
+    synthpost = copy.deepcopy(post)
+    synthparams = post.params.basis.to_synth(post.params)
+    synthpost.params.update(synthparams)
 
 
     print("Calculating uncertainties...")
-    cpspost.uparams = {}
-    cpspost.medparams = {}
-    cpspost.maxparams = {}
-    for par in cpspost.params.keys():
-        maxlike = cpspost.params[par].value
-        med = cps_quantile[par][0.5]
-        high = cps_quantile[par][0.841] - med
-        low = med - cps_quantile[par][0.159]
+    synthpost.uparams = {}
+    synthpost.medparams = {}
+    synthpost.maxparams = {}
+    for par in synthpost.params.keys():
+        maxlike = synthpost.params[par].value
+        med = synth_quantile[par][0.5]
+        high = synth_quantile[par][0.841] - med
+        low = med - synth_quantile[par][0.159]
         err = np.mean([high,low])
         err = radvel.utils.round_sig(err)
-        med, err, errhigh = radvel.utils.sigfig(med, err)
-        maxlike, err, errhigh = radvel.utils.sigfig(maxlike, err)
-        cpspost.uparams[par] = err
-        cpspost.medparams[par] = med
-        cpspost.maxparams[par] = maxlike
+        if err > 0.0:
+            med, err, errhigh = radvel.utils.sigfig(med, err)
+            maxlike, err, errhigh = radvel.utils.sigfig(maxlike, err)
+        synthpost.uparams[par] = err
+        synthpost.medparams[par] = med
+        synthpost.maxparams[par] = maxlike
 
 
     print("Final loglikelihood = %f" % post.logprob())
     print("Final RMS = %f" % post.likelihood.residuals().std())
     print("Best-fit parameters:")
-    print(cpspost)
+    print(synthpost)
 
     print("Saving output files...")
     saveto = os.path.join(args.outputdir, conf_base+'_post_summary.csv')
@@ -196,7 +197,7 @@ def mcmc(args):
 
     postfile = os.path.join(args.outputdir,
                             '{}_post_obj.pkl'.format(conf_base))
-    cpspost.writeto(postfile)
+    synthpost.writeto(postfile)
 
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
     chains.to_csv(csvfn, compression='bz2')
@@ -323,26 +324,26 @@ def derive(args):
         size=len(chains)
         )
 
-    # Convert chains into CPS basis
-    cpschains = chains.copy()
+    # Convert chains into synth basis
+    synthchains = chains.copy()
     for par in post.params.keys():
         if not post.params[par].vary:
-            cpschains[par] = post.params[par].value
+            synthchains[par] = post.params[par].value
 
 
-    cpschains = post.params.basis.to_cps(cpschains)
+    synthchains = post.params.basis.to_synth(synthchains)
 
     savestate = {'run': True}
     outcols = []
     for i in np.arange(1, P.nplanets +1, 1):
         # Grab parameters from the chain
         def _has_col(key):
-            cols = list(cpschains.columns)
+            cols = list(synthchains.columns)
             return cols.count('{}{}'.format(key,i))==1
 
         def _get_param(key):
             if _has_col(key):
-                return cpschains['{}{}'.format(key,i)]
+                return synthchains['{}{}'.format(key,i)]
             else:
                 return P.params['{}{}'.format(key,i)].value
 

@@ -232,9 +232,9 @@ class SecondaryEclipsePrior(Prior):
 
     def __call__(self, params):
         def _getpar(key):
-            return cps_params['{}{}'.format(key, self.planet_num)].value
+            return synth_params['{}{}'.format(key, self.planet_num)].value
 
-        cps_params = params.basis.to_cps(params)
+        synth_params = params.basis.to_synth(params)
 
         tp = _getpar('tp')
         per = _getpar('per')
@@ -242,9 +242,9 @@ class SecondaryEclipsePrior(Prior):
         omega = _getpar('w')
 
         ts = orbit.timeperi_to_timetrans(tp, per, ecc, omega, secondary=True)
-        ts_phase = utils.t_to_phase(cps_params, ts, self.planet_num)
+        ts_phase = utils.t_to_phase(synth_params, ts, self.planet_num)
 
-        pts = utils.t_to_phase(cps_params, self.ts, self.planet_num)
+        pts = utils.t_to_phase(synth_params, self.ts, self.planet_num)
         epts = self.ts_err / per
 
         penalty = -0.5 * ((ts_phase - pts) / epts)**2

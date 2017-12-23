@@ -6,7 +6,7 @@ python:
     
 install:
     - pip install -r requirements.txt    # installs dependencies listed in requirements.txt
-    - pip install coveralls              # install coverage package
+    - pip install coveralls nbformat nbconvert jupyter_client ipykernel  # install packages for testing
     - pip install . --upgrade		 # installs radvel from current git branch
     - python setup.py build_ext -i       # build C extension
 
