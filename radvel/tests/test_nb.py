@@ -1,6 +1,7 @@
 import warnings
 
 import os
+import sys
 from glob import glob
 
 import nbformat
@@ -21,7 +22,11 @@ def test_notebooks(nbdir='tutorials/'):
         with open(nbfile) as f:
             nb = nbformat.read(f, as_version=4)
 
-        ep = ExecutePreprocessor(timeout=300)
+        if sys.version_info[0] < 3:
+            ep = ExecutePreprocessor(timeout=300, kernel_name='python2')
+        else:
+            ep = ExecutePreprocessor(timeout=300, kernel_name='python3')
+
         ep.preprocess(nb, {'metadata': {'path': nbdir}})
 
 
