@@ -10,7 +10,7 @@ General Toolkit for Modeling Radial Velocities.
 
 ## Attribution
 
-Written by BJ Fulton, Erik Petigura, and Sarah Blunt. Fulton et al. (in prep.)
+Written by BJ Fulton, Erik Petigura, Sarah Blunt, and Evan Sinukoff. Fulton et al. (submitted to PASP)
 
 Please cite the following DOI if you wish to make use of this software in any publication.
 
@@ -47,15 +47,11 @@ RadVel is
    - Kepler's equation solved in C (slower pure python solver available)
    - MCMC is multi-threaded
 
-## Future Improvements
-
-- Gaussian Process (GP) functionality
-
 ## Tutorials 
 
 Follow examples in
 
-- `radvel/tests/SyntheticData.ipynb`
-- `radvel/tests/K2-24_Fitting+MCMC.ipynb`
-- `radvel/tests/164922_Fitting+MCMC.ipynb`
-- `radvel/tests/GaussianProcess-tutorial.ipynb`
+- `radvel/docs/tutorials/SyntheticData.ipynb`
+- `radvel/docs/tutorials/K2-24_Fitting+MCMC.ipynb`
+- `radvel/docs/tutorials/164922_Fitting+MCMC.ipynb`
+- `radvel/docs/tutorials/GaussianProcess-tutorial.ipynb`
