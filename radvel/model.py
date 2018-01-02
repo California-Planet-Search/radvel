@@ -37,13 +37,13 @@ class Parameters(OrderedDict):
     """Object to store the model parameters.
 
     Parameters to describe a radial velocity orbit
-    stored as an OrderedDict
+    stored as an OrderedDict.
 
     Args:
         num_planets (int): Number of planets in model
         basis (string): parameterization of orbital parameters. See 
             ``radvel.basis.Basis`` for a list of valid basis strings.
-        planet_letters (Dictionary[optional): custom map to match the planet 
+        planet_letters (dict [optional): custom map to match the planet 
             numbers in the Parameter object to planet letters.
             Default {1: 'b', 2: 'c', etc.}. The keys of this dictionary must 
             all be integers.
@@ -95,7 +95,7 @@ should have only integers as keys."""
         """Map Parameters keys to pretty TeX code representations.
 
         Args:
-            param_list (list): (optional) Manually pass a list of parameter labels
+            param_list (list [optional]): Manually pass a list of parameter labels
         
         Returns:
             dict: dictionary mapping Parameters keys to TeX code
@@ -141,7 +141,7 @@ class Parameter(object):
     Attributes:
         value (float): value of parameter. 
         vary (Bool): True if parameter is allowed to vary in
-            MCMC or max likelihood fits, false if fixed.
+            MCMC or max likelihood fits, false if fixed
         mcmcscale (float): step size to be used for MCMC fitting
     """
     def __init__(self, value=None, vary=True, mcmcscale=None):
@@ -172,8 +172,8 @@ class RVModel(object):
     Generic RV Model
 
     This class defines the methods common to all RV modeling
-    classes. The different RV models, having different
-    parameterizations inherit from this class.
+    classes. The different RV models, with different
+    parameterizations, all inherit from this class.
     """
     def __init__(self, params, time_base=0):
         self.num_planets = params.num_planets
@@ -185,13 +185,13 @@ class RVModel(object):
             self.params['curv']=Parameter(value=0.)
 
     def __call__(self, t, planet_num=None):
-        """Compute the radial velocity
+        """Compute the radial velocity.
         
         Includes all Keplerians and additional trends.
 
         Args:
             t (array of floats): Timestamps to calculate the RV model
-            planet_num (Optional[int]): calculate the RV model for a single 
+            planet_num (int [optional]): calculate the RV model for a single 
                 planet within a multi-planet system
 
         Returns:

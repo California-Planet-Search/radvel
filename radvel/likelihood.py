@@ -355,9 +355,15 @@ class GPLikelihood(RVLikelihood):
     def logprob(self):
         """
         Return GP log-likelihood given the data and model.
-        log-likelihood computed using Cholesky decomposition as:
-           lnL = -0.5*r.T*inverse(K)*r - 0.5*ln[det(K)] 
-           r = _resids vector, K = covariance matrix, N = number of datapoints. 
+
+        log-likelihood is computed using Cholesky decomposition as:
+
+        .. math::
+
+           lnL = -0.5r^TK^{-1}r - 0.5ln[det(K)] 
+           
+        where r = vector of residuals (GPLikelihood._resids), K = covariance matrix, and N = number of datapoints. 
+
         Priors are not applied here. 
         Constant has been omitted.
 
@@ -392,8 +398,9 @@ class GPLikelihood(RVLikelihood):
             Args:
                 xpred (np.array): numpy array of x values for realizing the GP
             Returns:
-                mu (np.array): numpy array of predictive means
-                stdev (np.array): numpy array of predictive standard deviations
+                tuple: tuple containing:
+                    np.array: mu, the numpy array of predictive means \n
+                    np.array: stdev, the numpy array of predictive standard deviations
         """
 
         r = matrix(self._resids()).T

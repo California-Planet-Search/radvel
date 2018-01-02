@@ -39,11 +39,11 @@ class Basis(object):
         num_planets (int): number of planets
 
     Attributes:
-        cps_params (str): name of CPS basis
+        cps_params (str): name of synth basis (used to be called CPS basis)
 
     Note:
         Valid basis functions: \n
-        'per tp e w k' (The CPS basis) \n
+        'per tp e w k' (synth basis) \n
         'per tc secosw sesinw logk'  \n 
         'per tc secosw sesinw k'  \n
         'per tc ecosw esinw k'  \n
@@ -97,7 +97,7 @@ class Basis(object):
         Args:
             params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
                 orbital parameters expressed in current basis
-            noVary (Optional[bool]): if True, set the 'vary' attribute of the returned Parameter objects 
+            noVary (bool [optional]): if True, set the 'vary' attribute of the returned Parameter objects 
                 to '' (used for displaying best fit parameters)
 
         Returns: 
@@ -240,7 +240,7 @@ class Basis(object):
             params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
                 orbital parameters expressed in current basis
             newbasis (string): string corresponding to basis to switch into
-            keep (Optional[bool]): keep the parameters expressed in
+            keep (bool [optional]): keep the parameters expressed in
                 the old basis, else remove them from the output
                 dictionary/DataFrame
 

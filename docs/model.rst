@@ -6,3 +6,4 @@ The RV Model
 
 .. automodule:: radvel.model
    :members:
+   :special-members:

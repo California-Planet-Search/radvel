@@ -32,12 +32,14 @@ units = {'per': 'days',
 class RadvelReport():
     """Radvel report
     Class to handle the creation of the radvel summary PDF
+
     Args:
         planet (planet object): planet configuration object loaded in 
-        `kepfit.py` using `imp.load_source` post (radvel.posterior): 
-        radvel.posterior object containing the best-fit parameters in 
-        post.params chains (DataFrame): output DataFrame from a 
-        `radvel.mcmc` run
+            `kepfit.py` using `imp.load_source` 
+        post (radvel.posterior): 
+            radvel.posterior object containing the best-fit parameters in post.params 
+        chains (DataFrame): output DataFrame from a 
+            `radvel.mcmc` run
     """
     
     def __init__(self, planet, post, chains, compstats=None):
@@ -84,6 +86,7 @@ class RadvelReport():
     def texdoc(self):
         """TeX for entire document
         TeX code for the entire output results PDF
+
         Returns:
             string: TeX code for report
         """
@@ -109,9 +112,11 @@ class RadvelReport():
     def figtex(self, infile, caption=""):
         """Generate TeX for figure
         Generate TeX to insert a figure into the report
+
         Args:
             infile (string): file name of figure
             caption (string): (optional) figure caption
+            
         Returns:
             string: TeX code
         
@@ -149,9 +154,10 @@ The phase-folded model for planet %s is shown as the blue line.
         """Compile radvel report
         Compile the radvel report from a string containing TeX code
         and save the resulting PDF to a file.
+
         Args:
             pdfname (string): name of the output PDF file
-            latex_compiler (string): path to latex
+            latex_compiler (string): path to latex compiler
             depfiles (list): list of file names of dependencies needed for 
                 LaTex compilation (e.g. figure files)
         """
@@ -191,6 +197,7 @@ or pass in the path as an argument
 class TexTable(RadvelReport):
     """LaTeX table
     Class to handle generation of the LaTeX tables within the summary PDF.
+
     Args:
         report (radvel.report.RadvelReport): radvel report object
     """
@@ -281,6 +288,7 @@ class TexTable(RadvelReport):
     def prior_summary(self):
         """Summary of priors
         Summarize the priors in separate table within the report PDF.
+
         Returns:
             string: String containing TeX code for the prior summary table
         """
@@ -305,6 +313,7 @@ class TexTable(RadvelReport):
     
     def tex(self, tabtype='all', compstats=None):
         """TeX code for table
+
         Returns:
             string: TeX code for the results table in the radvel report.
         """
@@ -358,6 +367,7 @@ class TexTable(RadvelReport):
     def comp_table(self, statsdict):
         """Model comparisons
         Compare models with increasing number of planets
+
         Returns:
             string: String containing TeX code for the model comparison table
         """

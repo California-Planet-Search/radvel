@@ -11,10 +11,11 @@ def maxlike_fitting(post, verbose=True):
 
     Args:
         post (radvel.Posterior): Posterior object with initial guesses
-        verbose (bool): (optional) Print messages and fitted values?
+        verbose (bool [optional]): Print messages and fitted values?
 
-    Returns: radvel.Posterior : Posterior object with parameters
-        updated their maximum likelihood values
+    Returns: 
+        radvel.Posterior : Posterior object with parameters
+        updated to their maximum likelihood values
 
     """
 
@@ -61,11 +62,10 @@ def model_comp(post, verbose=False):
         verbose (bool): (optional) print out statistics
         
     Returns:
-
-        list of dictionaries : List of dictionaries with fit
-            statistics. Each value in the dictionary is a tuple with
-            the statistic value as the first element and a description
-            of that statistic in the second element.
+        list of dictionaries: 
+            List of dictionaries with fit statistics. Each value in the 
+            dictionary is a tuple with the statistic value as the first 
+            element and a description of that statistic in the second element.
     """
     ipost = copy.deepcopy(post)
     

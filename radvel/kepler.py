@@ -23,7 +23,7 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
             use the Python/NumPy version.
 
     Returns:
-        rv: (array of floats): radial velocity model
+        array of floats: rv, the radial velocity model
     
     """
     
@@ -65,7 +65,7 @@ def kepler(inbigM, inecc):
         inecc (array): eccentricity
 
     Returns:
-        eccentric annomaly: array
+        array: eccentric annomaly
     
     """
     

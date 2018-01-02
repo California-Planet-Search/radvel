@@ -328,11 +328,11 @@ def jd2date(jd):
 def geterr(vec, angular=False):
     """
     Calculate median, 15.9, and 84.1 percentile values
-    for a given vector."
+    for a given vector.
 
     Args:
         vec (array): vector, usually an MCMC chain for one parameter
-        angular (bool): (optional) Is this an angular parameter?
+        angular (bool [optioanl]): Is this an angular parameter?
             if True vec should be in radians. This will perform
             some checks to ensure proper boundary wrapping.
 
@@ -401,7 +401,7 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
         P (float): Orbital period [days]
         Mtotal (float): Mass of star + mass of planet [Msun]
         e (float): eccentricity
-        Msini_units = (optional) Units of returned Msini. Must be 'earth', or 'jupiter' (default 'earth').
+        Msini_units [optional]: Units of returned Msini. Must be 'earth', or 'jupiter' (default 'earth').
     Returns:
         float: Msini [units = Msini_units]
 
@@ -427,7 +427,7 @@ def density(mass, radius, MR_units='earth'):
     :param radius: radius, units = MR_units
     :type radius: float
 
-    :param MR_units: (optional) units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
+    :param MR_units [optional]: units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
 
     :return: density (g/cc)
     """

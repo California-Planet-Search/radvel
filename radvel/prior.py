@@ -196,9 +196,10 @@ class Jeffreys(Prior):
 
     This prior follows the distribution:
 
-    p(x) propto 1/x
+    .. math::
+        p(x) \\propto \\frac{1}{x}
 
-    with upper and lower bounds to prevent singularity at x=0.
+    with upper and lower bounds to prevent singularity at :math:`x=0`.
 
     Args:
         param (string): parameter label
@@ -239,13 +240,14 @@ class ModifiedJeffreys(Prior):
 
     This prior follows the distribution:
 
-    p(x) propto 1/(x+x_0)
+    .. math::
+        p(x) \\propto \\frac{1}{x+x_0}
 
-    with upper bound
+    with upper bound.
 
     Args:
         param (string): parameter label
-        kneeval (float): "knee" of Jeffrey's prior (x_0 in eq above)
+        kneeval (float): "knee" of Jeffrey's prior (:math:`x_0` in eq above)
         maxval (float): maximum allowed value
 
     """
