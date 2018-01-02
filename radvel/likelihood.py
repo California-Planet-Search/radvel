@@ -299,8 +299,6 @@ class GPLikelihood(RVLikelihood):
            objects in model.params that are GP hyperparameters
         suffix (string): suffix to identify this Likelihood object;
            useful when constructing a `CompositeLikelihood` object
-
-    This class written by Evan Sinukoff and Sarah Blunt, 2017
     """
     def __init__(self, model, t, vel, errvel, 
                  hnames=['gp_per','gp_perlength','gp_explength','gp_amp'],

@@ -41,9 +41,11 @@ class Kernel(ABC):
 class SqExpKernel(Kernel):
     """
     Class that computes and stores a squared exponential kernel matrix.
-    An arbitrary element, C_ij, of the matrix is:
+    An arbitrary element, :math:`C_{ij}`, of the matrix is:
 
-        C_ij = eta_1^2 * exp( -|t_i - t_j|^2/(eta_2^2) )
+    .. math::
+
+        C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 })
 
     Args:
         hparams (dict of radvel.Parameter): dictionary containing
@@ -91,9 +93,11 @@ class SqExpKernel(Kernel):
 class PerKernel(Kernel):
     """
     Class that computes and stores a periodic kernel matrix.
-    An arbitrary element, C_ij, of the matrix is:
+    An arbitrary element, :math:`C_{ij}`, of the matrix is:
 
-    C_{ij} = eta_1^2 * exp( -sin^2(pi*|t_i-t_j|/eta_3^2) / (2*eta_2^2) )
+    .. math::
+
+        C_{ij} = \\eta_1^2 * exp( \\frac{ -\\sin^2(\\frac{ \\pi|t_i-t_j| }{ \\eta_3^2 } ) }{ 2\\eta_2^2 } )
 
     Args:
         hparams (dict of radvel.Parameter): dictionary containing
@@ -101,10 +105,6 @@ class PerKernel(Kernel):
             of this kernel. Must contain exactly three objects, 'gp_length',
             'gp_amp', and 'gp_per'.
 
-
-
-    This class written by 
-    Evan Sinukoff and Sarah Blunt, 2017
     """
 
     @property
@@ -147,9 +147,12 @@ class PerKernel(Kernel):
 class QuasiPerKernel(Kernel):
     """
     Class that computes and stores a quasi periodic kernel matrix.
-    An arbitrary element, C_ij, of the matrix is:
+    An arbitrary element, :math:`C_{ij}`, of the matrix is:
 
-    C_ij = eta_1^2 * exp( -|t_i - t_j|^2/(eta_2^2) ) * exp( -sin^2(pi*|t_i-t_j|/eta_3^2) / (2*eta_4^2) )     
+    .. math::
+
+        C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 } 
+                           - \\frac{ \\sin^2(\\frac{ \\pi|t_i-t_j| }{ \\eta_3^2 } ) }{ 2\\eta_4^2 } )     
 
     Args:
         hparams (dict of radvel.Parameter): dictionary containing

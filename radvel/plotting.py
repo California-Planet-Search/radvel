@@ -134,8 +134,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     Returns:
         figure: current matplotlib figure object
         list: list of axis objects
-
-    GP plotting functionality contributed by Evan Sinukoff and Sarah Blunt, 2017.
     """
     figwidth = 7.5  # spans a page with 0.5in margins
     phasefac = 1.4
@@ -720,78 +718,78 @@ def add_anchored(*args,**kwargs):
     ax.add_artist(at)
 
 
-def gp_plot(post, saveplot=None, telfmts={}):
-    """ Plots residuals (data points - best fit orbital signal)
-        and max likelihood GP realizations.
+#def gp_plot(post, saveplot=None, telfmts={}):
+    # """ Plots residuals (data points - best fit orbital signal)
+    #     and max likelihood GP realizations.
 
-        Args:
-            post: a radvel.Posterior object with a radvel.CompositeLikelihood
-                object as attribute. The radvel.CompositeLikelihood must be 
-                a list of radvel.GPLikelihood objects.
-            saveplot (str, optional):  Name of output file, will show as 
-                interactive matplotlib window if not defined.
-            telfmts (dict): dictionary of dictionaries corresponding to kwargs 
-                passed to errorbar. Example:
+    #     Args:
+    #         post: a radvel.Posterior object with a radvel.CompositeLikelihood
+    #             object as attribute. The radvel.CompositeLikelihood must be 
+    #             a list of radvel.GPLikelihood objects.
+    #         saveplot (str, optional):  Name of output file, will show as 
+    #             interactive matplotlib window if not defined.
+    #         telfmts (dict): dictionary of dictionaries corresponding to kwargs 
+    #             passed to errorbar. Example:
 
-                telfmts = {
-                    'hires': dict(fmt='o',label='HIRES',msize=),
-                    'harps-n': dict(fmt='s',)}
+    #             telfmts = {
+    #                 'hires': dict(fmt='o',label='HIRES',msize=),
+    #                 'harps-n': dict(fmt='s',)}
 
-    This function written by Evan Sinukoff and Sarah Blunt, 2017.
-    """
-    fig = pl.figure(figsize=(18,10))
+    # This function written by Evan Sinukoff and Sarah Blunt, 2017.
+    # """
+    # fig = pl.figure(figsize=(18,10))
 
-    lw = 1.0
-    ci = 0
-    default_colors = ['orange', 'purple', 'magenta' , 'pink']
+    # lw = 1.0
+    # ci = 0
+    # default_colors = ['orange', 'purple', 'magenta' , 'pink']
         
-    for like in post.likelihood.like_list:
+    # for like in post.likelihood.like_list:
 
 
-        # Default formatting
-        kw = dict(
-            fmt='o', capsize=0, mew=0, 
-            ecolor='0.6', lw = lw, color='black',
-            label = t
-        )
+    #     # Default formatting
+    #     kw = dict(
+    #         fmt='o', capsize=0, mew=0, 
+    #         ecolor='0.6', lw = lw, color='black',
+    #         label = t
+    #     )
 
-        # If not explicit format set, look among default formats
-        telfmt = {}
-        if t not in telfmts and t in telfmts_default:
-            telfmt = telfmts_default[t]
-        if t in telfmts:
-            telfmt = telfmts[t]
-            print(telfmt)
-        if t not in telfmts and t not in telfmts_default:
-            ci += 1
-        for k in telfmt:
-            kw[k] = telfmt[k]
-        r = like.residuals() # data - gamma - orbit model
-        t = like.suffix
+    #     # If not explicit format set, look among default formats
+    #     telfmt = {}
+    #     if t not in telfmts and t in telfmts_default:
+    #         telfmt = telfmts_default[t]
+    #     if t in telfmts:
+    #         telfmt = telfmts[t]
+    #         print(telfmt)
+    #     if t not in telfmts and t not in telfmts_default:
+    #         ci += 1
+    #     for k in telfmt:
+    #         kw[k] = telfmt[k]
+    #     r = like.residuals() # data - gamma - orbit model
+    #     t = like.suffix
 
-        xpred = np.linspace(np.min(like.x),np.max(like.x),num=1e3)
-        mu, stddev = like.predict(xpred)
+    #     xpred = np.linspace(np.min(like.x),np.max(like.x),num=1e3)
+    #     mu, stddev = like.predict(xpred)
 
-        orbit_model = like.model(xpred)
-        pl.plot(xpred, mu+orbit_model, color=kw['color']) 
-        pl.fill_between(xpred, mu+orbit_model-stddev, mu+orbit_model+stddev, 
-                        color=kw['color'], alpha=0.5, lw=0
-                        )
-        pl.fill_between(xpred, mu+orbit_model-2.*stddev, mu+orbit_model+2.*stddev, 
-                        color='red', alpha=0.25, lw=0
-                        )
-      #  kw['color']='black'
-      #  kw['ecolor']='black'
-        pl.errorbar(like.x, like.y-like.params[like.gamma_param].value, like.yerr,**kw)
+    #     orbit_model = like.model(xpred)
+    #     pl.plot(xpred, mu+orbit_model, color=kw['color']) 
+    #     pl.fill_between(xpred, mu+orbit_model-stddev, mu+orbit_model+stddev, 
+    #                     color=kw['color'], alpha=0.5, lw=0
+    #                     )
+    #     pl.fill_between(xpred, mu+orbit_model-2.*stddev, mu+orbit_model+2.*stddev, 
+    #                     color='red', alpha=0.25, lw=0
+    #                     )
+    #   #  kw['color']='black'
+    #   #  kw['ecolor']='black'
+    #     pl.errorbar(like.x, like.y-like.params[like.gamma_param].value, like.yerr,**kw)
 
-        pl.xlabel('BJD')
-        pl.ylabel('RV [m s$^{-1}$]')
+    #     pl.xlabel('BJD')
+    #     pl.ylabel('RV [m s$^{-1}$]')
 
 
-    if saveplot != None:
-        pl.savefig(saveplot,dpi=150)
-        print("GP plot saved to {}".format(saveplot))
-    else:
-        pl.show()
+    # if saveplot != None:
+    #     pl.savefig(saveplot,dpi=150)
+    #     print("GP plot saved to {}".format(saveplot))
+    # else:
+    #     pl.show()
 
 

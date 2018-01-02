@@ -6,7 +6,10 @@ Advanced Usage
 These tutorials give some examples in the use of the 
 underlying ``radvel`` API. 
 They are also available as interactive iPython notebooks
-in the `tests` subdirectory of the radvel package.
+in the `docs/tests` subdirectory of the radvel package.
 
-.. include:: k2-24.rst
+.. toctree::
+   :maxdepth: 2
 
+   tests/K2-24_Fitting+MCMC.ipynb
+   tests/GaussianProcess-tutorial.ipynb
