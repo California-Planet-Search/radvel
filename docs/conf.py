@@ -12,16 +12,17 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import mock
 import sys
-import os
-import shlex
 
 import matplotlib
 matplotlib.use('agg')
 
-import radvel
+autodoc_mock_imports = ['_tkinter', 'pandas', 'scipy.optimize']
+for mod_name in autodoc_mock_imports:
+    sys.modules[mod_name] = mock.Mock()
 
-autodoc_mock_imports = ['_tkinter']
+import radvel
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -141,12 +142,12 @@ html_theme = 'sphinx_rtd_theme'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-#html_logo = None
+html_logo = "plots/radvel_logo_small_alpha.png"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-#html_favicon = None
+html_favicon = "plots/radvel_logo_favicon.ico"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

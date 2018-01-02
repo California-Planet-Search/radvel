@@ -1,4 +1,4 @@
-from scipy import optimize
+import scipy.optimize
 import numpy as np
 import copy
 import collections
@@ -24,28 +24,18 @@ def maxlike_fitting(post, verbose=True):
         print("Initial loglikelihood = %f" % post0.logprob())
         print("Performing maximum likelihood fit...")
 
-    if [key for key in post0.params.keys() if key.startswith('gp_')]: # Nelder-Mead works better than Powell for GP Likelihoods
-        res = optimize.minimize(
-            post.neglogprob_array, post.get_vary_params(), method='Nelder-Mead',
-            options=dict(maxiter=200, maxfev=100000, xatol=1e-8)
-        ) 
-    else:
-        res = optimize.minimize(
-            post.neglogprob_array, post.get_vary_params(), method='Powell',
-            options=dict(maxiter=200, maxfev=100000, xtol=1e-8)
-        )
+    res = scipy.optimize.minimize(
+        post.neglogprob_array, post.get_vary_params(), method='Nelder-Mead',
+        options=dict(maxiter=200, maxfev=100000, xtol=1e-8)
+    )
+    synthpost = copy.copy(post)
+    synthparams = post.params.basis.to_synth(post.params, noVary = True) # setting "noVary" assigns each new parameter a vary attribute
+    synthpost.params.update(synthparams)                                 # of '', for printing purposes
 
-    
-
-
-    cpspost = copy.copy(post)
-    cpsparams = post.params.basis.to_cps(post.params, noVary = True) # setting "noVary" assigns each new parameter a vary attribute
-    cpspost.params.update(cpsparams)                                 # of '', for printing purposes
- 
     if verbose:
         print("Final loglikelihood = %f" % post.logprob())
         print("Best-fit parameters:")
-        print(cpspost)
+        print(synthpost)
         
     return post
     

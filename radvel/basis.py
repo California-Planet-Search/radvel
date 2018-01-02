@@ -4,13 +4,14 @@ from collections import OrderedDict
 from radvel.orbit import timeperi_to_timetrans, timetrans_to_timeperi
 import radvel.model
 
-BASIS_NAMES = ['per tp e w k',  # The CPS basis
+BASIS_NAMES = ['per tp e w k',  # The synth basis
                'per tc secosw sesinw logk',
                'per tc secosw sesinw k',
                'per tc ecosw esinw k',
                'per tc e w k',
+               'logper tc secosw sesinw k',
+               'logper tc secosw sesinw logk',
                'per tc se w k']
-
 
 def _print_valid_basis():
     print("Available bases:")
@@ -18,13 +19,11 @@ def _print_valid_basis():
 
 
 def _copy_params(params_in):
-    #meta = params_in['meta'].copy()
-    #num_planets = meta['num_planets']
     num_planets = params_in.num_planets
     basis = params_in.basis.name
     planet_letters = params_in.planet_letters
     params_out = radvel.model.Parameters(num_planets, basis=basis,
-                                           planet_letters=planet_letters)
+                                         planet_letters=planet_letters)
     params_out.update(params_in)
     
     return params_out
@@ -39,18 +38,21 @@ class Basis(object):
         num_planets (int): number of planets
 
     Attributes:
-        cps_params (str): name of synth basis (used to be called CPS basis)
+
+        synth_params (str): name of synth basis
 
     Note:
         Valid basis functions: \n
-        'per tp e w k' (synth basis) \n
+        'per tp e w k' (The synthesis basis) \n
         'per tc secosw sesinw logk'  \n 
         'per tc secosw sesinw k'  \n
         'per tc ecosw esinw k'  \n
         'per tc e w k' \n
+        'logper tc secosw sesinw k'\n
+        'logper tc secosw sesinw logk'\n
         'per tc se w k'
     """
-    cps_params = 'per tp e w k'.split()
+    synth_params = 'per tp e w k'.split()
 
     def __init__(self, *args):
         self.name = None
@@ -61,7 +63,7 @@ class Basis(object):
         
         name, num_planets = args
 
-        if BASIS_NAMES.count(name)==0:
+        if BASIS_NAMES.count(name) == 0:
             print("{} not valid basis".format(name))
             _print_valid_basis()
         #    return None
@@ -83,16 +85,15 @@ class Basis(object):
             radvel.Parameters object expressed in the new basis
 
         """
-        cps_params = self.to_cps(params_in)
-        arbbasis_params = self.from_cps(cps_params,newbasis, keep=False)
+        synth_params = self.to_synth(params_in)
+        arbbasis_params = self.from_synth(synth_params, newbasis, keep=False)
         return arbbasis_params
 
-
-    def to_cps(self, params_in, **kwargs):
-        """Convert to CPS basis
+    def to_synth(self, params_in, **kwargs):
+        """Convert to synth basis
 
         Convert Parameters object with parameters of a given basis into the
-        cps basis
+        synth basis
 
         Args:
             params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
@@ -101,7 +102,7 @@ class Basis(object):
                 to '' (used for displaying best fit parameters)
 
         Returns: 
-            Parameters or DataFrame: parameters expressed in the CPS basis
+            Parameters or DataFrame: parameters expressed in the synth basis
 
         """
         basis_name = kwargs.setdefault('basis_name', self.name)
@@ -112,16 +113,16 @@ class Basis(object):
         else:
             params_out = _copy_params(params_in)
 
-        for num_planet in range(1,1+self.num_planets):
+        for num_planet in range(1, 1+self.num_planets):
 
             def _getpar(key):
                 if isinstance(params_in, pd.core.frame.DataFrame):
-                    return params_in['{}{}'.format(key,num_planet)]
+                    return params_in['{}{}'.format(key, num_planet)]
                 else:
-                    return params_in['{}{}'.format(key,num_planet)].value
+                    return params_in['{}{}'.format(key, num_planet)].value
 
             def _setpar(key, new_value):
-                key_name = '{}{}'.format(key,num_planet)
+                key_name = '{}{}'.format(key, num_planet)
 
                 if isinstance(params_in, pd.core.frame.DataFrame):
                     params_out[key_name] = new_value
@@ -140,9 +141,9 @@ class Basis(object):
                                                                   vary=local_vary,
                                                                   mcmcscale=local_mcmcscale)
 
-            # transform into CPS basis
+            # transform into synth basis
             if basis_name == 'per tp e w k':
-                # already in the CPS basis
+                # already in the synth basis
                 per = _getpar('per')
                 tp = _getpar('tp')
                 e = _getpar('e')
@@ -177,7 +178,7 @@ class Basis(object):
 
                 k = np.exp(logk)
                 e = secosw**2 + sesinw**2
-                w = np.arctan2(sesinw , secosw)
+                w = np.arctan2(sesinw, secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
             if basis_name == 'per tc secosw sesinw k':
@@ -188,12 +189,12 @@ class Basis(object):
                 sesinw = _getpar('sesinw')
                 k = _getpar('k')
             
-                # transform into CPS basis
+                # transform into synth basis
                 e = secosw**2 + sesinw**2
-                w = np.arctan2(sesinw , secosw)
+                w = np.arctan2(sesinw, secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-            if basis_name=='logper tc secosw sesinw k':
+            if basis_name == 'logper tc secosw sesinw k':
                 # pull out parameters
                 logper = _getpar('logper')
                 tc = _getpar('tc')
@@ -201,13 +202,28 @@ class Basis(object):
                 sesinw = _getpar('sesinw')
                 k = _getpar('k')
             
-                # transform into CPS basis
+                # transform into synth basis
                 per = np.exp(logper)
                 e = secosw**2 + sesinw**2
-                w = np.arctan2(sesinw , secosw)
+                w = np.arctan2(sesinw, secosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-            if basis_name=='per tc ecosw esinw k':
+            if basis_name == 'logper tc secosw sesinw logk':
+                # pull out parameters
+                logper = _getpar('logper')
+                tc = _getpar('tc')
+                secosw = _getpar('secosw')
+                sesinw = _getpar('sesinw')
+                k = _getpar('logk')
+
+                # transform into synth basis
+                per = np.exp(logper)
+                e = secosw ** 2 + sesinw ** 2
+                k = np.exp(k)
+                w = np.arctan2(sesinw, secosw)
+                tp = timetrans_to_timeperi(tc, per, e, w)
+
+            if basis_name == 'per tc ecosw esinw k':
                 # pull out parameters
                 per = _getpar('per')
                 tc = _getpar('tc')
@@ -215,12 +231,12 @@ class Basis(object):
                 esinw = _getpar('esinw')
                 k = _getpar('k')
             
-                # transform into CPS basis
+                # transform into synth basis
                 e = np.sqrt(ecosw**2 + esinw**2)
-                w = np.arctan2(esinw , ecosw)
+                w = np.arctan2(esinw, ecosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-            # shoves cps parameters from namespace into param_out
+            # shoves synth parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
             _setpar('e', e)
@@ -231,10 +247,10 @@ class Basis(object):
             params_out.basis = Basis('per tp e w k', self.num_planets)
         return params_out
 
-    def from_cps(self, params_in, newbasis,  **kwargs):
-        """Convert from CPS basis into another basis
+    def from_synth(self, params_in, newbasis,  **kwargs):
+        """Convert from synth basis into another basis
 
-        Convert instance of Parameters with parameters of a given basis into the cps basis
+        Convert instance of Parameters with parameters of a given basis into the synth basis
 
         Args:
             params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
@@ -253,22 +269,22 @@ class Basis(object):
             _print_valid_basis()
             return None
         
-        if isinstance(params_in,pd.core.frame.DataFrame):
+        if isinstance(params_in, pd.core.frame.DataFrame):
             # Output by emcee
             params_out = params_in.copy()
         else:
             params_out = _copy_params(params_in)
 
-        for num_planet in range(1,1+self.num_planets):
+        for num_planet in range(1, 1+self.num_planets):
 
             def _getpar(key):
                 if isinstance(params_in, pd.core.frame.DataFrame):
-                    return params_in['{}{}'.format(key,num_planet)]
+                    return params_in['{}{}'.format(key, num_planet)]
                 else:
-                    return params_in['{}{}'.format(key,num_planet)].value
+                    return params_in['{}{}'.format(key, num_planet)].value
 
             def _setpar(key, new_value):
-                key_name = '{}{}'.format(key,num_planet)
+                key_name = '{}{}'.format(key, num_planet)
 
                 if isinstance(params_in, pd.core.frame.DataFrame):
                     params_out[key_name] = new_value
@@ -285,10 +301,10 @@ class Basis(object):
                                                                   mcmcscale=local_mcmcscale)
 
             def _delpar(key):
-                if isinstance(params_in,OrderedDict):
-                    del params_out['{}{}'.format(key,num_planet)]
-                elif isinstance(params_in,pd.core.frame.DataFrame):
-                    params_out.drop('{}{}'.format(key,num_planet))
+                if isinstance(params_in, OrderedDict):
+                    del params_out['{}{}'.format(key, num_planet)]
+                elif isinstance(params_in, pd.core.frame.DataFrame):
+                    params_out.drop('{}{}'.format(key, num_planet))
 
             if newbasis == 'per tc e w k':
                 per = _getpar('per')
@@ -296,8 +312,8 @@ class Basis(object):
                 w = _getpar('w')
                 tp = _getpar('tp')
                 
-                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
-                _setpar('w', w )
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
+                _setpar('w', w)
 
                 if not kwargs.get('keep', True):
                     _delpar('tp')
@@ -328,10 +344,10 @@ class Basis(object):
                     tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                     
-                _setpar('secosw', np.sqrt(e)*np.cos(w) )
-                _setpar('sesinw', np.sqrt(e)*np.sin(w) )
-                _setpar('logk', np.log(k) )
-                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
+                _setpar('secosw', np.sqrt(e)*np.cos(w))
+                _setpar('sesinw', np.sqrt(e)*np.sin(w))
+                _setpar('logk', np.log(k))
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
 
                 if not kwargs.get('keep', True):
                     _delpar('tp')
@@ -352,10 +368,10 @@ class Basis(object):
                 except KeyError:
                     tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
                     _setpar('tp', tp)
-                _setpar('secosw', np.sqrt(e)*np.cos(w) )
-                _setpar('sesinw', np.sqrt(e)*np.sin(w) )
-                _setpar('k', k )
-                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
+                _setpar('secosw', np.sqrt(e)*np.cos(w))
+                _setpar('sesinw', np.sqrt(e)*np.sin(w))
+                _setpar('k', k)
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
 
                 if not kwargs.get('keep', True):
                     _delpar('tp')
@@ -376,16 +392,42 @@ class Basis(object):
                     tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
                     _setpar('tp', tp)
                 _setpar('logper', np.log(per))
-                _setpar('secosw', np.sqrt(e)*np.cos(w) )
-                _setpar('sesinw', np.sqrt(e)*np.sin(w) )
-                _setpar('k', k )
-                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
+                _setpar('secosw', np.sqrt(e)*np.cos(w))
+                _setpar('sesinw', np.sqrt(e)*np.sin(w))
+                _setpar('k', k)
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
 
                 if not kwargs.get('keep', True):
                     _delpar('per')
                     _delpar('tp')
                     _delpar('e')
                     _delpar('w')
+
+                self.name = newbasis
+                self.params = newbasis.split()
+
+            if newbasis == 'logper tc secosw sesinw logk':
+                per = _getpar('per')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                try:
+                    tp = _getpar('tp')
+                except KeyError:
+                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                    _setpar('tp', tp)
+                _setpar('logper', np.log(per))
+                _setpar('secosw', np.sqrt(e)*np.cos(w))
+                _setpar('sesinw', np.sqrt(e)*np.sin(w))
+                _setpar('logk', np.log(k))
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
+
+                if not kwargs.get('keep', True):
+                    _delpar('per')
+                    _delpar('tp')
+                    _delpar('e')
+                    _delpar('w')
+                    _delpar('k')
 
                 self.name = newbasis
                 self.params = newbasis.split()
@@ -400,10 +442,10 @@ class Basis(object):
                 except KeyError:
                     tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
                     _setpar('tp', tp)
-                _setpar('ecosw', e*np.cos(w) )
-                _setpar('esinw', e*np.sin(w) )
-                _setpar('k', k )
-                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
+                _setpar('ecosw', e*np.cos(w))
+                _setpar('esinw', e*np.sin(w))
+                _setpar('k', k)
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
 
                 if not kwargs.get('keep', True):
                     _delpar('tp')

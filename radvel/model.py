@@ -198,7 +198,7 @@ class RVModel(object):
             vel (array of floats): Radial velocity at each time in `t`
         """
         vel = np.zeros( len(t) )
-        params_cps = self.params.basis.to_cps(self.params)
+        params_synth = self.params.basis.to_synth(self.params)
         
         if planet_num == None:
             planets = range(1, self.num_planets+1)
@@ -206,13 +206,13 @@ class RVModel(object):
             planets = [planet_num]
         
         for num_planet in planets:
-            per = params_cps['per{}'.format(num_planet)].value
-            tp = params_cps['tp{}'.format(num_planet)].value
-            e = params_cps['e{}'.format(num_planet)].value
-            w = params_cps['w{}'.format(num_planet)].value
-            k = params_cps['k{}'.format(num_planet)].value
-            orbel_cps = np.array([per, tp, e, w, k])
-            vel+=kepler.rv_drive(t, orbel_cps)
+            per = params_synth['per{}'.format(num_planet)].value
+            tp = params_synth['tp{}'.format(num_planet)].value
+            e = params_synth['e{}'.format(num_planet)].value
+            w = params_synth['w{}'.format(num_planet)].value
+            k = params_synth['k{}'.format(num_planet)].value
+            orbel_synth = np.array([per, tp, e, w, k])
+            vel+=kepler.rv_drive(t, orbel_synth)
         vel+=self.params['dvdt'].value * ( t - self.time_base )
         vel+=self.params['curv'].value * ( t - self.time_base )**2
         return vel
