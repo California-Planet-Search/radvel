@@ -1,6 +1,6 @@
 language: python
-os: osx
 cache: pip
+sudo: False
 
 python:
   - "2.7"
