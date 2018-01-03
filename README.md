@@ -42,9 +42,9 @@ RadVel is
 - *Extensible* 
   - Object-oriented programing makes adding new likelihoods, priors, etc. easy
 - *Scriptable*
-  - Code can be run through convenient Command-line Interface (CLI) 
+  - Code can be run through a convenient Command-line Interface (CLI) 
 - *Fast*
-   - Kepler's equation solved in C (slower pure python solver available)
+   - Kepler's equation solved in C (slower Python solver also included)
    - MCMC is multi-threaded
 
 ## Future Improvements
