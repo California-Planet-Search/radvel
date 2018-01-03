@@ -6,6 +6,7 @@ from glob import glob
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
+import radvel
 
 warnings.filterwarnings("ignore")
 warnings.simplefilter('once', DeprecationWarning)

@@ -83,6 +83,8 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     args.plotkw = {}
     radvel.driver.plots(args)
 
+    print("Wahoo! GP unit test passed!")
+
 
 def test_basis():
     """
