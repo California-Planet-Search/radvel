@@ -49,9 +49,7 @@ def _standard_run(setupfn):
 def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
-    """
-    print("Starting unit test #1!")
-    
+    """    
     _standard_run(setupfn)
 
 
@@ -59,7 +57,6 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     """
     Check multi-instrument fit
     """
-    print("Starting unit test #2!")
 
     args = _args()
     args.setupfn = setupfn
@@ -75,7 +72,6 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     """
     Check multi-instrument fit
     """
-    print("Starting GP unit test!")
     args = _args()
     args.setupfn = setupfn
 
@@ -84,8 +80,6 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
-
-    print("Wahoo! GP unit test passed!")
 
 
 def test_basis():
