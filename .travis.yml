@@ -12,7 +12,6 @@ before_install:
     - chmod +x miniconda.sh
     - ./miniconda.sh -b
     - ln -s /home/travis/miniconda? /home/travis/miniconda
-    - ls -latr /home/travis/
     - export PATH=/home/travis/miniconda/bin:$PATH
     - conda update --yes conda
     - sudo rm -rf /dev/shm
@@ -32,7 +31,7 @@ before_script:
 
 # run tests in Travis-CI virtual env
 script:
-    - coverage run --source radvel -m py.test --nbval-lax
+    - coverage${py} run --source radvel -m py.test --nbval-lax
 
 after_success:
     - coveralls
