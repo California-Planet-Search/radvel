@@ -23,7 +23,6 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
         use_c_kepler_solver (bool): (default: True) If \
             True use the Kepler solver written in C, else \
             use the Python/NumPy version.
-
     Returns:
         rv: (array of floats): radial velocity model
     
@@ -62,7 +61,7 @@ def kepler(inbigM, inecc):
         inecc (array): eccentricity
 
     Returns:
-        eccentric anomaly: array
+        array: eccentric anomaly
     
     """
     
@@ -120,12 +119,9 @@ def profile():
         setup = """\
 from radvel.kepler import rv_drive
 import numpy as np
-
 gc.enable()
-
 ecc = %f
 orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
-
 t = np.linspace(2455000, 2457000, %d)
 """ % (ecc, size)
 

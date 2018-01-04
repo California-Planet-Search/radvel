@@ -270,6 +270,7 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
     
     Given an MCMC chain of parameters, draw representative parameters
     and synthesize models.
+
     Args:
         mod (radvel.RVmodel) : RV model
         chain (DataFrame): pandas DataFrame with different values from MCMC 
@@ -294,30 +295,40 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
 
 def gelman_rubin(pars0, minTz=1000, maxGR=maxGR):
     """Gelman-Rubin Statistic
+
     Calculates the Gelman-Rubin statistic and the number of
     independent draws for each parameter, as defined by Ford et
     al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
     The chain is considered well-mixed if all parameters have a
     Gelman-Rubin statistic of <= 1.03 and >= 1000 independent draws.
-    History: 
-        2010/03/01 - Written: Jason Eastman - The Ohio State University        
-        2012/10/08 - Ported to Python by BJ Fulton - University of Hawaii, 
-            Institute for Astronomy
-        2016/04/20 - Adapted for use in radvel. Removed "angular" parameter.
+
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
             parameter values
-        minTz (int): (optional) minimum Tz to consider well-mixed
-        maxGR (float): (optional) maximum Gelman-Rubin statistic to
+        minTz (int [optional]): minimum Tz to consider well-mixed
+        maxGR (float [optional]):  maximum Gelman-Rubin statistic to
             consider well-mixed
     Returns:
-        (tuple): tuple containing:
-            ismixed (bool): Are the chains well-mixed?
-            gelmanrubin (array): An NPARS element array containing the
+        tuple: tuple containing:
+            ismixed (bool): 
+                Are the chains well-mixed?
+            gelmanrubin (array): 
+                An NPARS element array containing the
                 Gelman-Rubin statistic for each parameter (equation
                 25)
-            Tz (array): An NPARS element array containing the number
+            Tz (array): 
+                An NPARS element array containing the number
                 of independent draws for each parameter (equation 26)
+                
+    History: 
+        2010/03/01:
+            Written: Jason Eastman - The Ohio State University   
+        2012/10/08:
+            Ported to Python by BJ Fulton - University of Hawaii, 
+            Institute for Astronomy
+        2016/04/20:
+            Adapted for use in RadVel. Removed "angular" parameter.
+
     """
 
 

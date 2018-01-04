@@ -49,8 +49,7 @@ def _standard_run(setupfn):
 def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
-    """
-    
+    """    
     _standard_run(setupfn)
 
 
@@ -73,7 +72,6 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     """
     Check multi-instrument fit
     """
-    
     args = _args()
     args.setupfn = setupfn
 

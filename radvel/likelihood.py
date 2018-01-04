@@ -302,8 +302,6 @@ class GPLikelihood(RVLikelihood):
            objects in model.params that are GP hyperparameters
         suffix (string): suffix to identify this Likelihood object;
            useful when constructing a `CompositeLikelihood` object
-
-    This class written by Evan Sinukoff and Sarah Blunt, 2017
     """
     def __init__(self, model, t, vel, errvel, 
                  hnames=['gp_per','gp_perlength','gp_explength','gp_amp'],
@@ -360,9 +358,15 @@ class GPLikelihood(RVLikelihood):
     def logprob(self):
         """
         Return GP log-likelihood given the data and model.
-        log-likelihood computed using Cholesky decomposition as:
-           lnL = -0.5*r.T*inverse(K)*r - 0.5*ln[det(K)] 
-           r = _resids vector, K = covariance matrix, N = number of datapoints. 
+
+        log-likelihood is computed using Cholesky decomposition as:
+
+        .. math::
+
+           lnL = -0.5r^TK^{-1}r - 0.5ln[det(K)] 
+           
+        where r = vector of residuals (GPLikelihood._resids), K = covariance matrix, and N = number of datapoints. 
+
         Priors are not applied here. 
         Constant has been omitted.
 
@@ -397,8 +401,9 @@ class GPLikelihood(RVLikelihood):
             Args:
                 xpred (np.array): numpy array of x values for realizing the GP
             Returns:
-                mu (np.array): numpy array of predictive means
-                stdev (np.array): numpy array of predictive standard deviations
+                tuple: tuple containing:
+                    np.array: mu, the numpy array of predictive means \n
+                    np.array: stdev, the numpy array of predictive standard deviations
         """
 
         r = matrix(self._resids()).T

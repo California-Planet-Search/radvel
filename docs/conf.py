@@ -24,7 +24,6 @@ for mod_name in autodoc_mock_imports:
 
 import radvel
 
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -44,6 +43,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    'nbsphinx'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -62,8 +62,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'radvel'
-copyright = u'2015, BJ Fulton and Erik Petigura'
-author = u'BJ Fulton, Erik Petigura, and Sarah Blunt'
+copyright = u'2015, BJ Fulton, Erik Petigura, Sarah Blunt, and Evan Sinukoff'
+author = u'BJ Fulton, Erik Petigura, Sarah Blunt, and Evan Sinukoff'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -238,7 +238,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   (master_doc, 'radvel.tex', u'radvel Documentation',
-   u'BJ Fulton, Erik Petigura, and Sarah Blunt', 'manual'),
+   u'BJ Fulton, Erik Petigura, Sarah Blunt, and Evan Sinukoff', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
