@@ -5,12 +5,13 @@ sudo: False
 python:
   - "2.7"
   - "3.4"
-    
+
 before_install:
-    - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+    - export py="$(echo $TRAVIS_PYTHON_VERSION | head -c 1)"
+    - wget http://repo.continuum.io/miniconda/Miniconda${py}-latest-Linux-x86.sh -O miniconda.sh
     - chmod +x miniconda.sh
     - ./miniconda.sh -b
-    - ln -s /home/travis/miniconda? /home/travis/miniconda
+    - ln -s /home/travis/miniconda${py} /home/travis/miniconda
     - ls -latr /home/travis/
     - export PATH=/home/travis/miniconda/bin:$PATH
     - conda update --yes conda
@@ -18,7 +19,7 @@ before_install:
     - sudo ln -s /run/shm /dev/shm
 
 install:
-    - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose nbformat nbconvert jupyter_client ipykernel
+    - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose cython nbformat nbconvert jupyter_client ipykernel
     - pip install coveralls
     - pip install .
     - python setup.py build_ext -i
