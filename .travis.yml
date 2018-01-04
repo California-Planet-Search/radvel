@@ -4,7 +4,7 @@ sudo: False
 
 python:
   - "2.7"
-  - "3.5"
+  - "3.6"
 
 before_install:
     - export py="$(echo $TRAVIS_PYTHON_VERSION | head -c 1)"
@@ -20,7 +20,7 @@ before_install:
 
 install:
     - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython
-    - pip install pytest-cov nose coveralls nbformat nbconvert jupyter_client ipykernel
+    - pip install pytest-cov nbval nose coveralls nbformat nbconvert jupyter_client ipykernel
     - pip install .
     - python setup.py build_ext -i
 
