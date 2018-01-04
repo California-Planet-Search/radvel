@@ -6,13 +6,12 @@ from glob import glob
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-import radvel
 
 warnings.filterwarnings("ignore")
 warnings.simplefilter('once', DeprecationWarning)
 
 
-def test_notebooks(nbdir='docs/tutorials/'):
+def _test_notebooks(nbdir='docs/tutorials/'):
     """
     Run though notebook tutorials
     """

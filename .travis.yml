@@ -20,7 +20,7 @@ before_install:
 
 install:
     - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython
-    - pip install nose coveralls nbformat nbconvert jupyter_client ipykernel
+    - pip install pytest-cov nose coveralls nbformat nbconvert jupyter_client ipykernel
     - pip install .
     - python setup.py build_ext -i
 
@@ -32,7 +32,7 @@ before_script:
 
 # run tests in Travis-CI virtual env
 script:
-    - nosetests radvel --with-coverage --cover-package=radvel
+    - coverage run --source radvel -m py.test --nbval-lax
 
 after_success:
     - coveralls
