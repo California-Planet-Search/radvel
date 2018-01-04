@@ -24,9 +24,9 @@ def test_notebooks(nbdir='docs/tutorials/'):
             nb = nbformat.read(f, as_version=4)
 
         if sys.version_info[0] < 3:
-            ep = ExecutePreprocessor(timeout=300, kernel_name='python2')
+            ep = ExecutePreprocessor(timeout=600, kernel_name='python2')
         else:
-            ep = ExecutePreprocessor(timeout=300, kernel_name='python3')
+            ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
 
         ep.preprocess(nb, {'metadata': {'path': nbdir}})
 
