@@ -17,7 +17,7 @@ def test_notebooks(nbdir='docs/tutorials/'):
     Run though notebook tutorials
     """
 
-    nbfiles = sorted(glob(os.path.join(nbdir, '*.ipynb')))
+    nbfiles = sorted(glob(os.path.join(nbdir, 'Ga*.ipynb')))
     for nbfile in nbfiles:
         print(nbfile)
         with open(nbfile) as f:
