@@ -19,7 +19,7 @@ before_install:
 
 install:
     - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython
-    - pip install pytest-cov nbval nose coveralls nbformat nbconvert jupyter_client ipykernel
+    - pip install nose coveralls nbformat nbconvert jupyter_client ipykernel
     - pip install .
     - python setup.py build_ext -i
 
@@ -27,11 +27,11 @@ install:
 before_script:
     - "export DISPLAY=:99.0"
     - "sh -e /etc/init.d/xvfb start"
-    - sleep 3 # give xvfb some time to start
+    - sleep 2 # give xvfb some time to start
 
 # run tests in Travis-CI virtual env
 script:
-    - coverage${py} run --source radvel -m py.test --nbval-lax
+    - nosetests radvel --with-coverage --cover-package=radvel
 
 after_success:
     - coveralls

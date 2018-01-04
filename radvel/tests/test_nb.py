@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore")
 warnings.simplefilter('once', DeprecationWarning)
 
 
-def _test_notebooks(nbdir='docs/tutorials/'):
+def test_notebooks(nbdir='docs/tutorials/'):
     """
     Run though notebook tutorials
     """
