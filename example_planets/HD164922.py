@@ -46,8 +46,8 @@ anybasis_params['jit_a'] = radvel.Parameter(value=2.6)         # "      "   hire
 params = anybasis_params.basis.to_any_basis(anybasis_params,fitting_basis)
 
 # Set the 'vary' attributes of each of the parameters in the fitting basis. A parameter's 'vary' attribute should
-# 	be set to False if you wish to hold it fixed during the fitting process. By default, all 'vary' parameters
-#	are set to True.
+# be set to False if you wish to hold it fixed during the fitting process. By default, all 'vary' parameters
+# are set to True.
 params['dvdt'].vary = False
 params['curv'].vary = False
 
@@ -71,3 +71,4 @@ priors = [
 # optional argument that can contain stellar mass in solar units (mstar) and
 # uncertainty (mstar_err). If not set, mstar will be set to nan.
 stellar = dict(mstar=0.874, mstar_err=0.012)
+

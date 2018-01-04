@@ -24,14 +24,13 @@ def maxlike_fitting(post, verbose=True):
         print("Performing maximum likelihood fit...")
 
     res = scipy.optimize.minimize(
-        post.neglogprob_array, post.get_vary_params(), method='Powell',
+        post.neglogprob_array, post.get_vary_params(), method='Nelder-Mead',
         options=dict(maxiter=200, maxfev=100000, xtol=1e-8)
     )
-
     synthpost = copy.copy(post)
     synthparams = post.params.basis.to_synth(post.params, noVary = True) # setting "noVary" assigns each new parameter a vary attribute
     synthpost.params.update(synthparams)                                 # of '', for printing purposes
- 
+
     if verbose:
         print("Final loglikelihood = %f" % post.logprob())
         print("Best-fit parameters:")

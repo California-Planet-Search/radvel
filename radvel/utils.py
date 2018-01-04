@@ -58,7 +58,21 @@ Converting 'logjit' to 'jit' for you now.
     # initialize RVmodel object
     mod = radvel.RVModel(params, time_base=P.time_base)
 
-    # initialize RVlikelihood objects for each instrument
+    # check if GP
+    liketype = radvel.likelihood.RVLikelihood
+    hnames = None
+    kernel_name = None
+    if [key for key in params.keys() if key.startswith('gp_')]:
+        liketype = radvel.likelihood.GPLikelihood
+        hnames = P.hnames
+        try:
+            kernel_name = P.kernel_name
+        except:
+            kernel_name = "QuasiPer"
+
+
+
+    # initialize Likelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
@@ -69,11 +83,12 @@ Converting 'logjit' to 'jit' for you now.
         if decorr:
             for d in decorr_vars:
                 decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
-        likes[inst] = radvel.likelihood.RVLikelihood(
+        likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst,
-            decorr_vars=decorr_vars, decorr_vectors=decorr_vectors
+            P.data.iloc[telgrps[inst]].errvel, hnames=hnames, suffix='_'+inst, 
+            kernel_name=kernel_name, decorr_vars=decorr_vars, 
+            decorr_vectors=decorr_vectors
         )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]

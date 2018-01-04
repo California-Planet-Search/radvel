@@ -134,13 +134,19 @@ def mcmc(args):
     else:
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
+    serial=False
+    if [key for key in post.params.keys() if key.startswith('gp_')]:
+        serial = True # for now, run GP fits in serial
+        args.ensembles = 3
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {} ...".format(
         conf_base, args.nwalkers, args.nsteps, args.ensembles)
     print(msg)
 
     chains = radvel.mcmc(
-            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles)
+             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, 
+             serial=serial
+             )
 
     # Convert chains into synth basis
     synthchains = chains.copy()

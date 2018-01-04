@@ -22,7 +22,11 @@ units = {'per': 'days',
          'logjit': '$\\ln{(\\rm m\\ s^{-1})}$',
          'jit': '$\\rm m\\ s^{-1}$',
          'dvdt': 'm s$^{-1}$ day$^{-1}$',
-         'curv': 'm s$^{-1}$ day$^{-2}$'}
+         'curv': 'm s$^{-1}$ day$^{-2}$',
+         'gp_amp': 'm s$-1$',
+         'gp_explength': 'days',
+         'gp_per': 'days',
+         'gp_perlength': ''}
 
 
 class RadvelReport():

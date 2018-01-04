@@ -115,6 +115,9 @@ upper limits must match number of planets."
                 ecosw = _getpar('ecosw', num_planet)
                 esinw = _getpar('esinw', num_planet)
                 ecc = np.sqrt(ecosw**2 + esinw**2)
+            elif 'se' in parnames:
+                secc = _getpar('se',num_planet)
+                ecc = secc**2
 
             if ecc > self.upperlims[i] or ecc < 0.0:
                 return -np.inf
@@ -250,3 +253,91 @@ class SecondaryEclipsePrior(Prior):
         penalty = -0.5 * ((ts_phase - pts) / epts)**2
 
         return penalty
+
+      
+class Jeffreys(Prior):
+    """Jeffrey's prior
+
+    This prior follows the distribution:
+
+    p(x) propto 1/x
+
+    with upper and lower bounds to prevent singularity at x=0.
+
+    Args:
+        param (string): parameter label
+        minval (float): minimum allowed value
+        maxval (float): maximum allowed value (set to numpy.inf 
+            if no upper bound desired)
+    """
+    
+    def __init__(self, param, minval, maxval):
+        self.minval = minval
+        self.maxval = maxval
+        self.param = param
+    def __call__(self, params):
+        x = params[self.param].value
+        if x < self.minval or x > self.maxval:
+            return -np.inf
+        else:
+            return -np.log(x)
+    def __repr__(self):
+        s = "Jeffrey's prior on {}, min={}, max={}".format(
+            self.param, self.minval, self.maxval
+            )
+        return s
+    def __str__(self):
+        try:
+            tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
+            
+            s = "Jeffrey's prior: ${} < {} < {}$".format(self.minval,
+                                                       tex.replace('$',''),
+                                                       self.maxval)
+        except KeyError:
+            s = self.__repr__()
+            
+        return s
+
+      
+class ModifiedJeffreys(Prior):
+    """Modified Jeffry's prior
+
+    This prior follows the distribution:
+
+    p(x) propto 1/(x+x_0)
+
+    with upper bound
+
+    Args:
+        param (string): parameter label
+        kneeval (float): "knee" of Jeffrey's prior (x_0 in eq above)
+        maxval (float): maximum allowed value
+
+    """
+    
+    def __init__(self, param, kneeval, maxval):
+        self.maxval = maxval
+        self.param = param
+        self.kneeval = kneeval
+    def __call__(self, params):
+        x = params[self.param].value
+        if (x > self.maxval) or (x + self.kneeval <= 0.):
+            return -np.inf
+        else:
+            return -np.log(x+self.kneeval)
+    def __repr__(self):
+        s = "Modified Jeffrey's prior on {}, knee={}, max={}".format(
+            self.param, self.kneeval, self.maxval
+            )
+        return s
+    def __str__(self):
+        try:
+            tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
+            
+            s = "Modified Jeffrey's prior: knee = {}; ${} < {}$".format(
+                self.kneeval, tex.replace('$',''),self.maxval
+                )
+        except KeyError:
+            s = self.__repr__()
+            
+        return s

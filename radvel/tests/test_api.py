@@ -2,6 +2,7 @@ import warnings
 
 import radvel
 import radvel.driver
+import numpy as np
 import radvel.prior
 
 warnings.filterwarnings("ignore")
@@ -14,7 +15,7 @@ class _args(object):
         self.decorr = False
 
         self.nwalkers = 50
-        self.nsteps = 3000
+        self.nsteps = 100
         self.ensembles = 8
 
 
@@ -68,6 +69,21 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     radvel.driver.plots(args)
 
 
+def test_k2131(setupfn='example_planets/k2-131.py'):
+    """
+    Check multi-instrument fit
+    """
+    
+    args = _args()
+    args.setupfn = setupfn
+
+    radvel.driver.fit(args)
+    
+    args.type = ['rv']
+    args.plotkw = {}
+    radvel.driver.plots(args)
+
+
 def test_basis():
     """
     Test basis conversions
@@ -106,6 +122,26 @@ def test_basis():
 {}, {} != {}".format(par, before, after)
 
 
+def test_kernels():
+    """
+    Test basic functionality of all GP kernels
+    """
+
+    kernel_list = radvel.gp.KERNELS
+
+    for kernel in kernel_list:
+        hnames = kernel_list[kernel] # gets list of hyperparameter name strings
+        hyperparams = {k: radvel.Parameter(value=1.) for k in hnames}
+        kernel_call = getattr(radvel.gp, kernel + "Kernel") 
+        test_kernel = kernel_call(hyperparams)
+
+        x = np.array([np.array([1.,2.,3.])]).T
+        test_kernel.compute_distances(x,x)
+        test_kernel.compute_covmatrix()
+        test_kernel.add_diagonal_errors(x)
+
+
+
 def test_kepler():
     """
     Profile and test C-based Kepler solver
@@ -114,4 +150,5 @@ def test_kepler():
 
 
 if __name__ == '__main__':
+    test_kernels()
     test_kepler()
