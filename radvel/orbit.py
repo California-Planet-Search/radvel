@@ -54,7 +54,12 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=False):
     if secondary:
         f = 3*np.pi/2 - omega                                       # true anomaly during secondary eclipse
         ee = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
-        ee[ee<0.0] = ee + 2*np.pi                      #ensure that ee is between 0 and 2*pi (always the eclipse AFTER tp)
+
+        # ensure that ee is between 0 and 2*pi (always the eclipse AFTER tp)
+        if len(ee) > 1:
+            ee[ee < 0.0] = ee + 2*np.pi
+        elif ee < 0.0:
+            ee = ee + 2*np.pi
     else:
         f = np.pi/2 - omega                                         # true anomaly during transit
         ee = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
