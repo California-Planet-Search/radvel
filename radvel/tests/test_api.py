@@ -139,6 +139,31 @@ def test_kernels():
         test_kernel.add_diagonal_errors(x)
 
 
+def test_priors():
+    """
+    Test basic functionality of all Priors
+    """
+
+    params = radvel.Parameters(1)
+    params['per1'] = radvel.Parameter(10.0)
+    params['tc1'] = radvel.Parameter(0.0)
+    params['secosw1'] = radvel.Parameter(0.0)
+    params['sesinw1'] = radvel.Parameter(0.0)
+    params['logk1'] = radvel.Parameter(1.5)
+
+    prior_tests = {
+        radvel.prior.EccentricityPrior(1): 0.0,
+        radvel.prior.PositiveKPrior(1): 0.0,
+        radvel.prior.Gaussian('per1', 10.0, 0.1): 0.0,
+        radvel.prior.HardBounds('per1', 1.0, 9.0): -np.inf,
+        radvel.prior.Jeffreys('per1', 0.1, 100.0): -np.log(params['per1'].value),
+        radvel.prior.ModifiedJeffreys('per1', 0.1, 100.0): -np.log(params['per1'].value + 0.1),
+        radvel.prior.SecondaryEclipsePrior(1, 5.0, 1.0): 0.0
+    }
+
+    for prior, val in prior_tests.items():
+        assert prior(params) == val, "Prior output does not match expectation"
+
 
 def test_kepler():
     """
@@ -148,5 +173,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_kernels()
-    test_kepler()
+    test_priors()
