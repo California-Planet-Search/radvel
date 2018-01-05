@@ -86,7 +86,7 @@ Converting 'logjit' to 'jit' for you now.
         likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, hnames=hnames, suffix='_'+inst, 
+            P.data.iloc[telgrps[inst]].errvel, hnames=hnames[inst], suffix='_'+inst, 
             kernel_name=kernel_name, decorr_vars=decorr_vars, 
             decorr_vectors=decorr_vectors
         )

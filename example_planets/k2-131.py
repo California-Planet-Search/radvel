@@ -59,12 +59,16 @@ params['gp_explength'] = radvel.Parameter(value=gp_explength_mean)
 params['gp_per'] = radvel.Parameter(value=gp_per_mean) 
 params['gp_perlength'] = radvel.Parameter(value=gp_perlength_mean)
 
-hnames = [
-    'gp_amp', # GP variability amplitude
-    'gp_per', # GP variability period
-    'gp_explength', # GP non-periodic characteristic length
-    'gp_perlength', # GP periodic characteristic length
-]
+hnames = {
+  'harps-n': ['gp_amp', # GP variability amplitude
+              'gp_per', # GP variability period
+              'gp_explength', # GP non-periodic characteristic length
+              'gp_perlength'], # GP periodic characteristic length
+  'pfs': ['gp_amp', 
+          'gp_per', 
+          'gp_explength', 
+          'gp_perlength']
+}
 
 jit_guesses = {'harps-n':2.0, 'pfs':5.3}
 
