@@ -337,9 +337,9 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
+                else:
                     tc = _getpar('tc')
                     tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
@@ -363,10 +363,11 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
-                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                 _setpar('secosw', np.sqrt(e)*np.cos(w))
                 _setpar('sesinw', np.sqrt(e)*np.sin(w))
@@ -386,10 +387,11 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
-                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                 _setpar('logper', np.log(per))
                 _setpar('secosw', np.sqrt(e)*np.cos(w))
@@ -411,10 +413,11 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
-                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                 _setpar('logper', np.log(per))
                 _setpar('secosw', np.sqrt(e)*np.cos(w))
@@ -437,10 +440,11 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
-                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                 _setpar('ecosw', e*np.cos(w))
                 _setpar('esinw', e*np.sin(w))
