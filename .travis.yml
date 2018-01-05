@@ -2,7 +2,6 @@ language: python
 sudo: False
 
 cache:
-   pip
    directories:
      - $HOME/download
      - $HOME/miniconda2
@@ -24,7 +23,7 @@ before_install:
     - sudo ln -s /run/shm /dev/shm
 
 install:
-    - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy matplotlib cython
+    - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy matplotlib cython pandas
     - pip install nose coveralls nbformat nbconvert jupyter_client ipykernel
     - pip install . --upgrade
     - python setup.py build_ext -i
