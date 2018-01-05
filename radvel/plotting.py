@@ -252,6 +252,13 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     ci = 0
     default_colors = ['orange', 'purple', 'magenta' , 'pink']
 
+    numdatapoints = 0
+    for like in like_list:
+        if isinstance(like, radvel.likelihood.GPLikelihood): 
+            gp_mean, _ = like.predict(like.x)
+            rvmod[numdatapoints:numdatapoints+len(like.x)] += gp_mean
+        numdatapoints += len(like.x)
+
     for like in like_list:
         if isinstance(like, radvel.likelihood.GPLikelihood): 
             
@@ -277,6 +284,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
             xpred = np.linspace(np.min(like.x),np.max(like.x),num=int(3e3))
             gpmu, stddev = like.predict(xpred)
+
 
             if ((xpred - e) < -2.4e6).any():
                 pass
@@ -312,6 +320,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     pltletter += 1
 
     _mtelplot(
+        # data = residuals + best fit model
         plttimes, rawresid+rvmod, rverr, synthpost.likelihood.telvec, ax, telfmts
     )
     ax.set_xlim(min(plttimes)-0.01*dt, max(plttimes)+0.01*dt)

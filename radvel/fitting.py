@@ -26,7 +26,7 @@ def maxlike_fitting(post, verbose=True):
 
     res = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method='Nelder-Mead',
-        options=dict(maxiter=200, maxfev=100000, xatol=1e-8)
+        options=dict(xatol=1e-8, maxiter=200, maxfev=100000)
     )
     synthpost = copy.copy(post)
     synthparams = post.params.basis.to_synth(post.params, noVary = True) # setting "noVary" assigns each new parameter a vary attribute
