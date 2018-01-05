@@ -58,20 +58,6 @@ Converting 'logjit' to 'jit' for you now.
     # initialize RVmodel object
     mod = radvel.RVModel(params, time_base=P.time_base)
 
-    # check if GP
-    liketype = radvel.likelihood.RVLikelihood
-    hnames = None
-    kernel_name = None
-    if [key for key in params.keys() if key.startswith('gp_')]:
-        liketype = radvel.likelihood.GPLikelihood
-        hnames = P.hnames
-        try:
-            kernel_name = P.kernel_name
-        except:
-            kernel_name = "QuasiPer"
-
-
-
     # initialize Likelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
@@ -83,10 +69,25 @@ Converting 'logjit' to 'jit' for you now.
         if decorr:
             for d in decorr_vars:
                 decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
+
+        # params relevent to the ith likelihood
+        local_params = [key for key in params.keys() if key.endswith(inst)]
+        liketype = radvel.likelihood.RVLikelihood
+        kernel_name = None
+        hnames = None
+        if [key for key in local_params.keys() if key.startswith('gp_')]:
+            hnames = P.hnames[inst]
+            liketype = radvel.likelihood.GPLikelihood
+            try:
+                kernel_name = P.kernel_name[inst]
+            except:
+                kernel_name = "QuasiPer"
+
+
         likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, hnames=hnames[inst], suffix='_'+inst, 
+            P.data.iloc[telgrps[inst]].errvel, hnames=hnames, suffix='_'+inst, 
             kernel_name=kernel_name, decorr_vars=decorr_vars, 
             decorr_vectors=decorr_vectors
         )

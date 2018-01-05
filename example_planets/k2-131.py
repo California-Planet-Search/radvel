@@ -70,6 +70,12 @@ hnames = {
           'gp_perlength']
 }
 
+kernel_name = {'harps-n':"QuasiPer", 
+               'pfs':"QuasiPer"}
+# If all kernels are quasi-periodic, you don't need to include the
+# 'kernel_name' lines. I included it to show you how to use different kernel
+# types in different likelihoods.
+
 jit_guesses = {'harps-n':2.0, 'pfs':5.3}
 
 def initialize_instparams(tel_suffix):
@@ -93,8 +99,4 @@ priors = [radvel.prior.Gaussian('per1', Porb, Porb_unc),
           radvel.prior.Gaussian('gp_explength', gp_explength_mean, gp_explength_unc),
           radvel.prior.Gaussian('gp_per', gp_per_mean, gp_per_unc),
           radvel.prior.Gaussian('gp_perlength', gp_perlength_mean, gp_perlength_unc)]
-
-# Currently, defining some likelihoods to be GPs and some to be standard chi-square likelihoods
-#    requires working with the API. The same for definining different GP hyperparameters
-#    for different likleihoods. 
 
