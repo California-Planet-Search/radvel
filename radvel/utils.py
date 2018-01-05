@@ -75,7 +75,7 @@ Converting 'logjit' to 'jit' for you now.
         liketype = radvel.likelihood.RVLikelihood
         kernel_name = None
         hnames = None
-        if [key for key in local_params.keys() if key.startswith('gp_')]:
+        if [key for key in local_params if key.startswith('gp_')]:
             hnames = P.hnames[inst]
             liketype = radvel.likelihood.GPLikelihood
             try:
