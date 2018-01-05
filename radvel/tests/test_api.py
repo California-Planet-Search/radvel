@@ -70,7 +70,7 @@ def test_hd(setupfn='example_planets/HD164922.py'):
 
 def test_k2131(setupfn='example_planets/k2-131.py'):
     """
-    Check multi-instrument fit
+    Check GP fit
     """
     args = _args()
     args.setupfn = setupfn

@@ -192,7 +192,7 @@ class QuasiPerKernel(Kernel):
             if par.startswith('gp_per'):
                 self.hparams['gp_per'] = hparams[par]
             if par.startswith('gp_explength'):
-                self.hparams['gp_perlength'] = hparams[par]
+                self.hparams['gp_explength'] = hparams[par]
 
         assert len(hparams) == 4, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to QuasiPer Kernel "
