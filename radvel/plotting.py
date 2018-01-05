@@ -490,7 +490,6 @@ def corner_plot(post, chains, saveplot=None):
     """
     labels = [k for k in post.params.keys() if post.params[k].vary]
     texlabels = [post.params.tex_labels().get(l, l) for l in labels]
-    print(texlabels)
 
     f = rcParams['font.size']
     rcParams['font.size'] = 12
