@@ -47,7 +47,7 @@ class RadvelReport():
         self.post = post
         
         self.starname = planet.starname
-        self.starname_tex = planet.starname.replace('_', '\_')
+        self.starname_tex = planet.starname.replace('_', '\\_')
         self.runname = self.starname_tex
                 
         printpost = copy.deepcopy(post)

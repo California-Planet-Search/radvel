@@ -15,8 +15,8 @@ import radvel
 from radvel.utils import t_to_phase, fastbin
 
 latex = {
-    'ms': 'm s$^{\mathregular{-1}}$',
-    'BJDTDB': 'BJD$_{\mathregular{TDB}}$'
+    'ms': 'm s$^{\\mathregular{-1}}$',
+    'BJDTDB': 'BJD$_{\\mathregular{TDB}}$'
 }
 
 telfmts_default = {
@@ -548,12 +548,12 @@ def corner_plot_derived_pars(chains, planet, saveplot=None):
 
             # add units to label
             if key == 'mpsini':
-                unit = "M$_{\oplus}$"
+                unit = "M$_{\\oplus}$"
                 if np.median(chains[label]) > 100:
                     unit = "M$_{\\rm Jup}$"
                     chains[label] *= 0.00315
                 if np.median(chains[label]) > 100:
-                    unit = "M$_{\odot}$"
+                    unit = "M$_{\\odot}$"
                     chains[label] *= 0.000954265748
 
                 tl += " (%s)" % unit
@@ -661,7 +661,7 @@ def correlation_plot(post, outfile=None):
                 pl.plot(vec, p(vec), 'b-', lw=3)
                 pl.plot(vec, resid + p(vec), 'ko')
 
-                pl.xlabel("$\Delta$ %s" % '_'.join(parname.split('_')[1:]))
+                pl.xlabel("$\\Delta$ %s" % '_'.join(parname.split('_')[1:]))
                 pl.ylabel('RV [m s$^{-1}$]')
                 
                 pltind += 1

@@ -152,16 +152,18 @@ def test_priors():
     params['logk1'] = radvel.Parameter(1.5)
 
     prior_tests = {
-        radvel.prior.EccentricityPrior(1): 0.0,
-        radvel.prior.PositiveKPrior(1): 0.0,
-        radvel.prior.Gaussian('per1', 10.0, 0.1): 0.0,
-        radvel.prior.HardBounds('per1', 1.0, 9.0): -np.inf,
-        radvel.prior.Jeffreys('per1', 0.1, 100.0): -np.log(params['per1'].value),
-        radvel.prior.ModifiedJeffreys('per1', 0.1, 100.0): -np.log(params['per1'].value + 0.1),
-        radvel.prior.SecondaryEclipsePrior(1, 5.0, 1.0): 0.0
+        radvel.prior.EccentricityPrior(1):                  0.0,
+        radvel.prior.PositiveKPrior(1):                     0.0,
+        radvel.prior.Gaussian('per1', 10.0, 0.1):           0.0,
+        radvel.prior.HardBounds('per1', 1.0, 9.0):          -np.inf,
+        radvel.prior.Jeffreys('per1', 0.1, 100.0):          -np.log(params['per1'].value),
+        radvel.prior.ModifiedJeffreys('per1', 0.1, 100.0):  -np.log(params['per1'].value + 0.1),
+        radvel.prior.SecondaryEclipsePrior(1, 5.0, 1.0):    0.0
     }
 
     for prior, val in prior_tests.items():
+        print(prior.__repr__())
+        print(prior.__str__())
         assert prior(params) == val, "Prior output does not match expectation"
 
 
