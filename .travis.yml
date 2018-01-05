@@ -15,8 +15,7 @@ before_install:
     - export py="$(echo $TRAVIS_PYTHON_VERSION | head -c 1)"
     - wget http://repo.continuum.io/miniconda/Miniconda${py}-latest-Linux-x86_64.sh -O miniconda.sh
     - chmod +x miniconda.sh
-    - ./miniconda.sh -b
-    - ln -s /home/travis/miniconda? /home/travis/miniconda
+    - bash miniconda.sh -b -u -p $HOME/miniconda
     - export PATH=/home/travis/miniconda/bin:$PATH
     - conda update --yes conda
     - sudo rm -rf /dev/shm
