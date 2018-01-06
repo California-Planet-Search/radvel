@@ -25,11 +25,11 @@ texdict = {
     'jit_': '\\sigma_{\\rm ',
     'dvdt': '\\dot{\\gamma}',
     'curv': '\\ddot{\\gamma}',
-    'gp_amp': '\\eta_1',
-    'gp_explength': '\\eta_2',
-    'gp_per': '\\eta_3',
-    'gp_perlength': '\\eta_4',
-    'gp_length':'\\eta_2'
+    'gp_amp': '\\eta_{1}',
+    'gp_explength': '\\eta_{2}',
+    'gp_per': '\\eta_{3}',
+    'gp_perlength': '\\eta_{4}',
+    'gp_length':'\\eta_{2}'
 }
 
 class Parameters(OrderedDict):
@@ -109,13 +109,17 @@ should have only integers as keys."""
         for k in param_list:
             n = k[-1]
             p = k[:-1]
-            if n.isdigit(): tex_labels[k] = self._planet_texlabel(p, n)
-            elif k in texdict.keys(): tex_labels[k] = "$%s$" % texdict[k]
+            if n.isdigit():
+                tex_labels[k] = self._planet_texlabel(p, n)
+            elif k in texdict.keys():
+                tex_labels[k] = "$%s$" % texdict[k]
             elif p not in self.planet_parameters:
                 for tex in texdict.keys():
                     if tex in k and len(tex) > 1:
                         tex_labels[k] = "$%s}$" % k.replace(tex, texdict[tex])
-                        
+                        if k.startswith('gp_'):
+                            tex_labels[k] = tex_labels[k].replace("}_", ", \\rm ")
+
             if k not in tex_labels.keys():
                 tex_labels[k] = k
 
