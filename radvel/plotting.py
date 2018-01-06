@@ -295,9 +295,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
                 xpred = xpred - e
 
             orbit_model = like.model(xpred)
-            ax.fill_between(xpred, gpmu+orbit_model-2.*stddev, gpmu+orbit_model+2.*stddev, 
-                            color=kw['color'], alpha=0.25, lw=0
-                            )
             ax.fill_between(xpred, gpmu+orbit_model-stddev, gpmu+orbit_model+stddev, 
                             color=kw['color'], alpha=0.5, lw=0
                             )
