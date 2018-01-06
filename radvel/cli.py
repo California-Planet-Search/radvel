@@ -85,12 +85,26 @@ def main():
     )
     psr_mcmc.add_argument(
     '--nensembles', dest='ensembles', action='store', default=8, type=int,
-    help='''\
-Number of ensembles. Will be run in parallel on separate CPUs [8]
-'''
+    help="Number of ensembles. Will be run in parallel on separate CPUs [8]"
     )
-    psr_mcmc.set_defaults(func=radvel.driver.mcmc)
+    psr_mcmc.add_argument(
+    '--maxGR', dest='maxGR', action='store', default=1.01, type=float,
+    help="Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run [1.01]"
+    )
+    psr_mcmc.add_argument(
+    '--burnGR', dest='burnGR', action='store', default=1.01, type=float,
+    help="Maximum G-R statistic to stop burn-in period [1.03]"
+    )
+    psr_mcmc.add_argument(
+    '--minTz', dest='minTz', action='store', default=1000, type=int,
+    help="Minimum Tz to consider well-mixed [1000]"
+    )
+    psr_mcmc.add_argument(
+    '--minsteps', dest='minsteps', action='store', default=1000, type=int,
+    help="Minimum number of steps per walker before convergence tests are performed [1000]"
+    )
 
+    psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
     # Derive physical parameters
     psr_physical = subpsr.add_parser(
