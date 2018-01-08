@@ -252,6 +252,13 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     ci = 0
     default_colors = ['orange', 'purple', 'magenta' , 'pink']
 
+    numdatapoints = 0
+    for like in like_list:
+        if isinstance(like, radvel.likelihood.GPLikelihood): 
+            gp_mean, _ = like.predict(like.x)
+            rvmod[numdatapoints:numdatapoints+len(like.x)] += gp_mean
+        numdatapoints += len(like.x)
+
     for like in like_list:
         if isinstance(like, radvel.likelihood.GPLikelihood): 
             
@@ -278,6 +285,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             xpred = np.linspace(np.min(like.x),np.max(like.x),num=int(3e3))
             gpmu, stddev = like.predict(xpred)
 
+
             if ((xpred - e) < -2.4e6).any():
                 pass
             elif e == 0:
@@ -287,9 +295,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
                 xpred = xpred - e
 
             orbit_model = like.model(xpred)
-            ax.fill_between(xpred, gpmu+orbit_model-2.*stddev, gpmu+orbit_model+2.*stddev, 
-                            color=kw['color'], alpha=0.25, lw=0
-                            )
             ax.fill_between(xpred, gpmu+orbit_model-stddev, gpmu+orbit_model+stddev, 
                             color=kw['color'], alpha=0.5, lw=0
                             )
@@ -312,6 +317,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     pltletter += 1
 
     _mtelplot(
+        # data = residuals + best fit model
         plttimes, rawresid+rvmod, rverr, synthpost.likelihood.telvec, ax, telfmts
     )
     ax.set_xlim(min(plttimes)-0.01*dt, max(plttimes)+0.01*dt)
@@ -481,7 +487,7 @@ def corner_plot(post, chains, saveplot=None):
     """
     labels = [k for k in post.params.keys() if post.params[k].vary]
     texlabels = [post.params.tex_labels().get(l, l) for l in labels]
-    
+
     f = rcParams['font.size']
     rcParams['font.size'] = 12
     

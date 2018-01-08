@@ -45,13 +45,14 @@ class SqExpKernel(Kernel):
 
     .. math::
 
-        C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 })
+        C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 } )
 
     Args:
         hparams (dict of radvel.Parameter): dictionary containing
             radvel.Parameter objects that are GP hyperparameters
-            of this kernel. Must contain exactly two objects, 'gp_length'
-            and 'gp_amp'.
+            of this kernel. Must contain exactly two objects, 'gp_length*'
+            and 'gp_amp*', where * is a suffix identifying
+            these hyperparameters with a likelihood object.
 
     """
 
@@ -60,8 +61,13 @@ class SqExpKernel(Kernel):
         return "SqExp"
 
     def __init__(self, hparams):
-        self.hparams = hparams
         self.covmatrix = None
+        self.hparams = {}
+        for par in hparams:
+            if par.startswith('gp_length'):
+                self.hparams['gp_length'] = hparams[par]
+            if par.startswith('gp_amp'):
+                self.hparams['gp_amp'] = hparams[par]
 
         assert len(hparams) == 2, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to SqExp Kernel "
@@ -70,7 +76,7 @@ class SqExpKernel(Kernel):
             self.hparams['gp_length'].value
             self.hparams['gp_amp'].value
         except:
-            "KERNEL ERROR: SqExp Kernel requires hyperparameters 'gp_length' and 'gp_amp'"
+            print("KERNEL ERROR: SqExp Kernel requires hyperparameters 'gp_length*' and 'gp_amp*'")
 
 
     def __repr__(self):
@@ -102,8 +108,9 @@ class PerKernel(Kernel):
     Args:
         hparams (dict of radvel.Parameter): dictionary containing
             radvel.Parameter objects that are GP hyperparameters
-            of this kernel. Must contain exactly three objects, 'gp_length',
-            'gp_amp', and 'gp_per'.
+            of this kernel. Must contain exactly three objects, 'gp_length*',
+            'gp_amp*', and 'gp_per*', where * is a suffix identifying
+            these hyperparameters with a likelihood object.
 
     """
 
@@ -112,8 +119,15 @@ class PerKernel(Kernel):
         return "Per"
 
     def __init__(self, hparams):
-        self.hparams = hparams
         self.covmatrix = None
+        self.hparams = {}
+        for par in hparams:
+            if par.startswith('gp_length'):
+                self.hparams['gp_length'] = hparams[par]
+            if par.startswith('gp_amp'):
+                self.hparams['gp_amp'] = hparams[par]
+            if par.startswith('gp_per'):
+                self.hparams['gp_per'] = hparams[par]
 
         assert len(hparams) == 3, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to Per Kernel "
@@ -123,7 +137,8 @@ class PerKernel(Kernel):
             self.hparams['gp_amp'].value
             self.hparams['gp_per'].value
         except:
-            "KERNEL ERROR: Per Kernel requires hyperparameters 'gp_length', 'gp_amp', and 'gp_per'"
+            print("KERNEL ERROR: Per Kernel requires hyperparameters with string" +
+                  "names: 'gp_length*', 'gp_amp*', and 'gp_per*'")
 
     def __repr__(self):
         length= self.hparams['gp_length'].value
@@ -157,8 +172,9 @@ class QuasiPerKernel(Kernel):
     Args:
         hparams (dict of radvel.Parameter): dictionary containing
             radvel.Parameter objects that are GP hyperparameters
-            of this kernel. Must contain exactly four objects, 'gp_explength',
-            'gp_amp', 'gp_per', and 'gp_perlength'.
+            of this kernel. Must contain exactly four objects, 'gp_explength*',
+            'gp_amp*', 'gp_per*', and 'gp_perlength*', where * is a suffix 
+            identifying these hyperparameters with a likelihood object.
 
     """
     @property
@@ -166,8 +182,17 @@ class QuasiPerKernel(Kernel):
         return "QuasiPer"
 
     def __init__(self, hparams):
-        self.hparams = hparams
         self.covmatrix = None
+        self.hparams = {}
+        for par in hparams:
+            if par.startswith('gp_perlength'):
+                self.hparams['gp_perlength'] = hparams[par]
+            if par.startswith('gp_amp'):
+                self.hparams['gp_amp'] = hparams[par]
+            if par.startswith('gp_per'):
+                self.hparams['gp_per'] = hparams[par]
+            if par.startswith('gp_explength'):
+                self.hparams['gp_explength'] = hparams[par]
 
         assert len(hparams) == 4, \
         "KERNEL ERROR: incorrect number of hyperparameters passed to QuasiPer Kernel "
@@ -178,7 +203,7 @@ class QuasiPerKernel(Kernel):
             self.hparams['gp_per'].value
             self.hparams['gp_explength'].value
         except:
-            "KERNEL ERROR: QuasiPer Kernel requires hyperparameters 'gp_perlength', 'gp_amp', 'gp_per', and 'gp_explength'"
+            "KERNEL ERROR: QuasiPer Kernel requires hyperparameters 'gp_perlength*', 'gp_amp*', 'gp_per*', and 'gp_explength*'"
 
     def __repr__(self):
         perlength = self.hparams['gp_perlength'].value
