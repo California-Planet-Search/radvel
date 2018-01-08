@@ -90,7 +90,7 @@ def _domcmc(input_tuple):
     return sampler
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.03, maxGR=1.01,
-         minTz=1000, minsteps=1000):
+         minTz=1000, minsteps=1000, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -105,6 +105,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
         minsteps (int): (optional) Minimum number of steps per walker before convergence tests are performed
+        serial (bool): set to true if MCMC should be run in serial
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
@@ -189,8 +190,8 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         else:
             pool = Pool(statevars.ensembles)
             statevars.samplers = pool.map(_domcmc, mcmc_input_array)
-            pool.close() #terminates worker processes once all work is done
-            pool.join() #waits for all processes to finish before proceeding
+            pool.close()  # terminates worker processes once all work is done
+            pool.join()   # waits for all processes to finish before proceeding
 
         t2 = time.time()
         statevars.interval = t2 - t1
