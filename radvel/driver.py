@@ -139,14 +139,13 @@ def mcmc(args):
         serial = True # for now, run GP fits in serial
         args.ensembles = 3
 
-    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {} ...".format(
-        conf_base, args.nwalkers, args.nsteps, args.ensembles)
+    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
+        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
     print(msg)
 
     chains = radvel.mcmc(
-             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, 
-             serial=serial
-             )
+            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
+            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps)
 
     # Convert chains into synth basis
     synthchains = chains.copy()
@@ -158,7 +157,7 @@ def mcmc(args):
     synth_quantile = synthchains.quantile([0.159, 0.5, 0.841])
 
     # Get quantiles and update posterior object to median 
-    #   values returned by MCMC chains
+    # values returned by MCMC chains
     post_summary=chains.quantile([0.159, 0.5, 0.841])        
 
     for k in chains.keys():

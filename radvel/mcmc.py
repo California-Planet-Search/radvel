@@ -12,23 +12,6 @@ import emcee
 from radvel import utils
 
 
-# Maximum G-R statistic to stop burn-in period
-burnGR = 1.03
-
-# Maximum G-R statistic for chains to be deemed well-mixed
-maxGR = 1.01
-
-# Min Tz statistic for chains to be deemed well-mixed
-minTZ = 1000
-
-# If quick results are desired....
-#maxGR = 1.03
-#minTZ = 100.
-
-# Minimum number of steps per walker before
-# convergence tests are performed
-minsteps = 1000
-
 class StateVars(object):
     def __init__(self):
         pass
@@ -47,12 +30,15 @@ def _status_message(statevars):
     sys.stdout.flush()
 
 
-def convergence_check(samplers):
+def convergence_check(samplers, maxGR, minTz, minsteps):
     """Check for convergence
     Check for convergence for a list of emcee samplers
     
     Args:
         samplers (list): List of emcee sampler objects
+        maxGR (float): Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
+        minTz (int): Minimum Tz to consider well-mixed
+        minsteps (int): Minimum number of steps per walker before convergence tests are performed
     """
     
     statevars.ar = 0
@@ -81,7 +67,7 @@ def convergence_check(samplers):
     if statevars.pcomplete < 5 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
     else:
-        (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains, minTz=minTZ)
+        (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains, maxGR=maxGR, minTz=minTz)
         statevars.mintz = min(tz)
         statevars.maxgr = max(gr)
         if statevars.ismixed:
@@ -103,26 +89,26 @@ def _domcmc(input_tuple):
     
     return sampler
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8,
-             checkinterval=50, serial=False):
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.03, maxGR=1.01,
+         minTz=1000, minsteps=1000):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
         post (radvel.posterior): radvel posterior object
-        nwalkers (int): number of MCMC walkers
-        nrun (int): number of steps to take
-        ensembles (int): number of ensembles to run. Will be run
+        nwalkers (int): (optional) number of MCMC walkers
+        nrun (int): (optional) number of steps to take
+        ensembles (int): (optional) number of ensembles to run. Will be run
             in parallel on separate CPUs
-        checkinterval (int): check MCMC convergence statistics every 
+        checkinterval (int): (optional) check MCMC convergence statistics every
             `checkinterval` steps
-        serial (Bool): set to true if MCMC should be run in serial
+        burnGR (float): (optional) Maximum G-R statistic to stop burn-in period
+        maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
+        minTz (int): (optional) Minimum Tz to consider well-mixed
+        minsteps (int): (optional) Minimum number of steps per walker before convergence tests are performed
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
 
-   # server = pp.Server(ncpus=ensembles)
-
-   # statevars.server = server
     statevars.ensembles = ensembles
     statevars.nwalkers = nwalkers
     statevars.checkinterval = checkinterval
@@ -170,7 +156,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         statevars.samplers.append(emcee.EnsembleSampler( 
             statevars.nwalkers, statevars.ndim, pcopy.logprob_array, threads=1))
 
-        
     num_run = int(np.round(nrun / checkinterval))
     statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
     statevars.mixcount = 0
@@ -206,15 +191,11 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             statevars.samplers = pool.map(_domcmc, mcmc_input_array)
             pool.close() #terminates worker processes once all work is done
             pool.join() #waits for all processes to finish before proceeding
-            
-
 
         t2 = time.time()
         statevars.interval = t2 - t1
 
-        convergence_check(statevars.samplers)
-
-
+        convergence_check(statevars.samplers, maxGR=maxGR, minTz=minTz, minsteps=minsteps)
 
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers
@@ -293,7 +274,7 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
     return models
 
 
-def gelman_rubin(pars0, minTz=1000, maxGR=maxGR):
+def gelman_rubin(pars0, minTz, maxGR):
     """Gelman-Rubin Statistic
 
     Calculates the Gelman-Rubin statistic and the number of
@@ -305,8 +286,8 @@ def gelman_rubin(pars0, minTz=1000, maxGR=maxGR):
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
             parameter values
-        minTz (int [optional]): minimum Tz to consider well-mixed
-        maxGR (float [optional]):  maximum Gelman-Rubin statistic to
+        minTz (int): minimum Tz to consider well-mixed
+        maxGR (float): maximum Gelman-Rubin statistic to
             consider well-mixed
     Returns:
         tuple: tuple containing:
