@@ -16,6 +16,10 @@ class _args(object):
         self.nwalkers = 50
         self.nsteps = 3000
         self.ensembles = 8
+        self.maxGR = 1.01
+        self.burnGR = 1.03
+        self.minTz = 1000
+        self.minsteps = 300
 
 
 def _standard_run(setupfn):
