@@ -14,8 +14,7 @@ General Toolkit for Modeling Radial Velocities.
 
 Written by BJ Fulton, Erik Petigura, Sarah Blunt, and Evan Sinukoff. Fulton et al. (submitted to PASP)
 
-Please cite the following DOI if you wish to make use of this software in any publication.
-
+Please cite the [original publication](http://adsabs.harvard.edu/abs/2018arXiv180101947F) and the following DOI if you make use of this software in your research.
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.580821.svg)](https://doi.org/10.5281/zenodo.580821)
 
 ## Documentation
