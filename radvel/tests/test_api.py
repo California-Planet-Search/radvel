@@ -15,12 +15,12 @@ class _args(object):
         self.decorr = False
 
         self.nwalkers = 50
-        self.nsteps = 100
+        self.nsteps = 10000
         self.ensembles = 8
         self.maxGR = 1.01
         self.burnGR = 1.03
         self.minTz = 1000
-        self.minsteps = 300
+        self.minsteps = 100
 
 
 def _standard_run(setupfn):
