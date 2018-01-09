@@ -70,18 +70,18 @@ Converting 'logjit' to 'jit' for you now.
             for d in decorr_vars:
                 decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
 
-        # params relevent to the ith likelihood
-        local_params = [key for key in params.keys() if key.endswith(inst)]
-        liketype = radvel.likelihood.RVLikelihood
-        kernel_name = None
-        hnames = None
-        if [key for key in local_params if key.startswith('gp_')]:
+        try:
             hnames = P.hnames[inst]
             liketype = radvel.likelihood.GPLikelihood
             try:
                 kernel_name = P.kernel_name[inst]
             except:
                 kernel_name = "QuasiPer"
+        except:
+            liketype = radvel.likelihood.RVLikelihood
+            kernel_name = None
+            hnames = None
+
 
 
         likes[inst] = liketype(
