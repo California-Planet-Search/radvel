@@ -31,6 +31,6 @@ setup(
     ],
     entry_points={'console_scripts': ['radvel=radvel.cli:main']},
     install_requires=[line.strip() for line in
-                      open('requirements.txt', 'r').readlines()]
-
+                      open('requirements.txt', 'r').readlines()],
+    include_package_data=True
 )
