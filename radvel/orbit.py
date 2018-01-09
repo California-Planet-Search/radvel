@@ -1,6 +1,6 @@
 
 import numpy as np
-import radvel
+import radvel.kepler
 
 
 def timetrans_to_timeperi(tc, per, ecc, omega):
@@ -10,7 +10,7 @@ def timetrans_to_timeperi(tc, per, ecc, omega):
     Args:
         tc (float): time of transit    
         per (float): period [days]
-        ecc (float): eccecntricity
+        ecc (float): eccentricity
         omega (float): longitude of periastron (radians)
     
     Returns:
@@ -42,7 +42,7 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=False):
         secondary (bool): calculate time of secondary eclipse instead
 
     Returns:
-        float: time of inferior conjuntion (time of transit if system is transiting)
+        float: time of inferior conjunction (time of transit if system is transiting)
     
     """
     try:
@@ -52,11 +52,18 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=False):
         pass
     
     if secondary:
-        f = 3*np.pi/2 - omega                      # true anomaly during secondary eclipse
-    else:
-        f = np.pi/2 - omega                      # true anomaly during transit
+        f = 3*np.pi/2 - omega                                       # true anomaly during secondary eclipse
+        ee = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
 
-    ee = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
+        # ensure that ee is between 0 and 2*pi (always the eclipse AFTER tp)
+        if isinstance(ee, np.float64):
+            ee = ee + 2 * np.pi
+        else:
+            ee[ee < 0.0] = ee + 2 * np.pi
+    else:
+        f = np.pi/2 - omega                                         # true anomaly during transit
+        ee = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
+
     tc = tp + per/(2*np.pi) * (ee - ecc*np.sin(ee))         # time of conjunction
 
     return tc
@@ -64,7 +71,7 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=False):
 
 def true_anomaly(t, tp, per, e):
     """
-    Calculate the true anomoly for a given time, period, eccentricity.
+    Calculate the true anomaly for a given time, period, eccentricity.
 
     Args:
         t (array): array of times in JD

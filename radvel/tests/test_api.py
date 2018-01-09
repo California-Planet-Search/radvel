@@ -2,6 +2,7 @@ import warnings
 
 import radvel
 import radvel.driver
+import numpy as np
 import radvel.prior
 
 warnings.filterwarnings("ignore")
@@ -14,12 +15,12 @@ class _args(object):
         self.decorr = False
 
         self.nwalkers = 50
-        self.nsteps = 3000
+        self.nsteps = 10000
         self.ensembles = 8
         self.maxGR = 1.01
         self.burnGR = 1.03
         self.minTz = 1000
-        self.minsteps = 300
+        self.minsteps = 100
 
 
 def _standard_run(setupfn):
@@ -52,8 +53,7 @@ def _standard_run(setupfn):
 def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
-    """
-    
+    """    
     _standard_run(setupfn)
 
 
@@ -67,6 +67,20 @@ def test_hd(setupfn='example_planets/HD164922.py'):
 
     radvel.driver.fit(args)
 
+    args.type = ['rv']
+    args.plotkw = {}
+    radvel.driver.plots(args)
+
+
+def test_k2131(setupfn='example_planets/k2-131.py'):
+    """
+    Check GP fit
+    """
+    args = _args()
+    args.setupfn = setupfn
+
+    radvel.driver.fit(args)
+    
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
@@ -110,6 +124,53 @@ def test_basis():
 {}, {} != {}".format(par, before, after)
 
 
+def test_kernels():
+    """
+    Test basic functionality of all GP kernels
+    """
+
+    kernel_list = radvel.gp.KERNELS
+
+    for kernel in kernel_list:
+        hnames = kernel_list[kernel] # gets list of hyperparameter name strings
+        hyperparams = {k: radvel.Parameter(value=1.) for k in hnames}
+        kernel_call = getattr(radvel.gp, kernel + "Kernel") 
+        test_kernel = kernel_call(hyperparams)
+
+        x = np.array([np.array([1.,2.,3.])]).T
+        test_kernel.compute_distances(x,x)
+        test_kernel.compute_covmatrix()
+        test_kernel.add_diagonal_errors(x)
+
+
+def test_priors():
+    """
+    Test basic functionality of all Priors
+    """
+
+    params = radvel.Parameters(1)
+    params['per1'] = radvel.Parameter(10.0)
+    params['tc1'] = radvel.Parameter(0.0)
+    params['secosw1'] = radvel.Parameter(0.0)
+    params['sesinw1'] = radvel.Parameter(0.0)
+    params['logk1'] = radvel.Parameter(1.5)
+
+    prior_tests = {
+        radvel.prior.EccentricityPrior(1):                  0.0,
+        radvel.prior.PositiveKPrior(1):                     0.0,
+        radvel.prior.Gaussian('per1', 10.0, 0.1):           0.0,
+        radvel.prior.HardBounds('per1', 1.0, 9.0):          -np.inf,
+        radvel.prior.Jeffreys('per1', 0.1, 100.0):          -np.log(params['per1'].value),
+        radvel.prior.ModifiedJeffreys('per1', 0.1, 100.0):  -np.log(params['per1'].value + 0.1),
+        radvel.prior.SecondaryEclipsePrior(1, 5.0, 1.0):    0.0
+    }
+
+    for prior, val in prior_tests.items():
+        print(prior.__repr__())
+        print(prior.__str__())
+        assert prior(params) == val, "Prior output does not match expectation"
+
+
 def test_kepler():
     """
     Profile and test C-based Kepler solver
@@ -118,4 +179,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_kepler()
+    test_priors()

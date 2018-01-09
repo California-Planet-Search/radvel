@@ -23,12 +23,14 @@ setup(
             'radvel_example_data', 
             [
                 'example_data/164922_fixed.txt', 
-                'example_data/epic203771098.csv'
+                'example_data/epic203771098.csv',
+                'example_data/kepler21b.txt',
+                'example_data/k2-131.txt'
             ]
         )
     ],
     entry_points={'console_scripts': ['radvel=radvel.cli:main']},
     install_requires=[line.strip() for line in
-                      open('requirements.txt', 'r').readlines()]
-
+                      open('requirements.txt', 'r').readlines()],
+    include_package_data=True
 )

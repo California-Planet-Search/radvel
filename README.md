@@ -7,10 +7,12 @@ General Toolkit for Modeling Radial Velocities.
 [![Coverage Status](https://coveralls.io/repos/github/California-Planet-Search/radvel/badge.svg?branch=master)](https://coveralls.io/github/California-Planet-Search/radvel?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/radvel.svg)](https://badge.fury.io/py/radvel)
+[![Requirements Status](https://requires.io/github/California-Planet-Search/radvel/requirements.svg?branch=next-release)](https://requires.io/github/California-Planet-Search/radvel/requirements/?branch=next-release)
+
 
 ## Attribution
 
-Written by BJ Fulton, Erik Petigura, and Sarah Blunt. Fulton et al. (in prep.)
+Written by BJ Fulton, Erik Petigura, Sarah Blunt, and Evan Sinukoff. Fulton et al. (submitted to PASP)
 
 Please cite the following DOI if you wish to make use of this software in any publication.
 
@@ -47,15 +49,11 @@ RadVel is
    - Kepler's equation solved in C (slower Python solver also included)
    - MCMC is multi-threaded
 
-## Future Improvements
-
-- Gaussian Process (GP) functionality
-
 ## Tutorials 
 
 Follow examples in
 
-- `radvel/tests/SyntheticData.ipynb`
-- `radvel/tests/K2-24_Fitting+MCMC.ipynb`
-- `radvel/tests/164922_Fitting+MCMC.ipynb`
-
+- `radvel/docs/tutorials/SyntheticData.ipynb`
+- `radvel/docs/tutorials/K2-24_Fitting+MCMC.ipynb`
+- `radvel/docs/tutorials/164922_Fitting+MCMC.ipynb`
+- `radvel/docs/tutorials/GaussianProcess-tutorial.ipynb`

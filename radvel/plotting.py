@@ -15,8 +15,8 @@ import radvel
 from radvel.utils import t_to_phase, fastbin
 
 latex = {
-    'ms': 'm s$^{\mathregular{-1}}$',
-    'BJDTDB': 'BJD$_{\mathregular{TDB}}$'
+    'ms': 'm s$^{\\mathregular{-1}}$',
+    'BJDTDB': 'BJD$_{\\mathregular{TDB}}$'
 }
 
 telfmts_default = {
@@ -134,7 +134,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     Returns:
         figure: current matplotlib figure object
         list: list of axis objects
-
     """
     figwidth = 7.5  # spans a page with 0.5in margins
     phasefac = 1.4
@@ -172,6 +171,11 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         resolution = 10000
     else: 
         resolution = 2000
+
+    if isinstance(synthpost.likelihood, radvel.likelihood.CompositeLikelihood):
+        like_list = synthpost.likelihood.like_list
+    else:
+        like_list = [ synthpost.likelihood ]
 
     if not nophase:
         periods = []
@@ -240,10 +244,67 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     ax_list += [ax_rv]
    
-    # Unphased plot
-    ax.axhline(0, color='0.5', linestyle='--')
-    ax.plot(mplttimes, rvmod2, 'b-', rasterized=False, lw=0.1)
 
+    ax.axhline(0, color='0.5', linestyle='--')
+
+    # Default formatting
+    lw = 0.01
+    ci = 0
+    default_colors = ['orange', 'purple', 'magenta' , 'pink']
+
+    numdatapoints = 0
+    for like in like_list:
+        if isinstance(like, radvel.likelihood.GPLikelihood): 
+            gp_mean, _ = like.predict(like.x)
+            rvmod[numdatapoints:numdatapoints+len(like.x)] += gp_mean
+        numdatapoints += len(like.x)
+
+    for like in like_list:
+        if isinstance(like, radvel.likelihood.GPLikelihood): 
+            
+            t = like.suffix
+
+            kw = dict(
+            fmt='o', capsize=0, mew=0, 
+            ecolor='0.6', lw = lw, color=default_colors[ci],
+            label = t
+            )
+
+            # If not explicit format set, look among default formats
+            telfmt = {}
+            if t not in telfmts and t in telfmts_default:
+                telfmt = telfmts_default[t]
+            if t in telfmts:
+                telfmt = telfmts[t]
+                print(telfmt)
+            if t not in telfmts and t not in telfmts_default:
+                ci += 1
+            for k in telfmt:
+                kw[k] = telfmt[k]
+
+            xpred = np.linspace(np.min(like.x),np.max(like.x),num=int(3e3))
+            gpmu, stddev = like.predict(xpred)
+
+
+            if ((xpred - e) < -2.4e6).any():
+                pass
+            elif e == 0:
+                e = 2450000
+                xpred = xpred - e
+            else:
+                xpred = xpred - e
+
+            orbit_model = like.model(xpred)
+            ax.fill_between(xpred, gpmu+orbit_model-stddev, gpmu+orbit_model+stddev, 
+                            color=kw['color'], alpha=0.5, lw=0
+                            )
+            ax.plot(xpred, gpmu+orbit_model, 'b-', rasterized=False, lw=0.1)
+
+        else:
+            # Unphased plot
+            ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
+
+            
     def labelfig(letter):
         text = "{})".format(chr(letter))
         add_anchored(
@@ -254,7 +315,9 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     labelfig(pltletter)
 
     pltletter += 1
+
     _mtelplot(
+        # data = residuals + best fit model
         plttimes, rawresid+rvmod, rverr, synthpost.likelihood.telvec, ax, telfmts
     )
     ax.set_xlim(min(plttimes)-0.01*dt, max(plttimes)+0.01*dt)
@@ -424,7 +487,7 @@ def corner_plot(post, chains, saveplot=None):
     """
     labels = [k for k in post.params.keys() if post.params[k].vary]
     texlabels = [post.params.tex_labels().get(l, l) for l in labels]
-    
+
     f = rcParams['font.size']
     rcParams['font.size'] = 12
     
@@ -491,12 +554,12 @@ def corner_plot_derived_pars(chains, planet, saveplot=None):
 
             # add units to label
             if key == 'mpsini':
-                unit = "M$_{\oplus}$"
+                unit = "M$_{\\oplus}$"
                 if np.median(chains[label]) > 100:
                     unit = "M$_{\\rm Jup}$"
                     chains[label] *= 0.00315
                 if np.median(chains[label]) > 100:
-                    unit = "M$_{\odot}$"
+                    unit = "M$_{\\odot}$"
                     chains[label] *= 0.000954265748
 
                 tl += " (%s)" % unit
@@ -604,7 +667,7 @@ def correlation_plot(post, outfile=None):
                 pl.plot(vec, p(vec), 'b-', lw=3)
                 pl.plot(vec, resid + p(vec), 'ko')
 
-                pl.xlabel("$\Delta$ %s" % '_'.join(parname.split('_')[1:]))
+                pl.xlabel("$\\Delta$ %s" % '_'.join(parname.split('_')[1:]))
                 pl.ylabel('RV [m s$^{-1}$]')
                 
                 pltind += 1

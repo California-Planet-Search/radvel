@@ -134,6 +134,10 @@ def mcmc(args):
     else:
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
+    serial=False
+    if [key for key in post.params.keys() if key.startswith('gp_')]:
+        serial = True # for now, run GP fits in serial
+        args.ensembles = 3
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
         .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
@@ -325,6 +329,13 @@ def derive(args):
         size=len(chains)
         )
 
+    if (mstar <= 0.0).any():
+        num_nan = np.sum(mstar <= 0.0)
+        nan_perc = float(num_nan) / len(chains)
+        mstar[mstar <= 0] = np.abs(mstar[mstar <= 0])
+        print("WARNING: {} ({:.2f} %) of Msini samples are NaN. The stellar mass posterior may contain negative \
+values. Interpret posterior with caution.".format(num_nan, nan_perc))
+
     # Convert chains into synth basis
     synthchains = chains.copy()
     for par in post.params.keys():
@@ -359,6 +370,7 @@ def derive(args):
         e = _get_param('e')
 
         mpsini = radvel.utils.Msini(k, per, mstar, e, Msini_units='earth')
+
         _set_param('mpsini',mpsini)
 
         outcols.append(_get_colname('mpsini'))

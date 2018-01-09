@@ -23,7 +23,6 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
         use_c_kepler_solver (bool): (default: True) If \
             True use the Kepler solver written in C, else \
             use the Python/NumPy version.
-
     Returns:
         rv: (array of floats): radial velocity model
     
@@ -62,7 +61,7 @@ def kepler(inbigM, inecc):
         inecc (array): eccentricity
 
     Returns:
-        eccentric anomaly: array
+        array: eccentric anomaly
     
     """
     
@@ -112,20 +111,18 @@ def profile():
 
     import timeit
     
-    ecc = 0.20
+    ecc = 0.1
     numloops = 5000
+    print("\nECCENTRICITY = {}".format(ecc))
 
     for size in [10, 30, 100, 300, 1000]:
 
         setup = """\
 from radvel.kepler import rv_drive
 import numpy as np
-
 gc.enable()
-
 ecc = %f
 orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
-
 t = np.linspace(2455000, 2457000, %d)
 """ % (ecc, size)
 
@@ -141,3 +138,30 @@ t = np.linspace(2455000, 2457000, %d)
                            setup=setup, number=numloops)
         print("Ran %d model calculations in %5.3f seconds" % (numloops, tp))
         print("The C version runs %5.2f times faster" % (tp/tc))
+
+    ecc = 0.7
+    numloops = 5000
+    print("\nECCENTRICITY = {}".format(ecc))
+
+    for size in [30]:
+            setup = """\
+from radvel.kepler import rv_drive
+import numpy as np
+gc.enable()
+ecc = %f
+orbel = [32.468, 2456000, ecc, np.pi/2, 10.0]
+t = np.linspace(2455000, 2457000, %d)
+    """ % (ecc, size)
+
+            print("\nProfiling pure C code for an RV time series with {} "
+                  "observations".format(size))
+            tc = timeit.timeit('rv_drive(t, orbel, use_c_kepler_solver=True)',
+                               setup=setup, number=numloops)
+            print("Ran %d model calculations in %5.3f seconds" % (numloops, tc))
+
+            print("Profiling Python code for an RV time series with {} "
+                  "observations".format(size))
+            tp = timeit.timeit('rv_drive(t, orbel, use_c_kepler_solver=False)',
+                               setup=setup, number=numloops)
+            print("Ran %d model calculations in %5.3f seconds" % (numloops, tp))
+            print("The C version runs %5.2f times faster" % (tp / tc))

@@ -58,7 +58,7 @@ Converting 'logjit' to 'jit' for you now.
     # initialize RVmodel object
     mod = radvel.RVModel(params, time_base=P.time_base)
 
-    # initialize RVlikelihood objects for each instrument
+    # initialize Likelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
     for inst in P.instnames:
@@ -69,11 +69,27 @@ Converting 'logjit' to 'jit' for you now.
         if decorr:
             for d in decorr_vars:
                 decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
-        likes[inst] = radvel.likelihood.RVLikelihood(
+
+        try:
+            hnames = P.hnames[inst]
+            liketype = radvel.likelihood.GPLikelihood
+            try:
+                kernel_name = P.kernel_name[inst]
+            except:
+                kernel_name = "QuasiPer"
+        except:
+            liketype = radvel.likelihood.RVLikelihood
+            kernel_name = None
+            hnames = None
+
+
+
+        likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, suffix='_'+inst,
-            decorr_vars=decorr_vars, decorr_vectors=decorr_vectors
+            P.data.iloc[telgrps[inst]].errvel, hnames=hnames, suffix='_'+inst, 
+            kernel_name=kernel_name, decorr_vars=decorr_vars, 
+            decorr_vectors=decorr_vectors
         )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
@@ -313,11 +329,11 @@ def jd2date(jd):
 def geterr(vec, angular=False):
     """
     Calculate median, 15.9, and 84.1 percentile values
-    for a given vector."
+    for a given vector.
 
     Args:
         vec (array): vector, usually an MCMC chain for one parameter
-        angular (bool): (optional) Is this an angular parameter?
+        angular (bool [optioanl]): Is this an angular parameter?
             if True vec should be in radians. This will perform
             some checks to ensure proper boundary wrapping.
 
@@ -386,7 +402,7 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
         P (float): Orbital period [days]
         Mtotal (float): Mass of star + mass of planet [Msun]
         e (float): eccentricity
-        Msini_units = (optional) Units of returned Msini. Must be 'earth', or 'jupiter' (default 'earth').
+        Msini_units [optional]: Units of returned Msini. Must be 'earth', or 'jupiter' (default 'earth').
     Returns:
         float: Msini [units = Msini_units]
 
@@ -412,7 +428,7 @@ def density(mass, radius, MR_units='earth'):
     :param radius: radius, units = MR_units
     :type radius: float
 
-    :param MR_units: (optional) units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
+    :param MR_units [optional]: units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
 
     :return: density (g/cc)
     """

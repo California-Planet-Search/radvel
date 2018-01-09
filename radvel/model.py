@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from radvel import kepler
 from radvel.basis import Basis
+from radvel import gp
 
 
 texdict = {
@@ -23,21 +24,26 @@ texdict = {
     'logjit_': '\\ln{\\sigma_{\\rm jit}}_{\\rm ',
     'jit_': '\\sigma_{\\rm ',
     'dvdt': '\\dot{\\gamma}',
-    'curv': '\\ddot{\\gamma}'
+    'curv': '\\ddot{\\gamma}',
+    'gp_amp': '\\eta_{1}',
+    'gp_explength': '\\eta_{2}',
+    'gp_per': '\\eta_{3}',
+    'gp_perlength': '\\eta_{4}',
+    'gp_length':'\\eta_{2}'
 }
 
 class Parameters(OrderedDict):
 
-    """Object to store the orbital parameters.
+    """Object to store the model parameters.
 
     Parameters to describe a radial velocity orbit
-    stored as an OrderedDict
+    stored as an OrderedDict.
 
     Args:
         num_planets (int): Number of planets in model
         basis (string): parameterization of orbital parameters. See 
             ``radvel.basis.Basis`` for a list of valid basis strings.
-        planet_letters (Dictionary[optional): custom map to match the planet 
+        planet_letters (dict [optional): custom map to match the planet 
             numbers in the Parameter object to planet letters.
             Default {1: 'b', 2: 'c', etc.}. The keys of this dictionary must 
             all be integers.
@@ -89,7 +95,7 @@ should have only integers as keys."""
         """Map Parameters keys to pretty TeX code representations.
 
         Args:
-            param_list (list): (optional) Manually pass a list of parameter labels
+            param_list (list [optional]): Manually pass a list of parameter labels
         
         Returns:
             dict: dictionary mapping Parameters keys to TeX code
@@ -103,13 +109,17 @@ should have only integers as keys."""
         for k in param_list:
             n = k[-1]
             p = k[:-1]
-            if n.isdigit(): tex_labels[k] = self._planet_texlabel(p, n)
-            elif k in texdict.keys(): tex_labels[k] = "$%s$" % texdict[k]
+            if n.isdigit():
+                tex_labels[k] = self._planet_texlabel(p, n)
+            elif k in texdict.keys():
+                tex_labels[k] = "$%s$" % texdict[k]
             elif p not in self.planet_parameters:
                 for tex in texdict.keys():
                     if tex in k and len(tex) > 1:
                         tex_labels[k] = "$%s}$" % k.replace(tex, texdict[tex])
-                        
+                        if k.startswith('gp_'):
+                            tex_labels[k] = tex_labels[k].replace("}_", ", \\rm ")
+
             if k not in tex_labels.keys():
                 tex_labels[k] = k
 
@@ -135,10 +145,8 @@ class Parameter(object):
     Attributes:
         value (float): value of parameter. 
         vary (Bool): True if parameter is allowed to vary in
-            MCMC fits, false if fixed.
+            MCMC or max likelihood fits, false if fixed
         mcmcscale (float): step size to be used for MCMC fitting
-
-
     """
     def __init__(self, value=None, vary=True, mcmcscale=None):
         self.value = value
@@ -148,12 +156,14 @@ class Parameter(object):
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
         if isinstance(other,self.__class__):
-            return (self.value == other.value) and (self.vary == other.vary) \
+            return (self.value == other.value) \
+                    and (self.vary == other.vary) \
                     and (self.mcmcscale == other.mcmcscale)
 
     def __repr__(self):
-        s = "Parameter object: value = {}, vary = {}, mcmc scale = {}".format(self.value, 
-                                                                              self.vary, self.mcmcscale)
+        s = (
+          "Parameter object: value = {}, vary = {}, mcmc scale = {}"
+        ).format(self.value, self.vary, self.mcmcscale)
         return s
 
 if __name__ == "__main__":
@@ -166,8 +176,8 @@ class RVModel(object):
     Generic RV Model
 
     This class defines the methods common to all RV modeling
-    classes. The different RV models, having different
-    parameterizations inherit from this class.
+    classes. The different RV models, with different
+    parameterizations, all inherit from this class.
     """
     def __init__(self, params, time_base=0):
         self.num_planets = params.num_planets
@@ -179,13 +189,13 @@ class RVModel(object):
             self.params['curv']=Parameter(value=0.)
 
     def __call__(self, t, planet_num=None):
-        """Compute the radial velocity
+        """Compute the radial velocity.
         
         Includes all Keplerians and additional trends.
 
         Args:
             t (array of floats): Timestamps to calculate the RV model
-            planet_num (Optional[int]): calculate the RV model for a single 
+            planet_num (int [optional]): calculate the RV model for a single 
                 planet within a multi-planet system
 
         Returns:
@@ -210,4 +220,6 @@ class RVModel(object):
         vel+=self.params['dvdt'].value * ( t - self.time_base )
         vel+=self.params['curv'].value * ( t - self.time_base )**2
         return vel
+
+
 

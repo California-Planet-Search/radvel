@@ -59,7 +59,7 @@ def convergence_check(samplers, maxGR, minTz, minsteps):
 
     if statevars.ensembles < 3:
         # if less than 3 ensembles then GR between ensembles does
-        # not work so just calculate is on the last sampler
+        # not work so just calculate it on the last sampler
         statevars.tchains = sampler.chain.transpose()
 
     # Must have compelted at least 5% or 1000 steps per walker before
@@ -78,10 +78,10 @@ def convergence_check(samplers, maxGR, minTz, minsteps):
     _status_message(statevars)
 
 def _domcmc(input_tuple):
-    # Function to be run in parallel on different CPUs
-    #
-    # Input is a tuple: first element is an emcee sampler object, second is an array of 
-    #   initial positions, third is number of steps to run before doing a convergence check
+    """Function to be run in parallel on different CPUs
+    Input is a tuple: first element is an emcee sampler object, second is an array of 
+    initial positions, third is number of steps to run before doing a convergence check
+    """
     sampler = input_tuple[0]
     ipos = input_tuple[1]
     check_interval = input_tuple[2]
@@ -90,7 +90,7 @@ def _domcmc(input_tuple):
     return sampler
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.03, maxGR=1.01,
-         minTz=1000, minsteps=1000):
+         minTz=1000, minsteps=1000, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -105,6 +105,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
         minsteps (int): (optional) Minimum number of steps per walker before convergence tests are performed
+        serial (bool): set to true if MCMC should be run in serial
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
@@ -148,13 +149,13 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     statevars.samplers = []
     statevars.initial_positions = []
     for e in range(ensembles):
-        lcopy = copy.deepcopy(post)
-        pi = lcopy.get_vary_params()
+        pcopy = copy.deepcopy(post)
+        pi = pcopy.get_vary_params()
         p0 = np.vstack([pi]*statevars.nwalkers)
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
         statevars.initial_positions.append(p0)
         statevars.samplers.append(emcee.EnsembleSampler( 
-            statevars.nwalkers, statevars.ndim, lcopy.logprob_array, threads=1))
+            statevars.nwalkers, statevars.ndim, pcopy.logprob_array, threads=1))
 
     num_run = int(np.round(nrun / checkinterval))
     statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
@@ -181,10 +182,16 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             mcmc_input = (sampler, p1, checkinterval)
             mcmc_input_array.append(mcmc_input)
 
-        pool = Pool(statevars.ensembles)
-        statevars.samplers = pool.map(_domcmc, mcmc_input_array)
-        pool.close()  # terminates worker processes once all work is done
-        pool.join()   # waits for all processes to finish before proceeding
+        if serial:
+            statevars.samplers = []
+            for i in range(ensembles):
+                result = _domcmc(mcmc_input_array[i])
+                statevars.samplers.append(result)
+        else:
+            pool = Pool(statevars.ensembles)
+            statevars.samplers = pool.map(_domcmc, mcmc_input_array)
+            pool.close()  # terminates worker processes once all work is done
+            pool.join()   # waits for all processes to finish before proceeding
 
         t2 = time.time()
         statevars.interval = t2 - t1
@@ -245,6 +252,7 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
     
     Given an MCMC chain of parameters, draw representative parameters
     and synthesize models.
+
     Args:
         mod (radvel.RVmodel) : RV model
         chain (DataFrame): pandas DataFrame with different values from MCMC 
@@ -269,16 +277,13 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
 
 def gelman_rubin(pars0, minTz, maxGR):
     """Gelman-Rubin Statistic
+
     Calculates the Gelman-Rubin statistic and the number of
     independent draws for each parameter, as defined by Ford et
     al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
     The chain is considered well-mixed if all parameters have a
     Gelman-Rubin statistic of <= 1.03 and >= 1000 independent draws.
-    History: 
-        2010/03/01 - Written: Jason Eastman - The Ohio State University        
-        2012/10/08 - Ported to Python by BJ Fulton - University of Hawaii, 
-            Institute for Astronomy
-        2016/04/20 - Adapted for use in radvel. Removed "angular" parameter.
+
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
             parameter values
@@ -286,13 +291,26 @@ def gelman_rubin(pars0, minTz, maxGR):
         maxGR (float): maximum Gelman-Rubin statistic to
             consider well-mixed
     Returns:
-        (tuple): tuple containing:
-            ismixed (bool): Are the chains well-mixed?
-            gelmanrubin (array): An NPARS element array containing the
+        tuple: tuple containing:
+            ismixed (bool): 
+                Are the chains well-mixed?
+            gelmanrubin (array): 
+                An NPARS element array containing the
                 Gelman-Rubin statistic for each parameter (equation
                 25)
-            Tz (array): An NPARS element array containing the number
+            Tz (array): 
+                An NPARS element array containing the number
                 of independent draws for each parameter (equation 26)
+                
+    History: 
+        2010/03/01:
+            Written: Jason Eastman - The Ohio State University   
+        2012/10/08:
+            Ported to Python by BJ Fulton - University of Hawaii, 
+            Institute for Astronomy
+        2016/04/20:
+            Adapted for use in RadVel. Removed "angular" parameter.
+
     """
 
 

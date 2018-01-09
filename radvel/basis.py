@@ -10,8 +10,8 @@ BASIS_NAMES = ['per tp e w k',  # The synth basis
                'per tc ecosw esinw k',
                'per tc e w k',
                'logper tc secosw sesinw k',
-               'logper tc secosw sesinw logk']
-
+               'logper tc secosw sesinw logk',
+               'per tc se w k']
 
 def _print_valid_basis():
     print("Available bases:")
@@ -38,6 +38,7 @@ class Basis(object):
         num_planets (int): number of planets
 
     Attributes:
+
         synth_params (str): name of synth basis
 
     Note:
@@ -48,7 +49,8 @@ class Basis(object):
         'per tc ecosw esinw k'  \n
         'per tc e w k' \n
         'logper tc secosw sesinw k'\n
-        'logper tc secosw sesinw logk'
+        'logper tc secosw sesinw logk'\n
+        'per tc se w k'
     """
     synth_params = 'per tp e w k'.split()
 
@@ -96,7 +98,7 @@ class Basis(object):
         Args:
             params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
                 orbital parameters expressed in current basis
-            noVary (Optional[bool]): if True, set the 'vary' attribute of the returned Parameter objects 
+            noVary (bool [optional]): if True, set the 'vary' attribute of the returned Parameter objects 
                 to '' (used for displaying best fit parameters)
 
         Returns: 
@@ -155,7 +157,17 @@ class Basis(object):
                 w = _getpar('w')
                 k = _getpar('k')
                 tp = timetrans_to_timeperi(tc, per, e, w)
-            
+
+            if basis_name=='per tc se w k':
+                # pull out parameters
+                per = _getpar('per')
+                tc = _getpar('tc')
+                se = _getpar('se')
+                w = _getpar('w')
+                k = _getpar('k')
+                e = se**2
+                tp = timetrans_to_timeperi(tc, per, e, w)
+    
             if basis_name == 'per tc secosw sesinw logk':
                 # pull out parameters
                 per = _getpar('per')
@@ -244,7 +256,7 @@ class Basis(object):
             params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
                 orbital parameters expressed in current basis
             newbasis (string): string corresponding to basis to switch into
-            keep (Optional[bool]): keep the parameters expressed in
+            keep (bool [optional]): keep the parameters expressed in
                 the old basis, else remove them from the output
                 dictionary/DataFrame
 
@@ -306,14 +318,28 @@ class Basis(object):
                 if not kwargs.get('keep', True):
                     _delpar('tp')
 
+            if newbasis == 'per tc se w k':
+                per = _getpar('per')
+                e = _getpar('e')
+                w = _getpar('w')
+                tp = _getpar('tp')
+                
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
+                _setpar('w', w )
+                _setpar('se',np.sqrt(e))
+
+                if not kwargs.get('keep', True):
+                    _delpar('tp')
+                    _delpar('e')
+
             if newbasis == 'per tc secosw sesinw logk':
                 per = _getpar('per')
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
+                else:
                     tc = _getpar('tc')
                     tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
@@ -337,10 +363,11 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
-                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                 _setpar('secosw', np.sqrt(e)*np.cos(w))
                 _setpar('sesinw', np.sqrt(e)*np.sin(w))
@@ -360,10 +387,11 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
-                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                 _setpar('logper', np.log(per))
                 _setpar('secosw', np.sqrt(e)*np.cos(w))
@@ -385,10 +413,11 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
-                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                 _setpar('logper', np.log(per))
                 _setpar('secosw', np.sqrt(e)*np.cos(w))
@@ -411,10 +440,11 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
-                try:
+                if 'tp' in params_in.planet_parameters:
                     tp = _getpar('tp')
-                except KeyError:
-                    tp = timetrans_to_timeperi(_getpar('tc'), per, e, w)
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
                 _setpar('ecosw', e*np.cos(w))
                 _setpar('esinw', e*np.sin(w))
