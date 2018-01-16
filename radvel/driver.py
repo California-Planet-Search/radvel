@@ -17,7 +17,7 @@ import pandas as pd
 import numpy as np 
 
 import radvel
-
+from astropy import constants as c
 
 def plots(args):
     """
@@ -370,10 +370,12 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         e = _get_param('e')
 
         mpsini = radvel.utils.Msini(k, per, mstar, e, Msini_units='earth')
-
         _set_param('mpsini',mpsini)
-
         outcols.append(_get_colname('mpsini'))
+
+        musini = (mpsini * c.M_earth) / (mstar * c.M_sun)
+        _set_param('musini',musini)
+        outcols.append(_get_colname('musini'))
 
         try:
             rp = np.random.normal(

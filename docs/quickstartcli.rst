@@ -102,12 +102,16 @@ results and generate the full suite of plots.
 
     $ radvel plot -t rv corner trend -s /path/to/radvel/example_planets/HD164922.py
 
-Then create a LaTeX document and corresponding PDF to summarize the
-results.
+We can summarize our analysis with the `radvel report` command.
 
 .. code-block:: bash
 
     $ radvel report -s /path/to/radvel/example_planets/HD164922.py
+
+whihc creates a LaTeX document and corresponding PDF to summarize the
+results. Note that this command assembles values and plots that have been computed 
+through other commands, if you want to update, rerun the previous commands before 
+reruning `radvel report`
 
 The report PDF will be saved as `HD164922_results.pdf`. It should
 contain a table reporting the parameter values and uncertainties, a
