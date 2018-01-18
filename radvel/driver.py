@@ -139,7 +139,7 @@ def mcmc(args):
         if not sys.platform.startswith('linux'):
             print("WARNING: MCMC with GP likelihoods will run in serial on Mac and Windows machines.")
             serial = True  # for now, run GP fits in serial
-            args.ensembles = np.clip(args.ensembles, 1, 3)
+            args.ensembles = int(np.clip(args.ensembles, 1, 3))
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
         .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)

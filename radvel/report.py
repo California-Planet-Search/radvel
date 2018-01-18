@@ -165,32 +165,40 @@ The phase-folded model for planet %s is shown as the blue line.
         current = os.getcwd()
         temp = tempfile.mkdtemp()
         for fname in depfiles:
-            shutil.copy2(os.path.join(current,fname), os.path.join(temp,fname))
+            shutil.copy2(os.path.join(current, fname), os.path.join(temp, fname))
         
         os.chdir(temp)
-        
+
         f = open(texname, 'w')
         f.write(self.texdoc())
         f.close()
         try:
             for i in range(3):
+
+
+
+
+
+
+
+                
                 # LaTex likes to be compiled a few times
                 # to get the table widths correct
                 proc = subprocess.Popen(
                     [latex_compiler, texname], stdout=subprocess.PIPE, 
                 )
-                proc.communicate() # Let the subprocess complete
-        except OSError:
+                proc.communicate(timeout=15)  # Let the subprocess complete
+        except (OSError, subprocess.TimeoutExpired):
             msg = """ 
 WARNING: REPORT: could not run %s. Ensure that %s is in your PATH
 or pass in the path as an argument
 """ % (latex_compiler, latex_compiler)
             print(msg)
-            return 
+            return
 
-        shutil.copy(pdfname, current)
         shutil.copy(texname, current)
-        
+        shutil.copy(pdfname, current)
+
         shutil.rmtree(temp)
         os.chdir(current)
 
