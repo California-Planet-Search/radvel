@@ -11,7 +11,8 @@ BASIS_NAMES = ['per tp e w k',  # The synth basis
                'per tc e w k',
                'logper tc secosw sesinw k',
                'logper tc secosw sesinw logk',
-               'per tc se w k']
+               'per tc se w k',
+               'logper tp e w log']
 
 def _print_valid_basis():
     print("Available bases:")
@@ -235,6 +236,18 @@ class Basis(object):
                 e = np.sqrt(ecosw**2 + esinw**2)
                 w = np.arctan2(esinw, ecosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
+
+            if basis_name == 'logper tp e w logk':
+                # pull out parameters
+                logper = _getpar('logper')
+                tp = _getpar('tp')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('logk')
+
+                # transform into synth basis
+                per = np.exp(logper)
+                k = np.exp(k)
 
             # shoves synth parameters from namespace into param_out
             _setpar('per', per)
