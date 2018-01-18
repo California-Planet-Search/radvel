@@ -174,21 +174,13 @@ The phase-folded model for planet %s is shown as the blue line.
         f.close()
         try:
             for i in range(3):
-
-
-
-
-
-
-
-                
                 # LaTex likes to be compiled a few times
                 # to get the table widths correct
                 proc = subprocess.Popen(
                     [latex_compiler, texname], stdout=subprocess.PIPE, 
                 )
                 proc.communicate(timeout=15)  # Let the subprocess complete
-        except (OSError, subprocess.TimeoutExpired):
+        except (OSError):
             msg = """ 
 WARNING: REPORT: could not run %s. Ensure that %s is in your PATH
 or pass in the path as an argument
