@@ -134,7 +134,7 @@ def mcmc(args):
     else:
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
-    serial=False
+    serial = False
     if [key for key in post.params.keys() if key.startswith('gp_')]:
         if not sys.platform.startswith('linux'):
             print("WARNING: MCMC with GP likelihoods will run in serial on Mac and Windows machines.")
@@ -147,7 +147,7 @@ def mcmc(args):
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps)
+            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, serial=serial)
 
     # Convert chains into synth basis
     synthchains = chains.copy()
