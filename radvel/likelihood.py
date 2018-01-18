@@ -99,17 +99,16 @@ class Likelihood(object):
         return _logprob
 
 class CompositeLikelihood(Likelihood):
+    """Composite Likelihood
 
+    A thin wrapper to combine multiple `Likelihood`
+    objects. One `Likelihood` applies to a dataset from
+    a particular instrument.
+
+    Args:
+        like_list (list): list of `radvel.likelihood.RVLikelihood` objects
+    """
     def __init__(self, like_list):
-        """Composite Likelihood
-
-        A thin wrapper to combine multiple `Likelihood`
-        objects. One `Likelihood` applies to a dataset from
-        a particular instrument.
-
-        Args:
-            like_list (list): list of `radvel.likelihood.RVLikelihood` objects
-        """
         self.nlike = len(like_list)
 
         like0 = like_list[0]
