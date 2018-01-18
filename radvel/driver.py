@@ -134,10 +134,12 @@ def mcmc(args):
     else:
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
-    # serial=False
-    # if [key for key in post.params.keys() if key.startswith('gp_')]:
-    #     serial = True # for now, run GP fits in serial
-    #     args.ensembles = 3
+    serial=False
+    if [key for key in post.params.keys() if key.startswith('gp_')]:
+        if not sys.platform.contains('linux'):
+            print("WARNING: MCMC with GP likelihoods will run in serial on Mac and Windows machines.")
+            serial = True  # for now, run GP fits in serial
+            args.ensembles = 3
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
         .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
