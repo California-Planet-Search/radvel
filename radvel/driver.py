@@ -136,7 +136,7 @@ def mcmc(args):
                                                         decorr=args.decorr)
     serial=False
     if [key for key in post.params.keys() if key.startswith('gp_')]:
-        if not sys.platform.contains('linux'):
+        if not sys.platform.startswith('linux'):
             print("WARNING: MCMC with GP likelihoods will run in serial on Mac and Windows machines.")
             serial = True  # for now, run GP fits in serial
             args.ensembles = 3
