@@ -310,7 +310,39 @@ class TexTable(RadvelReport):
 \\end{deluxetable}
 """
         return out
-    
+
+
+    def velocity_table(self):
+            """Table of input velocities
+            Print a table of the input velocities in the report
+
+            Returns:
+                string: String containing TeX code for the table of RVs
+            """
+
+            out = """
+    \\begin{deluxetable}{lrrc}
+    \\tablecaption{Radial Velocities}
+    \\tablehead{\\colhead{Time} & \\colhead{RV} & \\colhead{RV Unc.} & \\colhead{Inst.} \\\\
+    \\colhead{(JD)} & \\colhead{(m s$^{-1}$)} & \\colhead{(m s$^{-1}$)} & \\colhead{}}
+    \\startdata
+    """
+            nvels = len(self.post.likelihood.x)
+
+            for i in range(nvels):
+                t = self.post.likelihood.x[i]
+                v = self.post.likelihood.y[i]
+                e = self.post.likelihood.yerr[i]
+                inst = self.post.likelihood.telvec[i]
+                out += "{:.5f} & {:.2f} & {:.2f} & {:s}\\\\\n".format(t, v, e, inst)
+
+            out += """
+    \\enddata
+    \\end{deluxetable}
+    """
+            return out
+
+
     def tex(self, tabtype='all', compstats=None):
         """TeX code for table
 
@@ -342,13 +374,17 @@ class TexTable(RadvelReport):
         if tabtype == 'all':
             outstr = self.tex(tabtype='nplanets', compstats=compstats)+ \
                      outstr_params + \
-                     self.prior_summary()
+                     self.prior_summary() + \
+                     self.velocity_table()
                      
         if tabtype == 'params':
             outstr = outstr_params
             
         if tabtype == 'priors':
             outstr = self.prior_summary()
+
+        if tabtype == 'rv':
+            outstr = self.velocity_table()
 
         if tabtype == 'nplanets':
             outstr = self.comp_table(self.report.compstats)

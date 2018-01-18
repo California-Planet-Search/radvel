@@ -273,12 +273,6 @@ def tables(args):
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
-        if tabtype == 'params':
-            tex = report.tabletex(tabtype=tabtype)
-
-        if tabtype == 'priors':
-            tex = report.tabletex(tabtype=tabtype)
-
         if tabtype == 'nplanets':
             assert status.has_option('bic', 'nplanets'), \
                 "Must run BIC comparison before making comparison tables"
@@ -288,6 +282,8 @@ def tables(args):
                 P, post, chains, compstats=compstats
             )
             tex = report.tabletex(tabtype='nplanets')
+        else:
+            tex = report.tabletex(tabtype=tabtype)
 
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)

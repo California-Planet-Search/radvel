@@ -128,7 +128,7 @@ def main():
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)
     psr_table.add_argument('-t','--type',
         type=str, nargs='+',
-        choices=['params','priors', 'nplanets'],
+        choices=['params', 'priors', 'nplanets', 'rv'],
         help="type of plot(s) to generate"
     )
     psr_table.add_argument(
