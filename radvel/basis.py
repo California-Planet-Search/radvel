@@ -248,7 +248,7 @@ class Basis(object):
                 # transform into synth basis
                 per = np.exp(logper)
                 k = np.exp(k)
-
+                
             # shoves synth parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
@@ -472,6 +472,28 @@ class Basis(object):
                 self.name = newbasis
                 self.params = newbasis.split()
 
+            if newbasis == 'logper tp e w logk':
+                per = _getpar('logper')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                if 'tp' in params_in.planet_parameters:
+                    tp = _getpar('tp')
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
+                    _setpar('tp', tp)
+                _setpar('logper', np.log(per))
+                _setpar('logk', np.log(k))
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
+
+                if not kwargs.get('keep', True):
+                    _delpar('per')
+                    _delpar('k')
+
+                self.name = newbasis
+                self.params = newbasis.split()
+                
         params_out.basis = Basis(newbasis, self.num_planets)
                 
         return params_out
