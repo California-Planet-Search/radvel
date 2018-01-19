@@ -11,7 +11,8 @@ BASIS_NAMES = ['per tp e w k',  # The synth basis
                'per tc e w k',
                'logper tc secosw sesinw k',
                'logper tc secosw sesinw logk',
-               'per tc se w k']
+               'per tc se w k',
+               'logper tp e w logk']
 
 def _print_valid_basis():
     print("Available bases:")
@@ -236,6 +237,18 @@ class Basis(object):
                 w = np.arctan2(esinw, ecosw)
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
+            if basis_name == 'logper tp e w logk':
+                # pull out parameters
+                logper = _getpar('logper')
+                tp = _getpar('tp')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('logk')
+
+                # transform into synth basis
+                per = np.exp(logper)
+                k = np.exp(k)
+                
             # shoves synth parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
@@ -459,6 +472,29 @@ class Basis(object):
                 self.name = newbasis
                 self.params = newbasis.split()
 
+            if newbasis == 'logper tp e w logk':
+                per = _getpar('per')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+                if 'tp' in params_in.planet_parameters:
+                    tp = _getpar('tp')
+                else:
+                    tc = _getpar('tc')
+                    tp = timetrans_to_timeperi(tc, per, e, w)
+                    _setpar('tp', tp)
+
+                _setpar('logper', np.log(per))
+                _setpar('logk', np.log(k))
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
+
+                if not kwargs.get('keep', True):
+                    _delpar('per')
+                    _delpar('k')
+
+                self.name = newbasis
+                self.params = newbasis.split()
+                
         params_out.basis = Basis(newbasis, self.num_planets)
                 
         return params_out

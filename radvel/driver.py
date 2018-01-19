@@ -17,7 +17,7 @@ import pandas as pd
 import numpy as np 
 
 import radvel
-
+from astropy import constants as c
 
 def plots(args):
     """
@@ -134,10 +134,12 @@ def mcmc(args):
     else:
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
-    serial=False
+    serial = False
     if [key for key in post.params.keys() if key.startswith('gp_')]:
-        serial = True # for now, run GP fits in serial
-        args.ensembles = 3
+        if not sys.platform.startswith('linux'):
+            print("WARNING: MCMC with GP likelihoods will run in serial on Mac and Windows machines.")
+            serial = True  # for now, run GP fits in serial
+            args.ensembles = int(np.clip(args.ensembles, 1, 3))
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
         .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
@@ -145,7 +147,7 @@ def mcmc(args):
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps)
+            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, serial=serial)
 
     # Convert chains into synth basis
     synthchains = chains.copy()
@@ -273,12 +275,6 @@ def tables(args):
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
-        if tabtype == 'params':
-            tex = report.tabletex(tabtype=tabtype)
-
-        if tabtype == 'priors':
-            tex = report.tabletex(tabtype=tabtype)
-
         if tabtype == 'nplanets':
             assert status.has_option('bic', 'nplanets'), \
                 "Must run BIC comparison before making comparison tables"
@@ -288,6 +284,8 @@ def tables(args):
                 P, post, chains, compstats=compstats
             )
             tex = report.tabletex(tabtype='nplanets')
+        else:
+            tex = report.tabletex(tabtype=tabtype)
 
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
@@ -370,10 +368,12 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         e = _get_param('e')
 
         mpsini = radvel.utils.Msini(k, per, mstar, e, Msini_units='earth')
-
         _set_param('mpsini',mpsini)
-
         outcols.append(_get_colname('mpsini'))
+
+        musini = (mpsini * c.M_earth) / (mstar * c.M_sun)
+        _set_param('musini',musini)
+        outcols.append(_get_colname('musini'))
 
         try:
             rp = np.random.normal(
