@@ -12,7 +12,7 @@ BASIS_NAMES = ['per tp e w k',  # The synth basis
                'logper tc secosw sesinw k',
                'logper tc secosw sesinw logk',
                'per tc se w k',
-               'logper tp e w log']
+               'logper tp e w logk']
 
 def _print_valid_basis():
     print("Available bases:")
