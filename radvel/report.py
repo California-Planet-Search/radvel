@@ -179,7 +179,7 @@ The phase-folded model for planet %s is shown as the blue line.
                 proc = subprocess.Popen(
                     [latex_compiler, texname], stdout=subprocess.PIPE, 
                 )
-                proc.communicate(timeout=15)  # Let the subprocess complete
+                proc.communicate()  # Let the subprocess complete
         except (OSError):
             msg = """ 
 WARNING: REPORT: could not run %s. Ensure that %s is in your PATH
