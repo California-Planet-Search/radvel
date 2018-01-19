@@ -473,7 +473,7 @@ class Basis(object):
                 self.params = newbasis.split()
 
             if newbasis == 'logper tp e w logk':
-                per = _getpar('logper')
+                per = _getpar('per')
                 e = _getpar('e')
                 w = _getpar('w')
                 k = _getpar('k')
@@ -483,6 +483,7 @@ class Basis(object):
                     tc = _getpar('tc')
                     tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
+
                 _setpar('logper', np.log(per))
                 _setpar('logk', np.log(k))
                 _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
