@@ -92,7 +92,7 @@ def main():
     help="Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run [1.01]"
     )
     psr_mcmc.add_argument(
-    '--burnGR', dest='burnGR', action='store', default=1.01, type=float,
+    '--burnGR', dest='burnGR', action='store', default=1.03, type=float,
     help="Maximum G-R statistic to stop burn-in period [1.03]"
     )
     psr_mcmc.add_argument(
