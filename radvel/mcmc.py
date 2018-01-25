@@ -90,7 +90,7 @@ def _domcmc(input_tuple):
     return sampler
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.03, maxGR=1.01,
-         minTz=1000, minsteps=1000, serial=False):
+         minTz=1000, minsteps=1000, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -105,6 +105,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
         minsteps (int): (optional) Minimum number of steps per walker before convergence tests are performed
+        thin (int): (optional) save one sample every N steps (default=1, save every sample)
         serial (bool): set to true if MCMC should be run in serial
     Returns:
         DataFrame: DataFrame containing the MCMC samples
@@ -244,6 +245,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         columns=post.list_vary_params())
     df['lnprobability'] = np.hstack(statevars.lnprob)
 
+    df = df.iloc[::thin]
 
     return df
 

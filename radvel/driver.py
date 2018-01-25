@@ -147,7 +147,7 @@ def mcmc(args):
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, serial=serial)
+            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=serial)
 
     # Convert chains into synth basis
     synthchains = chains.copy()

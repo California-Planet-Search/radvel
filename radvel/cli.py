@@ -103,6 +103,10 @@ def main():
     '--minsteps', dest='minsteps', action='store', default=1000, type=int,
     help="Minimum number of steps per walker before convergence tests are performed [1000]"
     )
+    psr_mcmc.add_argument(
+    '--thin', dest='thin', action='store', default=1, type=int,
+    help="Save one sample every N steps [default=1, save all samples]"
+    )
 
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
