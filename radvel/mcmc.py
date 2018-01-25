@@ -22,7 +22,7 @@ def _status_message(statevars):
     msg = (
         "{:d}/{:d} ({:3.1f}%) steps complete; "
         "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
-        "Min Tz = {:.1f}; Max G-R = {:4.2f}      \r"
+        "Min Tz = {:.1f}; Max G-R = {:5.3f}      \r"
     ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete,
                  statevars.rate, statevars.ar, statevars.mintz, statevars.maxgr)
 
