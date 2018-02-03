@@ -378,6 +378,7 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
     P = np.array(P)
     Msini = np.array(Msini)
     Mtotal = np.array(Mtotal)
+    e = np.array(e)
 
     P = (P * u.d).to(u.year).value
     if Msini_units.lower() == 'jupiter':
@@ -431,6 +432,8 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
     # convert inputs to array so they work with units
     P = np.array(P)
     Mtotal = np.array(Mtotal)
+    K = np.array(K)
+    e = np.array(e)
 
     P = (P * u.d).to(u.year).value
     Msini = K / K_0 * np.sqrt(1.0 - e**2.0)*Mtotal**(2.0 / 3.0)*P**(1 / 3.0) 
