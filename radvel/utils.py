@@ -359,35 +359,31 @@ def geterr(vec, angular=False):
     return med, errlow, errhigh
 
 
+
 def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
+    """Compute Doppler semi-amplitude
+
+    Args:
+        Msini (float): mass of planet [Mjup]
+        P (float): Orbital period [days]
+        Mtotal (float): Mass of star + mass of planet [Msun]
+        e (float): eccentricity
+        Msini_units (Optional[str]): Units of Msini {'earth','jupiter'} 
+            default: 'jupiter'
+
+    Returns
+        Doppler semi-amplitude [m/s]
+
     """
-    Compute Doppler semi-amplitude
-
-    :param Msini: mass of planet [Mjup]
-    :type Msini: float
-
-    :param P: Orbital period [days]
-    :type P: float
-
-    :param Mtotal: Mass of star + mass of planet [Msun]
-    :type Mtotal: float
-
-    :param e: eccentricity
-    :type e: float
-
-    :param Msini_units: Units of returned Msini. Must be 'earth', or 'jupiter' (default 'jupiter').
-    :type Msini_units: string
-
-    :return: Doppler semi-amplitude [m/s]
-    """
+    P = (P * u.d).to(u.year).value
     if Msini_units.lower() == 'jupiter':
-        K = K_0 * (1 - e ** 2) ** -0.5 * Msini * (P / 365.0) ** (-1 / 3.) * \
-            Mtotal ** (-2 / 3.)
+        pass 
     elif Msini_units.lower() == 'earth':
-        K = K_0 * (1 - e ** 2) ** -0.5 * Msini * (P / 365.0) ** (-1 / 3.) * \
-            Mtotal ** -(-2 / 3.) * (c.M_earth / c.M_jup).value
+        Msini = (Msini * u.M_earth).to(u.M_jup).value
     else:
         raise Exception("Msini_units must be 'earth', or 'jupiter'")
+
+    K = K_0*(1 - e**2)**-0.5*Msini*P**(-1.0/3.0)*Mtotal**(-2.0 / 3.0)
 
     return K
 
@@ -402,44 +398,48 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
         P (float): Orbital period [days]
         Mtotal (float): Mass of star + mass of planet [Msun]
         e (float): eccentricity
-        Msini_units [optional]: Units of returned Msini. Must be 'earth', or 'jupiter' (default 'earth').
+        Msini_units (Optional[str]): Units of Msini {'earth','jupiter'} 
+            default: 'earth'
+
     Returns:
         float: Msini [units = Msini_units]
 
     """
-
+    P = (P * u.d).to(u.year).value
+    Msini = K / K_0 * np.sqrt(1.0 - e**2.0)*Mtotal**(2.0 / 3.0)*P**(1 / 3.0) 
     if Msini_units.lower() == 'jupiter':
-        Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * Mtotal ** (2 / 3.) * \
-                (P / 365.0) ** (1 / 3.)
+        pass 
     elif Msini_units.lower() == 'earth':
-        Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * Mtotal ** (2 / 3.) * \
-                (P / 365.0) ** (1 / 3.) * (c.M_jup / c.M_earth).value
+        Msini = (Msini * u.M_jup).to(u.M_earth).value
     else:
         raise Exception("Msini_units must be 'earth', or 'jupiter'")
 
     return Msini
 
-
 def density(mass, radius, MR_units='earth'):
-    """
-    :param mass: mass, units = MR_units
-    :type mass: float
+    """Compute density from mass and radius
 
-    :param radius: radius, units = MR_units
-    :type radius: float
+    Args:
+        mass (float): mass [MR_units]
+        radius (float): radius [MR_units]
+        MR_units (Optional[str]): Units of Msini {'earth','jupiter'} 
+            default: 'earth'
 
-    :param MR_units [optional]: units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
-
-    :return: density (g/cc)
+    Returns:
+        float: density [g/cc
     """
     mass = np.array(mass)
     radius = np.array(radius)
+
     if MR_units.lower() == 'earth':
-        vol = 4. / 3. * np.pi * (radius * c.R_earth) ** 3
-        rho = ((mass * c.M_earth / vol).to(u.g / u.cm ** 3)).value
+        uradius = u.R_earth
+        umass = u.M_earth
     elif MR_units.lower() == 'jupiter':
-        vol = 4. / 3. * np.pi * (radius * c.R_jup) ** 3
-        rho = ((mass * c.M_jup / vol).to(u.g / u.cm ** 3)).value
+        uradius = u.R_jup
+        umass = u.M_jup
     else:
         raise Exception("MR_units must be 'earth', or 'jupiter'")
+
+    vol = 4. / 3. * np.pi * (radius * uradius) ** 3
+    rho = ((mass * umass / vol).to(u.g / u.cm ** 3)).value
     return rho
