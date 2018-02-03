@@ -358,8 +358,6 @@ def geterr(vec, angular=False):
             
     return med, errlow, errhigh
 
-
-
 def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
     """Compute Doppler semi-amplitude
 
@@ -375,6 +373,12 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
         Doppler semi-amplitude [m/s]
 
     """
+
+    # convert inputs to array so they work with units
+    P = np.array(P)
+    Msini = np.array(Msini)
+    Mtotal = np.array(Mtotal)
+
     P = (P * u.d).to(u.year).value
     if Msini_units.lower() == 'jupiter':
         pass 
@@ -387,6 +391,25 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
 
     return K
 
+def semi_major_axis(P, Mtotal):
+    """Semi-major axis
+
+    Kepler's third law
+
+    Args: 
+        P (float): Orbital period [days]
+        Mtotal (float): Mass [Msun]
+    """
+
+    # convert inputs to array so they work with units
+    P = np.array(P)
+    Mtotal = np.array(Mtotal)
+
+    Mtotal = Mtotal*u.Msun
+    P = P * u.d
+    a = (c.G * Mtotal * P**2 / 4.0 / np.pi**2)**(1.0/3.0)
+    a = a.to(u.AU).value
+    return a
 
 def Msini(K, P, Mtotal, e, Msini_units='earth'):
     """Calculate Msini
@@ -405,6 +428,10 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
         float: Msini [units = Msini_units]
 
     """
+    # convert inputs to array so they work with units
+    P = np.array(P)
+    Mtotal = np.array(Mtotal)
+
     P = (P * u.d).to(u.year).value
     Msini = K / K_0 * np.sqrt(1.0 - e**2.0)*Mtotal**(2.0 / 3.0)*P**(1 / 3.0) 
     if Msini_units.lower() == 'jupiter':
