@@ -74,7 +74,7 @@ Converting 'logjit' to 'jit' for you now.
     for inst in P.instnames:
         assert inst in P.data.groupby('tel').groups.keys(), \
             "No data found for instrument '{}'.\nInstruments found in this dataset: {}".format(inst,
-                                            list(telgrps.keys()))
+                                                                                               list(telgrps.keys()))
         decorr_vectors = {}
         if decorr:
             for d in decorr_vars:
@@ -92,8 +92,6 @@ Converting 'logjit' to 'jit' for you now.
             kernel_name = None
             hnames = None
 
-
-
         likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
@@ -110,7 +108,6 @@ Converting 'logjit' to 'jit' for you now.
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors
 
-
     return P, post
 
 
@@ -126,7 +123,8 @@ def round_sig(x, sig=2):
         float: `x` rounded to `sig` significant figures
     """
 
-    if x == 0 or np.isnan(x): return 0.0
+    if x == 0 or np.isnan(x):
+        return 0.0
     return round(x, sig-int(floor(log10(abs(x))))-1)
 
 
@@ -144,13 +142,14 @@ def sigfig(med, errlow, errhigh=None):
 
     """
     
-    if errhigh==None: errhigh = errlow
+    if errhigh is None:
+        errhigh = errlow
         
     ndec = Decimal(str(errlow)).as_tuple().exponent
     if abs(Decimal(str(errhigh)).as_tuple().exponent) > abs(ndec):
         ndec = Decimal(str(errhigh)).as_tuple().exponent
     if ndec < -1:
-            tmpmed = round(med,abs(ndec))
+            tmpmed = round(med, abs(ndec))
             p = 0
             while tmpmed == 0:
                 tmpmed = round(med, abs(ndec)+p)
@@ -160,7 +159,8 @@ def sigfig(med, errlow, errhigh=None):
             errlow = int(round_sig(errlow))
             errhigh = int(round(errhigh))
             med = int(round(med))
-    else: med = round(med,abs(ndec))
+    else:
+        med = round(med, abs(ndec))
 
     return med, errlow, errhigh
 
@@ -211,12 +211,12 @@ def timebin(time, meas, meas_err, binsize):
     time = time[ind_order]
     meas = meas[ind_order]
     meas_err = meas_err[ind_order]
-    ct=0
+    ct = 0
     while ct < len(time):
         ind = np.where((time >= time[ct]) & (time < time[ct]+binsize))[0]
         num = len(ind)
-        wt = (1./meas_err[ind])**2.     #weights based in errors
-        wt = wt/np.sum(wt)              #normalized weights
+        wt = (1./meas_err[ind])**2.     # weights based in errors
+        wt = wt/np.sum(wt)              # normalized weights
         if ct == 0:
             time_out = [np.sum(wt*time[ind])]
             meas_out = [np.sum(wt*meas[ind])]
@@ -257,13 +257,13 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
         t_bin, vel_bin, err_bin = timebin(t, vel, err, binsize=binsize)
         return t_bin, vel_bin, err_bin, telvec
     
-    uniqorder = np.argsort(np.unique(telvec,return_index=1)[1])
+    uniqorder = np.argsort(np.unique(telvec, return_index=1)[1])
     uniqsort = np.unique(telvec)[uniqorder]
     rvtimes = np.array([])
     rvdat = np.array([])
     rverr = np.array([])
     newtelvec = np.array([])
-    for i,tel in enumerate(uniqsort):
+    for i, tel in enumerate(uniqsort):
         pos = np.where(telvec == tel)
         t_bin, vel_bin, err_bin = timebin(
             t[pos], vel[pos], err[pos], binsize=binsize
@@ -276,7 +276,7 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
     return rvtimes, rvdat, rverr, newtelvec
 
 
-def fastbin(x,y,nbins=30):
+def fastbin(x, y, nbins=30):
     """Fast binning
 
     Fast binning function for equally spaced data
@@ -298,32 +298,16 @@ def fastbin(x,y,nbins=30):
     bint = (_[1:] + _[:-1])/2.
 
     binN = n
-    pos = binN >= 3# 0.5 * np.mean(binN)
+    pos = binN >= 3  # 0.5 * np.mean(binN)
     bint = bint[pos]
     bindat = bindat[pos]
     binerr = binerr[pos]
 
-    pos = bint>0
+    pos = bint > 0
     bint = bint[pos]
     bindat = bindat[pos]
     binerr = binerr[pos]
-    return bint,bindat,binerr
-
-
-def round_sig(x, sig=2):
-    """Round by significant figures
-
-    Args:
-        x (float): number to be rounded
-        sig (int): (optional) number of significant figures to retain
-
-    Returns:
-        float: x rounded to sig significant figures
-    """
-
-    if x == 0:
-        return 0.0
-    return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
+    return bint, bindat, binerr
 
 
 def t_to_phase(params, t, num_planet, cat=False):
@@ -336,7 +320,8 @@ def t_to_phase(params, t, num_planet, cat=False):
     tc = params[timeparam].value
     phase = np.mod(t - tc, P) 
     phase /= P
-    if cat: phase = np.concatenate((phase,phase+1))
+    if cat:
+        phase = np.concatenate((phase, phase+1))
     return phase
 
 
@@ -377,7 +362,7 @@ def date2jd(date):
         float: Julian date
      """
     
-    jd_td = date - datetime(2000,1,1,12,0,0)
+    jd_td = date - datetime(2000, 1, 1, 12, 0, 0)
     jd = 2451545.0 + jd_td.days + jd_td.seconds/86400.0
     return jd
 
@@ -394,7 +379,7 @@ def jd2date(jd):
     
     mjd = jd - 2400000.5
     td = timedelta(days=mjd)
-    dt = datetime(1858,11,17,0,0,0) + td
+    dt = datetime(1858, 11, 17, 0, 0, 0) + td
 
     return dt
 
@@ -418,9 +403,9 @@ def geterr(vec, angular=False):
         val, edges = np.histogram(vec, bins=50)
         med = edges[np.argmax(val)]
         if med > np.radians(90):
-            vec[vec<np.radians(0)] = vec[vec<np.radians(0)] + np.radians(360)
+            vec[vec < np.radians(0)] = vec[vec < np.radians(0)] + np.radians(360)
         if med <= np.radians(-90):
-            vec[vec>=np.radians(0)] = vec[vec>=np.radians(0)] - np.radians(360)
+            vec[vec >= np.radians(0)] = vec[vec >= np.radians(0)] - np.radians(360)
         med = np.median(vec)
     else:
         med = np.median(vec)
