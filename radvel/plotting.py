@@ -511,6 +511,8 @@ def texlabel(key, letter):
         return '$M_' + letter + '\\sin i$'
     if key.count('rhop') == 1:
         return '$\\rho_' + letter + '$'
+    if key.count('a') == 1:
+        return "$a_" + letter + "$"
 
 
 def corner_plot_derived_pars(chains, planet, saveplot=None):
@@ -562,10 +564,14 @@ def corner_plot_derived_pars(chains, planet, saveplot=None):
                     unit = "M$_{\\odot}$"
                     chains[label] *= 0.000954265748
 
-                tl += " (%s)" % unit
+                tl += " [%s]" % unit
+            elif key == 'rhop':
+                tl += " [g cm$^{-3}$]"
+            elif key == 'a':
+                tl += " [AU]"
             else:
-                tl += " (g cm$^{-3}$)"
-                
+                tl += " "
+
             labels.append(label)
             texlabels.append(tl)
 
