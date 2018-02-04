@@ -112,20 +112,17 @@ Converting 'logjit' to 'jit' for you now.
 
 
 def round_sig(x, sig=2):
-    """
-    Round to the requested number of significant figures.
-
+    """Round by significant figures
     Args:
-        x (float): value
-        sig (int): (optional) desired number of significant figures
-
+        x (float): number to be rounded
+        sig (int): (optional) number of significant figures to retain
     Returns:
-        float: `x` rounded to `sig` significant figures
+        float: x rounded to sig significant figures
     """
 
-    if x == 0 or np.isnan(x):
+    if x == 0:
         return 0.0
-    return round(x, sig-int(floor(log10(abs(x))))-1)
+    return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
 
 
 def sigfig(med, errlow, errhigh=None):
