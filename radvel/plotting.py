@@ -58,7 +58,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
     """
     lw = 1.0
 
-    default_colors = ['orange', 'purple', 'magenta', 'pink']
+    default_colors = ['orange', 'purple', 'magenta', 'pink', 'blue', 'grey', 'red']
     ci = 0
     
     utel = np.unique(tel)
