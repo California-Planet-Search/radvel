@@ -171,6 +171,9 @@ The phase-folded model for planet %s is shown as the blue line.
         f = open(texname, 'w')
         f.write(self.texdoc())
         f.close()
+
+        shutil.copy(texname, current)
+
         try:
             for i in range(3):
                 # LaTex likes to be compiled a few times
@@ -187,7 +190,6 @@ or pass in the path as an argument
             print(msg)
             return
 
-        shutil.copy(texname, current)
         shutil.copy(pdfname, current)
 
         shutil.rmtree(temp)
