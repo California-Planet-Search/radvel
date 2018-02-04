@@ -19,10 +19,20 @@ K_0 = 28.4329
 
 
 def initialize_posterior(config_file, decorr=False):
+    """Initialize Posterior object
+
+    Parse a setup file and initialize the RVModel, Likelihood, Posterior and priors.
+
+    Args:
+        config_file (string): path to config file
+        decorr (bool): (optional) decorrelate RVs against columns defined in the decorr_vars list
+
+    Returns:
+        tuple: (object representation of config file, radvel.Posterior object)
+    """
 
     system_name = os.path.basename(config_file).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(config_file))
-    system_name = P.starname
 
     params = P.params
     assert str(params.basis) == "Basis Object <{}>".format(P.fitting_basis), """
@@ -156,6 +166,16 @@ def sigfig(med, errlow, errhigh=None):
 
 
 def time_print(tdiff):
+    """Print time
+
+    Helper function to print time remaining in sensible units.
+
+    Args:
+        tdiff (float): time in seconds
+
+    Returns:
+        tuple: (float time, string units)
+    """
     units = 'seconds'
     if tdiff > 60:
         tdiff /= 60
@@ -170,10 +190,22 @@ def time_print(tdiff):
 
 
 def timebin(time, meas, meas_err, binsize):
-#  This routine bins a set of times, measurements, and measurement errors 
-#  into time bins.  All inputs and outputs should be floats or double. 
-#  binsize should have the same units as the time array.
-#  - from Andrew Howard, ported to Python by BJ Fulton
+    """Bin in equal sized time bins
+
+    This routine bins a set of times, measurements, and measurement errors
+    into time bins.  All inputs and outputs should be floats or double.
+    binsize should have the same units as the time array.
+    (from Andrew Howard, ported to Python by BJ Fulton)
+
+    Args:
+        time (array): array of times
+        meas (array): array of measurements to be comined
+        meas_err (array): array of measurement uncertainties
+        binsize (float): width of bins in same units as time array
+
+    Returns:
+        tuple: (bin centers, binned measurements, binned uncertainties)
+    """
 
     ind_order = np.argsort(time)
     time = time[ind_order]
@@ -199,6 +231,23 @@ def timebin(time, meas, meas_err, binsize):
 
 
 def bintels(t, vel, err, telvec, binsize=1/2.):
+    """Bin velocities by instrument
+
+    Bin RV data with bins of with binsize in the units of t.
+    Will not bin data from different telescopes together since there may
+    be offsets between them.
+
+    Args:
+        t (array): array of timestamps
+        vel (array): array of velocities
+        err (array): array of velocity uncertainties
+        telvec (array): array of strings corresponding to the instrument name for each velocity
+        binsize (float): (optional) width of bin in units of t (default=1/2.)
+
+    Returns:
+        tuple: (bin centers, binned measurements, binned uncertainties, binned instrument codes)
+    """
+
     # Bin RV data with bins of with binsize in the units of t.
     # Will not bin data from different telescopes together since there may
     # be offsets between them.
@@ -228,6 +277,19 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
 
 
 def fastbin(x,y,nbins=30):
+    """Fast binning
+
+    Fast binning function for equally spaced data
+
+    Args:
+        x (array): independent variable
+        y (array): dependent variable
+        nbins (int): number of bins
+
+    Returns:
+        tuple: (bin centers, binned measurements, binned uncertainties)
+    """
+
     n, _ = np.histogram(x, bins=nbins)
     sy, _ = np.histogram(x, bins=nbins, weights=y)
     sy2, _ = np.histogram(x, bins=nbins, weights=y*y)
@@ -249,7 +311,18 @@ def fastbin(x,y,nbins=30):
 
 
 def round_sig(x, sig=2):
-    if x == 0: return 0.0
+    """Round by significant figures
+
+    Args:
+        x (float): number to be rounded
+        sig (int): (optional) number of significant figures to retain
+
+    Returns:
+        float: x rounded to sig significant figures
+    """
+
+    if x == 0:
+        return 0.0
     return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
 
 
@@ -363,22 +436,15 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
     """
     Compute Doppler semi-amplitude
 
-    :param Msini: mass of planet [Mjup]
-    :type Msini: float
+    Args:
+        Msini (float): mass of planet [Mjup]
+        P (float): Orbital period [days]
+        Mtotal (float): Mass of star + mass of planet [Msun]
+        e (float): eccentricity
+        Msini_units (string): Units of returned Msini. Must be 'earth', or 'jupiter' (default 'jupiter')
 
-    :param P: Orbital period [days]
-    :type P: float
-
-    :param Mtotal: Mass of star + mass of planet [Msun]
-    :type Mtotal: float
-
-    :param e: eccentricity
-    :type e: float
-
-    :param Msini_units: Units of returned Msini. Must be 'earth', or 'jupiter' (default 'jupiter').
-    :type Msini_units: string
-
-    :return: Doppler semi-amplitude [m/s]
+    Returns:
+        float: Doppler semi-amplitude [m/s]
     """
     if Msini_units.lower() == 'jupiter':
         K = K_0 * (1 - e ** 2) ** -0.5 * Msini * (P / 365.0) ** (-1 / 3.) * \
@@ -421,17 +487,17 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
 
 
 def density(mass, radius, MR_units='earth'):
+    """Calculate planet density
+
+    Args:
+        mass (float): mass, units = MR_units
+        radius (float): radius, units = MR_units
+        MR_units (string): (optional) units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
+
+    Returns:
+        float: density in g/cc
     """
-    :param mass: mass, units = MR_units
-    :type mass: float
 
-    :param radius: radius, units = MR_units
-    :type radius: float
-
-    :param MR_units [optional]: units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
-
-    :return: density (g/cc)
-    """
     mass = np.array(mass)
     radius = np.array(radius)
     if MR_units.lower() == 'earth':
