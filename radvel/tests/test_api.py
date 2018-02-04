@@ -21,7 +21,7 @@ class _args(object):
         self.burnGR = 1.03
         self.minTz = 1000
         self.minsteps = 100
-
+        self.thin = 1
 
 def _standard_run(setupfn):
     """

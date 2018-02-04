@@ -19,10 +19,20 @@ K_0 = 28.4329
 
 
 def initialize_posterior(config_file, decorr=False):
+    """Initialize Posterior object
+
+    Parse a setup file and initialize the RVModel, Likelihood, Posterior and priors.
+
+    Args:
+        config_file (string): path to config file
+        decorr (bool): (optional) decorrelate RVs against columns defined in the decorr_vars list
+
+    Returns:
+        tuple: (object representation of config file, radvel.Posterior object)
+    """
 
     system_name = os.path.basename(config_file).split('.')[0]
     P = imp.load_source(system_name, os.path.abspath(config_file))
-    system_name = P.starname
 
     params = P.params
     assert str(params.basis) == "Basis Object <{}>".format(P.fitting_basis), """
@@ -64,7 +74,7 @@ Converting 'logjit' to 'jit' for you now.
     for inst in P.instnames:
         assert inst in P.data.groupby('tel').groups.keys(), \
             "No data found for instrument '{}'.\nInstruments found in this dataset: {}".format(inst,
-                                            list(telgrps.keys()))
+                                                                                               list(telgrps.keys()))
         decorr_vectors = {}
         if decorr:
             for d in decorr_vars:
@@ -82,8 +92,6 @@ Converting 'logjit' to 'jit' for you now.
             kernel_name = None
             hnames = None
 
-
-
         likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
@@ -100,24 +108,21 @@ Converting 'logjit' to 'jit' for you now.
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors
 
-
     return P, post
 
 
 def round_sig(x, sig=2):
-    """
-    Round to the requested number of significant figures.
-
+    """Round by significant figures
     Args:
-        x (float): value
-        sig (int): (optional) desired number of significant figures
-
+        x (float): number to be rounded
+        sig (int): (optional) number of significant figures to retain
     Returns:
-        float: `x` rounded to `sig` significant figures
+        float: x rounded to sig significant figures
     """
 
-    if x == 0 or np.isnan(x): return 0.0
-    return round(x, sig-int(floor(log10(abs(x))))-1)
+    if x == 0:
+        return 0.0
+    return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
 
 
 def sigfig(med, errlow, errhigh=None):
@@ -134,13 +139,14 @@ def sigfig(med, errlow, errhigh=None):
 
     """
     
-    if errhigh==None: errhigh = errlow
+    if errhigh is None:
+        errhigh = errlow
         
     ndec = Decimal(str(errlow)).as_tuple().exponent
     if abs(Decimal(str(errhigh)).as_tuple().exponent) > abs(ndec):
         ndec = Decimal(str(errhigh)).as_tuple().exponent
     if ndec < -1:
-            tmpmed = round(med,abs(ndec))
+            tmpmed = round(med, abs(ndec))
             p = 0
             while tmpmed == 0:
                 tmpmed = round(med, abs(ndec)+p)
@@ -150,12 +156,23 @@ def sigfig(med, errlow, errhigh=None):
             errlow = int(round_sig(errlow))
             errhigh = int(round(errhigh))
             med = int(round(med))
-    else: med = round(med,abs(ndec))
+    else:
+        med = round(med, abs(ndec))
 
     return med, errlow, errhigh
 
 
 def time_print(tdiff):
+    """Print time
+
+    Helper function to print time remaining in sensible units.
+
+    Args:
+        tdiff (float): time in seconds
+
+    Returns:
+        tuple: (float time, string units)
+    """
     units = 'seconds'
     if tdiff > 60:
         tdiff /= 60
@@ -170,21 +187,33 @@ def time_print(tdiff):
 
 
 def timebin(time, meas, meas_err, binsize):
-#  This routine bins a set of times, measurements, and measurement errors 
-#  into time bins.  All inputs and outputs should be floats or double. 
-#  binsize should have the same units as the time array.
-#  - from Andrew Howard, ported to Python by BJ Fulton
+    """Bin in equal sized time bins
+
+    This routine bins a set of times, measurements, and measurement errors
+    into time bins.  All inputs and outputs should be floats or double.
+    binsize should have the same units as the time array.
+    (from Andrew Howard, ported to Python by BJ Fulton)
+
+    Args:
+        time (array): array of times
+        meas (array): array of measurements to be comined
+        meas_err (array): array of measurement uncertainties
+        binsize (float): width of bins in same units as time array
+
+    Returns:
+        tuple: (bin centers, binned measurements, binned uncertainties)
+    """
 
     ind_order = np.argsort(time)
     time = time[ind_order]
     meas = meas[ind_order]
     meas_err = meas_err[ind_order]
-    ct=0
+    ct = 0
     while ct < len(time):
         ind = np.where((time >= time[ct]) & (time < time[ct]+binsize))[0]
         num = len(ind)
-        wt = (1./meas_err[ind])**2.     #weights based in errors
-        wt = wt/np.sum(wt)              #normalized weights
+        wt = (1./meas_err[ind])**2.     # weights based in errors
+        wt = wt/np.sum(wt)              # normalized weights
         if ct == 0:
             time_out = [np.sum(wt*time[ind])]
             meas_out = [np.sum(wt*meas[ind])]
@@ -199,6 +228,23 @@ def timebin(time, meas, meas_err, binsize):
 
 
 def bintels(t, vel, err, telvec, binsize=1/2.):
+    """Bin velocities by instrument
+
+    Bin RV data with bins of with binsize in the units of t.
+    Will not bin data from different telescopes together since there may
+    be offsets between them.
+
+    Args:
+        t (array): array of timestamps
+        vel (array): array of velocities
+        err (array): array of velocity uncertainties
+        telvec (array): array of strings corresponding to the instrument name for each velocity
+        binsize (float): (optional) width of bin in units of t (default=1/2.)
+
+    Returns:
+        tuple: (bin centers, binned measurements, binned uncertainties, binned instrument codes)
+    """
+
     # Bin RV data with bins of with binsize in the units of t.
     # Will not bin data from different telescopes together since there may
     # be offsets between them.
@@ -208,13 +254,13 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
         t_bin, vel_bin, err_bin = timebin(t, vel, err, binsize=binsize)
         return t_bin, vel_bin, err_bin, telvec
     
-    uniqorder = np.argsort(np.unique(telvec,return_index=1)[1])
+    uniqorder = np.argsort(np.unique(telvec, return_index=1)[1])
     uniqsort = np.unique(telvec)[uniqorder]
     rvtimes = np.array([])
     rvdat = np.array([])
     rverr = np.array([])
     newtelvec = np.array([])
-    for i,tel in enumerate(uniqsort):
+    for i, tel in enumerate(uniqsort):
         pos = np.where(telvec == tel)
         t_bin, vel_bin, err_bin = timebin(
             t[pos], vel[pos], err[pos], binsize=binsize
@@ -227,7 +273,20 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
     return rvtimes, rvdat, rverr, newtelvec
 
 
-def fastbin(x,y,nbins=30):
+def fastbin(x, y, nbins=30):
+    """Fast binning
+
+    Fast binning function for equally spaced data
+
+    Args:
+        x (array): independent variable
+        y (array): dependent variable
+        nbins (int): number of bins
+
+    Returns:
+        tuple: (bin centers, binned measurements, binned uncertainties)
+    """
+
     n, _ = np.histogram(x, bins=nbins)
     sy, _ = np.histogram(x, bins=nbins, weights=y)
     sy2, _ = np.histogram(x, bins=nbins, weights=y*y)
@@ -236,21 +295,16 @@ def fastbin(x,y,nbins=30):
     bint = (_[1:] + _[:-1])/2.
 
     binN = n
-    pos = binN >= 3# 0.5 * np.mean(binN)
+    pos = binN >= 3  # 0.5 * np.mean(binN)
     bint = bint[pos]
     bindat = bindat[pos]
     binerr = binerr[pos]
 
-    pos = bint>0
+    pos = bint > 0
     bint = bint[pos]
     bindat = bindat[pos]
     binerr = binerr[pos]
-    return bint,bindat,binerr
-
-
-def round_sig(x, sig=2):
-    if x == 0: return 0.0
-    return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
+    return bint, bindat, binerr
 
 
 def t_to_phase(params, t, num_planet, cat=False):
@@ -263,7 +317,8 @@ def t_to_phase(params, t, num_planet, cat=False):
     tc = params[timeparam].value
     phase = np.mod(t - tc, P) 
     phase /= P
-    if cat: phase = np.concatenate((phase,phase+1))
+    if cat:
+        phase = np.concatenate((phase, phase+1))
     return phase
 
 
@@ -304,7 +359,7 @@ def date2jd(date):
         float: Julian date
      """
     
-    jd_td = date - datetime(2000,1,1,12,0,0)
+    jd_td = date - datetime(2000, 1, 1, 12, 0, 0)
     jd = 2451545.0 + jd_td.days + jd_td.seconds/86400.0
     return jd
 
@@ -321,7 +376,7 @@ def jd2date(jd):
     
     mjd = jd - 2400000.5
     td = timedelta(days=mjd)
-    dt = datetime(1858,11,17,0,0,0) + td
+    dt = datetime(1858, 11, 17, 0, 0, 0) + td
 
     return dt
 
@@ -345,9 +400,9 @@ def geterr(vec, angular=False):
         val, edges = np.histogram(vec, bins=50)
         med = edges[np.argmax(val)]
         if med > np.radians(90):
-            vec[vec<np.radians(0)] = vec[vec<np.radians(0)] + np.radians(360)
+            vec[vec < np.radians(0)] = vec[vec < np.radians(0)] + np.radians(360)
         if med <= np.radians(-90):
-            vec[vec>=np.radians(0)] = vec[vec>=np.radians(0)] - np.radians(360)
+            vec[vec >= np.radians(0)] = vec[vec >= np.radians(0)] - np.radians(360)
         med = np.median(vec)
     else:
         med = np.median(vec)
@@ -366,7 +421,7 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
         P (float): Orbital period [days]
         Mtotal (float): Mass of star + mass of planet [Msun]
         e (float): eccentricity
-        Msini_units (Optional[str]): Units of Msini {'earth','jupiter'} 
+        Msini_units (Optional[str]): Units of Msini {'earth','jupiter'}
             default: 'jupiter'
 
     Returns:
@@ -458,12 +513,11 @@ def density(mass, radius, MR_units='earth'):
     Args:
         mass (float): mass [MR_units]
         radius (float): radius [MR_units]
-        MR_units (Optional[str]): Units of Msini {'earth','jupiter'} 
-            default: 'earth'
+        MR_units (string): (optional) units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
 
-    Returns:
-        float: density [g/cc
+        float: density in g/cc
     """
+
     mass = np.array(mass)
     radius = np.array(radius)
 
