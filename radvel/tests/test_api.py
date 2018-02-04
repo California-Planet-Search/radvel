@@ -142,6 +142,8 @@ def test_kernels():
         test_kernel.compute_covmatrix()
         test_kernel.add_diagonal_errors(x)
 
+        print("Testing {}".format(kernel_call(hyperparams)))
+
 
 def test_priors():
     """
@@ -179,4 +181,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_priors()
+    test_kernels()
