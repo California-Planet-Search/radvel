@@ -369,7 +369,7 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
         Msini_units (Optional[str]): Units of Msini {'earth','jupiter'} 
             default: 'jupiter'
 
-    Returns
+    Returns:
         Doppler semi-amplitude [m/s]
 
     """
@@ -400,6 +400,9 @@ def semi_major_axis(P, Mtotal):
     Args: 
         P (float): Orbital period [days]
         Mtotal (float): Mass [Msun]
+
+    Returns:
+        float or array: semi-major axis in AU
     """
 
     # convert inputs to array so they work with units
@@ -410,7 +413,9 @@ def semi_major_axis(P, Mtotal):
     P = P * u.d
     a = (c.G * Mtotal * P**2 / 4.0 / np.pi**2)**(1.0/3.0)
     a = a.to(u.AU).value
+
     return a
+
 
 def Msini(K, P, Mtotal, e, Msini_units='earth'):
     """Calculate Msini
@@ -445,6 +450,7 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
         raise Exception("Msini_units must be 'earth', or 'jupiter'")
 
     return Msini
+
 
 def density(mass, radius, MR_units='earth'):
     """Compute density from mass and radius
