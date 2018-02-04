@@ -1,4 +1,5 @@
 import warnings
+import sys
 
 import radvel
 import radvel.driver
@@ -143,6 +144,14 @@ def test_kernels():
         test_kernel.add_diagonal_errors(x)
 
         print("Testing {}".format(kernel_call(hyperparams)))
+        
+        sys.stdout.write("Testing error catching with dummy hyperparameters... ")
+        fakeparams = {}
+        fakeparams['dummy'] = radvel.Parameter(value=1.0)
+        try:
+            kernel_call(fakeparams)
+        except AssertionError:
+            sys.stdout.write("passed\n")
 
 
 def test_priors():
