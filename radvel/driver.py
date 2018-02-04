@@ -341,7 +341,6 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         if not post.params[par].vary:
             synthchains[par] = post.params[par].value
 
-
     synthchains = post.params.basis.to_synth(synthchains)
 
     savestate = {'run': True}
@@ -372,8 +371,12 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         _set_param('mpsini',mpsini)
         outcols.append(_get_colname('mpsini'))
 
+        a = radvel.utils.semi_major_axis(per, mstar)
+        _set_param('a', a)
+        outcols.append(_get_colname('a'))
+
         musini = (mpsini * c.M_earth) / (mstar * c.M_sun)
-        _set_param('musini',musini)
+        _set_param('musini', musini)
         outcols.append(_get_colname('musini'))
 
         try:
