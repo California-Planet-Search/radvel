@@ -539,7 +539,7 @@ def corner_plot_derived_pars(chains, planet, saveplot=None):
     for i in np.arange(1, planet.nplanets + 1, 1):
         letter = planet_letters[i]
 
-        for key in 'mpsini rhop'.split():
+        for key in 'mpsini rhop a'.split():
             label = '{}{}'.format(key, i)
             
             is_column = list(chains.columns).count(label) == 1
