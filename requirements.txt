@@ -9,3 +9,4 @@ pandas>=0.20.0
 nbsphinx
 jupyter_client
 ipykernel
+configparser
