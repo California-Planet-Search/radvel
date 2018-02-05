@@ -99,7 +99,8 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
-                       phase_nrows=None, legend=True, rv_phase_space=0.08):
+                       phase_nrows=None, legend=True, rv_phase_space=0.08,
+                       phase_limits=[]):
     """Multi-panel RV plot to display model using post.params orbital
     parameters.
 
@@ -130,6 +131,9 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         rv_phase_space (float, optional): verticle space between rv
             plot and phase-folded plots (in units of fraction of
             figure height)
+        phase_limits (list, optional): two element list specifying 
+            pyplot.xlim bounds for phase-folded array. Useful for
+            partial orbits.
 
     Returns:
         figure: current matplotlib figure object
@@ -416,7 +420,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
                 mew=bin_markeredgewidth
             )
 
-        pl.xlim(-0.5, 0.5)
+        if not phase_limits:
+            pl.xlim(-0.5, 0.5)
+        else:
+            pl.xlim(phase_limits[0],phase_limits[1])
 
         if not yscale_auto: 
             scale = np.std(rvdatcat)
