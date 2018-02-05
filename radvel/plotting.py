@@ -58,7 +58,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
     """
     lw = 1.0
 
-    default_colors = ['orange', 'purple', 'magenta', 'pink']
+    default_colors = ['orange', 'purple', 'magenta', 'pink', 'blue', 'grey', 'red']
     ci = 0
     
     utel = np.unique(tel)
@@ -511,6 +511,8 @@ def texlabel(key, letter):
         return '$M_' + letter + '\\sin i$'
     if key.count('rhop') == 1:
         return '$\\rho_' + letter + '$'
+    if key.count('a') == 1:
+        return "$a_" + letter + "$"
 
 
 def corner_plot_derived_pars(chains, planet, saveplot=None):
@@ -539,7 +541,7 @@ def corner_plot_derived_pars(chains, planet, saveplot=None):
     for i in np.arange(1, planet.nplanets + 1, 1):
         letter = planet_letters[i]
 
-        for key in 'mpsini rhop'.split():
+        for key in 'mpsini rhop a'.split():
             label = '{}{}'.format(key, i)
             
             is_column = list(chains.columns).count(label) == 1
@@ -562,10 +564,14 @@ def corner_plot_derived_pars(chains, planet, saveplot=None):
                     unit = "M$_{\\odot}$"
                     chains[label] *= 0.000954265748
 
-                tl += " (%s)" % unit
+                tl += " [%s]" % unit
+            elif key == 'rhop':
+                tl += " [g cm$^{-3}$]"
+            elif key == 'a':
+                tl += " [AU]"
             else:
-                tl += " (g cm$^{-3}$)"
-                
+                tl += " "
+
             labels.append(label)
             texlabels.append(tl)
 

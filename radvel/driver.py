@@ -137,9 +137,10 @@ def mcmc(args):
     serial = False
     if [key for key in post.params.keys() if key.startswith('gp_')]:
         if not sys.platform.startswith('linux'):
-            print("WARNING: MCMC with GP likelihoods will run in serial on Mac and Windows machines.")
+            print("WARNING: MCMC with GP likelihoods will run in serial on Mac and Windows machines. \
+We reccomend running with 3 ensembles or less. Set the number of ensembles using the --nensembles flag.")
             serial = True  # for now, run GP fits in serial
-            args.ensembles = int(np.clip(args.ensembles, 1, 3))
+            # args.ensembles = int(np.clip(args.ensembles, 1, 3))
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
         .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
@@ -147,7 +148,7 @@ def mcmc(args):
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, serial=serial)
+            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=serial)
 
     # Convert chains into synth basis
     synthchains = chains.copy()
@@ -340,7 +341,6 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         if not post.params[par].vary:
             synthchains[par] = post.params[par].value
 
-
     synthchains = post.params.basis.to_synth(synthchains)
 
     savestate = {'run': True}
@@ -371,8 +371,12 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         _set_param('mpsini',mpsini)
         outcols.append(_get_colname('mpsini'))
 
+        a = radvel.utils.semi_major_axis(per, mstar)
+        _set_param('a', a)
+        outcols.append(_get_colname('a'))
+
         musini = (mpsini * c.M_earth) / (mstar * c.M_sun)
-        _set_param('musini',musini)
+        _set_param('musini', musini)
         outcols.append(_get_colname('musini'))
 
         try:

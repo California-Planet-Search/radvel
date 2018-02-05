@@ -1,4 +1,5 @@
 import warnings
+import sys
 
 import radvel
 import radvel.driver
@@ -21,7 +22,7 @@ class _args(object):
         self.burnGR = 1.03
         self.minTz = 1000
         self.minsteps = 100
-
+        self.thin = 1
 
 def _standard_run(setupfn):
     """
@@ -142,6 +143,16 @@ def test_kernels():
         test_kernel.compute_covmatrix()
         test_kernel.add_diagonal_errors(x)
 
+        print("Testing {}".format(kernel_call(hyperparams)))
+        
+        sys.stdout.write("Testing error catching with dummy hyperparameters... ")
+        fakeparams = {}
+        fakeparams['dummy'] = radvel.Parameter(value=1.0)
+        try:
+            kernel_call(fakeparams)
+        except AssertionError:
+            sys.stdout.write("passed\n")
+
 
 def test_priors():
     """
@@ -179,4 +190,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_priors()
+    test_kernels()
