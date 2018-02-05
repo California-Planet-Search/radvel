@@ -23,7 +23,7 @@ before_install:
 
 install:
     - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy matplotlib cython pandas
-    - pip install nose coveralls nbformat nbconvert jupyter_client ipykernel
+    - pip install nose coveralls nbformat nbconvert jupyter_client ipykernel configparser
     - pip install . --upgrade
     - python setup.py build_ext -i
 
