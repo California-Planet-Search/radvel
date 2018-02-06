@@ -6,7 +6,7 @@ Getting Started
 .. _installation:
 
 Installation
-+++++++
+++++++++++++
 
 Install ``radvel`` using pip:
 
@@ -21,9 +21,13 @@ By default it is expected to be in your system's path, but you may
 specify a path to pdflatex using the ``--latex-compiler``
 option at the ``radvel report`` step.
 
+If you are running OSX, and want to perform Gaussian Process likelihood
+computations in parallel, you may need to perform some additional
+installation steps. See :ref:`OSX-multiprocessing`.
+
 
 Example Fit
-+++++++
++++++++++++
 
 Test your installation by running through one of the included
 examples. We will use the ``radvel`` command line interface to execute
@@ -116,7 +120,7 @@ plot showing the posterior distributions for all free parameters.
 
 
 Optional Features
-+++++++++++
++++++++++++++++++
 
 Combine the measured properties of the RV time-series with
 the properties of the host star defined in the setup file to
