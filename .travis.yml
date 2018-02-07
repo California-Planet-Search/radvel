@@ -6,6 +6,8 @@ cache:
      - $HOME/download
      - $HOME/miniconda2
      - $HOME/miniconda3
+     - $HOME/.cache/pip
+     - $HOME/.ccache
 
 python:
   - "2.7"
@@ -22,9 +24,10 @@ before_install:
     - sudo ln -s /run/shm /dev/shm
 
 install:
-    - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy matplotlib cython pandas
-    - pip install nose coveralls nbformat nbconvert jupyter_client ipykernel
-    - pip install . --upgrade
+    - conda install --yes pip numpy scipy matplotlib cython pandas nose nbformat nbconvert jupyter_client ipykernel
+    - if [ ${py} == "2" ]; then conda install --yes configparser==3.5.0b2; fi
+    - pip install coveralls
+    - pip install .
     - python setup.py build_ext -i
 
 # configure a headless display using xvbf to test plot generation
@@ -33,7 +36,6 @@ before_script:
     - "sh -e /etc/init.d/xvfb start"
     - sleep 2 # give xvfb some time to start
 
-# run tests in Travis-CI virtual env
 script:
     - nosetests radvel --with-coverage --cover-package=radvel
 
