@@ -7,6 +7,7 @@ General Toolkit for Modeling Radial Velocities.
 [![Coverage Status](https://coveralls.io/repos/github/California-Planet-Search/radvel/badge.svg?branch=master)](https://coveralls.io/github/California-Planet-Search/radvel?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/radvel.svg)](https://badge.fury.io/py/radvel)
+[![ASCL:1801.012](https://img.shields.io/badge/ascl-1801.012-blue.svg?colorB=262255)](http://ascl.net/1801.012)
 [![Requirements Status](https://requires.io/github/California-Planet-Search/radvel/requirements.svg?branch=next-release)](https://requires.io/github/California-Planet-Search/radvel/requirements/?branch=next-release)
 
 

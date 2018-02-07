@@ -242,7 +242,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         
     df = pd.DataFrame(
         statevars.tchains.reshape(statevars.ndim,statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
-        columns=post.list_vary_params())
+        columns=pcopy.list_vary_params())
     df['lnprobability'] = np.hstack(statevars.lnprob)
 
     df = df.iloc[::thin]
