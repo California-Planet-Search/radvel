@@ -26,7 +26,7 @@ before_install:
 install:
     - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy matplotlib cython pandas nose nbformat nbconvert jupyter_client ipykernel configparser==3.5.0b2
     - pip install coveralls
-    - pip install . --upgrade --no-deps
+    - pip install .
     - python setup.py build_ext -i
 
 # configure a headless display using xvbf to test plot generation
