@@ -24,7 +24,8 @@ before_install:
     - sudo ln -s /run/shm /dev/shm
 
 install:
-    - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy matplotlib cython pandas nose nbformat nbconvert jupyter_client ipykernel configparser==3.5.0b2
+    - conda install --yes pip numpy scipy matplotlib cython pandas nose nbformat nbconvert jupyter_client ipykernel
+    - if [$py == '2']; then conda install --yes configparser==3.5.0b2; fi
     - pip install coveralls
     - pip install .
     - python setup.py build_ext -i
