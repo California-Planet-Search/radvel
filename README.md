@@ -7,13 +7,15 @@ General Toolkit for Modeling Radial Velocities.
 [![Coverage Status](https://coveralls.io/repos/github/California-Planet-Search/radvel/badge.svg?branch=master)](https://coveralls.io/github/California-Planet-Search/radvel?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/radvel.svg)](https://badge.fury.io/py/radvel)
+[![ASCL:1801.012](https://img.shields.io/badge/ascl-1801.012-blue.svg?colorB=262255)](http://ascl.net/1801.012)
+[![Requirements Status](https://requires.io/github/California-Planet-Search/radvel/requirements.svg?branch=next-release)](https://requires.io/github/California-Planet-Search/radvel/requirements/?branch=next-release)
+
 
 ## Attribution
 
 Written by BJ Fulton, Erik Petigura, Sarah Blunt, and Evan Sinukoff. Fulton et al. (submitted to PASP)
 
-Please cite the following DOI if you wish to make use of this software in any publication.
-
+Please cite the [original publication](http://adsabs.harvard.edu/abs/2018arXiv180101947F) and the following DOI if you make use of this software in your research.
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.580821.svg)](https://doi.org/10.5281/zenodo.580821)
 
 ## Documentation
@@ -42,9 +44,9 @@ RadVel is
 - *Extensible* 
   - Object-oriented programing makes adding new likelihoods, priors, etc. easy
 - *Scriptable*
-  - Code can be run through convenient Command-line Interface (CLI) 
+  - Code can be run through a convenient Command-line Interface (CLI) 
 - *Fast*
-   - Kepler's equation solved in C (slower pure python solver available)
+   - Kepler's equation solved in C (slower Python solver also included)
    - MCMC is multi-threaded
 
 ## Tutorials 

@@ -1,4 +1,5 @@
 import warnings
+import sys
 
 import radvel
 import radvel.driver
@@ -15,9 +16,14 @@ class _args(object):
         self.decorr = False
 
         self.nwalkers = 50
-        self.nsteps = 100
+        self.nsteps = 10000
         self.ensembles = 8
-
+        self.maxGR = 1.01
+        self.burnGR = 1.03
+        self.minTz = 1000
+        self.minsteps = 100
+        self.thin = 1
+        self.serial = False
 
 def _standard_run(setupfn):
     """
@@ -138,6 +144,43 @@ def test_kernels():
         test_kernel.compute_covmatrix()
         test_kernel.add_diagonal_errors(x)
 
+        print("Testing {}".format(kernel_call(hyperparams)))
+        
+        sys.stdout.write("Testing error catching with dummy hyperparameters... ")
+        fakeparams = {}
+        fakeparams['dummy'] = radvel.Parameter(value=1.0)
+        try:
+            kernel_call(fakeparams)
+        except AssertionError:
+            sys.stdout.write("passed\n")
+
+
+def test_priors():
+    """
+    Test basic functionality of all Priors
+    """
+
+    params = radvel.Parameters(1)
+    params['per1'] = radvel.Parameter(10.0)
+    params['tc1'] = radvel.Parameter(0.0)
+    params['secosw1'] = radvel.Parameter(0.0)
+    params['sesinw1'] = radvel.Parameter(0.0)
+    params['logk1'] = radvel.Parameter(1.5)
+
+    prior_tests = {
+        radvel.prior.EccentricityPrior(1):                  0.0,
+        radvel.prior.PositiveKPrior(1):                     0.0,
+        radvel.prior.Gaussian('per1', 10.0, 0.1):           0.0,
+        radvel.prior.HardBounds('per1', 1.0, 9.0):          -np.inf,
+        radvel.prior.Jeffreys('per1', 0.1, 100.0):          -np.log(params['per1'].value),
+        radvel.prior.ModifiedJeffreys('per1', 0.1, 100.0):  -np.log(params['per1'].value + 0.1),
+        radvel.prior.SecondaryEclipsePrior(1, 5.0, 1.0):    0.0
+    }
+
+    for prior, val in prior_tests.items():
+        print(prior.__repr__())
+        print(prior.__str__())
+        assert prior(params) == val, "Prior output does not match expectation"
 
 
 def test_kepler():
@@ -149,4 +192,3 @@ def test_kepler():
 
 if __name__ == '__main__':
     test_kernels()
-    test_kepler()

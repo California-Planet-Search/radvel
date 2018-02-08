@@ -1,26 +1,32 @@
 language: python
-cache: pip
 sudo: False
+
+cache:
+   directories:
+     - $HOME/download
+     - $HOME/miniconda2
+     - $HOME/miniconda3
+     - $HOME/.cache/pip
+     - $HOME/.ccache
 
 python:
   - "2.7"
-  - "3.5"
+  - "3.6"
 
 before_install:
     - export py="$(echo $TRAVIS_PYTHON_VERSION | head -c 1)"
     - wget http://repo.continuum.io/miniconda/Miniconda${py}-latest-Linux-x86_64.sh -O miniconda.sh
     - chmod +x miniconda.sh
-    - ./miniconda.sh -b
-    - ln -s /home/travis/miniconda? /home/travis/miniconda
-    - ls -latr /home/travis/
+    - bash miniconda.sh -b -u -p $HOME/miniconda
     - export PATH=/home/travis/miniconda/bin:$PATH
     - conda update --yes conda
     - sudo rm -rf /dev/shm
     - sudo ln -s /run/shm /dev/shm
 
 install:
-    - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython
-    - pip install nose coveralls nbformat nbconvert jupyter_client ipykernel
+    - conda install --yes pip numpy scipy matplotlib cython pandas nose nbformat nbconvert jupyter_client ipykernel
+    - if [ ${py} == "2" ]; then conda install --yes configparser==3.5.0b2; fi
+    - pip install coveralls
     - pip install .
     - python setup.py build_ext -i
 
@@ -28,9 +34,8 @@ install:
 before_script:
     - "export DISPLAY=:99.0"
     - "sh -e /etc/init.d/xvfb start"
-    - sleep 3 # give xvfb some time to start
+    - sleep 2 # give xvfb some time to start
 
-# run tests in Travis-CI virtual env
 script:
     - nosetests radvel --with-coverage --cover-package=radvel
 

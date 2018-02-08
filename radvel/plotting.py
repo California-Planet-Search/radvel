@@ -15,8 +15,8 @@ import radvel
 from radvel.utils import t_to_phase, fastbin
 
 latex = {
-    'ms': 'm s$^{\mathregular{-1}}$',
-    'BJDTDB': 'BJD$_{\mathregular{TDB}}$'
+    'ms': 'm s$^{\\mathregular{-1}}$',
+    'BJDTDB': 'BJD$_{\\mathregular{TDB}}$'
 }
 
 telfmts_default = {
@@ -58,7 +58,7 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
     """
     lw = 1.0
 
-    default_colors = ['orange', 'purple', 'magenta', 'pink']
+    default_colors = ['orange', 'purple', 'magenta', 'pink', 'blue', 'grey', 'red']
     ci = 0
     
     utel = np.unique(tel)
@@ -518,6 +518,8 @@ def texlabel(key, letter):
         return '$M_' + letter + '\\sin i$'
     if key.count('rhop') == 1:
         return '$\\rho_' + letter + '$'
+    if key.count('a') == 1:
+        return "$a_" + letter + "$"
 
 
 def corner_plot_derived_pars(chains, planet, saveplot=None):
@@ -546,7 +548,7 @@ def corner_plot_derived_pars(chains, planet, saveplot=None):
     for i in np.arange(1, planet.nplanets + 1, 1):
         letter = planet_letters[i]
 
-        for key in 'mpsini rhop'.split():
+        for key in 'mpsini rhop a'.split():
             label = '{}{}'.format(key, i)
             
             is_column = list(chains.columns).count(label) == 1
@@ -561,18 +563,22 @@ def corner_plot_derived_pars(chains, planet, saveplot=None):
 
             # add units to label
             if key == 'mpsini':
-                unit = "M$_{\oplus}$"
+                unit = "M$_{\\oplus}$"
                 if np.median(chains[label]) > 100:
                     unit = "M$_{\\rm Jup}$"
                     chains[label] *= 0.00315
                 if np.median(chains[label]) > 100:
-                    unit = "M$_{\odot}$"
+                    unit = "M$_{\\odot}$"
                     chains[label] *= 0.000954265748
 
-                tl += " (%s)" % unit
+                tl += " [%s]" % unit
+            elif key == 'rhop':
+                tl += " [g cm$^{-3}$]"
+            elif key == 'a':
+                tl += " [AU]"
             else:
-                tl += " (g cm$^{-3}$)"
-                
+                tl += " "
+
             labels.append(label)
             texlabels.append(tl)
 
@@ -674,7 +680,7 @@ def correlation_plot(post, outfile=None):
                 pl.plot(vec, p(vec), 'b-', lw=3)
                 pl.plot(vec, resid + p(vec), 'ko')
 
-                pl.xlabel("$\Delta$ %s" % '_'.join(parname.split('_')[1:]))
+                pl.xlabel("$\\Delta$ %s" % '_'.join(parname.split('_')[1:]))
                 pl.ylabel('RV [m s$^{-1}$]')
                 
                 pltind += 1

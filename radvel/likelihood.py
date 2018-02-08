@@ -4,6 +4,7 @@ from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
 from scipy import matrix
 
+
 class Likelihood(object):
     """
     Generic Likelihood
@@ -57,7 +58,7 @@ class Likelihood(object):
                 else:
                     par = self.params[key].value
                     
-                s +=  "{:20s}{:15g}{:10g}{:>10s}\n".format(
+                s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
                     key, par, err, vstr
                      )
         return s
@@ -69,7 +70,7 @@ class Likelihood(object):
             if key.startswith('jit') and param_values_array[i] < 0:
                 param_values_array[i] = -param_values_array[i]
             self.params[key].value = param_values_array[i]
-            i+=1
+            i += 1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
 
@@ -85,7 +86,7 @@ class Likelihood(object):
         return [key for key in self.params.keys() if self.params[key].vary]
 
     def residuals(self):
-        return self.y - self.model(self.x) 
+        return self.y - self.model(self.x)
 
     def neglogprob(self):
         return -1.0 * self.logprob()
@@ -98,18 +99,18 @@ class Likelihood(object):
         _logprob = self.logprob()
         return _logprob
 
+
 class CompositeLikelihood(Likelihood):
+    """Composite Likelihood
 
+    A thin wrapper to combine multiple `Likelihood`
+    objects. One `Likelihood` applies to a dataset from
+    a particular instrument.
+
+    Args:
+        like_list (list): list of `radvel.likelihood.RVLikelihood` objects
+    """
     def __init__(self, like_list):
-        """Composite Likelihood
-
-        A thin wrapper to combine multiple `Likelihood`
-        objects. One `Likelihood` applies to a dataset from
-        a particular instrument.
-
-        Args:
-            like_list (list): list of `radvel.likelihood.RVLikelihood` objects
-        """
         self.nlike = len(like_list)
 
         like0 = like_list[0]
@@ -123,10 +124,10 @@ class CompositeLikelihood(Likelihood):
         self.suffixes = like0.suffix
         self.uparams = like0.uparams
         
-        for i in range(1,self.nlike):
+        for i in range(1, self.nlike):
             like = like_list[i]
             
-            self.x = np.append(self.x,like.x)
+            self.x = np.append(self.x, like.x)
             self.y = np.append(self.y, like.y - like.params[like.gamma_param].value)
             self.yerr = np.append(self.yerr, like.yerr)
             self.telvec = np.append(self.telvec, like.telvec)
@@ -142,7 +143,7 @@ class CompositeLikelihood(Likelihood):
 
             for k in like.params:
                 if k in params:
-                    assert like.params[k]._equals(params[k])
+                    assert like.params[k]._equals(params[k]), "Name={} {} != {}".format(k, like.params[k], params[k])
                 else:
                     params[k] = like.params[k]
 
@@ -166,7 +167,7 @@ class CompositeLikelihood(Likelihood):
 
         res = self.like_list[0].residuals()
         for like in self.like_list[1:]:
-            res = np.append(res,like.residuals())
+            res = np.append(res, like.residuals())
 
         return res
         
@@ -176,7 +177,7 @@ class CompositeLikelihood(Likelihood):
         """
         err = self.like_list[0].errorbars()
         for like in self.like_list[1:]:
-            err = np.append(err,like.errorbars())
+            err = np.append(err, like.errorbars())
 
         return err
 
@@ -201,13 +202,6 @@ class RVLikelihood(Likelihood):
         self.jit_param = 'jit'+suffix
         self.extra_params = [self.gamma_param, self.jit_param]
 
-
-        # define instrument-specific granulation param
-   #     if 'gran'+suffix in model.params:
-   #         self.gran_param = 'gran' + suffix
-   #         self.extra_params.append(self.gran_param)
-   #         self.nights_array = np.floor(t) # array of night each point was taken
-
         if suffix.startswith('_'):
             self.suffix = suffix[1:]
         else:
@@ -222,7 +216,7 @@ class RVLikelihood(Likelihood):
 
         super(RVLikelihood, self).__init__(
             model, t, vel, errvel, extra_params=self.extra_params,
-            decorr_params = self.decorr_params, decorr_vectors=self.decorr_vectors
+            decorr_params=self.decorr_params, decorr_vectors=self.decorr_vectors
             )
 
     def residuals(self):
@@ -256,18 +250,6 @@ class RVLikelihood(Likelihood):
             array: uncertainties
         
         """
-    #    try:
-    #        if self.params[self.gran_param].vary:
-    #            gran_error = np.zeros(len(self.x))
-    #            for i in self.x:
-    #                gran_error[i] = 
-    #                self.nights_array
-
-            #redefine self.gran_param
-    #        else:
-    #            gran_error = self.params[self.gran_param].value
-    #    else:
-    #        gran_error = 0.
         gran_error = 0.
 
         return np.sqrt(self.yerr**2 + gran_error**2 + self.params[self.jit_param].value**2)
@@ -287,6 +269,7 @@ class RVLikelihood(Likelihood):
         
         return loglike
 
+
 class GPLikelihood(RVLikelihood):
     """GP Likelihood
 
@@ -303,37 +286,37 @@ class GPLikelihood(RVLikelihood):
            useful when constructing a `CompositeLikelihood` object
     """
     def __init__(self, model, t, vel, errvel, 
-                 hnames=['gp_per','gp_perlength','gp_explength','gp_amp'],
+                 hnames=['gp_per', 'gp_perlength', 'gp_explength', 'gp_amp'],
                  suffix='', kernel_name="QuasiPer", **kwargs):
 
         self.suffix = suffix
         super(GPLikelihood, self).__init__(
               model, t, vel, errvel, suffix=self.suffix, 
-              decorr_vars = [], decorr_vectors={}
+              decorr_vars=[], decorr_vectors={}
             )
 
         assert kernel_name in gp.KERNELS.keys(), \
             'GP Kernel not recognized: ' + self.kernel_name + '\n' + \
             'Available kernels: ' + str(gp.KERNELS.keys())
 
-        self.hnames =  hnames # list of string names of hyperparameters
+        self.hnames = hnames  # list of string names of hyperparameters
         self.hyperparams = {k: self.params[k] for k in self.hnames}
 
         self.kernel_call = getattr(gp, kernel_name + "Kernel") 
         self.kernel = self.kernel_call(self.hyperparams)
 
         X = np.array([self.x]).T
-        self.kernel.compute_distances(X,X)
+        self.kernel.compute_distances(X, X)
 
     def set_vary_params(self, param_values_array):
         i = 0
         for key in self.list_vary_params():
             if key.startswith('jit') and param_values_array[i] < 0:
                 param_values_array[i] = -param_values_array[i]
-            if key in self.hnames: # update values of hyperparameters
+            if key in self.hnames:  # update values of hyperparameters
                 self.kernel.hparams[key].value = param_values_array[i]
             self.params[key].value = param_values_array[i]
-            i+=1
+            i += 1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
 
@@ -389,7 +372,7 @@ class GPLikelihood(RVLikelihood):
         (s,d) = np.linalg.slogdet(K)
 
         # calculate likelihood
-        like = -.5 * (np.dot(r,alpha) + d)
+        like = -.5 * (np.dot(r, alpha) + d)
 
         return like
 
@@ -408,30 +391,28 @@ class GPLikelihood(RVLikelihood):
         r = matrix(self._resids()).T
 
         X = np.array([self.x]).T
-        self.kernel.compute_distances(X,X)
-        K = self.kernel.compute_covmatrix()
+        self.kernel.compute_distances(X, X)
+        _ = self.kernel.compute_covmatrix()
         K = self.kernel.add_diagonal_errors(self.errorbars())
 
         Xpred = np.array([xpred]).T
-        self.kernel.compute_distances(Xpred,X)
+        self.kernel.compute_distances(Xpred, X)
         Ks = self.kernel.compute_covmatrix()
 
         L = cho_factor(K)
-        alpha = cho_solve(L,r)
+        alpha = cho_solve(L, r)
         mu = np.array(Ks*alpha).flatten()
 
-
-        self.kernel.compute_distances(Xpred,Xpred)
+        self.kernel.compute_distances(Xpred, Xpred)
         Kss = self.kernel.compute_covmatrix()
         B = cho_solve(L, Ks.T) 
         var = np.array(np.diag(Kss - Ks * matrix(B))).flatten()
         stdev = np.sqrt(var)
 
         # set the default distances back to their regular values
-        self.kernel.compute_distances(X,X)
+        self.kernel.compute_distances(X, X)
 
         return mu, stdev
-
 
 
 def loglike_jitter(residuals, sigma, sigma_jit):

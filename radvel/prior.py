@@ -223,7 +223,7 @@ class SecondaryEclipsePrior(Prior):
         return msg[:-1]
 
     def __str__(self):
-        msg = "secondary eclipse prior: ${} \pm {}$ \\\\\\\\\n".format(self.ts, self.ts_err)
+        msg = "secondary eclipse prior: ${} \\pm {}$ \\\\\\\\\n".format(self.ts, self.ts_err)
 
         return msg[:-5]
 

@@ -17,7 +17,7 @@ import pandas as pd
 import numpy as np 
 
 import radvel
-
+from astropy import constants as c
 
 def plots(args):
     """
@@ -135,14 +135,13 @@ def mcmc(args):
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
 
-    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {} ...".format(
-        conf_base, args.nwalkers, args.nsteps, args.ensembles)
+    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
+        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
     print(msg)
 
     chains = radvel.mcmc(
-             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, 
-             serial=args.serial
-             )
+            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
+            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=args.serial)
 
     # Convert chains into synth basis
     synthchains = chains.copy()
@@ -154,7 +153,7 @@ def mcmc(args):
     synth_quantile = synthchains.quantile([0.159, 0.5, 0.841])
 
     # Get quantiles and update posterior object to median 
-    #   values returned by MCMC chains
+    # values returned by MCMC chains
     post_summary=chains.quantile([0.159, 0.5, 0.841])        
 
     for k in chains.keys():
@@ -270,12 +269,6 @@ def tables(args):
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
-        if tabtype == 'params':
-            tex = report.tabletex(tabtype=tabtype)
-
-        if tabtype == 'priors':
-            tex = report.tabletex(tabtype=tabtype)
-
         if tabtype == 'nplanets':
             assert status.has_option('bic', 'nplanets'), \
                 "Must run BIC comparison before making comparison tables"
@@ -285,6 +278,8 @@ def tables(args):
                 P, post, chains, compstats=compstats
             )
             tex = report.tabletex(tabtype='nplanets')
+        else:
+            tex = report.tabletex(tabtype=tabtype)
 
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
@@ -326,12 +321,18 @@ def derive(args):
         size=len(chains)
         )
 
+    if (mstar <= 0.0).any():
+        num_nan = np.sum(mstar <= 0.0)
+        nan_perc = float(num_nan) / len(chains)
+        mstar[mstar <= 0] = np.abs(mstar[mstar <= 0])
+        print("WARNING: {} ({:.2f} %) of Msini samples are NaN. The stellar mass posterior may contain negative \
+values. Interpret posterior with caution.".format(num_nan, nan_perc))
+
     # Convert chains into synth basis
     synthchains = chains.copy()
     for par in post.params.keys():
         if not post.params[par].vary:
             synthchains[par] = post.params[par].value
-
 
     synthchains = post.params.basis.to_synth(synthchains)
 
@@ -361,8 +362,15 @@ def derive(args):
 
         mpsini = radvel.utils.Msini(k, per, mstar, e, Msini_units='earth')
         _set_param('mpsini',mpsini)
-
         outcols.append(_get_colname('mpsini'))
+
+        a = radvel.utils.semi_major_axis(per, mstar)
+        _set_param('a', a)
+        outcols.append(_get_colname('a'))
+
+        musini = (mpsini * c.M_earth) / (mstar * c.M_sun)
+        _set_param('musini', musini)
+        outcols.append(_get_colname('musini'))
 
         try:
             rp = np.random.normal(

@@ -1,6 +1,4 @@
 from .likelihood  import Likelihood
-import copy
-import time
 import numpy as np
 import pickle
 import radvel
@@ -32,7 +30,7 @@ class Posterior(Likelihood):
         s += "\nPriors\n"
         s += "------\n"
         for prior in self.priors:
-            s +=  prior.__repr__() + "\n"
+            s += prior.__repr__() + "\n"
         return s
     
     def logprob(self):
@@ -92,6 +90,7 @@ class Posterior(Likelihood):
         
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
+
 
 def load(filename):
     """
