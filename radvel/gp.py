@@ -1,6 +1,7 @@
 import sys
 import radvel
 import scipy
+from scipy import spatial
 import abc
 import numpy as np
 
@@ -234,4 +235,98 @@ class QuasiPerKernel(Kernel):
         self.covmatrix = K
         return self.covmatrix
 
+class CeleriteKernel(Kernel):
+    """ A wrapper for the celerite.solver.CholeskySolver() methods and attributes.
 
+    Class that computes and stores a kernel that can be modeled as the sum of 
+    celerite terms, or kernels of the following form:
+
+    .. math::
+
+        C_{ij} = \\sum_\\limits_{n=1}^{J} 
+                 \frac{1}{2}(a_n + ib_n)exp(-(c_n + id_n)|t_i - t_j|)
+                 + \frac{1}{2}(a_n - ib_n)exp(-(c_n - id_n)|t_i - t_j|)
+
+    where J is the numner of terms in the sum. The hyperparameters of 
+    this kernel are :math:`a_j`,:math:`b_j`,:math:`c_j`, and :math:`d_j` 
+    for each term :math:`C_{nm}` in the sum. 
+
+    See celerite.readthedocs.io for more information about celerite kernels and
+    computation.
+
+    Args:
+        hparams (dict of radvel.Parameter): dictionary containing
+            radvel.Parameter objects that are GP hyperparameters
+            of this kernel. Must contain a multiple of 6 Parameters objects
+            with the following names:
+                a_real_k: (k is an integer) the 
+    """
+
+    @property
+    def name(self):
+        return "Celerite"
+
+    def __init__(self, hparams):
+        # initialize celerite solver object
+        self.solver = celerite.solver.CholeskySolver()
+
+        num_hparams = len(hparams)
+
+        # a_real should == c_real
+        self.a_real = np.zeros(num_hparams)
+        self.c_real = np.zeros(num_hparams)
+        self.a_comp = np.zeros(num_hparams)
+        self.b_comp = np.zeros(num_hparams)
+        self.c_comp = np.zeros(num_hparams)
+        self.d_comp = np.zeros(num_hparams)
+
+        for par in hparams:
+            if par.startswith('a_real'):
+                self.a_real[int(par[-1])] = hparams[par].value
+            if par.startswith('c_real'):
+                self.c_real[int(par[-1])] = hparams[par].value
+            if par.startswith('a_comp'):
+                self.a_comp[int(par[-1])] = hparams[par].value
+            if par.startswith('b_comp'):
+                self.b_comp[int(par[-1])] = hparams[par].value
+            if par.startswith('c_comp'):
+                self.c_comp[int(par[-1])] = hparams[par].value
+            if par.startswith('d_comp'):
+                self.d_comp[int(par[-1])] = hparams[par].value
+          
+    def __repr__(self):
+        msg = (
+            "Celerite Kernel with real term coefficients: a = {}, c = {}"
+            " and complex term coefficients: a = {}, b = {}, c = {}, d = {}."
+        ).format(
+            self.a_real, self.c_real, self.a_comp, 
+            self.b_comp, self.c_comp, self.d_comp
+          )
+        return msg
+
+    def compute_distances(self, X1, X2):
+        self.dist = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
+
+        # blank matrices needed for celerite solver
+        self.A = np.zeros(len(self.x))
+        self.U = np.zeros((len(self.x),len(self.x)))
+        self.V = self.U
+
+    def compute_covmatrix(self):
+        """ Compute the Cholesky decomposition of a celerite kernel
+
+            Returns:
+                celerite.solver.CholeskySolver: the celerite solver object,
+                with Cholesky decomposition computed.
+        """
+        self.solver.compute(
+            self.params[self.jit_param].value, 
+            self.a_real, self.c_real, self.a_comp, self.b_comp, self.c_comp, self.d_comp,
+            self.A,self.U,self.V,self.dist,self.yerr**2
+        )
+        return self.solver
+
+    def add_diagonal_errors(cls, errors):
+        print("The celerite.solver.CholeskySolver() object adds errors along"
+              + " the diagonal automatically. You should not need to use this"
+              + " method with the CeleriteKernel.")

@@ -413,6 +413,62 @@ class GPLikelihood(RVLikelihood):
         self.kernel.compute_distances(X, X)
 
         return mu, stdev
+        
+
+class CeleriteLikelihood(GPLikelihood):
+    """Celerite GP Likelihood
+
+    The Likelihood object for a radial velocity dataset modeled with a GP
+    whose kernel is a sum of celerite terms. 
+    See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220.
+    for more details.
+
+    Args:
+        model (radvel.model.RVModel): RVModel object
+        t (array): time array
+        vel (array): array of velocities
+        errvel (array): array of velocity uncertainties
+        hnames (list of string): keys corresponding to radvel.Parameter 
+           objects in model.params that are GP hyperparameters
+        suffix (string): suffix to identify this Likelihood object;
+           useful when constructing a `CompositeLikelihood` object
+    """
+
+    def __init__(self, model, t, vel, errvel, hnames, suffix='', **kwargs):
+        super(CeleriteLikelihood, self).__init__(
+            model, t, vel, errvel, hnames,
+            suffix=suffix, kernel_name='Celerite'
+        )
+
+    def set_vary_params(self, param_values_array):
+        i = 0
+        for key in self.list_vary_params():
+            if key.startswith('jit') and param_values_array[i] < 0:
+                param_values_array[i] = -param_values_array[i]
+
+            if key in self.hnames: # update values of hyperparameters
+                array = getattr(self.kernel, key[:-2])
+                self.kernel.array[int(key[-1])] = param_values_array[i]
+
+            self.params[key].value = param_values_array[i]
+            i+=1
+        assert i == len(param_values_array), \
+            "Length of array must match number of varied parameters"
+
+    def logprob(self):
+        r = self._resids()      
+
+        solver = self.kernel.compute_covmatrix()
+
+        # TODO: analytically compute everything for 1 datapoint, see if this produces the correct answer
+        # TODO: make sure x is sorted.
+        # TODO: profile & do a speed test
+        # 
+
+        # calculate log likelihood
+        lnlike =  -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant())
+
+        return lnlike
 
 
 def loglike_jitter(residuals, sigma, sigma_jit):
