@@ -23,6 +23,7 @@ class _args(object):
         self.minTz = 1000
         self.minsteps = 100
         self.thin = 1
+        self.serial = False
 
 def _standard_run(setupfn):
     """
