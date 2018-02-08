@@ -107,7 +107,12 @@ def main():
     '--thin', dest='thin', action='store', default=1, type=int,
     help="Save one sample every N steps [default=1, save all samples]"
     )
-
+    psr_mcmc.add_argument(
+    '--serial', dest='serial', action='store', default=False, type=bool,
+    help='''\
+If True, run MCMC in serial instead of parallel. [False]
+'''
+    )
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
     # Derive physical parameters

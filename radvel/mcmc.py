@@ -12,7 +12,6 @@ import emcee
 from radvel import utils
 import radvel
 
-
 class StateVars(object):
     def __init__(self):
         pass
@@ -121,7 +120,8 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
     np_info = np.__config__.blas_opt_info
     if 'extra_link_args' in np_info.keys() \
        and  check_gp \
-       and ('-Wl,Accelerate' in np_info['extra_link_args']):
+       and ('-Wl,Accelerate' in np_info['extra_link_args']) \
+       and serial == False:
         print("WARNING: Parallel processing with Gaussian Processes will not work with your current"
                       + " numpy installation. See radvel.readthedocs.io/en/latest/OSX-multiprocessing.html"
                       + " for more details. Running in serial with " + str(ensembles) + " ensembles.")

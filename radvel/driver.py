@@ -134,13 +134,6 @@ def mcmc(args):
     else:
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
-    serial = False
-    if [key for key in post.params.keys() if key.startswith('gp_')]:
-        if not sys.platform.startswith('linux'):
-            print("WARNING: MCMC with GP likelihoods will run in serial on Mac and Windows machines. \
-We reccomend running with 3 ensembles or less. Set the number of ensembles using the --nensembles flag.")
-            serial = True  # for now, run GP fits in serial
-            # args.ensembles = int(np.clip(args.ensembles, 1, 3))
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
         .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
@@ -148,7 +141,7 @@ We reccomend running with 3 ensembles or less. Set the number of ensembles using
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=serial)
+            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=args.serial)
 
     # Convert chains into synth basis
     synthchains = chains.copy()
