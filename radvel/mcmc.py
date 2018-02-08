@@ -2,7 +2,7 @@ import sys
 import time
 import copy
 
-from multiprocessing import Pool
+import multiprocessing as mp
 
 import pandas as pd
 import numpy as np
@@ -10,6 +10,7 @@ import numpy as np
 import emcee
 
 from radvel import utils
+import radvel
 
 
 class StateVars(object):
@@ -111,6 +112,21 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
         DataFrame: DataFrame containing the MCMC samples
     """
 
+    # check if one or more likelihoods are GPs
+    if isinstance(post.likelihood, radvel.likelihood.CompositeLikelihood):
+        check_gp = [like for like in post.likelihood.like_list if isinstance(like, radvel.likelihood.GPLikelihood)]
+    else:
+        check_gp = isinstance(post.likelihood, radvel.likelihood.GPLikelihood)  
+
+    np_info = np.__config__.blas_opt_info
+    if 'extra_link_args' in np_info.keys() \
+       and  check_gp \
+       and ('-Wl,Accelerate' in np_info['extra_link_args']):
+        print("WARNING: Parallel processing with Gaussian Processes will not work with your current"
+                      + " numpy installation. See radvel.readthedocs.io/en/latest/OSX-multiprocessing.html"
+                      + " for more details. Running in serial with " + str(ensembles) + " ensembles.")
+        serial = True
+
     statevars.ensembles = ensembles
     statevars.nwalkers = nwalkers
     statevars.checkinterval = checkinterval
@@ -133,10 +149,8 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         if post.params[par].mcmcscale is None:
             if par.startswith('per'):
                 pscale = np.abs(val * 1e-5*np.log10(val))
-            #    pscale_per = pscale
             elif par.startswith('logper'):
                 pscale = np.abs(1e-5 * val)
-            #    pscale_per = pscale
             elif par.startswith('tc'):
                 pscale = 0.1
             else:
@@ -189,7 +203,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
                 result = _domcmc(mcmc_input_array[i])
                 statevars.samplers.append(result)
         else:
-            pool = Pool(statevars.ensembles)
+            pool = mp.Pool(statevars.ensembles)
             statevars.samplers = pool.map(_domcmc, mcmc_input_array)
             pool.close()  # terminates worker processes once all work is done
             pool.join()   # waits for all processes to finish before proceeding
