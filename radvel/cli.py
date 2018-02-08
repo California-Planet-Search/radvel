@@ -89,6 +89,12 @@ def main():
 Number of ensembles. Will be run in parallel on separate CPUs [8]
 '''
     )
+    psr_mcmc.add_argument(
+    '--serial', dest='serial', action='store', default=False, type=bool,
+    help='''\
+If True, run MCMC in serial instead of parallel. [False]
+'''
+    )
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
 

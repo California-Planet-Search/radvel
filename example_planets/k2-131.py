@@ -30,7 +30,7 @@ gp_explength_unc = 1.0*np.sqrt(2.)
 gp_perlength_mean = np.sqrt(1./(2*3.32)) # sqrt(1/2*gamma) in Dai+ 2017
 gp_perlength_unc = 0.04
 # NOTE: this prior isn't equivalent to the one Dai+ 2017 use. However,
-#    our formulation of the quasi-periodic kernel keeps the covariance
+#    our formulation of the quasi-periodic kernel explicitly keeps the covariance
 #    matrix postitive semi-definite, so we use this instead. The orbit model
 #    results aren't affected.
 

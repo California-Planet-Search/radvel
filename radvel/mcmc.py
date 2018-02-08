@@ -14,7 +14,7 @@ import radvel
 
 
 # Maximum G-R statistic to stop burn-in period
-burnGR = 1.03
+burnGR = 1.0003
 
 # Maximum G-R statistic for chains to be deemed well-mixed
 maxGR = 1.01
@@ -130,7 +130,8 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8,
     np_info = np.__config__.blas_opt_info
     if 'extra_link_args' in np_info.keys() \
        and  check_gp \
-       and ('-Wl,Accelerate' in np_info['extra_link_args']):
+       and ('-Wl,Accelerate' in np_info['extra_link_args']) \
+       and serial == False:
         print("WARNING: Parallel processing with Gaussian Processes will not work with your current"
                       + " numpy installation. See radvel.readthedocs.io/en/latest/OSX-multiprocessing.html"
                       + " for more details. Running in serial with " + str(ensembles) + " ensembles.")
@@ -270,7 +271,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         
     df = pd.DataFrame(
         statevars.tchains.reshape(statevars.ndim,statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
-        columns=post.list_vary_params())
+        columns=pcopy.list_vary_params())
     df['lnprobability'] = np.hstack(statevars.lnprob)
 
 
