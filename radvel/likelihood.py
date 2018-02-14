@@ -3,6 +3,7 @@ import radvel.model
 from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
 from scipy import matrix
+import celerite
 
 
 class Likelihood(object):
@@ -181,7 +182,6 @@ class CompositeLikelihood(Likelihood):
 
         return err
 
-
 class RVLikelihood(Likelihood):
     """RV Likelihood
 
@@ -243,16 +243,13 @@ class RVLikelihood(Likelihood):
     def errorbars(self):
         """
         Return uncertainties with jitter added
-        in quadrature. If fitting for granulation
-        errors, they are determined here and added in.
+        in quadrature.
 
         Returns:
             array: uncertainties
         
         """
-        gran_error = 0.
-
-        return np.sqrt(self.yerr**2 + gran_error**2 + self.params[self.jit_param].value**2)
+        return np.sqrt(self.yerr**2 + self.params[self.jit_param].value**2)
 
     def logprob(self):
         """
@@ -294,9 +291,8 @@ class GPLikelihood(RVLikelihood):
               model, t, vel, errvel, suffix=self.suffix, 
               decorr_vars=[], decorr_vectors={}
             )
-
         assert kernel_name in gp.KERNELS.keys(), \
-            'GP Kernel not recognized: ' + self.kernel_name + '\n' + \
+            'GP Kernel not recognized: ' + kernel_name + '\n' + \
             'Available kernels: ' + str(gp.KERNELS.keys())
 
         self.hnames = hnames  # list of string names of hyperparameters
@@ -305,20 +301,14 @@ class GPLikelihood(RVLikelihood):
         self.kernel_call = getattr(gp, kernel_name + "Kernel") 
         self.kernel = self.kernel_call(self.hyperparams)
 
-        X = np.array([self.x]).T
-        self.kernel.compute_distances(X, X)
+        self.kernel.compute_distances(self.x, self.x)
 
-    def set_vary_params(self, param_values_array):
-        i = 0
+    def update_kernel_params(self):
+        """ Update the Kernel object with new values of the hyperparameters 
+        """
         for key in self.list_vary_params():
-            if key.startswith('jit') and param_values_array[i] < 0:
-                param_values_array[i] = -param_values_array[i]
-            if key in self.hnames:  # update values of hyperparameters
-                self.kernel.hparams[key].value = param_values_array[i]
-            self.params[key].value = param_values_array[i]
-            i += 1
-        assert i == len(param_values_array), \
-            "Length of array must match number of varied parameters"
+            if key in self.hnames:  
+                self.kernel.hparams[key].value = self.params[key].value
 
     def _resids(self):
         """Residuals for internal GP calculations
@@ -347,7 +337,8 @@ class GPLikelihood(RVLikelihood):
 
            lnL = -0.5r^TK^{-1}r - 0.5ln[det(K)] 
            
-        where r = vector of residuals (GPLikelihood._resids), K = covariance matrix, and N = number of datapoints. 
+        where r = vector of residuals (GPLikelihood._resids), 
+        K = covariance matrix, and N = number of datapoints. 
 
         Priors are not applied here. 
         Constant has been omitted.
@@ -356,25 +347,31 @@ class GPLikelihood(RVLikelihood):
             float: Natural log of likelihood
 
         """
-        r = self._resids()        
+        # update the Kernel object hyperparameter values
+        self.update_kernel_params()
 
-        self.kernel.compute_covmatrix()
+        r = self._resids()      
 
-        # add white noise jitter & error bars along diagonal
-        self.kernel.add_diagonal_errors(self.errorbars())
+        self.kernel.compute_covmatrix(self.errorbars())
 
         K = self.kernel.covmatrix
 
         # solve alpha = inverse(K)*r
-        alpha = cho_solve(cho_factor(K),r)
+        try:
+            alpha = cho_solve(cho_factor(K),r)
 
-        # compute determinant of K
-        (s,d) = np.linalg.slogdet(K)
+            # compute determinant of K
+            (s,d) = np.linalg.slogdet(K)
 
-        # calculate likelihood
-        like = -.5 * (np.dot(r, alpha) + d)
+            # calculate likelihood
+            like = -.5 * (np.dot(r, alpha) + d)
 
-        return like
+            return like
+
+        except np.linalg.linalg.LinAlgError:
+            print("Warning: non-positive definite kernel detected.")
+            return -np.inf 
+
 
     def predict(self, xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
@@ -388,29 +385,28 @@ class GPLikelihood(RVLikelihood):
                     np.array: stdev, the numpy array of predictive standard deviations
         """
 
+        self.update_kernel_params()
+
         r = matrix(self._resids()).T
 
-        X = np.array([self.x]).T
-        self.kernel.compute_distances(X, X)
-        _ = self.kernel.compute_covmatrix()
-        K = self.kernel.add_diagonal_errors(self.errorbars())
+        self.kernel.compute_distances(self.x, self.x)
+        K = self.kernel.compute_covmatrix(self.errorbars())
 
-        Xpred = np.array([xpred]).T
-        self.kernel.compute_distances(Xpred, X)
-        Ks = self.kernel.compute_covmatrix()
+        self.kernel.compute_distances(xpred, self.x)
+        Ks = self.kernel.compute_covmatrix(0.)
 
         L = cho_factor(K)
         alpha = cho_solve(L, r)
         mu = np.array(Ks*alpha).flatten()
 
-        self.kernel.compute_distances(Xpred, Xpred)
-        Kss = self.kernel.compute_covmatrix()
+        self.kernel.compute_distances(xpred, xpred)
+        Kss = self.kernel.compute_covmatrix(0.)
         B = cho_solve(L, Ks.T) 
         var = np.array(np.diag(Kss - Ks * matrix(B))).flatten()
         stdev = np.sqrt(var)
 
         # set the default distances back to their regular values
-        self.kernel.compute_distances(X, X)
+        self.kernel.compute_distances(self.x, self.x)
 
         return mu, stdev
         
@@ -422,6 +418,9 @@ class CeleriteLikelihood(GPLikelihood):
     whose kernel is a sum of celerite terms. 
     See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220.
     for more details.
+
+    See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
+    file that uses this Likelihood object.
 
     Args:
         model (radvel.model.RVModel): RVModel object
@@ -440,35 +439,86 @@ class CeleriteLikelihood(GPLikelihood):
             suffix=suffix, kernel_name='Celerite'
         )
 
-    def set_vary_params(self, param_values_array):
-        i = 0
+        # sort inputs in time order. required for celerite.
+        order = np.argsort(self.x)
+        self.x = self.x[order]
+        self.y = self.y[order]
+        self.yerr = self.yerr[order]
+
+    def update_kernel_params(self):
+        """ Update the Kernel object with new values of the hyperparameters 
+        """
         for key in self.list_vary_params():
-            if key.startswith('jit') and param_values_array[i] < 0:
-                param_values_array[i] = -param_values_array[i]
-
-            if key in self.hnames: # update values of hyperparameters
-                array = getattr(self.kernel, key[:-2])
-                self.kernel.array[int(key[-1])] = param_values_array[i]
-
-            self.params[key].value = param_values_array[i]
-            i+=1
-        assert i == len(param_values_array), \
-            "Length of array must match number of varied parameters"
+            if key in self.hnames:  
+                index = int(key[0][-1]) - 1 # grab index from hyperparameter string name
+                if 'logA' in key:
+                    self.kernel.hparams[index,0] = self.params[key].value
+                if 'logB' in key:
+                    self.kernel.hparams[index,1] = self.params[key].value
+                if 'logC' in key:
+                    self.kernel.hparams[index,2] = self.params[key].value
+                if 'logD' in key:
+                    self.kernel.hparams[index,3] = self.params[key].value
 
     def logprob(self):
-        r = self._resids()      
 
-        solver = self.kernel.compute_covmatrix()
+        self.update_kernel_params()
 
-        # TODO: analytically compute everything for 1 datapoint, see if this produces the correct answer
-        # TODO: make sure x is sorted.
-        # TODO: profile & do a speed test
-        # 
+        can_proceed = True
+        for i in np.arange(self.kernel.num_terms):
+            if np.exp(self.kernel.hparams[i,0]+self.kernel.hparams[i,2]) >= \
+               np.exp(self.kernel.hparams[i,1]+self.kernel.hparams[i,3]):
+                pass
+            else:
+                can_proceed = False
 
-        # calculate log likelihood
-        lnlike =  -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant())
+        if can_proceed:
+            r = self._resids() 
 
-        return lnlike
+            solver = self.kernel.compute_covmatrix(self.errorbars())
+
+            # calculate log likelihood
+            lnlike =  -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant())
+        
+            return lnlike
+
+        else:
+           print("CeleriteKernel has encountered a non-positive-definite"
+                +" kernel. Ensure that ac>=bd for all complex kernel terms.")
+           return -np.inf
+
+    def predict(self,xpred):
+        """ Realize the GP using the current values of the hyperparameters at values x=xpred.
+            Used for making GP plots. Wrapper around `celerite.GP.predict()`.
+
+            Args:
+                xpred (np.array): numpy array of x values for realizing the GP
+            Returns:
+                tuple: tuple containing:
+                    np.array: mu, the numpy array of predictive means \n
+                    np.array: stdev, the numpy array of predictive standard deviations
+        """
+
+        self.update_kernel_params()
+
+        # build celerite kernel with current values of hparams
+        kernel = celerite.terms.JitterTerm(
+                log_sigma = np.log(self.params[self.jit_param].value)
+                )
+        for i in np.arange(self.kernel.num_terms):
+            kernel = kernel + celerite.terms.ComplexTerm(
+                log_a = self.kernel.hparams[i,0],
+                log_b = self.kernel.hparams[i,1],
+                log_c = self.kernel.hparams[i,2],
+                log_d = self.kernel.hparams[i,3]
+                )
+        gp = celerite.GP(kernel)
+        gp.compute(self.x, self.yerr)
+        mu, var = gp.predict(self.y-self.params[self.gamma_param].value, xpred, return_var=True)
+
+        stdev = np.sqrt(var)
+
+        return mu, stdev
 
 
 def loglike_jitter(residuals, sigma, sigma_jit):

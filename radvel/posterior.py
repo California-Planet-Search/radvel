@@ -74,7 +74,6 @@ class Posterior(Likelihood):
             float: log probability of the likelihood + priors
 
         """
-        
         self.likelihood.set_vary_params(param_values_array)
         _logprob = self.logprob()
                 

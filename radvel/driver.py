@@ -178,7 +178,10 @@ def mcmc(args):
         high = synth_quantile[par][0.841] - med
         low = med - synth_quantile[par][0.159]
         err = np.mean([high,low])
-        err = radvel.utils.round_sig(err)
+        if maxlike == -np.inf and med == -np.inf and np.isnan(low) and np.isnan(high):
+            err = 0.0
+        else:
+            err = radvel.utils.round_sig(err)
         if err > 0.0:
             med, err, errhigh = radvel.utils.sigfig(med, err)
             maxlike, err, errhigh = radvel.utils.sigfig(maxlike, err)
@@ -186,6 +189,7 @@ def mcmc(args):
         synthpost.medparams[par] = med
         synthpost.maxparams[par] = maxlike
 
+# TODO: fix RMS calculation when infs are present
 
     print("Final loglikelihood = %f" % post.logprob())
     print("Final RMS = %f" % post.likelihood.residuals().std())

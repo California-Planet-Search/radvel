@@ -53,12 +53,17 @@ params['dvdt'] = radvel.Parameter(value=0.,vary=False)
 params['curv'] = radvel.Parameter(value=0.,vary=False)
 time_base = np.median(t)
 
-# Define GP hyperparameters.
+# Define GP hyperparameters as Parameter objects.
 params['gp_amp'] = radvel.Parameter(value=26.0)
 params['gp_explength'] = radvel.Parameter(value=gp_explength_mean) 
 params['gp_per'] = radvel.Parameter(value=gp_per_mean) 
 params['gp_perlength'] = radvel.Parameter(value=gp_perlength_mean)
 
+
+# Define a dictionary, 'hnames', specifying the names
+# of the GP hyperparameters corresponding to a particular
+# data set. Use the strings in 'instnames' to tell radvel
+# which data set you're talking about.
 hnames = {
   'harps-n': ['gp_amp', # GP variability amplitude
               'gp_per', # GP variability period

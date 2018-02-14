@@ -99,8 +99,8 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
-                       phase_nrows=None, legend=True, rv_phase_space=0.08,
-                       phase_limits=[]):
+                       phase_nrows=None, legend=True, legend_fontsize='x-small',
+                       rv_phase_space=0.08, phase_limits=[]):
     """Multi-panel RV plot to display model using post.params orbital
     parameters.
 
@@ -128,6 +128,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         phase_nrows (int, optional): number of columns in the phase
             folded plots. Default is nplanets.
         legend (bool, optional): include legend on plot? (default: True)
+        legend_fontsize (str, optional): fontsize parameter to be passed
+            to matplotlib.legend. Choose from {‘xx-small’, ‘x-small’, 
+            ‘small’, ‘medium’, ‘large’, ‘x-large’, ‘xx-large’}. 
+            (default: 'x-small')
         rv_phase_space (float, optional): verticle space between rv
             plot and phase-folded plots (in units of fraction of
             figure height)
@@ -330,7 +334,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     # Legend
     if legend:
-        pl.legend(numpoints=1, fontsize='x-small', loc='best')
+        pl.legend(numpoints=1, fontsize=legend_fontsize, loc='best')
     
     # Years on upper axis
     axyrs = ax_rv.twiny()
