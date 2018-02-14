@@ -98,9 +98,9 @@ class SqExpKernel(Kernel):
 
             Args:
                 errors (float or numpy array): If covariance matrix is non-square,
-                this arg must be set to 0. If covariance matrix is square,
-                this can be a numpy array of observational errors and jitter
-                added in quadrature. 
+                    this arg must be set to 0. If covariance matrix is square,
+                    this can be a numpy array of observational errors and jitter
+                    added in quadrature. 
         """
         length = self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
@@ -184,9 +184,9 @@ class PerKernel(Kernel):
 
             Args:
                 errors (float or numpy array): If covariance matrix is non-square,
-                this arg must be set to 0. If covariance matrix is square,
-                this can be a numpy array of observational errors and jitter
-                added in quadrature. 
+                    this arg must be set to 0. If covariance matrix is square,
+                    this can be a numpy array of observational errors and jitter
+                    added in quadrature. 
         """
         length= self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
@@ -279,9 +279,9 @@ class QuasiPerKernel(Kernel):
 
             Args:
                 errors (float or numpy array): If covariance matrix is non-square,
-                this arg must be set to 0. If covariance matrix is square,
-                this can be a numpy array of observational errors and jitter
-                added in quadrature. 
+                    this arg must be set to 0. If covariance matrix is square,
+                    this can be a numpy array of observational errors and jitter
+                    added in quadrature. 
         """
         perlength = self.hparams['gp_perlength'].value
         amp = self.hparams['gp_amp'].value
@@ -309,35 +309,35 @@ class CeleriteKernel(Kernel):
 
     .. math::
 
-        C_{ij} = \\sum_\\limits_{n=1}^{J} 
-                 \frac{1}{2}(a_n + ib_n)exp(-(c_n + id_n)|t_i - t_j|)
-                 + \frac{1}{2}(a_n - ib_n)exp(-(c_n - id_n)|t_i - t_j|)
+        C_{ij} = \\sum_{n=1}^{J} \\frac{1}{2}(a_n + ib_n)e^{-(c_n + id_n)\\tau_{nm}} 
+                               + \\frac{1}{2}(a_n - ib_n)e^{-(c_n - id_n)\\tau_{nm}}
 
-    where J is the numner of terms in the sum. The hyperparameters of 
-    this kernel are :math:`a_j`,:math:`b_j`,:math:`c_j`, and :math:`d_j` 
-    for each term :math:`C_{nm}` in the sum. 
+    where :math:`J` is the number of terms in the sum, and :math:`\\tau_{nm}=|t_i - t_j|`. 
+    
+    The hyperparameters of this kernel are :math:`a_{n}` , :math:`b_{n}` , :math:`c_{n}` , and :math:`d_n` 
+    for each term :math:`C_{ij}` in the sum. 
 
     See celerite.readthedocs.io for more information about celerite kernels and
     computation.
 
-    Note: for this kernel to be positive-definite, we must have :math:`a_j*c_j \\ge b_j*d_j`
-    at all times. The CeleriteLikelihood object will throw a ValueError 
-    if it ever detects a non-positive-definite kernel.
+    Note: 
+        For this kernel to be positive-definite, we must have :math:`a_nc_n \\ge b_nd_n`
+        at all times. The CeleriteLikelihood object will raise a warning
+        if it ever detects a non-positive-definite kernel.
 
-    Args:
-        hparams (dict of radvel.Parameter): dictionary containing
-            radvel.Parameter objects that are GP hyperparameters
-            of this kernel. Must contain a multiple of 4 Parameter object
-            with the following names:
-                `k_logA*`: the natural log of :math:`a_{k}`. 
-                `k_logB*`: the natural log of :math:`b_{k}`.
-                `k_logC*`: the natural log of :math:`c_{k}`. 
-                `k_logD*`: the natural log of :math:`d_{k}`. 
-            (Where k is a 1-indexed integer identifying coefficients of a 
-            particular term (1 <= k <= # of kernel terms), and * is an optional 
-            suffix, e.g. 'hires'. Suffix is useful when fitting several individual 
-            GPLikelihoods with different hyperparameters using the 
-            CompositeLikelihood object).
+    :param: hparams (dict of radvel.Parameter): dictionary containing
+        radvel.Parameter objects that are GP hyperparameters
+        of this kernel. Must contain a multiple of 4 Parameter object
+        with the following names:
+                - `k_logA*`: the natural log of :math:`a_{k}`. 
+                - `k_logB*`: the natural log of :math:`b_{k}`.
+                - `k_logC*`: the natural log of :math:`c_{k}`. 
+                - `k_logD*`: the natural log of :math:`d_{k}`. 
+        (where k is a 1-indexed integer identifying coefficients of a 
+        particular term, :math:`1 <= k <= N_{terms}`, and * is an optional 
+        suffix, e.g. 'hires'). Suffix is useful when fitting several individual 
+        GPLikelihoods with different hyperparameters using the 
+        CompositeLikelihood object.
 
     """
 
@@ -420,7 +420,7 @@ class CeleriteKernel(Kernel):
 
             Args:
                 errors (array of float): observation errors and jitter added
-                in quadrature
+                    in quadrature
 
             Returns:
                 celerite.solver.CholeskySolver: the celerite solver object,

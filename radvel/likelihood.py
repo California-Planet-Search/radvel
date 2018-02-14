@@ -381,8 +381,8 @@ class GPLikelihood(RVLikelihood):
                 xpred (np.array): numpy array of x values for realizing the GP
             Returns:
                 tuple: tuple containing:
-                    np.array: mu, the numpy array of predictive means \n
-                    np.array: stdev, the numpy array of predictive standard deviations
+                    np.array: the numpy array of predictive means \n
+                    np.array: the numpy array of predictive standard deviations
         """
 
         self.update_kernel_params()
@@ -416,7 +416,7 @@ class CeleriteLikelihood(GPLikelihood):
 
     The Likelihood object for a radial velocity dataset modeled with a GP
     whose kernel is a sum of celerite terms. 
-    See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220.
+    See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
     for more details.
 
     See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
@@ -495,8 +495,8 @@ class CeleriteLikelihood(GPLikelihood):
                 xpred (np.array): numpy array of x values for realizing the GP
             Returns:
                 tuple: tuple containing:
-                    np.array: mu, the numpy array of predictive means \n
-                    np.array: stdev, the numpy array of predictive standard deviations
+                    np.array: numpy array of predictive means \n
+                    np.array: numpy array of predictive standard deviations
         """
 
         self.update_kernel_params()

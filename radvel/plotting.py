@@ -129,8 +129,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
             folded plots. Default is nplanets.
         legend (bool, optional): include legend on plot? (default: True)
         legend_fontsize (str, optional): fontsize parameter to be passed
-            to matplotlib.legend. Choose from {‘xx-small’, ‘x-small’, 
-            ‘small’, ‘medium’, ‘large’, ‘x-large’, ‘xx-large’}. 
+            to matplotlib.legend. Choose from {'xx-small', 'x-small', 
+            'small', 'medium', 'large', 'x-large', 'xx-large'}. 
             (default: 'x-small')
         rv_phase_space (float, optional): verticle space between rv
             plot and phase-folded plots (in units of fraction of
