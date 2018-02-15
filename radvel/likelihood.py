@@ -307,7 +307,7 @@ class GPLikelihood(RVLikelihood):
         """ Update the Kernel object with new values of the hyperparameters 
         """
         for key in self.list_vary_params():
-            if key in self.hnames:  
+            if key in self.hnames:
                 self.kernel.hparams[key].value = self.params[key].value
 
     def _resids(self):

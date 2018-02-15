@@ -9,4 +9,4 @@ pandas>=0.20.0
 nbsphinx
 jupyter_client
 ipykernel
-celerite>=0.3.0
+# celerite>=0.3.0
