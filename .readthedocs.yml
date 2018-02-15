@@ -1,5 +1,5 @@
 requirements_file:
     docs/requirements.txt
 python:
-    pip_install: true
+    setup_py_install: true
     version: 3.5
