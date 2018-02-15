@@ -1,0 +1,11 @@
+numpy>=1.11
+scipy>=0.17
+matplotlib>=1.5.3
+corner>=2.0
+cython>=0.22
+astropy>=1.1.2
+emcee>=2.2.1
+pandas>=0.20.0
+nbsphinx
+jupyter_client
+ipykernel
