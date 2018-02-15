@@ -54,7 +54,8 @@ params['curv'] = radvel.Parameter(value=0.,vary=False)
 time_base = np.median(t)
 
 # Define GP hyperparameters as Parameter objects.
-params['gp_amp'] = radvel.Parameter(value=26.0)
+params['gp_amp_j'] = radvel.Parameter(value=26.0)
+params['gp_amp_h'] = radvel.Parameter(value=26.0)
 params['gp_explength'] = radvel.Parameter(value=gp_explength_mean) 
 params['gp_per'] = radvel.Parameter(value=gp_per_mean) 
 params['gp_perlength'] = radvel.Parameter(value=gp_perlength_mean)
@@ -65,11 +66,11 @@ params['gp_perlength'] = radvel.Parameter(value=gp_perlength_mean)
 # data set. Use the strings in 'instnames' to tell radvel
 # which data set you're talking about.
 hnames = {
-  'harps-n': ['gp_amp', # GP variability amplitude
+  'harps-n': ['gp_amp_h', # GP variability amplitude
               'gp_per', # GP variability period
               'gp_explength', # GP non-periodic characteristic length
               'gp_perlength'], # GP periodic characteristic length
-  'pfs': ['gp_amp', 
+  'pfs': ['gp_amp_j', 
           'gp_per', 
           'gp_explength', 
           'gp_perlength']
@@ -98,7 +99,8 @@ for tel in instnames:
 priors = [radvel.prior.Gaussian('per1', Porb, Porb_unc),
           radvel.prior.Gaussian('tc1', Tc, Tc_unc),
           radvel.prior.Jeffreys('k1', 0.01, 10.), # min and max for Jeffrey's priors estimated by Sarah
-          radvel.prior.Jeffreys('gp_amp', 0.01, 100.),
+          radvel.prior.Jeffreys('gp_amp_h', 0.01, 100.),
+          radvel.prior.Jeffreys('gp_amp_j', 0.01, 100.),
           radvel.prior.Jeffreys('jit_pfs', 0.01, 10.),
           radvel.prior.Jeffreys('jit_harps-n', 0.01,10.),
           radvel.prior.Gaussian('gp_explength', gp_explength_mean, gp_explength_unc),
