@@ -21,7 +21,12 @@ else:
 class Kernel(ABC):
     """
     Abstract base class to store kernel info and compute covariance matrix.
-    All kernel objects inherit from this class
+    All kernel objects inherit from this class.
+
+    Note:
+        To implement your own kernel, create a class that inherits
+        from this class. It should have hyperparameters that follow
+        the name scheme 'gp_NAME_SUFFIX'.
 
     """
 

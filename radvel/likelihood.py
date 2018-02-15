@@ -307,8 +307,10 @@ class GPLikelihood(RVLikelihood):
         """ Update the Kernel object with new values of the hyperparameters 
         """
         for key in self.list_vary_params():
-            if key in self.hnames:
-                self.kernel.hparams[key].value = self.params[key].value
+            if key in self.hnames: 
+                hparams_key = key.split('_')
+                hparams_key = hparams_key[0] + '_' + hparams_key[1]
+                self.kernel.hparams[hparams_key].value = self.params[key].value
 
     def _resids(self):
         """Residuals for internal GP calculations
