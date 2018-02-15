@@ -100,7 +100,12 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
                        epoch=2450000, uparams=None, phase_ncols=None, 
                        phase_nrows=None, legend=True, legend_fontsize='x-small',
-                       rv_phase_space=0.08, phase_limits=[]):
+                       rv_phase_space=0.08, phase_limits=[],
+                       subtract_gp_mean_model=False, 
+                       plot_likelihoods_separately=True,
+                       subtract_orbit_model=False):
+# TODO: document new keywords better, make sure they're all set to false
+
     """Multi-panel RV plot to display model using post.params orbital
     parameters.
 
@@ -138,6 +143,15 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         phase_limits (list, optional): two element list specifying 
             pyplot.xlim bounds for phase-folded array. Useful for
             partial orbits.
+        subtract_gp_mean_model (bool, optional): if True, subtract the Gaussian
+            process mean max likelihood model from the data and the
+            model when plotting the results. 
+        plot_likelihoods_separately (bool, optional): if True, plot a separate
+            panel for each Likelihood object.
+        subtract_orbit_model (bool, optional): if True, subtract the best-fit
+            orbit model from the data and the model when plotting 
+            the results. Useful for seeing the structure of correlated
+            noise in the data.
 
     Returns:
         figure: current matplotlib figure object
@@ -262,9 +276,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     numdatapoints = 0
     for like in like_list:
-        if isinstance(like, radvel.likelihood.GPLikelihood): 
+        if isinstance(like, radvel.likelihood.GPLikelihood):
             gp_mean, _ = like.predict(like.x)
-            rvmod[numdatapoints:numdatapoints+len(like.x)] += gp_mean
+            if not subtract_gp_mean_model:
+                rvmod[numdatapoints:numdatapoints+len(like.x)] += gp_mean
         numdatapoints += len(like.x)
 
     for like in like_list:
@@ -303,6 +318,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
                 xpred = xpred - e
 
             orbit_model = like.model(xpred)
+            if subtract_gp_mean_model:
+                gpmu = 0.
+            if subtract_orbit_model:
+                orbit_model = 0.
             ax.fill_between(xpred, gpmu+orbit_model-stddev, gpmu+orbit_model+stddev, 
                             color=kw['color'], alpha=0.5, lw=0
                             )
@@ -310,7 +329,10 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
         else:
             # Unphased plot
-            ax.plot(mplttimes,rvmod2,'b-', rasterized=False, lw=0.1)
+            orbit_model = rvmod2
+            if subtract_orbit_model:
+                orbit_model = 0.
+            ax.plot(mplttimes,orbit_model,'b-', rasterized=False, lw=0.1)
 
             
     def labelfig(letter):
@@ -324,10 +346,16 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
 
     pltletter += 1
 
-    _mtelplot(
-        # data = residuals + best fit model
-        plttimes, rawresid+rvmod, rverr, synthpost.likelihood.telvec, ax, telfmts
-    )
+    if subtract_orbit_model:
+        _mtelplot(
+            # data = residuals (best fit model subtracted out)
+            plttimes, rawresid, rverr, synthpost.likelihood.telvec, ax, telfmts
+        )
+    else:
+        _mtelplot(
+            # data = residuals + best fit model
+            plttimes, rawresid+rvmod, rverr, synthpost.likelihood.telvec, ax, telfmts
+        )
     ax.set_xlim(min(plttimes)-0.01*dt, max(plttimes)+0.01*dt)
     
     pl.setp(ax_rv.get_xticklabels(), visible=False)
@@ -335,7 +363,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
     # Legend
     if legend:
         pl.legend(numpoints=1, fontsize=legend_fontsize, loc='best')
-    
+
+
     # Years on upper axis
     axyrs = ax_rv.twiny()
     # axyrs.set_xlim(min(plttimes)-0.01*dt,max(plttimes)+0.01*dt)
