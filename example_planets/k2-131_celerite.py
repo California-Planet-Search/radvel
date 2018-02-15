@@ -55,8 +55,8 @@ params['1_logD'] = radvel.Parameter(value=np.log(.0005))
 # 1_logD ensures that this term remains real throughout the fitting process.
 params['2_logA'] = radvel.Parameter(value=np.log(26.)) 
 params['2_logB'] = radvel.Parameter(value=np.log(0.),vary=False)
-params['2_logC'] = radvel.Parameter(value=np.log(0.)) 
-params['2_logD'] = radvel.Parameter(value=np.log(0.1),vary=False)
+params['2_logC'] = radvel.Parameter(value=np.log(0.1)) 
+params['2_logD'] = radvel.Parameter(value=np.log(0.),vary=False)
 
 hnames = {}
 for tel in instnames:

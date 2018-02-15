@@ -2,6 +2,7 @@ from .likelihood  import Likelihood
 import numpy as np
 import pickle
 import radvel
+from radvel.gp import CeleriteKernel
 
 class Posterior(Likelihood):
     """Posterior object
@@ -86,7 +87,7 @@ class Posterior(Likelihood):
         Args:
             filename (string): full path to outputfile
         """
-        
+
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
 
@@ -98,12 +99,11 @@ def load(filename):
     Args:
         filename (string): full path to pickle file
     """
-        
     with open(filename, 'rb') as f:
         post = pickle.load(f)
 
     for key,val in post.params.items():
         if val is None:
             del post.params[key]
-    
+
     return post

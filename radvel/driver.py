@@ -163,17 +163,18 @@ def mcmc(args):
     print("Performing post-MCMC maximum likelihood fit...")
     post = radvel.fitting.maxlike_fitting(post, verbose=False)
 
-    synthpost = copy.deepcopy(post)
+    final_logprob = post.logprob()
+    final_residuals = post.likelihood.residuals().std()
     synthparams = post.params.basis.to_synth(post.params)
-    synthpost.params.update(synthparams)
+    post.params.update(synthparams)
 
 
     print("Calculating uncertainties...")
-    synthpost.uparams = {}
-    synthpost.medparams = {}
-    synthpost.maxparams = {}
-    for par in synthpost.params.keys():
-        maxlike = synthpost.params[par].value
+    post.uparams = {}
+    post.medparams = {}
+    post.maxparams = {}
+    for par in post.params.keys():
+        maxlike = post.params[par].value
         med = synth_quantile[par][0.5]
         high = synth_quantile[par][0.841] - med
         low = med - synth_quantile[par][0.159]
@@ -185,16 +186,15 @@ def mcmc(args):
         if err > 0.0:
             med, err, errhigh = radvel.utils.sigfig(med, err)
             maxlike, err, errhigh = radvel.utils.sigfig(maxlike, err)
-        synthpost.uparams[par] = err
-        synthpost.medparams[par] = med
-        synthpost.maxparams[par] = maxlike
+        post.uparams[par] = err
+        post.medparams[par] = med
+        post.maxparams[par] = maxlike
 
-# TODO: fix RMS calculation when infs are present
 
-    print("Final loglikelihood = %f" % post.logprob())
-    print("Final RMS = %f" % post.likelihood.residuals().std())
+    print("Final loglikelihood = %f" % final_logprob)
+    print("Final RMS = %f" % final_residuals)
     print("Best-fit parameters:")
-    print(synthpost)
+    print(post)
 
     print("Saving output files...")
     saveto = os.path.join(args.outputdir, conf_base+'_post_summary.csv')
@@ -202,7 +202,7 @@ def mcmc(args):
 
     postfile = os.path.join(args.outputdir,
                             '{}_post_obj.pkl'.format(conf_base))
-    synthpost.writeto(postfile)
+    post.writeto(postfile)
 
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
     chains.to_csv(csvfn, compression='bz2')

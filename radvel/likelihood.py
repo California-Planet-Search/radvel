@@ -483,7 +483,7 @@ class CeleriteLikelihood(GPLikelihood):
             return lnlike
 
         else:
-           print("CeleriteKernel has encountered a non-positive-definite"
+           print("WARNING: CeleriteKernel has encountered a non-positive-definite"
                 +" kernel. Ensure that ac>=bd for all complex kernel terms.")
            return -np.inf
 

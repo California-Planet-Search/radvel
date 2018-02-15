@@ -104,7 +104,6 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
                        subtract_gp_mean_model=False, 
                        plot_likelihoods_separately=True,
                        subtract_orbit_model=False):
-# TODO: document new keywords better, make sure they're all set to false
 
     """Multi-panel RV plot to display model using post.params orbital
     parameters.

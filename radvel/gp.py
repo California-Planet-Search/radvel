@@ -5,6 +5,7 @@ from scipy import spatial
 import abc
 import numpy as np
 import celerite
+from celerite.solver import CholeskySolver
 
 # implemented kernels & examples of possible names for their associated hyperparameters
 KERNELS = {"SqExp": ['gp_length','gp_amp'],
@@ -347,9 +348,6 @@ class CeleriteKernel(Kernel):
 
     def __init__(self, hparams):
 
-        # initialize celerite solver object
-        self.solver = celerite.solver.CholeskySolver()
-
         assert len(hparams) > 0 and len(hparams) % 4 == 0, \
             "CeleriteKernel requires a positive integer number of terms, each" \
              + "with 4 coefficients. See CeleriteKernel documentation."
@@ -426,10 +424,13 @@ class CeleriteKernel(Kernel):
                 celerite.solver.CholeskySolver: the celerite solver object,
                 with Cholesky decomposition computed.
         """
+        # initialize celerite solver object
+        solver = CholeskySolver()
+
         self.compute_real_and_complex_hparams()
         self.real = np.exp(self.real) # (celerite hyperparameters are fit in log-space)
         self.complex = np.exp(self.complex)
-        self.solver.compute(
+        solver.compute(
             0., self.real[:,0], self.real[:,2], 
             self.complex[:,0], self.complex[:,1], 
             self.complex[:,2], self.complex[:,3], 
@@ -437,7 +438,7 @@ class CeleriteKernel(Kernel):
             self.x, errors**2
         )
 
-        return self.solver
+        return solver
 
         
 
