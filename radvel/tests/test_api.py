@@ -1,5 +1,6 @@
 import warnings
 import sys
+import copy
 
 import radvel
 import radvel.driver
@@ -87,6 +88,18 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     args.plotkw = {}
     radvel.driver.plots(args)
 
+def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
+    """
+    Check celerite GP fit
+    """
+    args = _args()
+    args.setupfn = setupfn
+
+    radvel.driver.fit(args)
+    
+    args.type = ['rv']
+    args.plotkw = {}
+    radvel.driver.plots(args)
 
 def test_basis():
     """
@@ -128,7 +141,7 @@ def test_basis():
 
 def test_kernels():
     """
-    Test basic functionality of all GP kernels
+    Test basic functionality of all standard GP kernels
     """
 
     kernel_list = radvel.gp.KERNELS
@@ -139,21 +152,53 @@ def test_kernels():
         kernel_call = getattr(radvel.gp, kernel + "Kernel") 
         test_kernel = kernel_call(hyperparams)
 
-        x = np.array([np.array([1.,2.,3.])]).T
+        x = np.array([1.,2.,3.])
         test_kernel.compute_distances(x,x)
-        test_kernel.compute_covmatrix()
-        test_kernel.add_diagonal_errors(x)
+        test_kernel.compute_covmatrix(x.T)
 
         print("Testing {}".format(kernel_call(hyperparams)))
         
-        sys.stdout.write("Testing error catching with dummy hyperparameters... ")
-        fakeparams = {}
-        fakeparams['dummy'] = radvel.Parameter(value=1.0)
-        try:
-            kernel_call(fakeparams)
-        except AssertionError:
-            sys.stdout.write("passed\n")
+        sys.stdout.write("Testing error catching with dummy hyperparameters... \n")
 
+        fakeparams1 = {}
+        fakeparams1['dummy'] = radvel.Parameter(value=1.0)
+        try:
+            kernel_call(fakeparams1)
+        except AssertionError:
+            sys.stdout.write("passed #1\n")
+
+        fakeparams2 = copy.deepcopy(hyperparams)
+        fakeparams2[hnames[0]] = 1.
+        try:
+            kernel_call(fakeparams2)
+        except AttributeError:
+            sys.stdout.write("passed #2\n")
+
+        # CeleriteKernel catches some errors a little differently
+        if kernel == 'Celerite':
+            fakeparams3 = copy.deepcopy(hyperparams)
+            fakeparams3.pop(hnames[0])
+            fakeparams3['9_logA'] = radvel.Parameter(value=1.0)
+            try:
+                kernel_call(fakeparams3)
+            except IndexError:
+                sys.stdout.write("passed #3\n")
+            fakeparams4 = copy.deepcopy(hyperparams)
+            fakeparams4.pop(hnames[0])
+            fakeparams4['dummy'] = radvel.Parameter(value=1.0)
+            try:
+                kernel_call(fakeparams4)
+            except ValueError:
+                sys.stdout.write("passed #4\n")
+
+        else:
+            fakeparams3 = copy.deepcopy(hyperparams)
+            fakeparams3.pop(hnames[0])
+            fakeparams3['dummy'] = radvel.Parameter(value=1.0)
+            try:
+                kernel_call(fakeparams3)
+            except KeyError:
+                sys.stdout.write("passed #3\n")
 
 def test_priors():
     """

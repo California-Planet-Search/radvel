@@ -41,9 +41,3 @@ script:
 
 after_success:
     - coveralls
-
-notifications:
-  slack:
-    on_failure: always  # send a slack notification when build fails.
-                        # Travis-CI runs a build every time something 
-                        # in this repo changes or a pull request is made.

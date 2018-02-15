@@ -23,7 +23,6 @@ def maxlike_fitting(post, verbose=True):
     if verbose:
         print("Initial loglikelihood = %f" % post0.logprob())
         print("Performing maximum likelihood fit...")
-
     res = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method='Nelder-Mead',
         options=dict(xatol=1e-8, maxiter=200, maxfev=100000)
