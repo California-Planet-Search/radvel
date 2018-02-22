@@ -1,3 +1,23 @@
+"""
+Annotations for refactoring
+
+radvel/plot/config.py
+
+from radvel.plot.config import * 
+
+radvel/plot/mcmc.py
+- trend plots
+- corner plots
+
+radvel/plot/orbit.py
+- phasefold
+- timeseries fits
+
+radvel/plot/report.py
+- multipanel
+"""
+
+
 import string
 import copy
 import numpy as np
@@ -14,11 +34,13 @@ import corner
 import radvel
 from radvel.utils import t_to_phase, fastbin
 
+# config
 latex = {
     'ms': 'm s$^{\\mathregular{-1}}$',
     'BJDTDB': 'BJD$_{\\mathregular{TDB}}$'
 }
 
+# config
 telfmts_default = {
     'j': dict(color='k', fmt='o', mfc='none', label='HIRES', mew=1),
     'k': dict(color='k', fmt='s', mfc='none', label='HIRES pre 2004', mew=1),
@@ -29,6 +51,7 @@ telfmts_default = {
     'l': dict(color='g', fmt='*'),
 }
 
+# config
 telfmts_default['lick'] = telfmts_default['l']
 telfmts_default['hires_rj'] = telfmts_default['j']
 telfmts_default['hires'] = telfmts_default['j']
@@ -36,12 +59,14 @@ telfmts_default['hires_rk'] = telfmts_default['k']
 telfmts_default['apf'] = telfmts_default['a']
 telfmts_default['harps'] = telfmts_default['h']
 
+# config
 cmap = matplotlib.cm.nipy_spectral
 rcParams['font.size'] = 9
 rcParams['lines.markersize'] = 5
 rcParams['axes.grid'] = False
 
 
+# break the loop
 def _mtelplot(x, y, e, tel, ax, telfmts={}):
     """Plot data from from multiple telescopes
 
@@ -95,6 +120,44 @@ def _mtelplot(x, y, e, tel, ax, telfmts={}):
         matplotlib.ticker.ScalarFormatter(useOffset=False)
     )
 
+
+   
+# break into
+# full timeseries
+# residuals
+# phasefold
+# move into the report.py
+"""
+class Plotter(object):
+    def __init__(self, post):
+    
+    def plot_timeseries(self):
+        pass
+    
+    def plot_residuals(self):
+        pass
+        
+    def plot_phasefold(self, plnt_key)
+        pass
+    
+    def plot_multipanel(self):
+        # provision figure
+        sca(axtimeseries)
+        self.plot_timeseries(self):
+        sca()
+        self.plot_residuals(self):
+        sca()
+        self.plot_phasefold(self, plnt_key)
+        pass       
+
+class GPPlotter(Plotter):
+    def plot_timeseries(self):
+        #logic to handle the bands    
+    
+plotter = Plotter(post)
+plotter.plot_phasefold('b') # draw that plot in the current axis
+plotter.plot_residuals() # draw that plot in the current axis
+"""
 
 def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False, 
                        yscale_auto=False, yscale_sigma=3.0, nophase=False, 
@@ -156,6 +219,8 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         figure: current matplotlib figure object
         list: list of axis objects
     """
+    
+
     figwidth = 7.5  # spans a page with 0.5in margins
     phasefac = 1.4
     ax_rv_height = figwidth * 0.6
@@ -509,7 +574,7 @@ def rv_multipanel_plot(post, saveplot=None, telfmts={}, nobin=False,
         
     return fig, ax_list
 
-    
+# plot/mcmc.py    
 def corner_plot(post, chains, saveplot=None):
     """
     Make a corner plot from the output MCMC chains and a posterior object.
@@ -553,6 +618,7 @@ def texlabel(key, letter):
     if key.count('a') == 1:
         return "$a_" + letter + "$"
 
+# plot/mcmc.py    
 
 def corner_plot_derived_pars(chains, planet, saveplot=None):
     """
@@ -629,6 +695,7 @@ def corner_plot_derived_pars(chains, planet, saveplot=None):
         pl.show()
     rcParams['font.size'] = f
 
+# plot/mcmc.py    
 
 def trend_plot(post, chains, nwalkers, outfile=None):
     """MCMC trend plot
@@ -673,7 +740,7 @@ def trend_plot(post, chains, nwalkers, outfile=None):
             pdf.savefig()
             pl.close()
 
-
+# ???
 def correlation_plot(post, outfile=None):
     """Correlation plot
 
@@ -722,7 +789,7 @@ def correlation_plot(post, outfile=None):
     else:
         pl.savefig(outfile)
 
-
+# config
 def add_anchored(*args, **kwargs):
     """
     Parameters
