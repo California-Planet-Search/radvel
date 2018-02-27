@@ -416,5 +416,51 @@ class NumericalPrior(Prior):
         return s
 
 
+class UserDefinedPrior(Prior):
+    """Interface for user to define a prior 
+       with an arbitrary functional form. 
 
+    Args:
+        param_list (list of str): list of parameter label(s). 
+        func (function): a Python function that takes in  a list
+            of values (ordered as in ``param_list``), and returns
+            the corresponding log-value of a pdf. 
+        tex_rep (str): TeX-readable string representation of
+            this prior, to be passed into radvel report and 
+            plotting code.
+
+    Example:
+        >>> def myPriorFunc(inp_list):
+        ...     if inp_array == [0.]:
+        ...         return 0.
+        ...     else:
+        ...         return -np.inf
+        >>> myTexString = 'Delta Function Prior on $\sqrt{e}$'
+        >>> myPrior = radvel.prior.UserDefinedPrior(['se'], myPriorFunc, myTexString)
+
+    Note:
+        ``func`` must be properly normalized; i.e. integrating over the
+        entire parameter space must give probability 1. 
+    """
+    
+    def __init__(self, param_list, func, tex_rep):
+        self.param_list = param_list
+        self.func = func
+        self.tex_rep = tex_rep
+
+    def __call__(self, params):
+        x = []
+        for param in self.param_list:
+            x.append(params[param].value)
+        return self.func(x)
+
+    def __repr__(self):
+        s = "User-defined prior on {}".format(
+            self.param_list
+            )
+        return s
+
+    def __str__(self):
+        s = self.tex_rep
+        return s
 
