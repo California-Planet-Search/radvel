@@ -6,6 +6,9 @@ import shutil
 
 import radvel
 
+from jinja2 import Environment, PackageLoader, select_autoescape
+env = Environment(loader=PackageLoader('radvel', 'templates'))
+
 print_basis = 'per tc e w k'
 units = {'per': 'days',
          'tp': 'JD',
@@ -89,7 +92,8 @@ class RadvelReport():
         Returns:
             string: TeX code for report
         """
-
+        import pdb;pdb.set_trace()
+        '''
         out = self._preamble() + self.tabletex()
         if os.path.exists(self.runname+"_rv_multipanel.pdf"):
             out += self.figtex(self.runname+"_rv_multipanel.pdf",
@@ -102,7 +106,11 @@ class RadvelReport():
                 caption="Posterior distributions for all derived parameters.")
 
         out += self._postamble()
-        
+        '''
+
+        template = env.get_template('report.tex')
+        out = template.render(starname=self.starname_tex,version=radvel.__version)
+
         return out
 
     def tabletex(self, tabtype='all'):

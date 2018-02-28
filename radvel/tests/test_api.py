@@ -18,10 +18,10 @@ class _args(object):
         self.decorr = False
 
         self.nwalkers = 50
-        self.nsteps = 10000
+        self.nsteps = 100
         self.ensembles = 8
-        self.maxGR = 1.01
-        self.burnGR = 1.03
+        self.maxGR = 1.10
+        self.burnGR = 1.30
         self.minTz = 1000
         self.minsteps = 100
         self.thin = 1
@@ -262,4 +262,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_priors()
+    test_k2(setupfn='/Users/petigura/code/radvel/example_planets/epic203771098.py')

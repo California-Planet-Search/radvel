@@ -1,0 +1,24 @@
+{% block preamble %} 
+\documentclass{emulateapj}
+\usepackage{graphicx,textcomp,fancyhdr,hyperref}
+\begin{document}
+\pagestyle{fancy}
+\pagenumbering{gobble}
+\chead{Summary of \texttt{RadVel} results for {{ starname }} }
+{% endblock preamble %} 
+
+
+{% block body %} 
+
+Fill in body text here
+
+{% endblock body %} 
+
+{% block postamble %} 
+\lfoot{
+  \footnotesize{
+    report produced by \texttt{RadVel} v{{ version }}: 
+    \href{http://radvel.readthedocs.io}{http://radvel.readthedocs.io}
+}
+\end{document}
+{% block preamble %} 
