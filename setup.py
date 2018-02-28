@@ -11,6 +11,11 @@ def get_property(prop, project):
 
 extensions = [Extension("radvel._kepler", ["src/_kepler.pyx"],)]
 
+reqs = []
+for line in open('requirements.txt', 'r').readlines():
+    if not line.startswith('celerite'):
+        reqs.append(line)
+
 setup(
     name="radvel",
     version=get_property('__version__', 'radvel'),
@@ -29,7 +34,6 @@ setup(
         )
     ],
     entry_points={'console_scripts': ['radvel=radvel.cli:main']},
-    install_requires=[line.strip() for line in
-                      open('requirements.txt', 'r').readlines()],
+    install_requires=reqs,
     include_package_data=True
 )

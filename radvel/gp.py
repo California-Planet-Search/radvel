@@ -8,10 +8,12 @@ import celerite
 from celerite.solver import CholeskySolver
 
 # implemented kernels & examples of possible names for their associated hyperparameters
-KERNELS = {"SqExp": ['gp_length','gp_amp'],
-           "Per": ['gp_per','gp_length','gp_amp'],
-           "QuasiPer": ['gp_per','gp_perlength','gp_explength','gp_amp'],
-           "Celerite": ['1_logA','1_logB','1_logC','1_logD']}
+KERNELS = {
+    "SqExp": ['gp_length','gp_amp'],
+    "Per": ['gp_per','gp_length','gp_amp'],
+    "QuasiPer": ['gp_per','gp_perlength','gp_explength','gp_amp'],
+    "Celerite": ['1_logA','1_logB','1_logC','1_logD']
+}
 
 if sys.version_info[0] < 3:
     ABC = abc.ABCMeta('ABC', (), {})
@@ -21,7 +23,12 @@ else:
 class Kernel(ABC):
     """
     Abstract base class to store kernel info and compute covariance matrix.
-    All kernel objects inherit from this class
+    All kernel objects inherit from this class.
+
+    Note:
+        To implement your own kernel, create a class that inherits
+        from this class. It should have hyperparameters that follow
+        the name scheme 'gp_NAME_SUFFIX'.
 
     """
 

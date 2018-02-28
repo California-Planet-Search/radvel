@@ -5,6 +5,7 @@ import copy
 import radvel
 import radvel.driver
 import numpy as np
+import scipy
 import radvel.prior
 
 warnings.filterwarnings("ignore")
@@ -164,6 +165,7 @@ def test_kernels():
         fakeparams1['dummy'] = radvel.Parameter(value=1.0)
         try:
             kernel_call(fakeparams1)
+            raise Exception('Test #1 failed for {}'.format(kernel))
         except AssertionError:
             sys.stdout.write("passed #1\n")
 
@@ -171,16 +173,19 @@ def test_kernels():
         fakeparams2[hnames[0]] = 1.
         try:
             kernel_call(fakeparams2)
+            raise Exception('Test #2 failed for {}'.format(kernel))
         except AttributeError:
             sys.stdout.write("passed #2\n")
 
-        # CeleriteKernel catches some errors a little differently
-        if kernel == 'Celerite':
+        # CeleriteKernel & subclasses catch some errors a little differently
+        if isinstance(test_kernel, radvel.gp.CeleriteKernel):
             fakeparams3 = copy.deepcopy(hyperparams)
             fakeparams3.pop(hnames[0])
-            fakeparams3['9_logA'] = radvel.Parameter(value=1.0)
+            fake_param = '9' + hnames[0][1:]
+            fakeparams3[fake_param] = radvel.Parameter(value=1.0)
             try:
                 kernel_call(fakeparams3)
+                raise Exception('Test #3 failed for {}'.format(kernel))
             except IndexError:
                 sys.stdout.write("passed #3\n")
             fakeparams4 = copy.deepcopy(hyperparams)
@@ -188,6 +193,7 @@ def test_kernels():
             fakeparams4['dummy'] = radvel.Parameter(value=1.0)
             try:
                 kernel_call(fakeparams4)
+                raise Exception('Test #4 failed for {}'.format(kernel))
             except ValueError:
                 sys.stdout.write("passed #4\n")
 
@@ -197,8 +203,10 @@ def test_kernels():
             fakeparams3['dummy'] = radvel.Parameter(value=1.0)
             try:
                 kernel_call(fakeparams3)
+                raise Exception('Test #3 failed for {}'.format(kernel))
             except KeyError:
                 sys.stdout.write("passed #3\n")
+
 
 def test_priors():
     """
@@ -212,6 +220,14 @@ def test_priors():
     params['sesinw1'] = radvel.Parameter(0.0)
     params['logk1'] = radvel.Parameter(1.5)
 
+    testTex = 'Delta Function Prior on $\sqrt{e}\cos{\omega}_{b}$'
+
+    def userdef_prior_func(inp_list):
+        if inp_list == [0.]:
+            return 0.
+        else:
+            return -np.inf
+
     prior_tests = {
         radvel.prior.EccentricityPrior(1):                  0.0,
         radvel.prior.PositiveKPrior(1):                     0.0,
@@ -219,13 +235,23 @@ def test_priors():
         radvel.prior.HardBounds('per1', 1.0, 9.0):          -np.inf,
         radvel.prior.Jeffreys('per1', 0.1, 100.0):          -np.log(params['per1'].value),
         radvel.prior.ModifiedJeffreys('per1', 0.1, 100.0):  -np.log(params['per1'].value + 0.1),
-        radvel.prior.SecondaryEclipsePrior(1, 5.0, 1.0):    0.0
+        radvel.prior.SecondaryEclipsePrior(1, 5.0, 1.0):    0.0,
+        radvel.prior.NumericalPrior(
+            ['sesinw1'], 
+            np.random.randn(1,5000000)
+        ):                                                  scipy.stats.norm(0, 1).pdf(0),
+        radvel.prior.UserDefinedPrior(
+            ['secosw1'], userdef_prior_func, testTex
+        ):                                                  0.0
+
     }
 
     for prior, val in prior_tests.items():
         print(prior.__repr__())
         print(prior.__str__())
-        assert prior(params) == val, "Prior output does not match expectation"
+        tolerance = .01
+        assert prior(params) == val or abs(prior(params) - val) < tolerance, \
+            "Prior output does not match expectation"
 
 
 def test_kepler():
@@ -236,4 +262,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_kernels()
+    test_priors()

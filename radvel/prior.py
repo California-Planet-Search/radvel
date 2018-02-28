@@ -1,5 +1,6 @@
 
 import numpy as np
+from scipy.stats import gaussian_kde
 
 from radvel import model
 from radvel import orbit
@@ -343,3 +344,123 @@ class ModifiedJeffreys(Prior):
             s = self.__repr__()
             
         return s
+
+class NumericalPrior(Prior):
+    """Prior defined by an input array of values
+
+    Wrapper for scipy.stats.gaussian_kde.
+
+    This prior uses Gaussian Kernel Density Estimation to
+    estimate the probability density function from which
+    a set of values are randomly drawn.
+
+    Useful for defining a prior given a posterior obtained
+    from a complementary fitting process. For example, you
+    might use transit data to obtain constraints on secosw and
+    sesinw, then use the posterior on secosw as a prior for
+    a RadVel fit.
+
+    Args:
+        param_list (list of str): list of parameter label(s). 
+        values (numpy array of float): values of ``param`` you
+            wish to use to define this prior. For example, this 
+            might be a posterior array of values of secosw 
+            derived from transit data. In case of univariate data 
+            this is a 1-D array, otherwise a 2-D array with shape 
+            (# of elements in param_list, # of data points).
+        bw_method (str, scalar, or callable [optional]): see 
+            scipy.stats.gaussian_kde
+
+    Note: the larger the input array of values, the longer it will
+    take for calls to this prior to be evaluated. Consider thinning
+    large input arrays to speed up performance.
+
+    """
+    
+    def __init__(self, param_list, values, bw_method=None):
+        self.param_list = param_list
+        self.values = values
+        self.bw_method = bw_method
+
+        self.pdf_estimate = gaussian_kde(self.values, bw_method=self.bw_method)
+
+    def __call__(self, params):
+        x = []
+        for param in self.param_list:
+            x.append(params[param].value)
+        return self.pdf_estimate(x)
+
+    def __repr__(self):
+        s = "Numerical prior on {}".format(
+            self.param_list
+            )
+        return s
+    def __str__(self):
+        try:
+            tex = model.Parameters(9).tex_labels(param_list=self.param_list)
+            t=[tex[key] for key in tex.keys()]
+            if len(self.param_list) == 1:
+                str2print = '{0}'.format(*t)
+            elif len(self.param_list) == 2:
+                str2print = '{} and {}'.format(*t)
+            else:
+                str2print = ''
+                for el in np.arange(len(self.param_list) - 1):
+                    str2print += '{}, '.format(t[el])
+                str2print += 'and {}'.format(t[el+1])
+            s = "Numerical prior on " + str2print + \
+                ", defined using Gaussian kernel density estimation."
+        except KeyError:
+            s = self.__repr__()
+            
+        return s
+
+
+class UserDefinedPrior(Prior):
+    """Interface for user to define a prior 
+       with an arbitrary functional form. 
+
+    Args:
+        param_list (list of str): list of parameter label(s). 
+        func (function): a Python function that takes in  a list
+            of values (ordered as in ``param_list``), and returns
+            the corresponding log-value of a pdf. 
+        tex_rep (str): TeX-readable string representation of
+            this prior, to be passed into radvel report and 
+            plotting code.
+
+    Example:
+        >>> def myPriorFunc(inp_list):
+        ...     if inp_array == [0.]:
+        ...         return 0.
+        ...     else:
+        ...         return -np.inf
+        >>> myTexString = 'Delta Function Prior on $\sqrt{e}$'
+        >>> myPrior = radvel.prior.UserDefinedPrior(['se'], myPriorFunc, myTexString)
+
+    Note:
+        ``func`` must be properly normalized; i.e. integrating over the
+        entire parameter space must give probability 1. 
+    """
+    
+    def __init__(self, param_list, func, tex_rep):
+        self.param_list = param_list
+        self.func = func
+        self.tex_rep = tex_rep
+
+    def __call__(self, params):
+        x = []
+        for param in self.param_list:
+            x.append(params[param].value)
+        return self.func(x)
+
+    def __repr__(self):
+        s = "User-defined prior on {}".format(
+            self.param_list
+            )
+        return s
+
+    def __str__(self):
+        s = self.tex_rep
+        return s
+
