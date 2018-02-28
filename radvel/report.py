@@ -68,22 +68,7 @@ class RadvelReport():
         self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
         
         self.compstats = compstats
-        
-    def _preamble(self):
-        return """
-\\documentclass{{emulateapj}}
-\\usepackage{{graphicx,textcomp,fancyhdr,hyperref}}
-\\begin{{document}}
-\\pagestyle{{fancy}}
-\\pagenumbering{{gobble}}
-\\chead{{Summary of \\texttt{{RadVel}} results for {}}}
-""".format(self.starname_tex)
-
-    def _postamble(self):
-        return """
-\\lfoot{{\\footnotesize{{report produced by \\texttt{{RadVel}} v{}: \
-\\href{{http://radvel.readthedocs.io}}{{http://radvel.readthedocs.io}}}}}}
-\\end{{document}}""".format(radvel.__version__)
+        self.num_planets = self.post.params.num_planets 
 
     def texdoc(self):
         """TeX for entire document
@@ -92,71 +77,45 @@ class RadvelReport():
         Returns:
             string: TeX code for report
         """
-        import pdb;pdb.set_trace()
+        #out self.tabletex()
+
+        
+        reportkw = {}
+        reportkw['version'] = radvel.__version__
+
+        # Render TeX for figures
+        figtypes = ['rv_multipanel','corner','corner_derived_pars']
+        for figtype in figtypes:
+            infile = "{}_{}.pdf".format(self.runname,figtype)
+            tmpfile = 'fig_{}.tex'.format(figtype)
+            key = 'fig_{}'.format(figtype)
+            if os.path.exists(infile):
+                t = env.get_template(tmpfile)
+                print "rendering TeX for {} {} from".format(figtype,tmpfile)
+                reportkw[key] = t.render(report=self,infile=infile)
+
+        # Render TeX for tables
+        textable = TexTable(self)
+        reportkw['tab_rv'] = textable.velocity_table()
+
         '''
-        out = self._preamble() + self.tabletex()
-        if os.path.exists(self.runname+"_rv_multipanel.pdf"):
-            out += self.figtex(self.runname+"_rv_multipanel.pdf",
-                                   caption=self._bestfit_caption())
-        if os.path.exists(self.runname+"_corner.pdf"):
-            out += self.figtex(self.runname+"_corner.pdf",
-                caption="Posterior distributions for all free parameters.")
-        if os.path.exists(self.runname+"_corner_derived_pars.pdf"):
-            out += self.figtex(self.runname+"_corner_derived_pars.pdf",
-                caption="Posterior distributions for all derived parameters.")
-
-        out += self._postamble()
+        if tabtype == 'nplanets':
+            outstr = self.comp_table(self.report.compstats)
+        
+        if tabtype == 'params':
+            outstr = outstr_params
+            
+        if tabtype == 'priors':
+            outstr = self.prior_summary()
         '''
 
-        template = env.get_template('report.tex')
-        out = template.render(starname=self.starname_tex,version=radvel.__version)
-
+        t = env.get_template('report.tex')
+        out = t.render(report=self, **reportkw)
         return out
 
     def tabletex(self, tabtype='all'):
         return TexTable(self).tex(tabtype=tabtype)
 
-    def figtex(self, infile, caption=""):
-        """Generate TeX for figure
-        Generate TeX to insert a figure into the report
-
-        Args:
-            infile (string): file name of figure
-            caption (string): (optional) figure caption
-            
-        Returns:
-            string: TeX code
-        
-        """
-        fstr = """
-\\begin{figure*}[!h]
-\\centering
-\\includegraphics[height=8.0in,width=6.0in,keepaspectratio]{%s}
-\\caption{%s}
-\\end{figure*}
-""" % (infile, caption)
-
-        return fstr
-
-    def _bestfit_caption(self):
-        cap = """
-Best-fit %d-planet Keplerian orbital model for %s.
-The maximum likelihood model is plotted while the orbital parameters listed in Table \\ref{tab:params}
-are the median values of the posterior distributions.
-The thin blue line is the best fit %d-planet model. We add in quadrature the RV jitter term(s) listed in Table \\ref{tab:params}
-with the measurement uncertainties for all RVs.
-{\\bf b)} Residuals to the best fit %d-planet model.
-{\\bf c)} RVs phase-folded to the ephemeris of planet %s. The Keplerian orbital models for all other planets (if any) have been subtracted.
-The small point colors and symbols are the same as in panel {\\bf a}.
-Red circles (if present) are the same velocities binned in 0.08 units of orbital phase.
-The phase-folded model for planet %s is shown as the blue line.
-""" % (self.post.params.num_planets, self.starname_tex, self.post.params.num_planets, self.post.params.num_planets, chr(int(1)+97), chr(int(1)+97))
-
-        for i in range(1, self.post.params.num_planets):
-            cap += "Panel {\\bf %s)} is the same as panel {\\bf %s)} but for planet %s %s.\n" % (chr(int(i)+99), chr(int(i)+98), self.starname_tex, chr(int(i)+98))
-
-        return cap
-              
     def compile(self, pdfname, latex_compiler='pdflatex', depfiles=[]):
         """Compile radvel report
         Compile the radvel report from a string containing TeX code
@@ -322,35 +281,27 @@ class TexTable(RadvelReport):
 
 
     def velocity_table(self):
-            """Table of input velocities
-            Print a table of the input velocities in the report
+        """Table of input velocities
+        
+        Returns:
+            str: TeX rendering of RVs
+        """
 
-            Returns:
-                string: String containing TeX code for the table of RVs
-            """
+        nvels = len(self.post.likelihood.x)
+        rows = []
+        for i in range(nvels):
+            t = self.post.likelihood.x[i]
+            v = self.post.likelihood.y[i]
+            e = self.post.likelihood.yerr[i]
+            inst = self.post.likelihood.telvec[i]
+            row = "{:.5f} & {:.2f} & {:.2f} & {:s}".format(t, v, e, inst)
+            rows.append(row)
 
-            out = """
-    \\begin{deluxetable}{lrrc}
-    \\tablecaption{Radial Velocities}
-    \\tablehead{\\colhead{Time} & \\colhead{RV} & \\colhead{RV Unc.} & \\colhead{Inst.} \\\\
-    \\colhead{(JD)} & \\colhead{(m s$^{-1}$)} & \\colhead{(m s$^{-1}$)} & \\colhead{}}
-    \\startdata
-    """
-            nvels = len(self.post.likelihood.x)
-
-            for i in range(nvels):
-                t = self.post.likelihood.x[i]
-                v = self.post.likelihood.y[i]
-                e = self.post.likelihood.yerr[i]
-                inst = self.post.likelihood.telvec[i]
-                out += "{:.5f} & {:.2f} & {:.2f} & {:s}\\\\\n".format(t, v, e, inst)
-
-            out += """
-    \\enddata
-    \\end{deluxetable}
-    """
-            return out
-
+        tmpfile = 'tab_rv.tex'
+        t = env.get_template(tmpfile)
+        print "rendering TeX for velocity table {} from".format(tmpfile)
+        out = t.render(rows=rows)
+        return out
 
     def tex(self, tabtype='all', compstats=None):
         """TeX code for table

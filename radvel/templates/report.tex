@@ -1,12 +1,26 @@
-{% extends "base.tex" %}
-{% block body %}
+\documentclass{emulateapj}
+\usepackage{graphicx,textcomp,fancyhdr,hyperref}
+\begin{document}
+\pagestyle{fancy}
+\pagenumbering{gobble}
+\chead{Summary of \texttt{RadVel} results for {{ report.starname_tex }} }
 
-{{ tab_prior }}
-{{ tab_bic   }} 
+{{ tab_rv }}
+%tab_bic   
+
+% Multi-panel figure
+{{ fig_rv_multipanel }} 
+
+% Corner plot
 {{ fig_corner }} 
-{{ fig_corner-derived }}
 
-{% endblock body %}
+% Corner plot for derived parameters
+{{ fig_corner_derived_pars }} 
 
-
-
+\lfoot{
+  \footnotesize{
+    Report produced by \texttt{RadVel} v{{ version }}: 
+    \href{http://radvel.readthedocs.io}{http://radvel.readthedocs.io}
+  }
+}
+\end{document}

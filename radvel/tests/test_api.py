@@ -34,7 +34,7 @@ def _standard_run(setupfn):
     
     args = _args()
     args.setupfn = setupfn
-
+    '''
     radvel.driver.fit(args)
     radvel.driver.mcmc(args)
     radvel.driver.derive(args)
@@ -48,7 +48,7 @@ def _standard_run(setupfn):
     args.type = ['rv', 'corner', 'trend', 'derived']
     args.plotkw = {}
     radvel.driver.plots(args)
-
+    '''
     args.comptype = 'bic'
     args.latex_compiler = 'pdflatex'
     radvel.driver.report(args)

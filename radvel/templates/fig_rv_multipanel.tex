@@ -1,0 +1,21 @@
+{# Template to define the radvel multipanel plot #} 
+\begin{figure*}[!h]
+\centering 
+{# quotes and tildes needed to render the curly braces around infile with nospaces #}
+{{'\includegraphics[height=8.0in,width=6.0in,keepaspectratio]{'~infile~'}'}}
+\caption{ Best-fit {{ report.num_planets }}-planet Keplerian orbital model
+  for {{ report.starname_tex }}. The maximum likelihood model is plotted while
+  the orbital parameters listed in Table \ref{tab:params} are the
+  median values of the posterior distributions.  The thin blue line is
+  the best fit {{ report.num_planets }}-planet model. We add in quadrature
+  the RV jitter term(s) listed in Table \ref{tab:params} with the
+  measurement uncertainties for all RVs.  {\bf b)} Residuals to the
+  best fit {{ report.num_planets }}-planet model. {\bf c)} RVs phase-folded
+  to the ephemeris of planet b. The Keplerian orbital models for all
+  other planets (if any) have been subtracted.  The small point colors
+  and symbols are the same as in panel {\bf a}.  Red circles (if
+  present) are the same velocities binned in 0.08 units of orbital
+  phase.  The phase-folded model for planet b is shown as the blue
+  line.}
+\end{figure*}
+
