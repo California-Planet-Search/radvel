@@ -91,6 +91,10 @@ class Posterior(Likelihood):
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
 
+    def residuals(self):
+        """Overwrite inherited residuals method that does not work"""
+
+        return self.likelihood.residuals()
 
 def load(filename):
     """
