@@ -91,7 +91,6 @@ class RadvelReport():
             key = 'fig_{}'.format(figtype)
             if os.path.exists(infile):
                 t = env.get_template(tmpfile)
-                print "rendering TeX for {} {} from".format(figtype,tmpfile)
                 reportkw[key] = t.render(report=self,infile=infile)
 
         # Render TeX for tables
@@ -234,12 +233,10 @@ class TexTable(RadvelReport):
         rows = []
         for prior in prior_list:
             row = prior.__str__()
-            print row
             rows.append(row)
 
         tmpfile = 'tab_prior_summary.tex'
         t = env.get_template(tmpfile)
-        print "rendering TeX for velocity table {} from".format(tmpfile)
         out = t.render(rows=rows)
         return out
 
@@ -259,7 +256,6 @@ class TexTable(RadvelReport):
 
         tmpfile = 'tab_rv.tex'
         t = env.get_template(tmpfile)
-        print "rendering TeX for velocity table {} from".format(tmpfile)
         out = t.render(rows=rows)
         return out
 
@@ -285,7 +281,6 @@ class TexTable(RadvelReport):
         tmpfile = 'tab_params.tex'
         t = env.get_template(tmpfile)
         out = t.render(**kw)
-        print "rendering TeX for velocity table {} from".format(tmpfile)
         return out
 
     def tab_comparison(self):
