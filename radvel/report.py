@@ -243,7 +243,7 @@ class TexTable(RadvelReport):
         out = t.render(rows=rows)
         return out
 
-    def tab_velocity(self):
+    def tab_rv(self):
         """Table of input velocities
         """
 
