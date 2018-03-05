@@ -11,3 +11,4 @@ jupyter_client
 ipykernel
 pybind11
 celerite>=0.3.0
+jinja2

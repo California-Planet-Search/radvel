@@ -1,0 +1,30 @@
+\begin{deluxetable}{lrrr}
+\tablecaption{MCMC Posteriors}
+\tablehead{
+  \colhead{Parameter} & 
+  \colhead{Credible Interval} & 
+  \colhead{Maximum Likelihood} & 
+  \colhead{Units}
+}
+\startdata
+\sidehead{\bf{Modified MCMC Step Parameters}}
+{% for row in fitting_basis_rows %}
+  {{ row }} \\
+{% endfor %}
+\hline
+\sidehead{\bf{Orbital Parameters}}
+{% for row in print_basis_rows %}
+  {{ row }} \\
+{% endfor %}
+\hline
+\sidehead{\bf{Other Parameters}}
+{% for row in ep_rows %}
+  {{ row }} \\
+{% endfor %}
+\enddata
+\tablenotetext{}{ {{ nlinks }} links saved}
+\tablenotetext{}{
+  Reference epoch for $\gamma$,$\dot{\gamma}$,$\ddot{\gamma}$: {{time_base}} 
+}
+\label{tab:params}
+\end{deluxetable}

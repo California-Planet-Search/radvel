@@ -269,7 +269,6 @@ def tables(args):
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
     report = radvel.report.RadvelReport(P, post, chains)
-
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 

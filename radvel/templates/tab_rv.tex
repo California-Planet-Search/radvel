@@ -1,0 +1,18 @@
+\begin{deluxetable}{lrrc}
+\tablecaption{Radial Velocities}
+\tablehead{
+  \colhead{Time} & 
+  \colhead{RV} & 
+  \colhead{RV Unc.} & 
+  \colhead{Inst.} \\
+  \colhead{(JD)} & 
+  \colhead{(m s$^{-1}$)} & 
+  \colhead{(m s$^{-1}$)} & 
+  \colhead{}
+}
+\startdata
+{% for row in rows %}
+  {{ row }} \\
+{% endfor %}
+\enddata
+\end{deluxetable}
