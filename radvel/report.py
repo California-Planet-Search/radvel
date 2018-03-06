@@ -99,8 +99,8 @@ class RadvelReport():
         reportkw['tab_params'] = textable.tab_params()
         reportkw['tab_prior_summary'] = textable.tab_prior_summary()
 
-        # jinja2 templates not yet working
-        reportkw['tab_prior_summary'] = None # textable.tab_comparison()
+        if self.compstats is not None:
+            reportkw['tab_comparison'] = textable.tab_comparison()
 
         t = env.get_template('report.tex')
         out = t.render(report=self, **reportkw)
@@ -233,6 +233,8 @@ class TexTable(RadvelReport):
         rows = []
         for prior in prior_list:
             row = prior.__str__()
+            if not row.endswith("\\\\"):
+                row = row + "\\\\"
             rows.append(row)
 
         tmpfile = 'tab_prior_summary.tex'
@@ -287,21 +289,22 @@ class TexTable(RadvelReport):
         """Model comparisons
         """
         statsdict = self.report.compstats
-        n_test = range(len(statsdict))
-        coldefs = r"\begin{deluxetable*}{%s}" % ('l'+'r'*len(statsdict))
+        n_test = len(statsdict)
+        coldefs = r"\begin{deluxetable*}{%s}" % ('l'+'r'*n_test)
         head = r"\tablehead{\colhead{Statistic}"
-        for n in n_test:
-            if n != max(n_test):
-                head += head + r" & \colhead{%d planets}" % n
-            else:
+        for n in range(n_test):
+            if n == n_test-1:
                 head += r" & \colhead{{\bf %d planets (adopted)}}" % n
+
+            else:
+                head += r" & \colhead{%d planets}" % n
         head += "}"
 
         rows = []
         statkeys = statsdict[0].keys()
         for s in statkeys:
             row = "%s (%s) " % (s, statsdict[0][s][1])
-            for n in n_test:
+            for n in range(n_test):
                 row += " & %s" % statsdict[n][s][0]
             rows.append(row)
 
