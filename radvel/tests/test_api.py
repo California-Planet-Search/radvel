@@ -41,10 +41,9 @@ def _standard_run(setupfn):
     args.type = ['nplanets']
     radvel.driver.bic(args)
 
-    '''
-    args.type = ['params', 'priors', 'nplanets']
+    args.type = ['params', 'priors', 'nplanets', 'rv']
     radvel.driver.tables(args)
-    '''
+
     args.type = ['rv', 'corner', 'trend', 'derived']
     args.plotkw = {}
     radvel.driver.plots(args)

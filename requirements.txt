@@ -12,3 +12,4 @@ ipykernel
 pybind11
 celerite>=0.3.0
 jinja2
+tornado==4.5.3
