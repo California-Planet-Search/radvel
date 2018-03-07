@@ -263,33 +263,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
 
     return df
 
-def draw_models_from_chain(mod, chain, t, nsamples=50):
-    """Draw Models from Chain
-    
-    Given an MCMC chain of parameters, draw representative parameters
-    and synthesize models.
-
-    Args:
-        mod (radvel.RVmodel) : RV model
-        chain (DataFrame): pandas DataFrame with different values from MCMC 
-            chain
-        t (array): time range over which to synthesize models
-        nsamples (int): number of draws
-    
-    Returns:
-        array: 2D array with the different models as different rows
-    """
-
-    np.random.seed(0)
-    chain_samples = chain.ix[np.random.choice(chain.index, nsamples)]
-    models = []
-    for i in chain_samples.index:
-        params = np.array( chain.ix[i, mod.vary_parameters] )
-        params = mod.array_to_params(params)
-        models += [mod.model(params, t)]
-    models = np.vstack(models)
-    return models
-
 
 def gelman_rubin(pars0, minTz, maxGR):
     """Gelman-Rubin Statistic
