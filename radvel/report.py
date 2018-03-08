@@ -289,6 +289,10 @@ class TexTable(RadvelReport):
         """Model comparisons
         """
         statsdict = self.report.compstats
+
+        if statsdict is None:
+            return ""
+
         n_test = len(statsdict)
         coldefs = r"\begin{deluxetable*}{%s}" % ('l'+'r'*n_test)
         head = r"\tablehead{\colhead{Statistic}"
