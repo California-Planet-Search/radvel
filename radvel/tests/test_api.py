@@ -18,10 +18,10 @@ class _args(object):
         self.decorr = False
 
         self.nwalkers = 50
-        self.nsteps = 10000
+        self.nsteps = 100
         self.ensembles = 8
-        self.maxGR = 1.01
-        self.burnGR = 1.03
+        self.maxGR = 1.10
+        self.burnGR = 1.30
         self.minTz = 1000
         self.minsteps = 100
         self.thin = 1
@@ -34,7 +34,6 @@ def _standard_run(setupfn):
     
     args = _args()
     args.setupfn = setupfn
-
     radvel.driver.fit(args)
     radvel.driver.mcmc(args)
     radvel.driver.derive(args)
@@ -42,9 +41,9 @@ def _standard_run(setupfn):
     args.type = ['nplanets']
     radvel.driver.bic(args)
 
-    args.type = ['params', 'priors', 'nplanets']
+    args.type = ['params', 'priors', 'nplanets', 'rv']
     radvel.driver.tables(args)
-    
+
     args.type = ['rv', 'corner', 'trend', 'derived']
     args.plotkw = {}
     radvel.driver.plots(args)
@@ -52,7 +51,6 @@ def _standard_run(setupfn):
     args.comptype = 'bic'
     args.latex_compiler = 'pdflatex'
     radvel.driver.report(args)
-
         
 def test_k2(setupfn='example_planets/epic203771098.py'):
     """
@@ -60,21 +58,16 @@ def test_k2(setupfn='example_planets/epic203771098.py'):
     """    
     _standard_run(setupfn)
 
-
 def test_hd(setupfn='example_planets/HD164922.py'):
     """
     Check multi-instrument fit
     """
-
     args = _args()
     args.setupfn = setupfn
-
     radvel.driver.fit(args)
-
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
-
 
 def test_k2131(setupfn='example_planets/k2-131.py'):
     """
@@ -262,4 +255,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_priors()
+    test_k2(setupfn='/Users/petigura/code/radvel/example_planets/epic203771098.py')

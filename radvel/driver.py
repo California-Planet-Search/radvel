@@ -269,7 +269,7 @@ def tables(args):
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
     report = radvel.report.RadvelReport(P, post, chains)
-
+    tabletex = radvel.report.TexTable(report)
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
@@ -281,9 +281,9 @@ def tables(args):
             report = radvel.report.RadvelReport(
                 P, post, chains, compstats=compstats
             )
-            tex = report.tabletex(tabtype='nplanets')
+            tex = tabletex.tab_comparison()
         else:
-            tex = report.tabletex(tabtype=tabtype)
+            tex = tabletex.tab_comparison()
 
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)

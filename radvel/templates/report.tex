@@ -1,0 +1,36 @@
+\documentclass{emulateapj}
+\usepackage{graphicx,textcomp,fancyhdr,hyperref}
+\begin{document}
+\pagestyle{fancy}
+\pagenumbering{gobble}
+\chead{Summary of \texttt{RadVel} results for {{ report.starname_tex }} }
+
+% Model comparison table
+{{ tab_comparison }}
+
+% Table of best fit parameters
+{{ tab_params }}
+
+% Summary of priors
+{{ tab_prior_summary }}
+
+% Table of RV data
+{{ tab_rv }}
+
+
+% Multi-panel figure
+{{ fig_rv_multipanel }} 
+
+% Corner plot
+{{ fig_corner }} 
+
+% Corner plot for derived parameters
+{{ fig_corner_derived_pars }} 
+
+\lfoot{
+  \footnotesize{
+    Report produced by \texttt{RadVel} v{{ version }}: 
+    \href{http://radvel.readthedocs.io}{http://radvel.readthedocs.io}
+  }
+}
+\end{document}

@@ -1,0 +1,10 @@
+{{ coldefs }}
+\tablecaption{Model Comparison}
+{{ head }}
+\startdata
+{% for row in rows %}
+  {{ row }} \\
+{% endfor %}
+\enddata
+\label{tab:comp}
+\end{deluxetable*}

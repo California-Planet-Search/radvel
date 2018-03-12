@@ -176,7 +176,7 @@ If True, run MCMC in serial instead of parallel. [False]
         args.outputdir = outdir
             
     if not os.path.isdir(args.outputdir):
-        os.mkdir(outdir)
+        os.mkdir(args.outputdir)
         
     args.func(args)
 
