@@ -282,8 +282,12 @@ def tables(args):
                 P, post, chains, compstats=compstats
             )
             tex = tabletex.tab_comparison()
-        else:
-            tex = tabletex.tab_comparison()
+        elif tabtype == 'rv':
+            tex = tabletex.tab_rv()
+        elif tabtype == 'params':
+            tex = tabletex.tab_params()
+        elif tabtype == 'priors':
+            tex = tabletex.tab_prior_summary()
 
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
