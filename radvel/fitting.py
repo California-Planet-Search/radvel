@@ -270,10 +270,10 @@ def model_comp(post, params=[], verbose=False, mc_list=[]):
 
 
     else:
-        print "The given params argument was:"
-        print params
-        print "The only valid comparison parameters are:"
-        print VALID_MC_ARGS
+        print("The given params argument was:")
+        print(params)
+        print("The only valid comparison parameters are:")
+        print(VALID_MC_ARGS)
         raise
 
 
