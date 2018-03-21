@@ -124,14 +124,15 @@ If True, run MCMC in serial instead of parallel. [False]
 
     psr_physical.set_defaults(func=radvel.driver.derive)
     
-    # BIC 
-    psr_bic = subpsr.add_parser('bic', parents=[psr_parent],)
-    psr_bic.add_argument('-t',
+    # BIC/AIC
+    psr_ic = subpsr.add_parser('ic', parents=[psr_parent],)
+    psr_ic.add_argument('-t',
         '--type', type=str, nargs='+', 
-        choices=['nplanets'],
-        help="type of BIC comparison to perform"
+        choices=['nplanets', 'e'],
+        help="type of BIC/AIC comparison to perform"
     )
-    psr_bic.set_defaults(func=radvel.driver.bic)
+    psr_ic.set_defaults(func=radvel.driver.ic_compare)
+
 
     # Tables
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)
