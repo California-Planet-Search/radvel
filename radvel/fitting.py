@@ -54,13 +54,14 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     Args:
         post (radvel.Posterior): posterior object for final best-fit solution 
             with all planets
-        params: list of parameters to compare with bic/aic
-        mc_list: list of dictionaries from different model comparison
-            statistics
+        params (list of strings): (optional) type of comparison to make via bic/aic
+        mc_list (list of OrderedDicts): (optional) list of dictionaries from different
+            model comparisons. Each value in the dictionary is a tuple with a statistic
+            as the first element and a description as the second element.
         verbose (bool): (optional) print out statistics
         
     Returns:
-        list of dictionaries: 
+        list of OrderedDicts: 
             List of dictionaries with fit statistics. Each value in the 
             dictionary is a tuple with the statistic value as the first 
             element and a description of that statistic in the second element.
@@ -187,7 +188,6 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             return mc_list
          
 
-
     elif 'jit' in params:
         ipost = copy.deepcopy(post)
         cpost = copy.deepcopy(ipost)
@@ -228,38 +228,6 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         return mc_list
 
 
-    elif 'nplanets' in params:
-        eparams = post.params.basis.get_eparams()
-        circparams = post.params.basis.get_circparams()
-        allparams = eparams+circparams  
-
-        ipost = copy.deepcopy(post)
-        newparams = copy.copy(params) 
-        newparams.remove('nplanets')
-        num_planets = post.likelihood.model.num_planets
-        pllist = [pl+1 for pl in range(num_planets)]
-        plgroups = ()
-        for p in [pl+1 for pl in range(num_planets)]:
-            plgroups = itertools.chain(plgroups, itertools.combinations(pllist, p)) 
-        plparams = []
-        for plgroup in plgroups:
-            suffixes = [str(pl) for pl in plgroup]
-            plparams.append([ [pari+''+sufi for pari in allparams] for sufi in suffixes ])
-        for plparamset in plparams:
-            if all( [any([post.params[pari].vary for pari in pparam]) for pparam in plparamset] ):
-                cpost = copy.deepcopy(post)
-                for pparam in plparamset:
-                    for pari in pparam:
-                        if pari[0] == 'k':
-                            cpost.params[pari].value = 0.
-                        if len(pari) >= 4 and pari[0:4] == 'logk':
-                            cpost.params[pari].value = -np.inf
-                        cpost.params[pari].vary = False
-                mc_list = model_comp(cpost, newparams, mc_list=mc_list)
-        mc_list = model_comp(ipost, newparams, mc_list=mc_list)
-        return mc_list
-
-
     elif 'e' in params:
         eparams = post.params.basis.get_eparams()
         lepar0 = len(eparams[0])
@@ -293,6 +261,37 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
+
+    elif 'nplanets' in params:
+        eparams = post.params.basis.get_eparams()
+        circparams = post.params.basis.get_circparams()
+        allparams = eparams+circparams  
+
+        ipost = copy.deepcopy(post)
+        newparams = copy.copy(params) 
+        newparams.remove('nplanets')
+        num_planets = post.likelihood.model.num_planets
+        pllist = [pl+1 for pl in range(num_planets)]
+        plgroups = ()
+        for p in [pl+1 for pl in range(num_planets)]:
+            plgroups = itertools.chain(plgroups, itertools.combinations(pllist, p)) 
+        plparams = []
+        for plgroup in plgroups:
+            suffixes = [str(pl) for pl in plgroup]
+            plparams.append([ [pari+''+sufi for pari in allparams] for sufi in suffixes ])
+        for plparamset in plparams:
+            if all( [any([post.params[pari].vary for pari in pparam]) for pparam in plparamset] ):
+                cpost = copy.deepcopy(post)
+                for pparam in plparamset:
+                    for pari in pparam:
+                        if pari[0] == 'k':
+                            cpost.params[pari].value = 0.
+                        if len(pari) >= 4 and pari[0:4] == 'logk':
+                            cpost.params[pari].value = -np.inf
+                        cpost.params[pari].vary = False
+                mc_list = model_comp(cpost, newparams, mc_list=mc_list)
+        mc_list = model_comp(ipost, newparams, mc_list=mc_list)
+        return mc_list
 
 
     else:

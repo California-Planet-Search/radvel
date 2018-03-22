@@ -124,7 +124,7 @@ If True, run MCMC in serial instead of parallel. [False]
 
     psr_physical.set_defaults(func=radvel.driver.derive)
     
-    # BIC/AIC
+    # Information Criteria comparison (BIC/AIC)
     psr_ic = subpsr.add_parser('ic', parents=[psr_parent],)
     psr_ic.add_argument('-t',
         '--type', type=str, nargs='+', default='trend',
@@ -146,7 +146,7 @@ If True, run MCMC in serial instead of parallel. [False]
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)
     psr_table.add_argument('-t','--type',
         type=str, nargs='+',
-        choices=['params', 'priors', 'nplanets', 'rv'],
+        choices=['params', 'priors', 'rv', 'ic_compare'],
         help="type of plot(s) to generate"
     )
     psr_table.add_argument(
@@ -165,8 +165,8 @@ If True, run MCMC in serial instead of parallel. [False]
     psr_report.add_argument(
         '--comptype', dest='comptype', action='store',
         default='ic', type=str, 
-        help='Type of BIC model comparison table to include. \
-        Default: nplanets')
+        help='Type of model comparison table to include. \
+        Default: ic')
 
     psr_report.add_argument(
         '--latex-compiler', default='pdflatex', type=str, 

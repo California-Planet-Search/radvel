@@ -217,37 +217,6 @@ def mcmc(args):
     save_status(statfile, 'mcmc', savestate)
 
 
-#def bic(args):
-#    """Compare different models and comparative statistics
-#
-#    Args:
-#        args (ArgumentParser): command line arguments
-#    """
-#
-#    
-#    config_file = args.setupfn
-#    conf_base = os.path.basename(config_file).split('.')[0]
-#    statfile = os.path.join(args.outputdir,
-#                            "{}_radvel.stat".format(conf_base))
-#
-#
-#    status = load_status(statfile)
-#    savestate = {}
-#
-#    assert status.getboolean('fit', 'run'), \
-#      "Must perform max-liklihood fit before running BIC comparisons"
-#    post = radvel.posterior.load(status.get('fit', 'postfile'))
-#
-#    for btype in args.type:
-#        print("Performing bic comparison: {}".format(btype))
-#
-#        if btype == 'nplanets':
-#            statsdict = radvel.fitting.model_comp(post, verbose=False)
-#            savestate['nplanets'] = statsdict
-#
-#
-#    save_status(statfile, 'bic', savestate)
-
 
 def ic_compare(args):
     """Compare different models and comparative statistics
