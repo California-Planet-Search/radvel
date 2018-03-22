@@ -274,7 +274,7 @@ def ic_compare(args):
     compareparams = args.type[0].split()
 
     ipost = copy.deepcopy(post)
-    if args.fixjitter:
+    if if hasattr(args, 'fixjitter') and args.fixjitter:
         for param in ipost.params:
              if len(param) >=3 and param[0:3] == 'jit':
                  ipost.params[param].vary = False
@@ -284,10 +284,10 @@ def ic_compare(args):
             "Valid parameter choices for 'ic -t' are combinations of: "\
             + " ".join(choices)
         paramlist.append(compareparam)
-        if args.mixed:
+        if hasattr(args, 'mixed') and args.mixed:
             statsdictlist += radvel.fitting.model_comp(ipost, \
                 params=[compareparam], verbose=False)
-    if not args.mixed:
+    if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and not args.mixed):
         statsdictlist += radvel.fitting.model_comp(ipost, \
             params=paramlist, verbose=False)
 
