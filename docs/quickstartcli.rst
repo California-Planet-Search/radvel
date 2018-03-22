@@ -148,7 +148,7 @@ will be included in the summary report.
 
 .. code-block:: bash
 
-    $ radvel ic -t "nplanets e trend" -s /path/to/radvel/example_planets/HD164922.py
+    $ radvel ic -t nplanets e trend -s /path/to/radvel/example_planets/HD164922.py
 
 Generate and save only the TeX code for any/all of the tables.
 
