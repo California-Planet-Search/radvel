@@ -201,6 +201,9 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                 anyjitteron = True
         if anyjitteron:
             mc_list = model_comp(cpost, newparams, mc_list=mc_list)
+        else:
+            print("Warning: You requested a jitter BIC/AIC comparison")
+            print("   However, your model has a fixed jitter")
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
@@ -210,12 +213,17 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         newparams = copy.copy(params) 
         newparams.remove('trend')
         trendparamlist = ['curv', 'dvdt']
+        anytrendparam = False
         for cparam in trendparamlist:
             if ipost.params[cparam].vary == True:
                 ipost.params[cparam].value = 0.
                 cpost = copy.deepcopy(ipost)
                 mc_list = model_comp(cpost, newparams, mc_list=mc_list)
                 ipost.params[cparam].vary = False
+                anytrendparam = True
+        if not anytrendparam:
+            print("Warning: You requested a trend BIC/AIC comparison")
+            print("   However, your model has a fixed dv/dt and curv")
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
@@ -269,6 +277,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         for plgroup in plgroups:
             suffixes = [str(pl) for pl in plgroup]
             plparams.append([ [pari+''+sufi for pari in eparams] for sufi in suffixes ])
+        anyefree = False
         for plparamset in plparams:
             if all( [any([post.params[pari].vary for pari in pparam]) for pparam in plparamset] ):
                 cpost = copy.deepcopy(post)
@@ -277,6 +286,10 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                         cpost.params[pari].value = 0.
                         cpost.params[pari].vary = False
                 mc_list = model_comp(cpost, newparams, mc_list=mc_list)
+                anyefree = True
+        if not anyefree:
+            print("Warning: You requested an eccentricity BIC/AIC comparison")
+            print("   However, your model has fixed e for all planets")
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
