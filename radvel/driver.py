@@ -234,7 +234,7 @@ def ic_compare(args):
     savestate = {}
 
     assert status.getboolean('fit', 'run'), \
-      "Must perform max-liklihood fit before running BIC comparisons"
+      "Must perform max-liklihood fit before running Information Criteria comparisons"
     post = radvel.posterior.load(status.get('fit', 'postfile'))
 
     choices=['nplanets', 'e', 'trend', 'jit', 'gp']
@@ -290,11 +290,11 @@ def tables(args):
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
-        if tabtype == 'nplanets':
-            assert status.has_option('ic_compare', 'nplanets'), \
-                "Must run BIC comparison before making comparison tables"
+        if tabtype == 'ic_compare':
+            assert status.has_option('ic_compare'), \
+                "Must run Information Criteria comparison before making comparison tables"
 
-            compstats = eval(status.get('ic_compare', 'nplanets'))
+            compstats = eval(status.get('ic_compare'))
             report = radvel.report.RadvelReport(
                 P, post, chains, compstats=compstats
             )
@@ -440,7 +440,7 @@ def report(args):
     try:
         compstats = eval(status.get('ic_compare', args.comptype))
     except:
-        print("WARNING: Could not find {} BIC model comparison\
+        print("WARNING: Could not find {} Information Criteria model comparison\
 in {}.\nPlease make sure that you have run `radvel bic -t {}` if you would\
 like to include\nthe model comparison table in the report.".format(args.comptype,
                                                             statfile,

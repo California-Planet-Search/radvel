@@ -41,7 +41,7 @@ def _standard_run(setupfn):
     args.type = ['trend jit e nplanets gp']
     radvel.driver.ic_compare(args)
 
-    args.type = ['params', 'priors', 'nplanets', 'rv']
+    args.type = ['params', 'priors', 'rv', 'ic']
     radvel.driver.tables(args)
 
     args.type = ['rv', 'corner', 'trend', 'derived']

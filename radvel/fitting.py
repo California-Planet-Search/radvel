@@ -182,9 +182,10 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             mc_list = model_comp(post, newparams, mc_list=mc_list)
             return mc_list
         else:
-            print("Warning: You requested a GP BIC/AIC comparison")
-            print("   However, your model does not include GPs")
-            mc_list = model_comp(post, newparams, mc_list=mc_list)
+            if verbose:
+                print("Warning: You requested a GP BIC/AIC comparison")
+                print("   However, your model does not include GPs")
+                mc_list = model_comp(post, newparams, mc_list=mc_list)
             return mc_list
          
 
@@ -202,8 +203,9 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         if anyjitteron:
             mc_list = model_comp(cpost, newparams, mc_list=mc_list)
         else:
-            print("Warning: You requested a jitter BIC/AIC comparison")
-            print("   However, your model has a fixed jitter")
+            if verbose:
+                print("Warning: You requested a jitter BIC/AIC comparison")
+                print("   However, your model has a fixed jitter")
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
@@ -222,8 +224,9 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                 ipost.params[cparam].vary = False
                 anytrendparam = True
         if not anytrendparam:
-            print("Warning: You requested a trend BIC/AIC comparison")
-            print("   However, your model has a fixed dv/dt and curv")
+            if verbose:
+                print("Warning: You requested a trend BIC/AIC comparison")
+                print("   However, your model has a fixed dv/dt and curv")
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
@@ -256,8 +259,9 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                 mc_list = model_comp(cpost, newparams, mc_list=mc_list)
                 anyefree = True
         if not anyefree:
-            print("Warning: You requested an eccentricity BIC/AIC comparison")
-            print("   However, your model has fixed e for all planets")
+            if verbose:
+                print("Warning: You requested an eccentricity BIC/AIC comparison")
+                print("   However, your model has fixed e for all planets")
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
@@ -295,11 +299,11 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
 
 
     else:
-        print("The given params argument was:")
-        print(params)
-        print("The only valid comparison parameters are:")
-        print(VALID_MC_ARGS)
-        raise
+        errorstring = 'The given params argument was:\n' + ' '.join(params)
+        errorstring += '\n'
+        errorstring += 'The only valid comparison parameters are:\n'\
+            +' '.join(VALID_MC_ARGS))
+        raise NotImplementedError(errorstring)
 
 
 
