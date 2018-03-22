@@ -300,6 +300,7 @@ def tables(args):
             report = radvel.report.RadvelReport(
                 P, post, chains, compstats=compstats
             )
+            tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
         else:
             print(tabtype)
