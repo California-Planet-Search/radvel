@@ -38,8 +38,8 @@ def _standard_run(setupfn):
     radvel.driver.mcmc(args)
     radvel.driver.derive(args)
 
-    args.type = ['nplanets']
-    radvel.driver.bic(args)
+    args.type = ['trend jit e nplanets gp']
+    radvel.driver.ic_compare(args)
 
     args.type = ['params', 'priors', 'nplanets', 'rv']
     radvel.driver.tables(args)
@@ -48,7 +48,7 @@ def _standard_run(setupfn):
     args.plotkw = {}
     radvel.driver.plots(args)
 
-    args.comptype = 'bic'
+    args.comptype = 'ic_compare'
     args.latex_compiler = 'pdflatex'
     radvel.driver.report(args)
         
