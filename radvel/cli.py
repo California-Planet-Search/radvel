@@ -131,9 +131,10 @@ If True, run MCMC in serial instead of parallel. [False]
         #choices=['nplanets', 'e', 'trend', 'jit', 'gp'],
         help="parameters to include in BIC/AIC model comparison"
     )
-    psr_ic.add_argument('-m',
-        '--mixed', type=bool, default=False, 
-        help="flag to treat each model comparison separately rather than simultaneously"
+    psr_ic.add_argument('-u',
+        '--unmixed', type=bool, default=False, 
+        help="flag to treat each model comparison separately (without mixing them) "\
+            + "rather than comparing all models with the fixed parameters mixed and matched."
     )
     psr_ic.add_argument('-f',
         '--fixjitter', type=bool, default=False, 

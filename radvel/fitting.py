@@ -302,7 +302,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         errorstring = 'The given params argument was:\n' + ' '.join(params)
         errorstring += '\n'
         errorstring += 'The only valid comparison parameters are:\n'\
-            +' '.join(VALID_MC_ARGS))
+            +' '.join(VALID_MC_ARGS)
         raise NotImplementedError(errorstring)
 
 

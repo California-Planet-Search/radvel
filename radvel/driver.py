@@ -253,10 +253,10 @@ def ic_compare(args):
             "Valid parameter choices for 'ic -t' are combinations of: "\
             + " ".join(choices)
         paramlist.append(compareparam)
-        if hasattr(args, 'mixed') and args.mixed:
+        if hasattr(args, 'unmixed') and args.unmixed:
             statsdictlist += radvel.fitting.model_comp(ipost, \
                 params=[compareparam], verbose=False)
-    if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and not args.mixed):
+    if not hasattr(args, 'unmixed') or (hasattr(args, 'unmixed') and not args.unmixed):
         statsdictlist += radvel.fitting.model_comp(ipost, \
             params=paramlist, verbose=False)
 
