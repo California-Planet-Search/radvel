@@ -249,7 +249,7 @@ def mcmc(args):
 #    save_status(statfile, 'bic', savestate)
 
 
-def ic_modelcompare(args):
+def ic_compare(args):
     """Compare different models and comparative statistics
 
     Args:
@@ -261,7 +261,6 @@ def ic_modelcompare(args):
     statfile = os.path.join(args.outputdir,
                             "{}_radvel.stat".format(conf_base))
 
-
     status = load_status(statfile)
     savestate = {}
 
@@ -269,13 +268,20 @@ def ic_modelcompare(args):
       "Must perform max-liklihood fit before running BIC comparisons"
     post = radvel.posterior.load(status.get('fit', 'postfile'))
 
-    for btype in args.type:
-        print("Performing bic comparison: {}".format(btype))
+    statsdictlist=[]
+    paramlist=[]
+    for compareparam in args.type:
+        paramlist.append(compareparam)
+        if args.separate:
+            statsdictlist.append(radvel.fitting.model_comp(post, \
+                params=[compareparam], verbose=False))
+    if not args.separate:
+        statsdictlist.append(radvel.fitting.model_comp(post, \
+            params=paramlist, verbose=False))
 
-        #if btype == 'nplanets':
-        statsdict = radvel.fitting.model_comp(post, verbose=False)
-        savestate[btype] = statsdict
-
+    print("Hi")
+    print(statsdictlist)
+    savestate = {'ic': statsdictlist}
 
     save_status(statfile, 'ic_compare', savestate)
 
@@ -307,10 +313,10 @@ def tables(args):
         print("Generating LaTeX code for {} table".format(tabtype))
 
         if tabtype == 'nplanets':
-            assert status.has_option('bic', 'nplanets'), \
+            assert status.has_option('ic_compare', 'nplanets'), \
                 "Must run BIC comparison before making comparison tables"
 
-            compstats = eval(status.get('bic', 'nplanets'))
+            compstats = eval(status.get('ic_compare', 'nplanets'))
             report = radvel.report.RadvelReport(
                 P, post, chains, compstats=compstats
             )
@@ -454,7 +460,7 @@ def report(args):
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
 
     try:
-        compstats = eval(status.get('bic', args.comptype))
+        compstats = eval(status.get('ic_compare', args.comptype))
     except:
         print("WARNING: Could not find {} BIC model comparison\
 in {}.\nPlease make sure that you have run `radvel bic -t {}` if you would\

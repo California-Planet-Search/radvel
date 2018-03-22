@@ -127,9 +127,13 @@ If True, run MCMC in serial instead of parallel. [False]
     # BIC/AIC
     psr_ic = subpsr.add_parser('ic', parents=[psr_parent],)
     psr_ic.add_argument('-t',
-        '--type', type=str, nargs='+', 
-        choices=['nplanets', 'e'],
-        help="type of BIC/AIC comparison to perform"
+        '--type', type=str, nargs='+', default='trend',
+        choices=['nplanets', 'e', 'trend', 'jit', 'gp'],
+        help="parameters to include in BIC/AIC model comparison"
+    )
+    psr_ic.add_argument(
+        '--separate', type=bool, default=False, 
+        help="flag to treat each model comparison separately rather than simultaneously"
     )
     psr_ic.set_defaults(func=radvel.driver.ic_compare)
 
@@ -156,7 +160,7 @@ If True, run MCMC in serial instead of parallel. [False]
     )
     psr_report.add_argument(
         '--comptype', dest='comptype', action='store',
-        default='nplanets', type=str, 
+        default='ic', type=str, 
         help='Type of BIC model comparison table to include. \
         Default: nplanets')
 

@@ -44,7 +44,7 @@ def maxlike_fitting(post, verbose=True):
 
 
 
-def model_comp(post, params=[], verbose=False, mc_list=[]):
+def model_comp(post, params=[], mc_list=[], verbose=False):
     """Model Comparison
 
     Fit for planets adding one at a time.  Save results as list of
@@ -73,7 +73,7 @@ def model_comp(post, params=[], verbose=False, mc_list=[]):
     assert isinstance(params, list), \
         "The params argument must contain a list of parameters for model comparison." 
     
-    VALID_MC_ARGS = ['e', 'nplanet', 'curv', 'jit', 'gp']
+    VALID_MC_ARGS = ['e', 'nplanets', 'trend', 'jit', 'gp']
     for element in params: 
         assert element in VALID_MC_ARGS, \
             "The valid model comparison strings in the params argument are: " \
@@ -132,13 +132,17 @@ def model_comp(post, params=[], verbose=False, mc_list=[]):
         circparam = circparams[-1]
         lcparam = len(circparam)
         planet_letters = fitpost.likelihood.params.planet_letters
+        if planet_letters is None:
+            planet_letters = [str(i) for i in range(num_planets+1)] 
         for pari in fitpost.params:
             if pari[0:lcparam] == circparam and fitpost.params[pari].vary == True: 
-                freepar.append('Planet '+planet_letters[int(pari[lcparam+0:])])
+                freepar.append('$K_{'+planet_letters[int(pari[lcparam+0:])]+'}$')
             if pari[0:leparam] == eparam and fitpost.params[pari].vary == True:
-                freepar.append('Eccentricity '+planet_letters[int(pari[leparam+0:])])
-            if (pari == 'curv' or pari == 'dvdt') and fitpost.params[pari].vary == True:
-                freepar.append(pari)
+                freepar.append('$e_{'+planet_letters[int(pari[leparam+0:])]+'}$')
+            if (pari == 'dvdt') and fitpost.params[pari].vary == True:
+                freepar.append(r'$\frac{dv}{dt}$')
+            if (pari == 'curv') and fitpost.params[pari].vary == True:
+                freepar.append('$curv$')
 
         pdict['Free Params'] = freepar
         mc_list.append(pdict)
@@ -204,14 +208,14 @@ def model_comp(post, params=[], verbose=False, mc_list=[]):
         return mc_list
 
 
-    elif 'nplanet' in params:
+    elif 'nplanets' in params:
         eparams = post.params.basis.get_eparams()
         circparams = post.params.basis.get_circparams()
         allparams = eparams+circparams  
 
         ipost = copy.deepcopy(post)
         newparams = copy.copy(params) 
-        newparams.remove('nplanet')
+        newparams.remove('nplanets')
         num_planets = post.likelihood.model.num_planets
         pllist = [pl+1 for pl in range(num_planets)]
         plgroups = ()
