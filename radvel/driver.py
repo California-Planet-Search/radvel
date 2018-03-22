@@ -240,7 +240,7 @@ def ic_compare(args):
     choices=['nplanets', 'e', 'trend', 'jit', 'gp']
     statsdictlist=[]
     paramlist=[]
-    compareparams = args.type[0].split()
+    compareparams = args.type
 
     ipost = copy.deepcopy(post)
     if hasattr(args, 'fixjitter') and args.fixjitter:
@@ -447,7 +447,7 @@ def report(args):
     except:
         print("WARNING: Could not find {} model comparison \
 in {}.\nPlease make sure that you have run `radvel ic` (or, e.g., `radvel \
-ic -t 'nplanets e trend jit gp'`)\
+ic -t nplanets e trend jit gp`)\
 \nif you would like to include the model comparison table in the \
 report.".format(args.comptype,
                              statfile,
