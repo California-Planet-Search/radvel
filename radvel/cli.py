@@ -128,12 +128,16 @@ If True, run MCMC in serial instead of parallel. [False]
     psr_ic = subpsr.add_parser('ic', parents=[psr_parent],)
     psr_ic.add_argument('-t',
         '--type', type=str, nargs='+', default='trend',
-        choices=['nplanets', 'e', 'trend', 'jit', 'gp'],
+        #choices=['nplanets', 'e', 'trend', 'jit', 'gp'],
         help="parameters to include in BIC/AIC model comparison"
     )
-    psr_ic.add_argument(
-        '--separate', type=bool, default=False, 
+    psr_ic.add_argument('-m',
+        '--mixed', type=bool, default=False, 
         help="flag to treat each model comparison separately rather than simultaneously"
+    )
+    psr_ic.add_argument('-f',
+        '--fixjitter', type=bool, default=False, 
+        help="flag to fix the stellar jitters at the nominal model best-fit value"
     )
     psr_ic.set_defaults(func=radvel.driver.ic_compare)
 

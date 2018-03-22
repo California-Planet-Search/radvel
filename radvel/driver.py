@@ -268,21 +268,30 @@ def ic_compare(args):
       "Must perform max-liklihood fit before running BIC comparisons"
     post = radvel.posterior.load(status.get('fit', 'postfile'))
 
+    choices=['nplanets', 'e', 'trend', 'jit', 'gp']
     statsdictlist=[]
     paramlist=[]
-    for compareparam in args.type:
+    compareparams = args.type[0].split()
+
+    ipost = copy.deepcopy(post)
+    if args.fixjitter:
+        for param in ipost.params:
+             if len(param) >=3 and param[0:3] == 'jit':
+                 ipost.params[param].vary = False
+
+    for compareparam in compareparams:
+        assert compareparam in choices, \
+            "Valid parameter choices for 'ic -t' are combinations of: "\
+            + " ".join(choices)
         paramlist.append(compareparam)
-        if args.separate:
-            statsdictlist.append(radvel.fitting.model_comp(post, \
-                params=[compareparam], verbose=False))
-    if not args.separate:
-        statsdictlist.append(radvel.fitting.model_comp(post, \
-            params=paramlist, verbose=False))
+        if args.mixed:
+            statsdictlist += radvel.fitting.model_comp(ipost, \
+                params=[compareparam], verbose=False)
+    if not args.mixed:
+        statsdictlist += radvel.fitting.model_comp(ipost, \
+            params=paramlist, verbose=False)
 
-    print("Hi")
-    print(statsdictlist)
     savestate = {'ic': statsdictlist}
-
     save_status(statfile, 'ic_compare', savestate)
 
 

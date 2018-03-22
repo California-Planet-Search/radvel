@@ -5,7 +5,8 @@ import collections
 import itertools
 import radvel.likelihood
 
-
+ALPHABET = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', \
+    'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
 def maxlike_fitting(post, verbose=True):
     """Maximum Likelihood Fitting
@@ -100,7 +101,10 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             print("BIC (jitter fixed) = %4.2f" % fitpost.bic())
             print("AIC (jitter fixed) = %4.2f" % fitpost.aic())
        
-        pdict={} 
+        comparison_parameters = ['Free Params', '$N_{\\rm free}$', '$N_{\\rm data}$',\
+            'RMS', '$\\ln{\\mathcal{L}}$',\
+            'BIC', 'AIC']
+        pdict=collections.OrderedDict.fromkeys(comparison_parameters) 
         pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
         pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
         pdict['RMS'] = (
@@ -133,18 +137,25 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         lcparam = len(circparam)
         planet_letters = fitpost.likelihood.params.planet_letters
         if planet_letters is None:
-            planet_letters = [str(i) for i in range(num_planets+1)] 
+            planet_letters = [ALPHABET[i] for i in range(num_planets+1)] 
+        jitterchecked = False
         for pari in fitpost.params:
-            if pari[0:lcparam] == circparam and fitpost.params[pari].vary == True: 
+            if len(pari) >= lcparam and pari[0:lcparam] == circparam and fitpost.params[pari].vary == True: 
                 freepar.append('$K_{'+planet_letters[int(pari[lcparam+0:])]+'}$')
-            if pari[0:leparam] == eparam and fitpost.params[pari].vary == True:
+            if len(pari) >= leparam and pari[0:leparam] == eparam and fitpost.params[pari].vary == True:
                 freepar.append('$e_{'+planet_letters[int(pari[leparam+0:])]+'}$')
             if (pari == 'dvdt') and fitpost.params[pari].vary == True:
-                freepar.append(r'$\frac{dv}{dt}$')
+                freepar.append(r'$\dot{\gamma}$')
             if (pari == 'curv') and fitpost.params[pari].vary == True:
-                freepar.append('$curv$')
+                freepar.append('$\ddot{\gamma}$')
+            if len(pari) >= 3 and (pari[0:3] == 'jit') and fitpost.params[pari].vary == True and jitterchecked == False:
+                partex = '\{$\sigma$\}'
+                #if len(pari) > 3:
+                #    partex += '$'+pari[3:]+'$'
+                freepar.append(partex)
+                jitterchecked = True
 
-        pdict['Free Params'] = freepar
+        pdict['Free Params'] = (freepar, "The free parameters in this model")
         mc_list.append(pdict)
         return mc_list
 
@@ -170,8 +181,8 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             mc_list = model_comp(post, newparams, mc_list=mc_list)
             return mc_list
         else:
-            print "Warning: You requested a GP BIC/AIC comparison"
-            print "   However, you're model does not include GPs"
+            print("Warning: You requested a GP BIC/AIC comparison")
+            print("   However, your model does not include GPs")
             mc_list = model_comp(post, newparams, mc_list=mc_list)
             return mc_list
          
@@ -200,7 +211,8 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         newparams.remove('trend')
         trendparamlist = ['curv', 'dvdt']
         for cparam in trendparamlist:
-            if post.params[cparam].vary == True:
+            if ipost.params[cparam].vary == True:
+                ipost.params[cparam].value = 0.
                 cpost = copy.deepcopy(ipost)
                 mc_list = model_comp(cpost, newparams, mc_list=mc_list)
                 ipost.params[cparam].vary = False
@@ -225,13 +237,11 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         for plgroup in plgroups:
             suffixes = [str(pl) for pl in plgroup]
             plparams.append([ [pari+''+sufi for pari in allparams] for sufi in suffixes ])
-        print plparams
         for plparamset in plparams:
             if all( [any([post.params[pari].vary for pari in pparam]) for pparam in plparamset] ):
                 cpost = copy.deepcopy(post)
                 for pparam in plparamset:
                     for pari in pparam:
-                        print pari
                         if pari[0] == 'k':
                             cpost.params[pari].value = 0.
                         if len(pari) >= 4 and pari[0:4] == 'logk':
@@ -259,7 +269,6 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         for plgroup in plgroups:
             suffixes = [str(pl) for pl in plgroup]
             plparams.append([ [pari+''+sufi for pari in eparams] for sufi in suffixes ])
-        print plparams
         for plparamset in plparams:
             if all( [any([post.params[pari].vary for pari in pparam]) for pparam in plparamset] ):
                 cpost = copy.deepcopy(post)
