@@ -294,14 +294,14 @@ class TexTable(RadvelReport):
         if statsdict is None:
             return ""
 
-        statsdict_sorted = sorted(statsdict, key=itemgetter('AIC'),\
+        statsdict_sorted = sorted(statsdict, key=itemgetter('AICc'),\
             reverse=False)
 
         n_test = len(statsdict)
         if n_test > 50:
             print("Warning, the number of model comparisons is very"\
                 + " large. Printing 50 best models.\nConsider using"\
-                + " the --separate flag when performing ic comparisons")
+                + " the --unmixed flag when performing ic comparisons")
             n_test=50
             #statsdict_sorted = statsdict_sorted[:50]
 
@@ -315,10 +315,10 @@ class TexTable(RadvelReport):
                 pass
             else:
                 head += r" & \colhead{%s}" % s
-        head += r" & \colhead{$\Delta$AIC}"
+        head += r" & \colhead{$\Delta$AICc}"
         head += r"}"
 
-        minAIC = statsdict_sorted[0]['AIC'][0]   
+        minAIC = statsdict_sorted[0]['AICc'][0]   
         # See Burnham + Anderson 2004
         deltaAIClevels = [0., 2., 4., 10.]
         deltaAICmessages = ["Nearly Indistinguishable", "Somewhat Disfavored", \
@@ -347,15 +347,15 @@ class TexTable(RadvelReport):
                     print(s)
                     print(val)
                     raise
-            row += " & %.2f" % (statsdict_sorted[i]['AIC'][0] - minAIC) 
+            row += " & %.2f" % (statsdict_sorted[i]['AICc'][0] - minAIC) 
             #row = row[3:]
             if i == 0:
             #    row = "{\\bf" + row + "}"
                 row = "AICc Favored Model"+ row
             appendhline = False
-            if (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AIC'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):
+            if (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AICc'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):
                 deltaAICtrigger += 1 
-                while (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AIC'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):
+                while (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AICc'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):
                     deltaAICtrigger += 1 
                 row = deltaAICmessages[deltaAICtrigger-1] + row
                 appendhline = True

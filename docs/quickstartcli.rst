@@ -142,16 +142,17 @@ included in the summary report if available.
 
     $ radvel plot -t derived -s /path/to/radvel/example_planets/HD164922.py
 
-Perform a model comparison testing models with progressively fewer
-planets. If this is run a new table will be included in the summary report.
+Perform a model comparison testing models eliminating different sets of
+planets, their eccentricities, and RV trends. If this is run a new table 
+will be included in the summary report.
 
 .. code-block:: bash
 
-    $ radvel bic -t nplanets -s /path/to/radvel/example_planets/HD164922.py
+    $ radvel ic -t "nplanets e trend" -s /path/to/radvel/example_planets/HD164922.py
 
 Generate and save only the TeX code for any/all of the tables.
 
 .. code-block:: bash
 
-    $ radvel table -t params priors nplanets -s /path/to/radvel/example_planets/HD164922.py
+    $ radvel table -t params priors ic_compare -s /path/to/radvel/example_planets/HD164922.py
 

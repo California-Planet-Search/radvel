@@ -80,6 +80,9 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         assert element in VALID_MC_ARGS, \
             "The valid model comparison strings in the params argument are: " \
             + ", ".join(VALID_MC_ARGS) 
+
+    params = list(set(params))
+
  
     # If there are no parameters to compare simply do a maximum likelihood fit
     #   to get BIC and AIC values among other diagnostics. 
@@ -104,7 +107,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
        
         comparison_parameters = ['Free Params', '$N_{\\rm free}$', '$N_{\\rm data}$',\
             'RMS', '$\\ln{\\mathcal{L}}$',\
-            'BIC', 'AIC']
+            'BIC', 'AICc']
         pdict=collections.OrderedDict.fromkeys(comparison_parameters) 
         pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
         pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
@@ -123,7 +126,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             np.round(fitpost.bic(),2), 
             'Bayesian information criterion'
         )
-        pdict['AIC'] = (
+        pdict['AICc'] = (
             np.round(fitpost.aic(),2), 
             'Aikaike information (small sample corrected) criterion'
         )

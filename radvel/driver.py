@@ -287,20 +287,24 @@ def tables(args):
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
     report = radvel.report.RadvelReport(P, post, chains)
     tabletex = radvel.report.TexTable(report)
+    attrdict = {'priors':'tab_prior_summary', 'rv':'tab_rv', \
+                'params':'tab_params'}
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
         if tabtype == 'ic_compare':
-            assert status.has_option('ic_compare'), \
+            assert status.has_option('ic_compare', 'ic'), \
                 "Must run Information Criteria comparison before making comparison tables"
 
-            compstats = eval(status.get('ic_compare'))
+            compstats = eval(status.get('ic_compare', 'ic'))
             report = radvel.report.RadvelReport(
                 P, post, chains, compstats=compstats
             )
             tex = tabletex.tab_comparison()
         else:
-            tex = tabletex.tab_comparison()
+            print(tabtype)
+            assert tabtype in attrdict, 'Invalid Table Type'
+            tex = getattr(tabletex, attrdict[tabtype])()
 
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
@@ -440,11 +444,13 @@ def report(args):
     try:
         compstats = eval(status.get('ic_compare', args.comptype))
     except:
-        print("WARNING: Could not find {} Information Criteria model comparison\
-in {}.\nPlease make sure that you have run `radvel bic -t {}` if you would\
-like to include\nthe model comparison table in the report.".format(args.comptype,
-                                                            statfile,
-                                                            args.comptype))
+        print("WARNING: Could not find {} model comparison \
+in {}.\nPlease make sure that you have run `radvel ic` (or, e.g., `radvel \
+ic -t 'nplanets e trend jit gp'`)\
+\nif you would like to include the model comparison table in the \
+report.".format(args.comptype,
+                             statfile,
+                             args.comptype))
         compstats = None
 
     report = radvel.report.RadvelReport(P, post, chains, compstats=compstats)
