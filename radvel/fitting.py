@@ -48,8 +48,8 @@ def maxlike_fitting(post, verbose=True):
 def model_comp(post, params=[], mc_list=[], verbose=False):
     """Model Comparison
 
-    Fit for planets adding one at a time.  Save results as list of
-    posterior objects.
+    Vary the presence of additional parameters and check how the improve the model fit
+    Save results as list of dictionaries of posterior statistics.
 
     Args:
         post (radvel.Posterior): posterior object for final best-fit solution 

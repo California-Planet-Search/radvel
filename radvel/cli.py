@@ -128,19 +128,29 @@ If True, run MCMC in serial instead of parallel. [False]
     psr_ic = subpsr.add_parser('ic', parents=[psr_parent],)
     psr_ic.add_argument('-t',
         '--type', type=str, nargs='+', default='trend',
-        #choices=['nplanets', 'e', 'trend', 'jit', 'gp'],
+        choices=['nplanets', 'e', 'trend', 'jit', 'gp'],
         help="parameters to include in BIC/AIC model comparison"
     )
+    psr_ic.add_argument('-m',
+        '--mixed', dest='mixed', action='store_true' ,
+        help="flag to compare all models with the fixed parameters mixed and matched rather than"\
+            + " treating each model comparison separately. This is the default. "\
+    )
     psr_ic.add_argument('-u',
-        '--unmixed', type=bool, default=False, 
+        '--un-mixed', dest='mixed', action='store_false', 
         help="flag to treat each model comparison separately (without mixing them) "\
             + "rather than comparing all models with the fixed parameters mixed and matched."
     )
     psr_ic.add_argument('-f',
-        '--fixjitter', type=bool, default=False, 
+        '--fixjitter', dest='fixjitter', action='store_true', 
         help="flag to fix the stellar jitters at the nominal model best-fit value"
     )
-    psr_ic.set_defaults(func=radvel.driver.ic_compare)
+    psr_ic.add_argument('-n',
+        '--no-fixjitter', dest='fixjitter', action='store_false', 
+        help="flag to let the stellar jitters float during model comparisons (default)"
+    )
+    psr_ic.set_defaults(func=radvel.driver.ic_compare, fixjitter=False, unmixed=False,\
+                        mixed=True)
 
 
     # Tables

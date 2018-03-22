@@ -7,6 +7,7 @@ from __future__ import print_function
 import os
 import sys
 import copy
+import collections
 from collections import OrderedDict
 if sys.version_info[0] < 3:
     import ConfigParser as configparser
@@ -219,7 +220,8 @@ def mcmc(args):
 
 
 def ic_compare(args):
-    """Compare different models and comparative statistics
+    """Compare different models and comparative statistics including
+          AICc and BIC statistics. 
 
     Args:
         args (ArgumentParser): command line arguments
@@ -253,10 +255,23 @@ def ic_compare(args):
             "Valid parameter choices for 'ic -t' are combinations of: "\
             + " ".join(choices)
         paramlist.append(compareparam)
-        if hasattr(args, 'unmixed') and args.unmixed:
+        if hasattr(args, 'mixed') and not args.mixed:
             statsdictlist += radvel.fitting.model_comp(ipost, \
                 params=[compareparam], verbose=False)
-    if not hasattr(args, 'unmixed') or (hasattr(args, 'unmixed') and not args.unmixed):
+    if hasattr(args, 'mixed') and not args.mixed:
+        new_statsdictlist = []
+        for dicti in statsdictlist:
+            anymatch = False
+            for seendict in new_statsdictlist:
+                if collections.Counter(dicti['Free Params'][0]) == \
+                        collections.Counter(seendict['Free Params'][0]):
+                    anymatch = True
+                    continue
+            if not anymatch:
+                new_statsdictlist.append(dicti)
+        statsdictlist = new_statsdictlist
+
+    if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
         statsdictlist += radvel.fitting.model_comp(ipost, \
             params=paramlist, verbose=False)
 
