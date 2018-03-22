@@ -274,7 +274,7 @@ def ic_compare(args):
     compareparams = args.type[0].split()
 
     ipost = copy.deepcopy(post)
-    if if hasattr(args, 'fixjitter') and args.fixjitter:
+    if hasattr(args, 'fixjitter') and args.fixjitter:
         for param in ipost.params:
              if len(param) >=3 and param[0:3] == 'jit':
                  ipost.params[param].vary = False
