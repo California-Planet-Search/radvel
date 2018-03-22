@@ -38,7 +38,7 @@ def _standard_run(setupfn):
     radvel.driver.mcmc(args)
     radvel.driver.derive(args)
 
-    args.type = ['trend jit e nplanets gp']
+    args.type = ['trend', 'jit', 'e', 'nplanets', 'gp']
     radvel.driver.ic_compare(args)
 
     args.type = ['params', 'priors', 'rv', 'ic']
