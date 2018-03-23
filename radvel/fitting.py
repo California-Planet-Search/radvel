@@ -88,7 +88,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     #   to get BIC and AIC values among other diagnostics. 
     if not params:
         
-        fitpost = maxlike_fitting(post, verbose=False)
+        fitpost = maxlike_fitting(post, verbose=verbose)
 
         ndata = len(fitpost.likelihood.y)
         nfree = len(fitpost.get_vary_params())
@@ -188,7 +188,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             if verbose:
                 print("Warning: You requested a GP BIC/AIC comparison")
                 print("   However, your model does not include GPs")
-                mc_list = model_comp(post, newparams, mc_list=mc_list)
+            mc_list = model_comp(post, newparams, mc_list=mc_list)
             return mc_list
          
 
