@@ -21,12 +21,12 @@ anybasis_params = radvel.Parameters(nplanets,basis='per tc e w k', planet_letter
 
 anybasis_params['per1'] = radvel.Parameter(value=1206.3)      # period of 1st planet
 anybasis_params['tc1'] = radvel.Parameter(value=2456779.)     # time of inferior conjunction of 1st planet
-anybasis_params['e1'] = radvel.Parameter(value=0.03)          # eccentricity of 1st planet
+anybasis_params['e1'] = radvel.Parameter(value=0.01)          # eccentricity of 1st planet
 anybasis_params['w1'] = radvel.Parameter(value=np.pi/2.)      # argument of periastron of the star's orbit for 1st planet
 anybasis_params['k1'] = radvel.Parameter(value=10.0)          # velocity semi-amplitude for 1st planet
 anybasis_params['per2'] = radvel.Parameter(value=75.771)      # same parameters for 2nd planet ...
 anybasis_params['tc2'] = radvel.Parameter(value=2456277.6)
-anybasis_params['e2'] = radvel.Parameter(value=0.03)
+anybasis_params['e2'] = radvel.Parameter(value=0.01)
 anybasis_params['w2'] = radvel.Parameter(value=np.pi/2.)
 anybasis_params['k2'] = radvel.Parameter(value=1)
 
@@ -52,16 +52,16 @@ params['dvdt'].vary = False
 params['curv'].vary = False
 
 
-
 # Load radial velocity data, in this example the data is contained in
 # an ASCII file, must have 'time', 'mnvel', 'errvel', and 'tel' keys
 # the velocities are expected to be in m/s
 data = pd.read_csv(os.path.join(radvel.DATADIR,'164922_fixed.txt'), sep=' ')
 
+
 # Define prior shapes and widths here.
 priors = [
     radvel.prior.EccentricityPrior( nplanets ),           # Keeps eccentricity < 1
-    #radvel.prior.Gaussian('tc1', params['tc1'].value, 300.0),    # Gaussian prior on tc1 with center at tc1 and width 300 days
+    radvel.prior.Gaussian('tc1', params['tc1'].value, 300.0),    # Gaussian prior on tc1 with center at tc1 and width 300 days
     radvel.prior.HardBounds('jit_k', 0.0, 10.0),
     radvel.prior.HardBounds('jit_j', 0.0, 10.0),
     radvel.prior.HardBounds('jit_a', 0.0, 10.0)
@@ -71,5 +71,4 @@ priors = [
 # optional argument that can contain stellar mass in solar units (mstar) and
 # uncertainty (mstar_err). If not set, mstar will be set to nan.
 stellar = dict(mstar=0.874, mstar_err=0.012)
-
 
