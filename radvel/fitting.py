@@ -154,15 +154,10 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                 freepar.append('$\ddot{\gamma}$')
             if len(pari) >= 3 and (pari[0:3] == 'jit') and fitpost.params[pari].vary == True and jitterchecked == False:
                 partex = '\{$\sigma$\}'
-                #if len(pari) > 3:
-                #    partex += '$'+pari[3:]+'$'
                 freepar.append(partex)
                 jitterchecked = True
-        if isinstance(post, radvel.likelihood.GPLikelihood):
-            gpparamlist = post.hnames
-            for gpparam in gpparamlist:
-                if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and (fitpost.params[pari].vary == True):
-                    freepar.append('GP')
+            if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and (fitpost.[pari].vary == True):
+                freepar.append('GP')
 
         pdict['Free Params'] = (freepar, "The free parameters in this model")
         mc_list.append(pdict)
