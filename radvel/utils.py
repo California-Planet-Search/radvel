@@ -421,12 +421,8 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
         P (float): Orbital period [days]
         Mtotal (float): Mass of star + mass of planet [Msun]
         e (float): eccentricity
-<<<<<<< HEAD
         Msini_units (Optional[str]): Units of Msini {'earth','jupiter'}
             default: 'jupiter'
-=======
-        Msini_units (string): (optional) Units of Msini {'earth','jupiter'} (default = 'jupiter')
->>>>>>> c0b22c0144d98ac2d25d2d5b135eee4ed08fbd42
 
     Returns:
         Doppler semi-amplitude [m/s]
@@ -517,17 +513,10 @@ def density(mass, radius, MR_units='earth'):
     Args:
         mass (float): mass [MR_units]
         radius (float): radius [MR_units]
-<<<<<<< HEAD
         MR_units (string): (optional) units of mass and radius. Must be 'earth', or 'jupiter' (default 'earth').
 
-        float: density in g/cc
-=======
-        MR_units (Optional[str]): Units of Msini {'earth','jupiter'} 
-            default: 'earth'
-
     Returns:
-        float: density [g/cc
->>>>>>> c0b22c0144d98ac2d25d2d5b135eee4ed08fbd42
+        float: density in g/cc
     """
 
     mass = np.array(mass)

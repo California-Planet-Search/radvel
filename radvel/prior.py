@@ -379,10 +379,7 @@ class NumericalPrior(Prior):
     
     def __init__(self, param_list, values, bw_method=None):
         self.param_list = param_list
-        self.values = values
-        self.bw_method = bw_method
-
-        self.pdf_estimate = gaussian_kde(self.values, bw_method=self.bw_method)
+        self.pdf_estimate = gaussian_kde(values, bw_method=bw_method)
 
     def __call__(self, params):
         x = []
