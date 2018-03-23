@@ -20,7 +20,7 @@ else:
 
 
 # celerite is an optional dependency
-def _try_celerite()
+def _try_celerite():
     try:
         import celerite
         from celerite.solver import CholeskySolver
