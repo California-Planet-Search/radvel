@@ -291,13 +291,13 @@ class TexTable(RadvelReport):
         """
         statsdict = self.report.compstats
 
-        if statsdict is None:
+        if statsdict is None or len(statsdict) < 1:
             return ""
 
         statsdict_sorted = sorted(statsdict, key=itemgetter('AICc'),\
             reverse=False)
 
-        n_test = len(statsdict)
+        n_test = len(statsdict_sorted)
         if n_test > 50:
             print("Warning, the number of model comparisons is very"\
                 + " large. Printing 50 best models.\nConsider using"\
@@ -305,7 +305,7 @@ class TexTable(RadvelReport):
             n_test=50
             #statsdict_sorted = statsdict_sorted[:50]
 
-        statskeys = statsdict[0].keys()
+        statskeys = statsdict_sorted[0].keys()
         coldefs = r"\begin{deluxetable*}{%s}" % ('l'+'l'+'r'*(len(statskeys)-1) + 'r')
         head = r"\tablehead{"
         head += r"\colhead{AICc Qualitative Comparison}"

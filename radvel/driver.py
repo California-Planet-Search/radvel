@@ -318,8 +318,7 @@ def tables(args):
             tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
         else:
-            print(tabtype)
-            assert tabtype in attrdict, 'Invalid Table Type'
+            assert tabtype in attrdict, 'Invalid Table Type %s ' % tabtype
             tex = getattr(tabletex, attrdict[tabtype])()
 
         saveto = os.path.join(
