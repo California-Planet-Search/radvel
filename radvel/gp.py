@@ -19,8 +19,8 @@ else:
     ABC = abc.ABC
 
 
-def try_celerite():
-    # celerite is an optional dependency
+# celerite is an optional dependency
+def _try_celerite()
     try:
         import celerite
         from celerite.solver import CholeskySolver
@@ -30,10 +30,10 @@ def try_celerite():
         print("Try installing celerite using 'pip install celerite'")
         return False
 
-celerite_check = try_celerite()
-if not celerite_check:
-    del KERNELS["Celerite"]
-
+_has_celerite = _try_celerite()
+if _has_celerite:
+    import celerite
+    from celerite.solver import CholeskySolver
 
 class Kernel(ABC):
     """
