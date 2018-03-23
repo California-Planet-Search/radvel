@@ -4,8 +4,6 @@ import scipy
 from scipy import spatial
 import abc
 import numpy as np
-import celerite
-from celerite.solver import CholeskySolver
 
 # implemented kernels & examples of possible names for their associated hyperparameters
 KERNELS = {
@@ -19,6 +17,15 @@ if sys.version_info[0] < 3:
     ABC = abc.ABCMeta('ABC', (), {})
 else:
     ABC = abc.ABC
+
+# celerite is an optional dependency
+try:
+    import celerite
+    from celerite.solver import CholeskySolver
+except ImportError:
+    print("WARNING: celerite not installed. GP kernals using celerite will not work.")
+    print("Try installing celerite using 'pip install celerite'")
+    del KERNELS['Celerite']
 
 class Kernel(ABC):
     """
