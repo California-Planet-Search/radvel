@@ -144,19 +144,20 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             planet_letters = [ALPHABET[i] for i in range(num_planets+1)] 
         jitterchecked = False
         for pari in fitpost.params:
-            if len(pari) >= lcparam and pari[0:lcparam] == circparam and fitpost.params[pari].vary == True: 
+            if (len(pari) >= lcparam) and (pari[0:lcparam] == circparam) and (fitpost.params[pari].vary == True): 
                 freepar.append('$K_{'+planet_letters[int(pari[lcparam+0:])]+'}$')
-            if len(pari) >= leparam and pari[0:leparam] == eparam and fitpost.params[pari].vary == True:
+            if (len(pari) >= leparam) and (pari[0:leparam] == eparam) and (fitpost.params[pari].vary == True):
                 freepar.append('$e_{'+planet_letters[int(pari[leparam+0:])]+'}$')
-            if (pari == 'dvdt') and fitpost.params[pari].vary == True:
+            if (pari == 'dvdt') and (fitpost.params[pari].vary == True):
                 freepar.append(r'$\dot{\gamma}$')
-            if (pari == 'curv') and fitpost.params[pari].vary == True:
+            if (pari == 'curv') and (fitpost.params[pari].vary == True):
                 freepar.append('$\ddot{\gamma}$')
-            if len(pari) >= 3 and (pari[0:3] == 'jit') and fitpost.params[pari].vary == True and jitterchecked == False:
+            if (len(pari) >= 3) and (pari[0:3] == 'jit') and (fitpost.params[pari].vary == True) \
+                    and (jitterchecked == False):
                 partex = '\{$\sigma$\}'
                 freepar.append(partex)
                 jitterchecked = True
-            if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and (fitpost.[pari].vary == True):
+            if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and (fitpost.params[pari].vary == True):
                 freepar.append('GP')
 
         pdict['Free Params'] = (freepar, "The free parameters in this model")
