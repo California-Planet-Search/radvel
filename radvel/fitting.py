@@ -158,8 +158,11 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                 #    partex += '$'+pari[3:]+'$'
                 freepar.append(partex)
                 jitterchecked = True
-            if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and (fitpost.params[pari].vary == True):
-                freepar.append('GP')
+        if isinstance(post, radvel.likelihood.GPLikelihood):
+            gpparamlist = post.hnames
+            for gpparam in gpparamlist:
+                if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and (fitpost.params[pari].vary == True):
+                    freepar.append('GP')
 
         pdict['Free Params'] = (freepar, "The free parameters in this model")
         mc_list.append(pdict)
@@ -173,6 +176,9 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         newparams = copy.copy(params) 
         newparams.remove('gp')
         if isinstance(post, radvel.likelihood.GPLikelihood):
+            print("Warning: BIC/AIC comparisons with and without GP are only implemented for "\
+                + "kernels where the amplitude of the GP is described by the 'gp_amp' "\
+                + "hyper parameter")
             gpparamlist = post.hnames
             ipost = copy.deepcopy(post)
             allfixed = False
