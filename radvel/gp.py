@@ -18,14 +18,22 @@ if sys.version_info[0] < 3:
 else:
     ABC = abc.ABC
 
-# celerite is an optional dependency
-try:
-    import celerite
-    from celerite.solver import CholeskySolver
-except ImportError:
-    print("WARNING: celerite not installed. GP kernals using celerite will not work.")
-    print("Try installing celerite using 'pip install celerite'")
-    del KERNELS['Celerite']
+
+def try_celerite():
+    # celerite is an optional dependency
+    try:
+        import celerite
+        from celerite.solver import CholeskySolver
+        return True
+    except ImportError:
+        print("WARNING: celerite not installed. GP kernals using celerite will not work.")
+        print("Try installing celerite using 'pip install celerite'")
+        return False
+
+celerite_check = try_celerite()
+if not celerite_check:
+    del KERNELS["Celerite"]
+
 
 class Kernel(ABC):
     """
