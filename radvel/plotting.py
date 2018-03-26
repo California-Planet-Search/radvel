@@ -15,8 +15,8 @@ import radvel
 from radvel.utils import t_to_phase, fastbin
 
 latex = {
-    'ms': 'm s$^{\\mathregular{-1}}$',
-    'BJDTDB': 'BJD$_{\\mathregular{TDB}}$'
+    'ms': r'm s$^{\mathregular{-1}}$',
+    'BJDTDB': r'BJD$_{\mathregular{TDB}}$'
 }
 
 telfmts_default = {
