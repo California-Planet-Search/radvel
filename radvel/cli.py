@@ -67,6 +67,13 @@ def main():
         E.g. --plotkw "{'yscale_auto': True}"'
         ''',
     )
+    psr_plot.add_argument(
+    '--gp', dest='gp', action='store', default=False, type=bool,
+    help='''
+    Make a multipanel plot with GP bands. For use only with
+    GPLikleihood objects [False]
+    '''
+    )
     
     psr_plot.set_defaults(func=radvel.driver.plots)
 

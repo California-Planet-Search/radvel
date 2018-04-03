@@ -17,6 +17,7 @@ import pandas as pd
 import numpy as np 
 
 import radvel
+from radvel.plot import orbit_plots, mcmc_plots
 from astropy import constants as c
 
 def plots(args):
@@ -50,9 +51,20 @@ def plots(args):
             P,_ = radvel.utils.initialize_posterior(config_file)
             if hasattr(P, 'bjd0'):
                 args.plotkw['epoch'] = P.bjd0
-            radvel.plotting.rv_multipanel_plot(
-                post, saveplot=saveto, **args.plotkw
-            )
+
+            if args.gp:
+                GPPlot = orbit_plots.GPMultipanelPlot(
+                    post, saveplot=saveto, **args.plotkw
+                )
+                GPPlot.plot_multipanel()
+            else:
+                try:
+                    RVPlot = orbit_plots.MultipanelPlot(
+                        post, saveplot=saveto, **args.plotkw
+                    )
+                    RVPlot.plot_multipanel()
+                except AssertionError:
+                    raise AssertionError("Must append '--gp True' to 'radvel plot' command for plotting results of Gaussian Process fits.")
 
         if ptype == 'corner' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
@@ -62,13 +74,15 @@ def plots(args):
 
         if ptype == 'corner':
             saveto = os.path.join(args.outputdir, conf_base+'_corner.pdf')
-            radvel.plotting.corner_plot(post, chains, saveplot=saveto)
+            Corner = mcmc_plots.CornerPlot(post, chains, saveplot=saveto)
+            Corner.plot()
 
         if ptype == 'trend':
             nwalkers = status.getint('mcmc', 'nwalkers')
 
             saveto = os.path.join(args.outputdir, conf_base+'_trends.pdf')
-            radvel.plotting.trend_plot(post, chains, nwalkers, saveto)
+            Trend = mcmc_plots.TrendPlot(post, chains, nwalkers, saveto)
+            Trend.plot()
 
         if ptype == 'derived':
             assert status.has_section('derive'), \
@@ -79,9 +93,9 @@ def plots(args):
             saveto = os.path.join(
                 args.outputdir,conf_base+'_corner_derived_pars.pdf'
             )
-            radvel.plotting.corner_plot_derived_pars(
-                chains, P, saveplot=saveto
-            )
+
+            Derived = mcmc_plots.DerivedPlot(chains, P, saveplot=saveto)
+            Derived.plot()
 
         savestate = {'{}_plot'.format(ptype): os.path.abspath(saveto)}
         save_status(statfile, 'plot', savestate)
@@ -292,8 +306,9 @@ def tables(args):
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
         )
-        with open(saveto, 'w') as f:
-            print(tex, file=f)
+        with open(saveto, 'w+') as f:
+           # print(tex, file=f)
+           f.write(tex)
 
         savestate = {'{}_tex'.format(tabtype): os.path.abspath(saveto)}
         save_status(statfile, 'table', savestate)

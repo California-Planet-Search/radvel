@@ -44,31 +44,18 @@ time_base = np.median(t)
 
 # Define Celerite GP hyperparameters.
 
-# First Celerite Term. AC>=BD must be true to ensure 
-# positive-definiteness. (A == params['1_logA'].value, etc.)
-params['1_logA'] = radvel.Parameter(value=np.log(26.))
-params['1_logB'] = radvel.Parameter(value=np.log(.0005)) 
-params['1_logC'] = radvel.Parameter(value=np.log(.5))
-params['1_logD'] = radvel.Parameter(value=np.log(.0005))
-
-# Second Celerite Term (real). Setting vary=False for 1_logB and 
-# 1_logD ensures that this term remains real throughout the fitting process.
-params['2_logA'] = radvel.Parameter(value=np.log(26.)) 
-params['2_logB'] = radvel.Parameter(value=np.log(0.),vary=False)
-params['2_logC'] = radvel.Parameter(value=np.log(0.1)) 
-params['2_logD'] = radvel.Parameter(value=np.log(0.),vary=False)
+# First damped simple harmonic oscillator (SHO) term
+params['1_logQ'] = radvel.Parameter(value=np.log(5.))
+params['1_logS'] = radvel.Parameter(value=np.log(5.)) 
+params['1_logw'] = radvel.Parameter(value=np.log(5.))
 
 hnames = {}
 for tel in instnames:
-  hnames[tel] = ['1_logA','1_logB','1_logC','1_logD',
-                 '2_logA','2_logB','2_logC','2_logD'
-                 ]
+  hnames[tel] = ['1_logQ','1_logS','1_logw']
 
-kernel_name = {'harps-n':"Celerite", 
-               'pfs':"Celerite"}
+kernel_name = {'harps-n':"SHO", 'pfs':"SHO"}
 
 jit_guesses = {'harps-n':2.0, 'pfs':5.0}
-
 def initialize_instparams(tel_suffix):
 
     indices = telgrps[tel_suffix]
