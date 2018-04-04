@@ -31,6 +31,9 @@ telfmts_default['HIRES'] = telfmts_default['j']
 telfmts_default['HIRES_RK'] = telfmts_default['k']
 telfmts_default['APF'] = telfmts_default['a']
 telfmts_default['HARPS'] = telfmts_default['h']
+telfmts_default['HARPS-N'] = telfmts_default['harps-n']
+telfmts_default['PFS'] = telfmts_default['pfs']
+
 
 cmap = nipy_spectral
 rcParams['font.size'] = 9
@@ -58,7 +61,6 @@ def telplot(x, y, e, tel, ax, lw=1., telfmt={}):
     kw = dict(
         fmt='o', capsize=0, mew=0, 
         ecolor='0.6', lw=lw, color='orange',
-        label=telfmts_default[tel]['label']
     )
 
     # If not explicit format set, look among default formats
@@ -67,6 +69,12 @@ def telplot(x, y, e, tel, ax, lw=1., telfmt={}):
 
     for k in telfmt:
         kw[k] = telfmt[k]
+
+    if not 'label' in kw.keys():
+        if tel in telfmts_default:
+            kw['label'] = telfmts_default[tel]['label']
+        else:
+            kw['label'] = tel
         
     pl.errorbar(x, y, yerr=e, **kw)
 
@@ -97,15 +105,19 @@ def mtelplot(x, y, e, tel, ax, lw=1., telfmts={}):
         yt = y[tel == t]
         et = e[tel == t]
 
-        if t not in telfmts:
-            telfmts[t] = dict(color=default_colors[ci])
-            ci +=1 
+        telfmt = {}
+
         if t in telfmts:
             if 'color' not in telfmts[t].keys():
-                telfmts[t['color']] = default_colors[ci]
+                telfmt['color'] = default_colors[ci]
                 ci +=1
+        elif t not in telfmts and t not in telfmts_default:
+            telfmt = dict(color=default_colors[ci])
+            ci +=1 
+        else:
+            telfmt = {}
 
-        telplot(xt, yt, et, t, ax, lw=1., telfmt=telfmts[t])
+        telplot(xt, yt, et, t, ax, lw=1., telfmt=telfmt)
 
     ax.yaxis.set_major_formatter(
         matplotlib.ticker.ScalarFormatter(useOffset=False)
