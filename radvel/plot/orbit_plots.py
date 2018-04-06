@@ -8,9 +8,6 @@ from astropy.time import Time
 import radvel
 from radvel import plot
 from radvel.utils import t_to_phase, fastbin, sigfig
-"""
-- multipanel
-"""
 
 class MultipanelPlot(object):
     """

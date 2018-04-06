@@ -225,8 +225,12 @@ class TexTable(RadvelReport):
                 
         return rows
 
-    def tab_prior_summary(self):
+    def tab_prior_summary(self, name_in_title=False):
         """Summary of priors
+
+        Args:
+            name_in_title (Bool [optional]): if True, include
+                the name of the star in the table title
         """
         texdict = self.post.likelihood.params.tex_labels()
         prior_list = self.post.priors
@@ -237,13 +241,22 @@ class TexTable(RadvelReport):
                 row = row + "\\\\"
             rows.append(row)
 
+        kw = {}
+        if name_in_title:
+            kw['title'] = "{} Summary of Priors".format(self.report.starname)
+        else:
+            kw['title'] = "Summary of Priors"
         tmpfile = 'tab_prior_summary.tex'
         t = env.get_template(tmpfile)
-        out = t.render(rows=rows)
+        out = t.render(rows=rows, **kw)
         return out
 
-    def tab_rv(self):
+    def tab_rv(self, name_in_title=False):
         """Table of input velocities
+
+        Args:
+            name_in_title (Bool [optional]): if True, include
+                the name of the star in the table title
         """
 
         nvels = len(self.post.likelihood.x)
@@ -256,12 +269,22 @@ class TexTable(RadvelReport):
             row = "{:.5f} & {:.2f} & {:.2f} & {:s}".format(t, v, e, inst)
             rows.append(row)
 
+        kw = {}
+        if name_in_title:
+            kw['title'] = "{} Radial Velocities".format(self.report.starname)
+        else:
+            kw['title'] = "Radial Velocities"
         tmpfile = 'tab_rv.tex'
         t = env.get_template(tmpfile)
-        out = t.render(rows=rows)
+        out = t.render(rows=rows, **kw)
         return out
 
-    def tab_params(self):
+    def tab_params(self, name_in_title=False):
+        """ Table of final parameter values
+        Args:
+            name_in_title (Bool [optional]): if True, include
+                the name of the star in the table title
+        """
         # Sort extra params
         ep = []
         order = ['gamma', 'dvdt', 'curv', 'jit']
@@ -280,6 +303,10 @@ class TexTable(RadvelReport):
         kw['ep_rows'] = self._data(ep)
         kw['nlinks'] = len(self.report.chains)
         kw['time_base'] = self.report.post.likelihood.model.time_base
+        if name_in_title:
+            kw['title'] = "{} MCMC Posteriors".format(self.report.starname)
+        else:
+            kw['title'] = "MCMC Posteriors"
         tmpfile = 'tab_params.tex'
         t = env.get_template(tmpfile)
         out = t.render(**kw)

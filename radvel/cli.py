@@ -149,7 +149,14 @@ If True, run MCMC in serial instead of parallel. [False]
     )
     psr_table.add_argument(
         '--header', action='store_true',
-        help="included latex column header. Default just prints data rows"
+        help="include latex column header. Default just prints data rows"
+    )
+    psr_table.add_argument(
+    '--nameintitle', dest='name_in_title', action='store', default=False, type=bool,
+    help='''
+        Include star name in table headers. 
+        Default just prints descriptive titles without star name [False]
+    '''
     )
     
     psr_table.set_defaults(func=radvel.driver.tables)
