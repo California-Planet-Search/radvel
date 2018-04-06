@@ -321,6 +321,7 @@ def tables(args):
             assert tabtype in attrdict, 'Invalid Table Type %s ' % tabtype
             tex = getattr(tabletex, attrdict[tabtype])()
 
+
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
         )

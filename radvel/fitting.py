@@ -8,7 +8,7 @@ import radvel.likelihood
 ALPHABET = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', \
     'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
-def maxlike_fitting(post, verbose=True):
+def maxlike_fitting(post, verbose=True, method='Powell'):
     """Maximum Likelihood Fitting
 
     Perform a maximum likelihood fit.
@@ -16,6 +16,8 @@ def maxlike_fitting(post, verbose=True):
     Args:
         post (radvel.Posterior): Posterior object with initial guesses
         verbose (bool [optional]): Print messages and fitted values?
+        method (string [optional]): Minimization method. See documentation for `scipy.optimize.minimize` for available
+            options.
 
     Returns: 
         radvel.Posterior : Posterior object with parameters
@@ -23,22 +25,20 @@ def maxlike_fitting(post, verbose=True):
 
     """
 
-    post0 = copy.copy(post)
     if verbose:
-        print("Initial loglikelihood = %f" % post0.logprob())
+        print("Initial loglikelihood = %f" % post.logprob())
         print("Performing maximum likelihood fit...")
     res = scipy.optimize.minimize(
-        post.neglogprob_array, post.get_vary_params(), method='Nelder-Mead',
+        post.neglogprob_array, post.get_vary_params(), method=method,
         options=dict(xatol=1e-8, maxiter=200, maxfev=100000)
     )
-    synthpost = copy.copy(post)
     synthparams = post.params.basis.to_synth(post.params, noVary = True) # setting "noVary" assigns each new parameter a vary attribute
-    synthpost.params.update(synthparams)                                 # of '', for printing purposes
+    post.params.update(synthparams)                                 # of '', for printing purposes
 
     if verbose:
         print("Final loglikelihood = %f" % post.logprob())
         print("Best-fit parameters:")
-        print(synthpost)
+        print(post)
         
     return post
     
@@ -66,7 +66,6 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             dictionary is a tuple with the statistic value as the first 
             element and a description of that statistic in the second element.
     """
-        
 
     assert isinstance(post, radvel.likelihood.Likelihood), \
         "model_comp requires a radvel likelihood object as the first argument"
@@ -75,6 +74,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     assert isinstance(params, list), \
         "The params argument must contain a list of parameters for model comparison." 
     
+
     VALID_MC_ARGS = ['e', 'nplanets', 'trend', 'jit', 'gp']
     for element in params: 
         assert element in VALID_MC_ARGS, \
@@ -93,6 +93,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         ndata = len(fitpost.likelihood.y)
         nfree = len(fitpost.get_vary_params())
         chi = np.sum((fitpost.likelihood.residuals()/fitpost.likelihood.errorbars())**2)
+
         chi_red = chi / (ndata - nfree)
 
         if verbose:
