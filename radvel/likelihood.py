@@ -3,8 +3,10 @@ import radvel.model
 from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
 from scipy import matrix
-import celerite
 
+_has_celerite = gp._try_celerite()
+if _has_celerite:
+    import celerite
 
 class Likelihood(object):
     """
@@ -487,6 +489,7 @@ class CeleriteLikelihood(GPLikelihood):
         else:
            print("WARNING: CeleriteKernel has encountered a non-positive-definite"
                 +" kernel. Ensure that ac>=bd for all complex kernel terms.")
+
            return -np.inf
 
     def predict(self,xpred):
