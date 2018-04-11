@@ -47,16 +47,16 @@ time_base = np.median(t)
 # First Celerite Term. AC>=BD must be true to ensure 
 # positive-definiteness. (A == params['1_logA'].value, etc.)
 params['1_logA'] = radvel.Parameter(value=np.log(26.))
-params['1_logB'] = radvel.Parameter(value=np.log(.0005)) 
+params['1_logB'] = radvel.Parameter(value=np.log(.0005))
 params['1_logC'] = radvel.Parameter(value=np.log(.5))
 params['1_logD'] = radvel.Parameter(value=np.log(.0005))
 
 # Second Celerite Term (real). Setting vary=False for 1_logB and 
 # 1_logD ensures that this term remains real throughout the fitting process.
 params['2_logA'] = radvel.Parameter(value=np.log(26.)) 
-params['2_logB'] = radvel.Parameter(value=np.log(0.),vary=False)
+params['2_logB'] = radvel.Parameter(value=np.log(0.005), vary=False)
 params['2_logC'] = radvel.Parameter(value=np.log(0.1)) 
-params['2_logD'] = radvel.Parameter(value=np.log(0.),vary=False)
+params['2_logD'] = radvel.Parameter(value=np.log(0.005), vary=False)
 
 hnames = {}
 for tel in instnames:
@@ -84,6 +84,7 @@ priors = [radvel.prior.Gaussian('per1', Porb, Porb_unc),
           radvel.prior.Gaussian('tc1', Tc, Tc_unc),
           radvel.prior.Jeffreys('k1', 0.01, 10.),
           radvel.prior.Jeffreys('jit_pfs', 0.01, 10.),
-          radvel.prior.Jeffreys('jit_harps-n', 0.01,10.)
+          radvel.prior.Jeffreys('jit_harps-n', 0.01,10.),
+          radvel.prior.Jeffreys('1_logA', 0.005, 75.0)
           ]
 
