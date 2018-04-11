@@ -169,8 +169,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     #   likelihood model comparison for each case
     
     elif 'gp' in params: 
-        newparams = copy.copy(params) 
-        newparams.remove('gp')
+        newparams = [pi for pi in params if pi != 'gp'] 
         if isinstance(post, radvel.likelihood.GPLikelihood):
             print("Warning: BIC/AIC comparisons with and without GP are only implemented for "\
                 + "kernels where the amplitude of the GP is described by the 'gp_amp' "\
@@ -199,8 +198,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     elif 'jit' in params:
         ipost = copy.deepcopy(post)
         cpost = copy.deepcopy(ipost)
-        newparams = copy.copy(params) 
-        newparams.remove('jit')
+        newparams = [pi for pi in params if pi != 'jit'] 
         anyjitteron = False
         for parami in ipost.params:
             if len(parami) >= 3 and parami[:3] == 'jit' and ipost.params[parami].vary == True:
@@ -219,8 +217,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
 
     elif 'trend' in params:
         ipost = copy.deepcopy(post)
-        newparams = copy.copy(params) 
-        newparams.remove('trend')
+        newparams = [pi for pi in params if pi != 'trend'] 
         trendparamlist = ['curv', 'dvdt']
         anytrendparam = False
         for cparam in trendparamlist:
@@ -244,8 +241,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         lepar1 = len(eparams[1])
 
         ipost = copy.deepcopy(post)
-        newparams = copy.copy(params) 
-        newparams.remove('e')
+        newparams = [pi for pi in params if pi != 'e'] 
         num_planets = post.likelihood.model.num_planets
         pllist = [pl+1 for pl in range(num_planets)]
         plgroups = ()
@@ -279,8 +275,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         allparams = eparams+circparams  
 
         ipost = copy.deepcopy(post)
-        newparams = copy.copy(params) 
-        newparams.remove('nplanets')
+        newparams = [pi for pi in params if pi != 'nplanets'] 
         num_planets = post.likelihood.model.num_planets
         pllist = [pl+1 for pl in range(num_planets)]
         plgroups = ()
