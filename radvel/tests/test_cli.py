@@ -1,9 +1,11 @@
-
+import warnings
 import subprocess
 import sys
 
 import radvel
 import radvel.cli
+
+warnings.simplefilter('always')
 
 def _run_cmd(cmd):
     p = subprocess.Popen(cmd.split())

@@ -8,9 +8,7 @@ import numpy as np
 import scipy
 import radvel.prior
 
-warnings.filterwarnings("ignore")
-warnings.simplefilter('once', DeprecationWarning)
-
+warnings.simplefilter('always')
 
 class _args(object):
     def __init__(self):
