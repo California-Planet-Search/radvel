@@ -255,4 +255,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_k2(setupfn='/Users/petigura/code/radvel/example_planets/epic203771098.py')
+    test_celerite()
