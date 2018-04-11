@@ -1,6 +1,5 @@
 import sys
 import time
-import copy
 
 import multiprocessing as mp
 
@@ -160,17 +159,16 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             pscale = post.params[par].mcmcscale
         pscales.append(pscale)
     pscales = np.array(pscales)
-    
+
     statevars.samplers = []
     statevars.initial_positions = []
     for e in range(ensembles):
-        pcopy = copy.deepcopy(post)
-        pi = pcopy.get_vary_params()
+        pi = post.get_vary_params()
         p0 = np.vstack([pi]*statevars.nwalkers)
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
         statevars.initial_positions.append(p0)
         statevars.samplers.append(emcee.EnsembleSampler( 
-            statevars.nwalkers, statevars.ndim, pcopy.logprob_array, threads=1))
+            statevars.nwalkers, statevars.ndim, post.logprob_array, threads=1))
 
     num_run = int(np.round(nrun / checkinterval))
     statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
@@ -256,7 +254,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         
     df = pd.DataFrame(
         statevars.tchains.reshape(statevars.ndim,statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
-        columns=pcopy.list_vary_params())
+        columns=post.list_vary_params())
     df['lnprobability'] = np.hstack(statevars.lnprob)
 
     df = df.iloc[::thin]

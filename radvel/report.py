@@ -53,22 +53,20 @@ class RadvelReport():
         self.starname_tex = planet.starname.replace('_', '\\_')
         self.runname = self.starname_tex
                 
-        printpost = copy.deepcopy(post)
-        printpost.params = printpost.params.basis.to_synth(printpost.params)
-        printpost.params = printpost.params.basis.from_synth(
-            printpost.params, print_basis
+        post.params = post.params.basis.to_synth(post.params)
+        post.params = post.params.basis.from_synth(
+            post.params, print_basis
         )
-        self.latex_dict = printpost.params.tex_labels()
+        self.latex_dict = post.params.tex_labels()
 
-        printchains = copy.copy(chains)
         for p in post.params.keys():
             if p not in chains.columns:
                 chains[p] = post.params[p].value
 
-        self.chains = printpost.params.basis.to_synth(
+        self.chains = post.params.basis.to_synth(
             chains, basis_name=planet.fitting_basis
         )
-        self.chains = printpost.params.basis.from_synth(
+        self.chains = post.params.basis.from_synth(
             self.chains, print_basis
         )
         self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])

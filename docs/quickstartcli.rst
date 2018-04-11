@@ -25,6 +25,9 @@ If you are running OSX, and want to perform Gaussian Process likelihood
 computations in parallel, you may need to perform some additional
 installation steps. See :ref:`OSX-multiprocessing`.
 
+If you wish to use the celerite GP kernels you will also need to install celerite.
+See the `celerite install instructions <http://celerite.readthedocs.io/en/stable/python/install/#using-pip>`_.
+
 
 Example Fit
 +++++++++++

@@ -3,8 +3,10 @@ import radvel.model
 from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
 from scipy import matrix
-import celerite
 
+_has_celerite = gp._try_celerite()
+if _has_celerite:
+    import celerite
 
 class Likelihood(object):
     """
