@@ -489,6 +489,7 @@ class CeleriteLikelihood(GPLikelihood):
         else:
            print("WARNING: CeleriteKernel has encountered a non-positive-definite"
                 +" kernel. Ensure that ac>=bd for all complex kernel terms.")
+
            return -np.inf
 
     def predict(self,xpred):
