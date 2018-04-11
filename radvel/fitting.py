@@ -81,8 +81,6 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             "The valid model comparison strings in the params argument are: " \
             + ", ".join(VALID_MC_ARGS) 
 
-    params = list(set(params))
-
  
     # If there are no parameters to compare simply do a maximum likelihood fit
     #   to get BIC and AIC values among other diagnostics. 
@@ -100,11 +98,11 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             print(fitpost)
             print("N_free = %d" % nfree)
             print("RMS = %4.2f" % np.std(fitpost.likelihood.residuals()))
-            print("logprob (jitter fixed) = %4.2f" % fitpost.logprob())
-            print("chi (jitter fixed) = %4.2f" % chi)
-            print("chi_red (jitter fixed) = %4.2f" % chi_red)
-            print("BIC (jitter fixed) = %4.2f" % fitpost.bic())
-            print("AIC (jitter fixed) = %4.2f" % fitpost.aic())
+            print("logprob = %4.2f" % fitpost.logprob())
+            print("chi = %4.2f" % chi)
+            print("chi_red = %4.2f" % chi_red)
+            print("BIC = %4.2f" % fitpost.bic())
+            print("AIC = %4.2f" % fitpost.aic())
        
         comparison_parameters = ['Free Params', '$N_{\\rm free}$', '$N_{\\rm data}$',\
             'RMS', '$\\ln{\\mathcal{L}}$',\
@@ -236,6 +234,37 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         return mc_list
 
 
+    elif 'nplanets' in params:
+        eparams = post.params.basis.get_eparams()
+        circparams = post.params.basis.get_circparams()
+        allparams = eparams+circparams  
+
+        ipost = copy.deepcopy(post)
+        newparams = [pi for pi in params if pi != 'nplanets'] 
+        num_planets = post.likelihood.model.num_planets
+        pllist = [pl+1 for pl in range(num_planets)]
+        plgroups = ()
+        for p in [pl+1 for pl in range(num_planets)]:
+            plgroups = itertools.chain(plgroups, itertools.combinations(pllist, p)) 
+        plparams = []
+        for plgroup in plgroups:
+            suffixes = [str(pl) for pl in plgroup]
+            plparams.append([ [pari+''+sufi for pari in allparams] for sufi in suffixes ])
+        for plparamset in plparams:
+            if all( [any([post.params[pari].vary for pari in pparam]) for pparam in plparamset] ):
+                cpost = copy.deepcopy(post)
+                for pparam in plparamset:
+                    for pari in pparam:
+                        if pari[0] == 'k':
+                            cpost.params[pari].value = 0.
+                        if len(pari) >= 4 and pari[0:4] == 'logk':
+                            cpost.params[pari].value = -np.inf
+                        cpost.params[pari].vary = False
+                mc_list = model_comp(cpost, newparams, mc_list=mc_list)
+        mc_list = model_comp(ipost, newparams, mc_list=mc_list)
+        return mc_list
+    
+
     elif 'e' in params:
         eparams = post.params.basis.get_eparams()
         lepar0 = len(eparams[0])
@@ -266,37 +295,6 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             if verbose:
                 print("Warning: You requested an eccentricity BIC/AIC comparison")
                 print("   However, your model has fixed e for all planets")
-        mc_list = model_comp(ipost, newparams, mc_list=mc_list)
-        return mc_list
-
-
-    elif 'nplanets' in params:
-        eparams = post.params.basis.get_eparams()
-        circparams = post.params.basis.get_circparams()
-        allparams = eparams+circparams  
-
-        ipost = copy.deepcopy(post)
-        newparams = [pi for pi in params if pi != 'nplanets'] 
-        num_planets = post.likelihood.model.num_planets
-        pllist = [pl+1 for pl in range(num_planets)]
-        plgroups = ()
-        for p in [pl+1 for pl in range(num_planets)]:
-            plgroups = itertools.chain(plgroups, itertools.combinations(pllist, p)) 
-        plparams = []
-        for plgroup in plgroups:
-            suffixes = [str(pl) for pl in plgroup]
-            plparams.append([ [pari+''+sufi for pari in allparams] for sufi in suffixes ])
-        for plparamset in plparams:
-            if all( [any([post.params[pari].vary for pari in pparam]) for pparam in plparamset] ):
-                cpost = copy.deepcopy(post)
-                for pparam in plparamset:
-                    for pari in pparam:
-                        if pari[0] == 'k':
-                            cpost.params[pari].value = 0.
-                        if len(pari) >= 4 and pari[0:4] == 'logk':
-                            cpost.params[pari].value = -np.inf
-                        cpost.params[pari].vary = False
-                mc_list = model_comp(cpost, newparams, mc_list=mc_list)
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
