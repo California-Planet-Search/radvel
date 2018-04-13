@@ -4,6 +4,9 @@ import scipy
 from scipy import spatial
 import abc
 import numpy as np
+import warnings
+
+warnings.simplefilter('once')
 
 # implemented kernels & examples of possible names for their associated hyperparameters
 KERNELS = {
@@ -26,8 +29,8 @@ def _try_celerite():
         from celerite.solver import CholeskySolver
         return True
     except ImportError:
-        print("WARNING: celerite not installed. GP kernals using celerite will not work.")
-        print("Try installing celerite using 'pip install celerite'")
+        warnings.warn("celerite not installed. GP kernals using celerite will not work.\n\
+Try installing celerite using 'pip install celerite'", ImportWarning)
         return False
 
 _has_celerite = _try_celerite()

@@ -8,9 +8,7 @@ import numpy as np
 import scipy
 import radvel.prior
 
-warnings.filterwarnings("ignore")
-warnings.simplefilter('once', DeprecationWarning)
-
+warnings.simplefilter('once')
 
 class _args(object):
     def __init__(self):
@@ -38,17 +36,18 @@ def _standard_run(setupfn):
     radvel.driver.mcmc(args)
     radvel.driver.derive(args)
 
-    args.type = ['nplanets']
-    radvel.driver.bic(args)
+    args.type = ['trend', 'jit', 'e', 'nplanets', 'gp']
+    args.verbose = True
+    radvel.driver.ic_compare(args)
 
-    args.type = ['params', 'priors', 'nplanets', 'rv']
+    args.type = ['params', 'priors', 'rv', 'ic_compare']
     radvel.driver.tables(args)
 
     args.type = ['rv', 'corner', 'trend', 'derived']
     args.plotkw = {}
     radvel.driver.plots(args)
 
-    args.comptype = 'bic'
+    args.comptype = 'ic_compare'
     args.latex_compiler = 'pdflatex'
     radvel.driver.report(args)
         
@@ -77,7 +76,11 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     args.setupfn = setupfn
 
     radvel.driver.fit(args)
-    
+
+    args.type = ['gp']
+    args.verbose = True
+    radvel.driver.ic_compare(args)
+
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
@@ -255,4 +258,5 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_celerite()
+    # _standard_run('example_planets/epic203771098.py')
+    test_k2131('example_planets/k2-131.py')

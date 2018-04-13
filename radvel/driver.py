@@ -7,6 +7,7 @@ from __future__ import print_function
 import os
 import sys
 import copy
+import collections
 from collections import OrderedDict
 if sys.version_info[0] < 3:
     import ConfigParser as configparser
@@ -217,36 +218,65 @@ def mcmc(args):
     save_status(statfile, 'mcmc', savestate)
 
 
-def bic(args):
-    """Compare different models and comparative statistics
+
+def ic_compare(args):
+    """Compare different models and comparative statistics including
+          AICc and BIC statistics. 
 
     Args:
         args (ArgumentParser): command line arguments
     """
 
-    
     config_file = args.setupfn
     conf_base = os.path.basename(config_file).split('.')[0]
     statfile = os.path.join(args.outputdir,
                             "{}_radvel.stat".format(conf_base))
 
-
     status = load_status(statfile)
     savestate = {}
 
     assert status.getboolean('fit', 'run'), \
-      "Must perform max-liklihood fit before running BIC comparisons"
+      "Must perform max-liklihood fit before running Information Criteria comparisons"
     post = radvel.posterior.load(status.get('fit', 'postfile'))
 
-    for btype in args.type:
-        print("Performing bic comparison: {}".format(btype))
+    choices=['nplanets', 'e', 'trend', 'jit', 'gp']
+    statsdictlist=[]
+    paramlist=[]
+    compareparams = args.type
 
-        if btype == 'nplanets':
-            statsdict = radvel.fitting.model_comp(post, verbose=False)
-            savestate['nplanets'] = statsdict
+    ipost = copy.deepcopy(post)
+    if hasattr(args, 'fixjitter') and args.fixjitter:
+        for param in ipost.params:
+             if len(param) >=3 and param[0:3] == 'jit':
+                 ipost.params[param].vary = False
 
+    for compareparam in compareparams:
+        assert compareparam in choices, \
+            "Valid parameter choices for 'ic -t' are combinations of: "\
+            + " ".join(choices)
+        paramlist.append(compareparam)
+        if hasattr(args, 'mixed') and not args.mixed:
+            statsdictlist += radvel.fitting.model_comp(ipost, \
+                params=[compareparam], verbose=args.verbose)
+    if hasattr(args, 'mixed') and not args.mixed:
+        new_statsdictlist = []
+        for dicti in statsdictlist:
+            anymatch = False
+            for seendict in new_statsdictlist:
+                if collections.Counter(dicti['Free Params'][0]) == \
+                        collections.Counter(seendict['Free Params'][0]):
+                    anymatch = True
+                    continue
+            if not anymatch:
+                new_statsdictlist.append(dicti)
+        statsdictlist = new_statsdictlist
 
-    save_status(statfile, 'bic', savestate)
+    if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
+        statsdictlist += radvel.fitting.model_comp(ipost, \
+            params=paramlist, verbose=args.verbose)
+
+    savestate = {'ic': statsdictlist}
+    save_status(statfile, 'ic_compare', savestate)
 
 
 def tables(args):
@@ -270,24 +300,25 @@ def tables(args):
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
     report = radvel.report.RadvelReport(P, post, chains)
     tabletex = radvel.report.TexTable(report)
+    attrdict = {'priors':'tab_prior_summary', 'rv':'tab_rv', \
+                'params':'tab_params'}
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
-        if tabtype == 'nplanets':
-            assert status.has_option('bic', 'nplanets'), \
-                "Must run BIC comparison before making comparison tables"
+        if tabtype == 'ic_compare':
+            assert status.has_option('ic_compare', 'ic'), \
+                "Must run Information Criteria comparison before making comparison tables"
 
-            compstats = eval(status.get('bic', 'nplanets'))
+            compstats = eval(status.get('ic_compare', 'ic'))
             report = radvel.report.RadvelReport(
                 P, post, chains, compstats=compstats
             )
+            tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
-        elif tabtype == 'rv':
-            tex = tabletex.tab_rv()
-        elif tabtype == 'params':
-            tex = tabletex.tab_params()
-        elif tabtype == 'priors':
-            tex = tabletex.tab_prior_summary()
+        else:
+            assert tabtype in attrdict, 'Invalid Table Type %s ' % tabtype
+            tex = getattr(tabletex, attrdict[tabtype])()
+
 
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
@@ -425,13 +456,15 @@ def report(args):
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
 
     try:
-        compstats = eval(status.get('bic', args.comptype))
+        compstats = eval(status.get('ic_compare', args.comptype))
     except:
-        print("WARNING: Could not find {} BIC model comparison\
-in {}.\nPlease make sure that you have run `radvel bic -t {}` if you would\
-like to include\nthe model comparison table in the report.".format(args.comptype,
-                                                            statfile,
-                                                            args.comptype))
+        print("WARNING: Could not find {} model comparison \
+in {}.\nPlease make sure that you have run `radvel ic` (or, e.g., `radvel \
+ic -t nplanets e trend jit gp`)\
+\nif you would like to include the model comparison table in the \
+report.".format(args.comptype,
+                             statfile,
+                             args.comptype))
         compstats = None
 
     report = radvel.report.RadvelReport(P, post, chains, compstats=compstats)

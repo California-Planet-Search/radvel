@@ -3,13 +3,11 @@ Command Line Interface
 """
 import os
 from argparse import ArgumentParser
-import imp
 import warnings
-import pickle
 
 import radvel.driver
 
-warnings.filterwarnings("ignore")
+warnings.simplefilter("ignore")
 warnings.simplefilter('once', DeprecationWarning)
 
 def main():
@@ -43,16 +41,13 @@ def main():
         help="Include decorrelation in likelihood."
     )
 
-
-
-    # Fitting    
+    # Fitting
     psr_fit = subpsr.add_parser(
         'fit', parents=[psr_parent],
         description="Perform max-likelihood fitting"
     )
     psr_fit.set_defaults(func=radvel.driver.fit)
 
-    
     # Plotting
     psr_plot = subpsr.add_parser('plot', parents=[psr_parent],)
     psr_plot.add_argument('-t','--type',
@@ -70,7 +65,6 @@ def main():
     
     psr_plot.set_defaults(func=radvel.driver.plots)
 
-    
     # MCMC
     psr_mcmc = subpsr.add_parser(
         'mcmc', parents=[psr_parent],
@@ -124,20 +118,44 @@ If True, run MCMC in serial instead of parallel. [False]
 
     psr_physical.set_defaults(func=radvel.driver.derive)
     
-    # BIC 
-    psr_bic = subpsr.add_parser('bic', parents=[psr_parent],)
-    psr_bic.add_argument('-t',
-        '--type', type=str, nargs='+', 
-        choices=['nplanets'],
-        help="type of BIC comparison to perform"
+    # Information Criteria comparison (BIC/AIC)
+    psr_ic = subpsr.add_parser('ic', parents=[psr_parent],)
+    psr_ic.add_argument('-t',
+        '--type', type=str, nargs='+', default='trend',
+        choices=['nplanets', 'e', 'trend', 'jit', 'gp'],
+        help="parameters to include in BIC/AIC model comparison"
     )
-    psr_bic.set_defaults(func=radvel.driver.bic)
+
+    psr_ic.add_argument('-m',
+        '--mixed', dest='mixed', action='store_true' ,
+        help="flag to compare all models with the fixed parameters mixed and matched rather than"\
+            + " treating each model comparison separately. This is the default. "\
+    )
+    psr_ic.add_argument('-u',
+        '--un-mixed', dest='mixed', action='store_false', 
+        help="flag to treat each model comparison separately (without mixing them) "\
+            + "rather than comparing all models with the fixed parameters mixed and matched."
+    )
+    psr_ic.add_argument('-f',
+        '--fixjitter', dest='fixjitter', action='store_true', 
+        help="flag to fix the stellar jitters at the nominal model best-fit value"
+    )
+    psr_ic.add_argument('-n',
+        '--no-fixjitter', dest='fixjitter', action='store_false', 
+        help="flag to let the stellar jitters float during model comparisons (default)"
+    )
+    psr_ic.add_argument('-v',
+        '--verbose', dest='verbose', action='store_true',
+        help="Print some more detail"
+    )
+    psr_ic.set_defaults(func=radvel.driver.ic_compare, fixjitter=False, unmixed=False,\
+                        mixed=True)
 
     # Tables
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)
     psr_table.add_argument('-t','--type',
         type=str, nargs='+',
-        choices=['params', 'priors', 'nplanets', 'rv'],
+        choices=['params', 'priors', 'rv', 'ic_compare'],
         help="type of plot(s) to generate"
     )
     psr_table.add_argument(
@@ -155,9 +173,9 @@ If True, run MCMC in serial instead of parallel. [False]
     )
     psr_report.add_argument(
         '--comptype', dest='comptype', action='store',
-        default='nplanets', type=str, 
-        help='Type of BIC model comparison table to include. \
-        Default: nplanets')
+        default='ic', type=str, 
+        help='Type of model comparison table to include. \
+        Default: ic')
 
     psr_report.add_argument(
         '--latex-compiler', default='pdflatex', type=str, 
