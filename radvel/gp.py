@@ -12,8 +12,7 @@ KERNELS = {
     "SqExp": ['gp_length','gp_amp'],
     "Per": ['gp_per','gp_length','gp_amp'],
     "QuasiPer": ['gp_per','gp_perlength','gp_explength','gp_amp'],
-    "Celerite": ['1_logA','1_logB','1_logC','1_logD'],
-    "SHO": ['1_logQ','1_logw','1_logS']
+    "Celerite": ['1_logA','1_logB','1_logC','1_logD']
 }
 
 if sys.version_info[0] < 3:
@@ -447,104 +446,3 @@ class CeleriteKernel(Kernel):
         )
 
         return solver
-
-        
-class SHOKernel(CeleriteKernel):
-    """ A simple harmonic oscillator kernel. 
-
-    A special case of the CeleriteKernel
-
-    :param: hparams (dict of radvel.Parameter): dictionary containing
-        radvel.Parameter objects that are GP hyperparameters
-        of this kernel. Must contain a multiple of 3 Parameter object
-        with the following names:
-                - `k_logQ*`: the natural log of :math:`Q_{k}`. 
-                - `k_logw*`: the natural log of :math:`\\omega_{k}`.
-                - `k_logS*`: the natural log of :math:`S_{k}`. 
-        (where k is a 1-indexed integer identifying coefficients of a 
-        particular term, :math:`1 <= k <= N_{terms}`, and * is an optional 
-        suffix, e.g. 'hires'). Suffix is useful when fitting several individual 
-        GPLikelihoods with different hyperparameters using the 
-        CompositeLikelihood object.
-
-    """
-
-    @property
-    def name(self):
-        return "SHO"
-
-    def __init__(self, hparams):
-
-        assert len(hparams) > 0 and len(hparams) % 3 == 0, \
-            "SHOKernel requires a positive integer number of terms, each" \
-             + "with 3 coefficients. See CeleriteKernel documentation."
-        self.num_terms = int(len(hparams) / 3)
-        self.Q = np.zeros(self.num_terms)
-        self.w = np.zeros(self.num_terms)
-        self.S = np.zeros(self.num_terms)
-
-        # set up hyperparameter arrays
-        try:
-            for par in hparams:
-                index = int(par[0]) - 1
-                if 'logQ' in par:
-                    self.Q[index] = hparams[par].value
-                if 'logw' in par:
-                    self.w[index] = hparams[par].value
-                if 'logS' in par:
-                    self.S[index] = hparams[par].value
-        except AttributeError:
-            raise AttributeError("SHOKernel requires dictionary of" \
-                                 + " radvel.Parameter objects as input.")
-        except IndexError:
-            raise IndexError("SHOKernel hyperparameter indices (k in k_logQ*)"
-                             + " were named incorrectly. See SHOKernel documentation.")
-        except ValueError:
-            raise ValueError("SHOKernel hyperparameter indices (k in k_logQ*)"
-                             + " were named incorrectly. See SHOKernel documentation.")
-
-    # get arrays of real and complex parameters
-    def compute_real_and_complex_hparams(self):
-
-        real_indices = []
-        complex_indices = []
-        for term in np.arange(self.num_terms):
-            if np.exp(self.Q[term]) >= 0.5: 
-                complex_indices.append(term)
-            else:
-                real_indices.append(term)
-
-        self.real = np.zeros((2*len(real_indices), 4))
-
-        rw = np.exp(self.w[real_indices])
-        rS = np.exp(self.S[real_indices])
-        rQ = np.exp(self.Q[real_indices])
-        evens = [i for i in np.arange(2*len(real_indices)) if i%2 == 0]
-        odds = [i for i in np.arange(2*len(real_indices)) if i%2 == 1]
-
-        # Foreman-Mackey et al. (2017) eq 22
-        self.real[evens,0] = 0.5 * rS * rw * rQ * (1. + 1. / np.sqrt(1. - 4.*(rQ**2)) )
-        self.real[odds,0] = 0.5 * rS * rw * rQ * (1. - 1. / np.sqrt(1. - 4.*(rQ**2)) )
-        self.real[evens,2] = rw * (1. - np.sqrt(1. - 4.*(rQ**2))) / (2.*rQ)
-        self.real[odds,2] = rw * (1. + np.sqrt(1. - 4.*(rQ**2))) / (2.*rQ)
-
-        self.complex = np.zeros((len(complex_indices), 4))
-
-        cw = np.exp(self.w[complex_indices])
-        cS = np.exp(self.S[complex_indices])
-        cQ = np.exp(self.Q[complex_indices])
-
-        # Foreman-Mackey et al. (2017) eq 21
-        self.complex[:,0] = cS * cw * cQ
-        self.complex[:,1] = cS * cw * cQ / np.sqrt(4. * (cQ**2) - 1.) 
-        self.complex[:,2] = cw / (2. * cQ)
-        self.complex[:,3] = cw * np.sqrt(4. * (cQ**2) - 1.) / (2. * cQ)     
-
-
-    def __repr__(self):
-        msg = (
-            "SHO Kernel with log(Q) = {}, log(S) = {}, log(c) = {}."
-        ).format(
-            self.Q, self.S, self.w
-          )
-        return msg
