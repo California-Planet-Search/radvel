@@ -155,7 +155,7 @@ def labelfig(letter):
 
     Args:
         letter (int): integer representation of letter to be printed.
-            Ex: ord("a") gives 97, so 97 should be the input.
+            Ex: ord("a") gives 97, so the input should be 97.
     """
     text = "{})".format(chr(letter))
     add_anchored(
