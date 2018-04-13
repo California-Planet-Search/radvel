@@ -77,8 +77,9 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     args.setupfn = setupfn
 
     radvel.driver.fit(args)
-    
+
     args.type = ['rv']
+    args.gp = True
     args.plotkw = {}
     radvel.driver.plots(args)
 
@@ -92,6 +93,7 @@ def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
     radvel.driver.fit(args)
     
     args.type = ['rv']
+    args.gp = True
     args.plotkw = {}
     radvel.driver.plots(args)
 
