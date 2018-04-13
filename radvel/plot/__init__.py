@@ -90,7 +90,7 @@ def mtelplot(x, y, e, tel, ax, lw=1., telfmts={}):
     ax (matplotlib.axes.Axes): current Axes object
     telfmts (dict): dictionary of dictionaries corresponding to kwargs 
         passed to errorbar. Example:
-
+        
         telfmts = {
              'hires': dict(fmt='o',label='HIRES'),
              'harps-n' dict(fmt='s')
