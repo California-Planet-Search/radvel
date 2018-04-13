@@ -293,13 +293,11 @@ def tables(args):
                 P, post, chains, compstats=compstats
             )
             tex = tabletex.tab_comparison()
-        elif tabtype == 'rv':
-            tex = tabletex.tab_rv(name_in_title=args.name_in_title)
-        elif tabtype == 'params':
-            tex = tabletex.tab_params(name_in_title=args.name_in_title)
-        elif tabtype == 'priors':
-            tex = tabletex.tab_prior_summary(name_in_title=args.name_in_title)
+        else:
+            assert tabtype in attrdict, 'Invalid Table Type %s ' % tabtype
+            tex = getattr(tabletex, attrdict[tabtype])()
 
+            
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
         )
