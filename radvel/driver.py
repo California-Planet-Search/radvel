@@ -58,13 +58,10 @@ def plots(args):
                 )
                 GPPlot.plot_multipanel()
             else:
-                try:
-                    RVPlot = orbit_plots.MultipanelPlot(
-                        post, saveplot=saveto, **args.plotkw
-                    )
-                    RVPlot.plot_multipanel()
-                except AssertionError:
-                    raise AssertionError("Must append '--gp True' to 'radvel plot' command for plotting results of Gaussian Process fits.")
+                RVPlot = orbit_plots.MultipanelPlot(
+                    post, saveplot=saveto, **args.plotkw
+                )
+                RVPlot.plot_multipanel()
 
         if ptype == 'corner' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
