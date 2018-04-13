@@ -257,7 +257,7 @@ def ic_compare(args):
         paramlist.append(compareparam)
         if hasattr(args, 'mixed') and not args.mixed:
             statsdictlist += radvel.fitting.model_comp(ipost, \
-                params=[compareparam], verbose=False)
+                params=[compareparam], verbose=args.verbose)
     if hasattr(args, 'mixed') and not args.mixed:
         new_statsdictlist = []
         for dicti in statsdictlist:
@@ -273,7 +273,7 @@ def ic_compare(args):
 
     if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
         statsdictlist += radvel.fitting.model_comp(ipost, \
-            params=paramlist, verbose=False)
+            params=paramlist, verbose=args.verbose)
 
     savestate = {'ic': statsdictlist}
     save_status(statfile, 'ic_compare', savestate)

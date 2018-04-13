@@ -169,7 +169,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     
     elif 'gp' in params: 
         newparams = [pi for pi in params if pi != 'gp'] 
-        if isinstance(post, radvel.likelihood.GPLikelihood):
+        if isinstance(post.likelihood, radvel.likelihood.GPLikelihood):
             print("Warning: BIC/AIC comparisons with and without GP are only implemented for "\
                 + "kernels where the amplitude of the GP is described by the 'gp_amp' "\
                 + "hyper parameter")

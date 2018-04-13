@@ -144,6 +144,10 @@ If True, run MCMC in serial instead of parallel. [False]
         '--no-fixjitter', dest='fixjitter', action='store_false', 
         help="flag to let the stellar jitters float during model comparisons (default)"
     )
+    psr_ic.add_argument('-v',
+        '--verbose', dest='verbose', action='store_true',
+        help="Print some more detail"
+    )
     psr_ic.set_defaults(func=radvel.driver.ic_compare, fixjitter=False, unmixed=False,\
                         mixed=True)
 

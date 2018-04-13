@@ -37,6 +37,7 @@ def _standard_run(setupfn):
     radvel.driver.derive(args)
 
     args.type = ['trend', 'jit', 'e', 'nplanets', 'gp']
+    args.verbose = True
     radvel.driver.ic_compare(args)
 
     args.type = ['params', 'priors', 'rv', 'ic_compare']
@@ -75,7 +76,11 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     args.setupfn = setupfn
 
     radvel.driver.fit(args)
-    
+
+    args.type = ['gp']
+    args.verbose = True
+    radvel.driver.ic_compare(args)
+
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
@@ -253,4 +258,5 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    _standard_run('example_planets/epic203771098.py')
+    # _standard_run('example_planets/epic203771098.py')
+    test_k2131('example_planets/k2-131.py')
