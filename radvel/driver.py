@@ -279,8 +279,6 @@ def ic_compare(args):
     save_status(statfile, 'ic_compare', savestate)
 
 
-
-
 def tables(args):
     """Generate TeX code for tables in summary report
 

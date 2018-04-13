@@ -8,9 +8,7 @@ import numpy as np
 import scipy
 import radvel.prior
 
-warnings.filterwarnings("ignore")
-warnings.simplefilter('once', DeprecationWarning)
-
+warnings.simplefilter('once')
 
 class _args(object):
     def __init__(self):
@@ -255,4 +253,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_celerite()
+    _standard_run('example_planets/epic203771098.py')

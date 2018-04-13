@@ -3,13 +3,11 @@ Command Line Interface
 """
 import os
 from argparse import ArgumentParser
-import imp
 import warnings
-import pickle
 
 import radvel.driver
 
-warnings.filterwarnings("ignore")
+warnings.simplefilter("ignore")
 warnings.simplefilter('once', DeprecationWarning)
 
 def main():
@@ -43,16 +41,13 @@ def main():
         help="Include decorrelation in likelihood."
     )
 
-
-
-    # Fitting    
+    # Fitting
     psr_fit = subpsr.add_parser(
         'fit', parents=[psr_parent],
         description="Perform max-likelihood fitting"
     )
     psr_fit.set_defaults(func=radvel.driver.fit)
 
-    
     # Plotting
     psr_plot = subpsr.add_parser('plot', parents=[psr_parent],)
     psr_plot.add_argument('-t','--type',
@@ -70,7 +65,6 @@ def main():
     
     psr_plot.set_defaults(func=radvel.driver.plots)
 
-    
     # MCMC
     psr_mcmc = subpsr.add_parser(
         'mcmc', parents=[psr_parent],
@@ -131,6 +125,7 @@ If True, run MCMC in serial instead of parallel. [False]
         choices=['nplanets', 'e', 'trend', 'jit', 'gp'],
         help="parameters to include in BIC/AIC model comparison"
     )
+
     psr_ic.add_argument('-m',
         '--mixed', dest='mixed', action='store_true' ,
         help="flag to compare all models with the fixed parameters mixed and matched rather than"\
@@ -151,7 +146,6 @@ If True, run MCMC in serial instead of parallel. [False]
     )
     psr_ic.set_defaults(func=radvel.driver.ic_compare, fixjitter=False, unmixed=False,\
                         mixed=True)
-
 
     # Tables
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)
