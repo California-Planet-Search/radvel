@@ -4,7 +4,7 @@ import copy
 import collections
 
 
-def maxlike_fitting(post, verbose=True):
+def maxlike_fitting(post, verbose=True, method='Powell'):
     """Maximum Likelihood Fitting
 
     Perform a maximum likelihood fit.
@@ -12,6 +12,8 @@ def maxlike_fitting(post, verbose=True):
     Args:
         post (radvel.Posterior): Posterior object with initial guesses
         verbose (bool [optional]): Print messages and fitted values?
+        method (string [optional]): Minimization method. See documentation for `scipy.optimize.minimize` for available
+            options.
 
     Returns: 
         radvel.Posterior : Posterior object with parameters
@@ -24,7 +26,7 @@ def maxlike_fitting(post, verbose=True):
         print("Initial loglikelihood = %f" % post0.logprob())
         print("Performing maximum likelihood fit...")
     res = scipy.optimize.minimize(
-        post.neglogprob_array, post.get_vary_params(), method='Powell',
+        post.neglogprob_array, post.get_vary_params(), method=method,
         options=dict(xatol=1e-8, maxiter=200, maxfev=100000)
     )
     synthpost = copy.copy(post)
