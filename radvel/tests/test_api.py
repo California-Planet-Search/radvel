@@ -8,7 +8,7 @@ import numpy as np
 import scipy
 import radvel.prior
 
-warnings.simplefilter('always')
+warnings.simplefilter('once')
 
 class _args(object):
     def __init__(self):
@@ -37,6 +37,7 @@ def _standard_run(setupfn):
     radvel.driver.derive(args)
 
     args.type = ['nplanets']
+    args.verbose = True
     radvel.driver.bic(args)
 
     args.type = ['params', 'priors', 'nplanets', 'rv']
@@ -253,4 +254,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_celerite()
+    _standard_run('example_planets/epic203771098.py')

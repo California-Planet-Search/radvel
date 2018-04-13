@@ -242,7 +242,7 @@ def bic(args):
         print("Performing bic comparison: {}".format(btype))
 
         if btype == 'nplanets':
-            statsdict = radvel.fitting.model_comp(post, verbose=False)
+            statsdict = radvel.fitting.model_comp(post, verbose=args.verbose)
             savestate['nplanets'] = statsdict
 
 

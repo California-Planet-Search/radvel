@@ -125,6 +125,7 @@ If True, run MCMC in serial instead of parallel. [False]
         choices=['nplanets'],
         help="type of BIC comparison to perform"
     )
+    psr_bic.add_argument('--verbose', dest=verbose, action='store_true')
     psr_bic.set_defaults(func=radvel.driver.bic)
 
     # Tables
