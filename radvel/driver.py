@@ -281,6 +281,8 @@ def tables(args):
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
     report = radvel.report.RadvelReport(P, post, chains)
     tabletex = radvel.report.TexTable(report)
+    attrdict = {'priors':'tab_prior_summary', 'rv':'tab_rv', \
+                'params':'tab_params'}
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
@@ -295,9 +297,7 @@ def tables(args):
             tex = tabletex.tab_comparison()
         else:
             assert tabtype in attrdict, 'Invalid Table Type %s ' % tabtype
-            tex = getattr(tabletex, attrdict[tabtype])()
-
-            
+            tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title)
         saveto = os.path.join(
             args.outputdir, '{}_{}_.tex'.format(conf_base,tabtype)
         )

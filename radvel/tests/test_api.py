@@ -16,6 +16,8 @@ class _args(object):
     def __init__(self):
         self.outputdir = '/tmp/'
         self.decorr = False
+        self.name_in_title = False
+        self.gp = False
 
         self.nwalkers = 50
         self.nsteps = 100

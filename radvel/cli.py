@@ -150,11 +150,13 @@ If True, run MCMC in serial instead of parallel. [False]
         '--header', action='store_true',
         help="include latex column header. Default just prints data rows"
     )
-    psr_table.add_argument(
-    '--nameintitle', dest='name_in_title', action='store', default=False, type=bool,
+    psr_table.add_argument('--name_in_title',
+    dest='name_in_title',
+    action='store_true',
+    default=False,
     help='''
-        Include star name in table headers. 
-        Default just prints descriptive titles without star name [False]
+        Include star name in table headers. Default just prints 
+        descriptive titles without star name [False]
     '''
     )
     
