@@ -63,7 +63,7 @@ def main():
     psr_plot.add_argument(
         '--plotkw', dest='plotkw',action='store', default="{}", type=eval,
         help='''
-        Dictionary of keywords sent to rv_multipanel_plot. 
+        Dictionary of keywords sent to MultipanelPlot or GPMultipanelPlot. 
         E.g. --plotkw "{'yscale_auto': True}"'
         ''',
     )

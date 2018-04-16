@@ -108,7 +108,8 @@ def mtelplot(x, y, e, tel, ax, lw=1., telfmts={}):
         telfmt = {}
 
         if t in telfmts:
-            if 'color' not in telfmts[t].keys():
+            telfmt = telfmts[t]
+            if 'color' not in telfmt:
                 telfmt['color'] = default_colors[ci]
                 ci +=1
         elif t not in telfmts and t not in telfmts_default:

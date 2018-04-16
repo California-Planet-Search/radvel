@@ -47,7 +47,7 @@ class MultipanelPlot(object):
         figwidth (float, optional): width of the figures to be produced. 
             Default: 7.5 (spans a page with 0.5 in margins)
         fit_linewidth (float, optional): linewidth to use for orbit model lines in phase-folded
-            plots and trend lines in residuals plots.
+            plots and residuals plots.
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
                 phase_nrows=None, phase_ncols=None, uparams=None, telfmts={},legend=True,
@@ -161,12 +161,12 @@ class MultipanelPlot(object):
         ax.axhline(0, color='0.5', linestyle='--')
 
         # plot orbit model
-        ax.plot(self.mplttimes,self.orbit_model,'b-', rasterized=False, lw=0.1)
+        ax.plot(self.mplttimes,self.orbit_model,'b-', rasterized=False, lw=self.fit_linewidth)
 
         # plot data
         plot.mtelplot(
             # data = residuals + model
-            self.plttimes, self.rawresid+self.rvmod, self.rverr, self.post.likelihood.telvec, ax, self.telfmts
+            self.plttimes, self.rawresid+self.rvmod, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts
         )
 
         ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
@@ -180,7 +180,7 @@ class MultipanelPlot(object):
         axyrs = ax.twiny()
         xl = np.array(list(ax.get_xlim())) + self.epoch
         decimalyear = Time(xl, format='jd', scale='utc').decimalyear
-        axyrs.plot(decimalyear, decimalyear)
+#        axyrs.plot(decimalyear, decimalyear)
         axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
         axyrs.set_xlim(*decimalyear)
         axyrs.set_xlabel('Year', fontweight='bold')
@@ -207,7 +207,7 @@ class MultipanelPlot(object):
 
         ax.plot(self.mplttimes, self.slope, 'b-', lw=self.fit_linewidth)
 
-        plot.mtelplot(self.plttimes, self.resid, self.rverr, self.post.likelihood.telvec, ax, self.telfmts)
+        plot.mtelplot(self.plttimes, self.resid, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts)
         if not self.yscale_auto: 
             scale = np.std(self.resid)
             ax.set_ylim(-self.yscale_sigma * scale, self.yscale_sigma * scale)
@@ -220,20 +220,22 @@ class MultipanelPlot(object):
         ax.yaxis.set_major_locator(MaxNLocator(5, prune='both'))
         
 
-    def plot_phasefold(self, gs_phase, first_pltletter):
+    def plot_phasefold(self, pltletter, pnum):
         """
         Plot phased orbit plots for each planet in the fit.
 
         Args:
-            gs_phase (gridspec.GridSpec): GridSpec object
-                with at least `num_planets` subplots 
-                available.
-            first_pltletter (int): integer representation of 
+            pltletter (int): integer representation of 
                 letter to be printed in the corner of the first
                 phase plot.
                 Ex: ord("a") gives 97, so the input should be 97.
+            pnum (int): the number of the planet to be plotted. Must be
+                the same as the number used to define a planet's 
+                Parameter objects (e.g. 'per1' is for planet #1)
 
         """
+
+        ax = pl.gca()
 
         if len(self.post.likelihood.x) < 20: 
             self.nobin = True
@@ -242,90 +244,80 @@ class MultipanelPlot(object):
         bin_markersize = bin_fac * rcParams['lines.markersize']
         bin_markeredgewidth = bin_fac * rcParams['lines.markeredgewidth']
 
-        pltletter = first_pltletter
-        for i in range(self.num_planets):
-            pnum = i+1
+        rvmod2 = self.model(self.rvmodt, planet_num=pnum) - self.slope
+        modph = t_to_phase(self.post.params, self.rvmodt, pnum, cat=True) - 1
+        rvdat = self.rawresid + self.model(self.rvtimes, planet_num=pnum) - self.slope_low
+        phase = t_to_phase(self.post.params, self.rvtimes, pnum, cat=True) - 1
+        rvdatcat = np.concatenate((rvdat, rvdat))
+        rverrcat = np.concatenate((self.rverr, self.rverr))
+        rvmod2cat = np.concatenate((rvmod2, rvmod2))
+        bint, bindat, binerr = fastbin(phase+1, rvdatcat, nbins=25)
+        bint -= 1.0
 
-            rvmod2 = self.model(self.rvmodt, planet_num=pnum) - self.slope
-            modph = t_to_phase(self.post.params, self.rvmodt, pnum, cat=True) - 1
-            rvdat = self.rawresid + self.model(self.rvtimes, planet_num=pnum) - self.slope_low
-            phase = t_to_phase(self.post.params, self.rvtimes, pnum, cat=True) - 1
-            rvdatcat = np.concatenate((rvdat, rvdat))
-            rverrcat = np.concatenate((self.rverr, self.rverr))
-            rvmod2cat = np.concatenate((rvmod2, rvmod2))
-            bint, bindat, binerr = fastbin(phase+1, rvdatcat, nbins=25)
-            bint -= 1.0
+        ax.axhline(0, color='0.5', linestyle='--', )
+        ax.plot(sorted(modph), rvmod2cat[np.argsort(modph)], 'b-', linewidth=self.fit_linewidth)
+        plot.labelfig(pltletter)
 
-            i_row = int(i / self.phase_ncols)
-            i_col = int(i - i_row * self.phase_ncols)
-            ax = pl.subplot(gs_phase[i_row, i_col])
-            self.ax_list += [ax]
+        telcat = np.concatenate((self.post.likelihood.telvec, self.post.likelihood.telvec))
 
-            ax.axhline(0, color='0.5', linestyle='--', )
-            ax.plot(sorted(modph), rvmod2cat[np.argsort(modph)], 'b-', linewidth=self.fit_linewidth)
-            plot.labelfig(pltletter)
-
-            pltletter += 1
-            telcat = np.concatenate((self.post.likelihood.telvec, self.post.likelihood.telvec))
-
-            plot.mtelplot(phase, rvdatcat, rverrcat, telcat, ax, self.telfmts)
-            if not self.nobin and len(rvdat) > 10: 
-                ax.errorbar(
-                    bint, bindat, yerr=binerr, fmt='ro', mec='w', ms=bin_markersize,
-                    mew=bin_markeredgewidth
-                )
-
-            if self.phase_limits:
-            	ax.set_xlim(self.phase_limits[0],self.phase_limits[1])
-            else:
-            	ax.set_xlim(-0.5, 0.5)
-                
-
-            if not self.yscale_auto: 
-                scale = np.std(rvdatcat)
-                ax.set_ylim(-self.yscale_sigma*scale, self.yscale_sigma*scale)
-            
-            keys = [p+str(pnum) for p in ['per', 'k', 'e']]
-            labels = [self.post.params.tex_labels().get(k, k) for k in keys]
-            if i < self.num_planets-1:
-                ticks = ax.yaxis.get_majorticklocs()
-                ax.yaxis.set_ticks(ticks[1:-1])
-
-            ax.set_ylabel('RV [{ms:}]'.format(**plot.latex), weight='bold')
-            ax.set_xlabel('Phase', weight='bold')
-
-            print_params = ['per', 'k', 'e']
-            units = {'per': 'days', 'k': plot.latex['ms'], 'e': ''}
-
-            anotext = []
-            for l, p in enumerate(print_params):
-                val = self.post.params["%s%d" % (print_params[l], pnum)].value
-                
-                if self.uparams is None:
-                    _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
-                else:
-                    if hasattr(self.post, 'medparams'):
-                        val = self.post.medparams["%s%d" % (print_params[l], pnum)]
-                    else:
-                        print("WARNING: medparams attribute not found in " +
-                              "posterior object will annotate with " +
-                              "max-likelihood values and reported uncertainties " +
-                              "may not be appropriate.")
-                    err = self.uparams["%s%d" % (print_params[l], pnum)]
-                    if err > 0:
-                        val, err, errlow = sigfig(val, err)
-                        _anotext = '$\\mathregular{%s}$ = %s $\\mathregular{\\pm}$ %s %s' \
-                                   % (labels[l].replace("$", ""), val, err, units[p])
-                    else:
-                        _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
-
-                anotext += [_anotext] 
-
-            anotext = '\n'.join(anotext)
-            plot.add_anchored(
-                anotext, loc=1, frameon=True, prop=dict(size=self.phasetext_size, weight='bold'),
-                bbox=dict(ec='none', fc='w', alpha=0.8)
+        plot.mtelplot(phase, rvdatcat, rverrcat, telcat, ax, telfmts=self.telfmts)
+        if not self.nobin and len(rvdat) > 10: 
+            ax.errorbar(
+                bint, bindat, yerr=binerr, fmt='ro', mec='w', ms=bin_markersize,
+                mew=bin_markeredgewidth
             )
+
+        if self.phase_limits:
+            ax.set_xlim(self.phase_limits[0],self.phase_limits[1])
+        else:
+            ax.set_xlim(-0.5, 0.5)
+            
+
+        if not self.yscale_auto: 
+            scale = np.std(rvdatcat)
+            ax.set_ylim(-self.yscale_sigma*scale, self.yscale_sigma*scale)
+        
+        keys = [p+str(pnum) for p in ['per', 'k', 'e']]
+        labels = [self.post.params.tex_labels().get(k, k) for k in keys]
+        if pnum < self.num_planets:
+            ticks = ax.yaxis.get_majorticklocs()
+            ax.yaxis.set_ticks(ticks[1:-1])
+
+        ax.set_ylabel('RV [{ms:}]'.format(**plot.latex), weight='bold')
+        ax.set_xlabel('Phase', weight='bold')
+
+        print_params = ['per', 'k', 'e']
+        units = {'per': 'days', 'k': plot.latex['ms'], 'e': ''}
+
+        anotext = []
+        for l, p in enumerate(print_params):
+            val = self.post.params["%s%d" % (print_params[l], pnum)].value
+            
+            if self.uparams is None:
+                _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
+            else:
+                if hasattr(self.post, 'medparams'):
+                    val = self.post.medparams["%s%d" % (print_params[l], pnum)]
+                else:
+                    print("WARNING: medparams attribute not found in " +
+                          "posterior object will annotate with " +
+                          "max-likelihood values and reported uncertainties " +
+                          "may not be appropriate.")
+                err = self.uparams["%s%d" % (print_params[l], pnum)]
+                if err > 0:
+                    val, err, errlow = sigfig(val, err)
+                    _anotext = '$\\mathregular{%s}$ = %s $\\mathregular{\\pm}$ %s %s' \
+                               % (labels[l].replace("$", ""), val, err, units[p])
+                else:
+                    _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
+
+            anotext += [_anotext] 
+
+        anotext = '\n'.join(anotext)
+        plot.add_anchored(
+            anotext, loc=1, frameon=True, prop=dict(size=self.phasetext_size, weight='bold'),
+            bbox=dict(ec='none', fc='w', alpha=0.8)
+        )
    
     
     def plot_multipanel(self, nophase=False):
@@ -342,9 +334,9 @@ class MultipanelPlot(object):
         """
 
         if nophase:
-        	scalefactor = 1
+            scalefactor = 1
         else:
-        	scalefactor = self.phase_nrows
+            scalefactor = self.phase_nrows
 
         figheight = self.ax_rv_height + self.ax_phase_height * scalefactor
 
@@ -381,18 +373,26 @@ class MultipanelPlot(object):
 
         # phase-folded plots
         if not nophase:
-	        gs_phase = gridspec.GridSpec(self.phase_nrows, self.phase_ncols)
+            gs_phase = gridspec.GridSpec(self.phase_nrows, self.phase_ncols)
 
-	        if self.phase_ncols == 1:
-	            gs_phase.update(left=0.12, right=0.93,
-	                            top=divide - self.rv_phase_space * 0.5,
-	                            bottom=0.07, hspace=0.003)
-	        else:
-	            gs_phase.update(left=0.12, right=0.93,
-	                            top=divide - self.rv_phase_space * 0.5,
-	                            bottom=0.07, hspace=0.25, wspace=0.25)
+            if self.phase_ncols == 1:
+                gs_phase.update(left=0.12, right=0.93,
+                                top=divide - self.rv_phase_space * 0.5,
+                                bottom=0.07, hspace=0.003)
+            else:
+                gs_phase.update(left=0.12, right=0.93,
+                                top=divide - self.rv_phase_space * 0.5,
+                                bottom=0.07, hspace=0.25, wspace=0.25)
 
-	        self.plot_phasefold(gs_phase, pltletter)
+            for i in range(self.num_planets):
+                i_row = int(i / self.phase_ncols)
+                i_col = int(i - i_row * self.phase_ncols)
+                ax_phase = pl.subplot(gs_phase[i_row, i_col])
+                self.ax_list += [ax_phase]
+
+                pl.sca(ax_phase)
+                self.plot_phasefold(pltletter, i+1)
+                pltletter += 1
 
 
         if self.saveplot is not None:
@@ -543,7 +543,7 @@ class GPMultipanelPlot(MultipanelPlot):
         # plot data
         plot.mtelplot(
             # data = residuals + model
-            self.plttimes, self.rawresid+orbit_model4data, self.rverr, self.post.likelihood.telvec, ax, self.telfmts
+            self.plttimes, self.rawresid+orbit_model4data, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts
         )
 
         ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
@@ -627,7 +627,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 # plot data
                 plot.mtelplot(
                     # data = residuals + model
-                    self.plttimes, self.rawresid+orbit_model4data, self.rverr, self.post.likelihood.telvec, ax, self.telfmts
+                    self.plttimes, self.rawresid+orbit_model4data, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts
                 )
 
                 ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
@@ -674,7 +674,15 @@ class GPMultipanelPlot(MultipanelPlot):
                                     top=divide - self.rv_phase_space * 0.5,
                                     bottom=0.07, hspace=0.25, wspace=0.25)
 
-                self.plot_phasefold(gs_phase, pltletter)
+                for i in range(self.num_planets):
+                    i_row = int(i / self.phase_ncols)
+                    i_col = int(i - i_row * self.phase_ncols)
+                    ax_phase = pl.subplot(gs_phase[i_row, i_col])
+                    self.ax_list += [ax_phase]
+
+                    pl.sca(ax_phase)
+                    self.plot_phasefold(pltletter, i+1)
+                    pltletter += 1
 
 
             if self.saveplot is not None:

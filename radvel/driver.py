@@ -63,6 +63,17 @@ def plots(args):
                 )
                 RVPlot.plot_multipanel()
 
+                # check to make sure that Posterior is not GP, print warning if it is
+                if isinstance(post.likelihood, radvel.likelihood.CompositeLikelihood):
+                    like_list = post.likelihood.like_list
+                else:
+                    like_list = [ post.likelihood ] 
+                for like in like_list:
+                    if isinstance(like, radvel.likelihood.GPLikelihood):
+                        print("WARNING: GP Likelihood(s) detected. You may want to use the '--gp' flag when making these plots.")
+                        break
+                
+
         if ptype == 'corner' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
             "Must run MCMC before making corner or trend plots"
