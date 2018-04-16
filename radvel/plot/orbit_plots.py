@@ -622,7 +622,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 else:
                     orbit_model4data = self.rvmod
 
-                self.plot_gp_like(like, ax, orbit_model4data, ci)
+                self.plot_gp_like(like, orbit_model4data, ci)
 
                 # plot data
                 plot.mtelplot(

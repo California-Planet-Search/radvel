@@ -99,7 +99,7 @@ def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
     
     args.type = ['rv']
     args.gp = True
-    args.plotkw = {}
+    args.plotkw = {'plot_likelihoods_separately':True}
     radvel.driver.plots(args)
 
 def test_basis():
@@ -263,4 +263,4 @@ def test_kepler():
 
 if __name__ == '__main__':
     # _standard_run('example_planets/epic203771098.py')
-    test_k2131('example_planets/k2-131.py')
+    test_celerite('../../example_planets/k2-131.py')
