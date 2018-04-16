@@ -3,6 +3,7 @@ import copy
 import os
 import tempfile
 import shutil
+from operator import itemgetter
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 import radvel
@@ -52,22 +53,20 @@ class RadvelReport():
         self.starname_tex = planet.starname.replace('_', '\\_')
         self.runname = self.starname_tex
                 
-        printpost = copy.deepcopy(post)
-        printpost.params = printpost.params.basis.to_synth(printpost.params)
-        printpost.params = printpost.params.basis.from_synth(
-            printpost.params, print_basis
+        post.params = post.params.basis.to_synth(post.params)
+        post.params = post.params.basis.from_synth(
+            post.params, print_basis
         )
-        self.latex_dict = printpost.params.tex_labels()
+        self.latex_dict = post.params.tex_labels()
 
-        printchains = copy.copy(chains)
         for p in post.params.keys():
             if p not in chains.columns:
                 chains[p] = post.params[p].value
 
-        self.chains = printpost.params.basis.to_synth(
+        self.chains = post.params.basis.to_synth(
             chains, basis_name=planet.fitting_basis
         )
-        self.chains = printpost.params.basis.from_synth(
+        self.chains = post.params.basis.from_synth(
             self.chains, print_basis
         )
         self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
@@ -317,28 +316,78 @@ class TexTable(RadvelReport):
         """
         statsdict = self.report.compstats
 
-        if statsdict is None:
+        if statsdict is None or len(statsdict) < 1:
             return ""
 
-        n_test = len(statsdict)
-        coldefs = r"\begin{deluxetable*}{%s}" % ('l'+'r'*n_test)
-        head = r"\tablehead{\colhead{Statistic}"
-        for n in range(n_test):
-            if n == n_test-1:
-                head += r" & \colhead{{\bf %d planets (adopted)}}" % n
+        statsdict_sorted = sorted(statsdict, key=itemgetter('AICc'),\
+            reverse=False)
 
+        n_test = len(statsdict_sorted)
+        if n_test > 50:
+            print("Warning, the number of model comparisons is very"\
+                + " large. Printing 50 best models.\nConsider using"\
+                + " the --unmixed flag when performing ic comparisons")
+            n_test=50
+            #statsdict_sorted = statsdict_sorted[:50]
+
+        statskeys = statsdict_sorted[0].keys()
+        coldefs = r"\begin{deluxetable*}{%s}" % ('l'+'l'+'r'*(len(statskeys)-1) + 'r')
+        head = r"\tablehead{"
+        head += r"\colhead{AICc Qualitative Comparison}"
+        head += r" & \colhead{Free Parameters}"
+        for s in statskeys:
+            if s == 'Free Params':
+                pass
             else:
-                head += r" & \colhead{%d planets}" % n
-        head += "}"
+                head += r" & \colhead{%s}" % s
+        head += r" & \colhead{$\Delta$AICc}"
+        head += r"}"
+
+        minAIC = statsdict_sorted[0]['AICc'][0]   
+        # See Burnham + Anderson 2004
+        deltaAIClevels = [0., 2., 4., 10.]
+        deltaAICmessages = ["Nearly Indistinguishable", "Somewhat Disfavored", \
+            "Strongly Disfavored", "Ruled Out"]
+        deltaAICtrigger = 0
+        maxtrigger = len(deltaAIClevels)
 
         rows = []
-        statkeys = statsdict[0].keys()
-        for s in statkeys:
-            row = "%s (%s) " % (s, statsdict[0][s][1])
-            for n in range(n_test):
-                row += " & %s" % statsdict[n][s][0]
+        for i in range(n_test):
+            row = ""
+            for s in statsdict_sorted[i].keys():
+                val = statsdict_sorted[i][s][0]
+                if type(val) is int:
+                    row += " & %s" % str(val)
+                elif type(val) is float:
+                    row += " & %.2f" % val
+                elif type(val) is str:
+                    row += " & %s" % val 
+                elif type(val) is list:
+                    row += " &"
+                    for item in val:
+                        row += " %s," %item 
+                    row += " \{$\gamma$\}" 
+                    #row = row[:-1] 
+                else:
+                    print(s)
+                    print(val)
+                    raise
+            row += " & %.2f" % (statsdict_sorted[i]['AICc'][0] - minAIC) 
+            #row = row[3:]
+            if i == 0:
+            #    row = "{\\bf" + row + "}"
+                row = "AICc Favored Model"+ row
+            appendhline = False
+            if (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AICc'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):
+                deltaAICtrigger += 1 
+                while (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AICc'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):
+                    deltaAICtrigger += 1 
+                row = deltaAICmessages[deltaAICtrigger-1] + row
+                appendhline = True
+            if appendhline or (i == 1):
+                rows.append(r"\hline")
             rows.append(row)
-
+        
         t = env.get_template('tab_comparison.tex')
         out = t.render(coldefs=coldefs, head=head, rows=rows)
         return out

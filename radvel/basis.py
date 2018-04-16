@@ -14,6 +14,29 @@ BASIS_NAMES = ['per tp e w k',  # The synth basis
                'per tc se w k',
                'logper tp e w logk']
 
+ECCENTRICITY_PARAMS_DICT = {
+              'per tp e w k': 'e w',
+              'per tc secosw sesinw logk': 'secosw sesinw',
+              'per tc secosw sesinw k': 'secosw sesinw',
+              'per tc ecosw esinw k': 'ecosw esinw',
+              'per tc e w k': 'e w',
+              'logper tc secosw sesinw k': 'secosw sesinw',
+              'logper tc secosw sesinw logk': 'secosw sesinw',
+              'per tc se w k': 'se w',
+              'logper tp e w logk': 'e w'}
+
+CIRCULAR_PARAMS_DICT = {
+              'per tp e w k': 'per tp k',
+              'per tc secosw sesinw logk': 'per tc logk',
+              'per tc secosw sesinw k': 'per tc k',
+              'per tc ecosw esinw k': 'per tc k',
+              'per tc e w k': 'per tc k',
+              'logper tc secosw sesinw k': 'logper tc k',
+              'logper tc secosw sesinw logk': 'logper tc logk',
+              'per tc se w k': 'per tc k',
+              'logper tp e w logk': 'logper tp logk'}
+
+
 def _print_valid_basis():
     print("Available bases:")
     print("\n".join(BASIS_NAMES))
@@ -498,3 +521,43 @@ class Basis(object):
         params_out.basis = Basis(newbasis, self.num_planets)
                 
         return params_out
+
+    def get_eparams(self):
+        """Return the eccentricity parameters for the object's basis
+   
+        Args:
+            None
+
+        Returns:
+            the params which have to do with eccentricity 
+        """
+
+        assert BASIS_NAMES.count(self.name) == 1, "Invalid basis"
+
+        eparamstring = ECCENTRICITY_PARAMS_DICT[self.name]
+        eparamlist = eparamstring.split()
+        assert len(eparamlist) == 2
+    
+        return eparamlist 
+    
+    
+    def get_circparams(self):
+        """Return the 3 parameters for a circular orbit of a plent in the object's basis
+   
+        Args:
+            None
+
+        Returns:
+            the params for a circular orbit 
+        """
+        assert BASIS_NAMES.count(self.name) == 1, "Invalid basis"
+
+        circparamstring = CIRCULAR_PARAMS_DICT[self.name]
+        circparamlist = circparamstring.split()
+        assert len(circparamlist) == 3
+    
+        return circparamlist 
+
+
+        
+ 

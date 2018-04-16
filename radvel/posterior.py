@@ -62,6 +62,23 @@ class Posterior(Likelihood):
         k = len(self.likelihood.get_vary_params())
         _bic = np.log(n) * k - 2.0 * self.logprob()
         return _bic
+    
+    def aic(self):
+        """
+        Calculate the Aikike information criterion
+        The Small Sample AIC (AICC) is returned because for 
+            most RV data sets n < 40 * k 
+            (see Burnham & Anderson 2002 S2.4) 
+
+        Returns:
+            float: AICC
+        """
+    
+        n = len(self.likelihood.y)
+        k = len(self.likelihood.get_vary_params())
+        aic = - 2.0 * self.logprob() + 2.0 * k
+        _aicc = aic + (2.0 * k * (k + 1.0)) / (n - k - 1.0)
+        return _aicc
 
     def logprob_array(self, param_values_array):
         """Log probability for parameter vector
