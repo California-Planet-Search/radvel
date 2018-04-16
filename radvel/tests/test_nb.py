@@ -1,5 +1,4 @@
 import warnings
-
 import os
 import sys
 from glob import glob
@@ -7,9 +6,7 @@ from glob import glob
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
-warnings.filterwarnings("ignore")
-warnings.simplefilter('once', DeprecationWarning)
-
+warnings.simplefilter('always')
 
 def test_notebooks(nbdir='docs/tutorials/'):
     """
