@@ -223,26 +223,28 @@ def test_priors():
     testTex = 'Delta Function Prior on $\sqrt{e}\cos{\omega}_{b}$'
 
     def userdef_prior_func(inp_list):
-        if inp_list == [0.]:
+        if inp_list[0] >= 0. and inp_list[0] < 1.:
             return 0.
         else:
             return -np.inf
 
     prior_tests = {
-        radvel.prior.EccentricityPrior(1):                  0.0,
-        radvel.prior.PositiveKPrior(1):                     0.0,
-        radvel.prior.Gaussian('per1', 10.0, 0.1):           0.0,
-        radvel.prior.HardBounds('per1', 1.0, 9.0):          -np.inf,
-        radvel.prior.Jeffreys('per1', 0.1, 100.0):          -np.log(params['per1'].value),
-        radvel.prior.ModifiedJeffreys('per1', 0.1, 100.0):  -np.log(params['per1'].value + 0.1),
-        radvel.prior.SecondaryEclipsePrior(1, 5.0, 1.0):    0.0,
+        radvel.prior.EccentricityPrior(1):                  1/.99,
+        radvel.prior.PositiveKPrior(1):                     1.0,
+        radvel.prior.Gaussian('per1', 9.9, 0.1):            scipy.stats.norm(9.9,0.1).pdf(10.),
+        radvel.prior.HardBounds('per1', 1.0, 9.0):          0.,
+        radvel.prior.HardBounds('per1', 1.0, 11.0):         1./10.,
+        radvel.prior.Jeffreys('per1', 0.1, 100.0):          (1./10.)/np.log(100./0.1),
+        radvel.prior.ModifiedJeffreys('per1', 0.1, 100.0, 0.):  (1./10.)/np.log(100./0.1),
+        radvel.prior.ModifiedJeffreys('per1', 2., 100.0, 1.):  (1./9.)/np.log(99.),
+        radvel.prior.SecondaryEclipsePrior(1, 5.0, 10.0):    1./np.sqrt(2.*np.pi),
         radvel.prior.NumericalPrior(
             ['sesinw1'], 
             np.random.randn(1,5000000)
-        ):                                                  scipy.stats.norm(0, 1).pdf(0),
+        ):                                                  scipy.stats.norm(0, 1).pdf(0.),
         radvel.prior.UserDefinedPrior(
             ['secosw1'], userdef_prior_func, testTex
-        ):                                                  0.0
+        ):                                                  1.0
 
     }
 
@@ -250,7 +252,9 @@ def test_priors():
         print(prior.__repr__())
         print(prior.__str__())
         tolerance = .01
-        assert prior(params) == val or abs(prior(params) - val) < tolerance, \
+        print(abs(np.exp(prior(params))))
+        print(val)
+        assert abs(np.exp(prior(params)) - val) < tolerance, \
             "Prior output does not match expectation"
 
 
@@ -262,5 +266,4 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    # _standard_run('example_planets/epic203771098.py')
-    test_celerite('../../example_planets/k2-131.py')
+    test_priors()

@@ -34,7 +34,7 @@ class MultipanelPlot(object):
                 }
         legend (bool, optional): include legend on plot? Default: True.
         phase_limits (list, optional): two element list specifying 
-            pyplot.xlim bounds for phase-folded array. Useful for
+            pyplot.xlim bounds for phase-folded plots. Useful for
             partial orbits.
         nobin (bool, optional): If True do not show binned data on
             phase plots. Will default to True if total number of
@@ -48,11 +48,13 @@ class MultipanelPlot(object):
             Default: 7.5 (spans a page with 0.5 in margins)
         fit_linewidth (float, optional): linewidth to use for orbit model lines in phase-folded
             plots and residuals plots.
+        set_xlim (list of float): limits to use for x-axes of the timeseries and residuals plots, in
+            JD - `epoch`. Ex: [7000., 70005.]
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
                 phase_nrows=None, phase_ncols=None, uparams=None, telfmts={},legend=True,
                 phase_limits=[], nobin=False, phasetext_size='large', rv_phase_space=0.08, 
-                figwidth=7.5, fit_linewidth=2.0):
+                figwidth=7.5, fit_linewidth=2.0, set_xlim=None):
 
         self.post = post
         self.saveplot=saveplot
@@ -72,6 +74,7 @@ class MultipanelPlot(object):
         self.phasetext_size=phasetext_size
         self.figwidth = figwidth
         self.fit_linewidth = fit_linewidth
+        self.set_xlim = set_xlim
 
         if isinstance(self.post.likelihood, radvel.likelihood.CompositeLikelihood):
             self.like_list = self.post.likelihood.like_list
@@ -169,7 +172,10 @@ class MultipanelPlot(object):
             self.plttimes, self.rawresid+self.rvmod, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts
         )
 
-        ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
+        if self.set_xlim is not None:
+            ax.set_xlim(self.set_xlim)
+        else:
+            ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
         pl.setp(ax.get_xticklabels(), visible=False)
 
         # legend
@@ -212,7 +218,10 @@ class MultipanelPlot(object):
             scale = np.std(self.resid)
             ax.set_ylim(-self.yscale_sigma * scale, self.yscale_sigma * scale)
 
-        ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)
+        if self.set_xlim is not None:
+            ax.set_xlim(self.set_xlim)
+        else:
+            ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)
         ticks = ax.yaxis.get_majorticklocs()
         ax.yaxis.set_ticks([ticks[0], 0.0, ticks[-1]])
         pl.xlabel('JD - {:d}'.format(int(np.round(self.epoch))), weight='bold')
@@ -426,7 +435,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 phase_nrows=None, phase_ncols=None, uparams=None, rv_phase_space=0.08, telfmts={},
                 legend=True,
                 phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
-                subtract_gp_mean_model=False,
+                set_xlim=None, subtract_gp_mean_model=False,
                 plot_likelihoods_separately=False, subtract_orbit_model=False):
 
         super(GPMultipanelPlot, self).__init__(
@@ -434,7 +443,7 @@ class GPMultipanelPlot(MultipanelPlot):
             yscale_sigma=yscale_sigma,phase_nrows=phase_nrows, phase_ncols=phase_ncols,
             uparams=uparams, rv_phase_space=rv_phase_space, telfmts=telfmts, legend=legend,
             phase_limits=phase_limits, nobin=nobin, phasetext_size=phasetext_size, 
-            figwidth=figwidth, fit_linewidth=fit_linewidth
+            figwidth=figwidth, fit_linewidth=fit_linewidth, set_xlim=set_xlim
         )
 
         self.subtract_gp_mean_model=subtract_gp_mean_model
@@ -546,7 +555,10 @@ class GPMultipanelPlot(MultipanelPlot):
             self.plttimes, self.rawresid+orbit_model4data, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts
         )
 
-        ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
+        if self.set_xlim is not None:
+            ax.set_xlim(self.set_xlim)
+        else:
+            ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
         pl.setp(ax.get_xticklabels(), visible=False)
 
         # legend
