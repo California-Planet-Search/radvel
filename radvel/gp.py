@@ -8,7 +8,7 @@ import warnings
 
 warnings.simplefilter('once')
 
-# implemented kernels & examples of possible names for their associated hyperparameters
+# implemented kernels & examples of possible names for associated hyperparameters
 KERNELS = {
     "SqExp": ['gp_length','gp_amp'],
     "Per": ['gp_per','gp_length','gp_amp'],
@@ -464,8 +464,3 @@ class CeleriteKernel(Kernel):
         )
 
         return solver
-
-        
-
-
-

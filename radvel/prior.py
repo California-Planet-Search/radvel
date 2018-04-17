@@ -30,7 +30,7 @@ class Gaussian(Prior):
 
     def __call__(self, params):
         x = params[self.param].value
-        return -0.5 * ((x - self.mu) / self.sigma)**2
+        return -0.5 * ((x - self.mu) / self.sigma)**2 - 0.5*np.log((self.sigma**2)*2.*np.pi)
 
     def __repr__(self):
         s = "Gaussian prior on {}, mu={}, sigma={}".format(
@@ -123,7 +123,7 @@ upper limits must match number of planets."
             if ecc > self.upperlims[i] or ecc < 0.0:
                 return -np.inf
         
-        return 0
+        return -np.sum(np.log(self.upperlims))
 
 
 class PositiveKPrior(Prior):
@@ -184,7 +184,7 @@ class HardBounds(Prior):
         if x < self.minval or x > self.maxval:
             return -np.inf
         else:
-            return 0.0
+            return -np.log(self.maxval-self.minval)
 
     def __repr__(self):
         s = "Bounded prior on {}, min={}, max={}".format(
@@ -251,7 +251,7 @@ class SecondaryEclipsePrior(Prior):
         pts = utils.t_to_phase(synth_params, self.ts, self.planet_num)
         epts = self.ts_err / per
 
-        penalty = -0.5 * ((ts_phase - pts) / epts)**2
+        penalty = -0.5 * ((ts_phase - pts) / epts)**2 - 0.5*np.log((epts**2)*2.*np.pi)
 
         return penalty
 
@@ -269,20 +269,22 @@ class Jeffreys(Prior):
     Args:
         param (string): parameter label
         minval (float): minimum allowed value
-        maxval (float): maximum allowed value (set to numpy.inf 
-            if no upper bound desired)
+        maxval (float): maximum allowed value
     """
     
     def __init__(self, param, minval, maxval):
         self.minval = minval
         self.maxval = maxval
         self.param = param
+
+        self.normalization = 1./np.log(self.maxval/self.minval)
+
     def __call__(self, params):
         x = params[self.param].value
         if x < self.minval or x > self.maxval:
             return -np.inf
         else:
-            return -np.log(x)
+            return np.log(self.normalization) - np.log(x) 
     def __repr__(self):
         s = "Jeffrey's prior on {}, min={}, max={}".format(
             self.param, self.minval, self.maxval
@@ -307,38 +309,45 @@ class ModifiedJeffreys(Prior):
     This prior follows the distribution:
 
     .. math::
-        p(x) \\propto \\frac{1}{x+x_0}
+        p(x) \\propto \\frac{1}{x-x_0}
 
     with upper bound.
 
     Args:
         param (string): parameter label
         kneeval (float): "knee" of Jeffrey's prior (:math:`x_0` in eq above)
+        minval (float): minimum allowed value. `minval` must be larger than `kneeval`
         maxval (float): maximum allowed value
 
     """
     
-    def __init__(self, param, kneeval, maxval):
+    def __init__(self, param, minval, maxval, kneeval):
         self.maxval = maxval
         self.param = param
         self.kneeval = kneeval
+        self.minval = minval
+
+        self.normalization = 1./np.log((self.maxval-self.kneeval)/(self.minval-self.kneeval))
+
+        assert self.minval > self.kneeval, "ModifiedJeffreys prior requires minval>kneeval."
+
     def __call__(self, params):
         x = params[self.param].value
-        if (x > self.maxval) or (x + self.kneeval <= 0.):
+        if (x > self.maxval) or (x < self.minval):
             return -np.inf
         else:
-            return -np.log(x+self.kneeval)
+            return np.log(self.normalization) - np.log(x-self.kneeval)
     def __repr__(self):
-        s = "Modified Jeffrey's prior on {}, knee={}, max={}".format(
-            self.param, self.kneeval, self.maxval
+        s = "Modified Jeffrey's prior on {}, knee={}, min={}, max={}".format(
+            self.param, self.kneeval, self.minval, self.maxval
             )
         return s
     def __str__(self):
         try:
             tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
             
-            s = "Modified Jeffrey's prior: knee = {}; ${} < {}$".format(
-                self.kneeval, tex.replace('$',''),self.maxval
+            s = "Modified Jeffrey's prior: knee = {}; ${} < {} < {}$".format(
+                self.kneeval, self.minval, tex.replace('$',''), self.maxval
                 )
         except KeyError:
             s = self.__repr__()
@@ -385,7 +394,7 @@ class NumericalPrior(Prior):
         x = []
         for param in self.param_list:
             x.append(params[param].value)
-        return self.pdf_estimate(x)
+        return np.log(self.pdf_estimate(x))
 
     def __repr__(self):
         s = "Numerical prior on {}".format(
@@ -428,16 +437,16 @@ class UserDefinedPrior(Prior):
 
     Example:
         >>> def myPriorFunc(inp_list):
-        ...     if inp_array == [0.]:
+        ...     if inp_list[0] > 0. and inp_list[0] < 1.:
         ...         return 0.
         ...     else:
         ...         return -np.inf
-        >>> myTexString = 'Delta Function Prior on $\sqrt{e}$'
+        >>> myTexString = 'Uniform Prior on $\sqrt{e}$'
         >>> myPrior = radvel.prior.UserDefinedPrior(['se'], myPriorFunc, myTexString)
 
     Note:
         ``func`` must be properly normalized; i.e. integrating over the
-        entire parameter space must give probability 1. 
+        entire parameter space must give a probability of 1. 
     """
     
     def __init__(self, param_list, func, tex_rep):

@@ -5,7 +5,7 @@ from .mcmc import *
 from .prior import *
 from .utils import *
 from .report import *
-from .plotting import *
+from .plot import *
 from .fitting import *
 import os 
 import sys
