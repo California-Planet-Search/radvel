@@ -304,6 +304,7 @@ class GPLikelihood(RVLikelihood):
         self.kernel = self.kernel_call(self.hyperparams)
 
         self.kernel.compute_distances(self.x, self.x)
+        self.N = len(self.x)
 
     def update_kernel_params(self):
         """ Update the Kernel object with new values of the hyperparameters 
@@ -339,7 +340,7 @@ class GPLikelihood(RVLikelihood):
 
         .. math::
 
-           lnL = -0.5r^TK^{-1}r - 0.5ln[det(K)] 
+           lnL = -0.5r^TK^{-1}r - 0.5ln[det(K)] - 0.5N*ln(2pi)
            
         where r = vector of residuals (GPLikelihood._resids), 
         K = covariance matrix, and N = number of datapoints. 
@@ -368,7 +369,7 @@ class GPLikelihood(RVLikelihood):
             (s,d) = np.linalg.slogdet(K)
 
             # calculate likelihood
-            like = -.5 * (np.dot(r, alpha) + d)
+            like = -.5 * (np.dot(r, alpha) + d + self.N*np.log(2.*np.pi))
 
             return like
 
@@ -448,6 +449,7 @@ class CeleriteLikelihood(GPLikelihood):
         self.x = self.x[order]
         self.y = self.y[order]
         self.yerr = self.yerr[order]
+        self.N = len(self.x)
 
     def update_kernel_params(self):
         """ Update the Kernel object with new values of the hyperparameters 
@@ -482,7 +484,7 @@ class CeleriteLikelihood(GPLikelihood):
             solver = self.kernel.compute_covmatrix(self.errorbars())
 
             # calculate log likelihood
-            lnlike =  -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant())
+            lnlike =  -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant() + self.N*np.log(2.*np.pi))
         
             return lnlike
 

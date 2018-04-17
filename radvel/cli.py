@@ -58,9 +58,15 @@ def main():
     psr_plot.add_argument(
         '--plotkw', dest='plotkw',action='store', default="{}", type=eval,
         help='''
-        Dictionary of keywords sent to rv_multipanel_plot. 
+        Dictionary of keywords sent to MultipanelPlot or GPMultipanelPlot. 
         E.g. --plotkw "{'yscale_auto': True}"'
         ''',
+    )
+    psr_plot.add_argument('--gp',
+    dest='gp',
+    action='store_true',
+    default=False,
+    help="Make a multipanel plot with GP bands. For use only with GPLikleihood objects"
     )
     
     psr_plot.set_defaults(func=radvel.driver.plots)
@@ -160,7 +166,16 @@ If True, run MCMC in serial instead of parallel. [False]
     )
     psr_table.add_argument(
         '--header', action='store_true',
-        help="included latex column header. Default just prints data rows"
+        help="include latex column header. Default just prints data rows"
+    )
+    psr_table.add_argument('--name_in_title',
+    dest='name_in_title',
+    action='store_true',
+    default=False,
+    help='''
+        Include star name in table headers. Default just prints 
+        descriptive titles without star name [False]
+    '''
     )
     
     psr_table.set_defaults(func=radvel.driver.tables)

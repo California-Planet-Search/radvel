@@ -5,7 +5,7 @@ from .mcmc import *
 from .prior import *
 from .utils import *
 from .report import *
-from .plotting import *
+from .plot import *
 from .fitting import *
 import os 
 import sys
@@ -19,7 +19,7 @@ def _custom_warningfmt(msg, *a, **b):
 __all__=['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
-__version__ = '1.1.9'
+__version__ = '1.1.10'
 
 MODULEDIR, filename = os.path.split(__file__)
 DATADIR = os.path.join(sys.prefix, 'radvel_example_data')

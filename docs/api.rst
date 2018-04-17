@@ -4,7 +4,7 @@ API
 ===
 
 .. toctree::
-   :titlesonly:
+   :maxdepth: 2
 
    model
    orbit
@@ -17,5 +17,5 @@ API
    mcmc
    driver
    utils
-   plotting
    report	      
+   plot

@@ -19,7 +19,7 @@ for line in open('requirements.txt', 'r').readlines():
 setup(
     name="radvel",
     version=get_property('__version__', 'radvel'),
-    author="BJ Fulton, Erik Petigura, Sarah Blunt",
+    author="BJ Fulton, Erik Petigura, Sarah Blunt, Evan Sinukoff",
     packages=find_packages(),
     ext_modules=cb.cythonize(extensions),
     include_dirs=[numpy.get_include()],

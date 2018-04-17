@@ -87,4 +87,3 @@ priors = [radvel.prior.Gaussian('per1', Porb, Porb_unc),
           radvel.prior.Jeffreys('jit_harps-n', 0.01,10.),
           radvel.prior.Jeffreys('1_logA', 0.005, 75.0)
           ]
-

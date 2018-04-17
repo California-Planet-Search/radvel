@@ -148,10 +148,11 @@ def sigfig(med, errlow, errhigh=None):
     if ndec < -1:
             tmpmed = round(med, abs(ndec))
             p = 0
-            while tmpmed == 0:
-                tmpmed = round(med, abs(ndec)+p)
-                p += 1
-            med = tmpmed
+            if med != 0:
+                while tmpmed == 0:
+                    tmpmed = round(med, abs(ndec)+p)
+                    p += 1
+                med = tmpmed
     elif (ndec == -1 and str(errhigh)[-1] == '0') and (ndec == -1 and str(errlow)[-1] == '0') or ndec == 0:
             errlow = int(round_sig(errlow))
             errhigh = int(round(errhigh))
