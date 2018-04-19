@@ -120,7 +120,7 @@ class CompositeLikelihood(Likelihood):
         params = like0.params
         self.model = like0.model
         self.x = like0.x
-        self.y = like0.y - params[like0.gamma_param].value
+        self.y = like0.y #- params[like0.gamma_param].value
         self.yerr = like0.yerr
         self.telvec = like0.telvec
         self.extra_params = like0.extra_params
