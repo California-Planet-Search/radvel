@@ -200,13 +200,23 @@ class TexTable(RadvelReport):
         row = "%s & %s %s & %s & %s" % (tex,med,errfmt,maxlike,unit)
         return row
 
-    def _data(self, basis):
+    def _data(self, basis, dontloop=False):
         """
         Helper function to output the rows in the parameter table
+
+        Args:
+            basis (str): name of Basis object (see basis.py) to be printed
+            dontloop (Bool): if True, don't loop over number of planets (useful for
+                printing out gamma, dvdt, jitter, curv)
         """
         suffixes = ['_'+j for j in self.report.post.likelihood.suffixes]
         rows = []
-        for n in range(1,self.report.planet.nplanets+1):
+
+        nloop = self.report.planet.nplanets+1
+        if dontloop:
+            nloop=2
+
+        for n in range(1,nloop):
             for p in basis.split(): # loop over variables
                 unit = units.get(p, '')
                 if unit == '':
@@ -299,7 +309,7 @@ class TexTable(RadvelReport):
         kw = {}
         kw['fitting_basis_rows'] = self._data(self.fitting_basis)
         kw['print_basis_rows'] = self._data(print_basis)
-        kw['ep_rows'] = self._data(ep)
+        kw['ep_rows'] = self._data(ep, dontloop=True)
         kw['nlinks'] = len(self.report.chains)
         kw['time_base'] = self.report.post.likelihood.model.time_base
         if name_in_title:
