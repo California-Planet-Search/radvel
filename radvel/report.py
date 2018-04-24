@@ -32,7 +32,7 @@ units = {
     'gp_perlength': ''
 }
 
-class RadvelReport():
+class RadvelReport(object):
     """Radvel report
 
     Class to handle the creation of the radvel summary PDF
