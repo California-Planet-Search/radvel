@@ -50,11 +50,12 @@ class MultipanelPlot(object):
             plots and residuals plots.
         set_xlim (list of float): limits to use for x-axes of the timeseries and residuals plots, in
             JD - `epoch`. Ex: [7000., 70005.]
+        text_size (int): set matplotlib.rcParams['font.size'] (default: 9)
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
                 phase_nrows=None, phase_ncols=None, uparams=None, telfmts={},legend=True,
                 phase_limits=[], nobin=False, phasetext_size='large', rv_phase_space=0.08, 
-                figwidth=7.5, fit_linewidth=2.0, set_xlim=None):
+                figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9):
 
         self.post = post
         self.saveplot=saveplot
@@ -75,6 +76,7 @@ class MultipanelPlot(object):
         self.figwidth = figwidth
         self.fit_linewidth = fit_linewidth
         self.set_xlim = set_xlim
+        rcParams['font.size'] = text_size
 
         if isinstance(self.post.likelihood, radvel.likelihood.CompositeLikelihood):
             self.like_list = self.post.likelihood.like_list
@@ -435,7 +437,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 phase_nrows=None, phase_ncols=None, uparams=None, rv_phase_space=0.08, telfmts={},
                 legend=True,
                 phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
-                set_xlim=None, subtract_gp_mean_model=False,
+                set_xlim=None, text_size=9, subtract_gp_mean_model=False,
                 plot_likelihoods_separately=False, subtract_orbit_model=False):
 
         super(GPMultipanelPlot, self).__init__(
@@ -443,7 +445,7 @@ class GPMultipanelPlot(MultipanelPlot):
             yscale_sigma=yscale_sigma,phase_nrows=phase_nrows, phase_ncols=phase_ncols,
             uparams=uparams, rv_phase_space=rv_phase_space, telfmts=telfmts, legend=legend,
             phase_limits=phase_limits, nobin=nobin, phasetext_size=phasetext_size, 
-            figwidth=figwidth, fit_linewidth=fit_linewidth, set_xlim=set_xlim
+            figwidth=figwidth, fit_linewidth=fit_linewidth, set_xlim=set_xlim, text_size=text_size
         )
 
         self.subtract_gp_mean_model=subtract_gp_mean_model
