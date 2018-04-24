@@ -29,7 +29,10 @@ units = {
     'gp_amp': 'm s$-1$',
     'gp_explength': 'days',
     'gp_per': 'days',
-    'gp_perlength': ''
+    'gp_perlength': '',
+    'mpsini': '$M_\earth$',
+    'rp': '$R_\earth$',
+    'rhop': 'g cm$^{-3}$',
 }
 
 class RadvelReport(object):
