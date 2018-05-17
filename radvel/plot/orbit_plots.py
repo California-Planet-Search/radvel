@@ -51,11 +51,13 @@ class MultipanelPlot(object):
         set_xlim (list of float): limits to use for x-axes of the timeseries and residuals plots, in
             JD - `epoch`. Ex: [7000., 70005.]
         text_size (int): set matplotlib.rcParams['font.size'] (default: 9)
+        legend_kwargs (dict): dict of options to pass to legend (plotted in top panel)
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
                 phase_nrows=None, phase_ncols=None, uparams=None, telfmts={},legend=True,
                 phase_limits=[], nobin=False, phasetext_size='large', rv_phase_space=0.08, 
-                figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9):
+                figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9,
+                legend_kwargs=dict(loc='best')):
 
         self.post = post
         self.saveplot=saveplot
@@ -76,6 +78,7 @@ class MultipanelPlot(object):
         self.figwidth = figwidth
         self.fit_linewidth = fit_linewidth
         self.set_xlim = set_xlim
+        self.legend_kwargs = legend_kwargs
         rcParams['font.size'] = text_size
 
         if isinstance(self.post.likelihood, radvel.likelihood.CompositeLikelihood):
@@ -182,7 +185,7 @@ class MultipanelPlot(object):
 
         # legend
         if self.legend:
-            ax.legend(numpoints=1, loc='best')
+            ax.legend(numpoints=1, **self.legend_kwargs)
 
         # years on upper axis
         axyrs = ax.twiny()
@@ -192,6 +195,7 @@ class MultipanelPlot(object):
         axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
         axyrs.set_xlim(*decimalyear)
         axyrs.set_xlabel('Year', fontweight='bold')
+        pl.locator_params(axis='x', nbins=5)
 
         if not self.yscale_auto: 
             scale = np.std(self.rawresid+self.rvmod)
@@ -331,13 +335,17 @@ class MultipanelPlot(object):
         )
    
     
-    def plot_multipanel(self, nophase=False):
+    def plot_multipanel(self, nophase=False, letter_labels=True):
         """
         Provision and plot an RV multipanel plot
 
         Args:
             nophase (bool, optional): if True, don't
                 include phase plots. Default: False.
+            letter_labels (bool, optional): if True, include 
+                letter labels on orbit and residual plots.
+                Default: True.
+
         Returns:
             tuple containing:
                 - current matplotlib Figure object
@@ -368,9 +376,10 @@ class MultipanelPlot(object):
 
         pl.sca(ax_rv)
         self.plot_timeseries()
-        pltletter = ord('a')
-        plot.labelfig(pltletter)
-        pltletter += 1
+        if letter_labels:
+            pltletter = ord('a')
+            plot.labelfig(pltletter)
+            pltletter += 1
 
          # residuals
         ax_resid = pl.subplot(gs_rv[1, 0])
@@ -378,8 +387,9 @@ class MultipanelPlot(object):
 
         pl.sca(ax_resid)
         self.plot_residuals()
-        plot.labelfig(pltletter)
-        pltletter += 1
+        if letter_labels:
+            plot.labelfig(pltletter)
+            pltletter += 1
 
 
         # phase-folded plots
@@ -437,7 +447,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 phase_nrows=None, phase_ncols=None, uparams=None, rv_phase_space=0.08, telfmts={},
                 legend=True,
                 phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
-                set_xlim=None, text_size=9, subtract_gp_mean_model=False,
+                set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), subtract_gp_mean_model=False,
                 plot_likelihoods_separately=False, subtract_orbit_model=False):
 
         super(GPMultipanelPlot, self).__init__(
@@ -445,7 +455,8 @@ class GPMultipanelPlot(MultipanelPlot):
             yscale_sigma=yscale_sigma,phase_nrows=phase_nrows, phase_ncols=phase_ncols,
             uparams=uparams, rv_phase_space=rv_phase_space, telfmts=telfmts, legend=legend,
             phase_limits=phase_limits, nobin=nobin, phasetext_size=phasetext_size, 
-            figwidth=figwidth, fit_linewidth=fit_linewidth, set_xlim=set_xlim, text_size=text_size
+            figwidth=figwidth, fit_linewidth=fit_linewidth, set_xlim=set_xlim, text_size=text_size,
+            legend_kwargs=legend_kwargs
         )
 
         self.subtract_gp_mean_model=subtract_gp_mean_model
@@ -565,7 +576,7 @@ class GPMultipanelPlot(MultipanelPlot):
 
         # legend
         if self.legend:
-            ax.legend(numpoints=1, loc='best')
+            ax.legend(numpoints=1, **self.legend_kwargs)
 
         # years on upper axis
         axyrs = ax.twiny()
@@ -574,6 +585,7 @@ class GPMultipanelPlot(MultipanelPlot):
         axyrs.plot(decimalyear, decimalyear)
         axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
         axyrs.set_xlim(*decimalyear)
+        pl.locator_params(axis='x', nbins=5)
         axyrs.set_xlabel('Year', fontweight='bold')
 
 
@@ -649,7 +661,7 @@ class GPMultipanelPlot(MultipanelPlot):
 
                 # legend
                 if self.legend and i==1:
-                    ax.legend(numpoints=1, loc='best')
+                    ax.legend(numpoints=1, **self.legend_kwargs)
 
                 # years on upper axis
                 if i==1:
