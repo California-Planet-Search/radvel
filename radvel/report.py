@@ -24,15 +24,18 @@ units = {
     'jitter': 'm s$-1$',
     'logjit': '$\\ln{(\\rm m\\ s^{-1})}$',
     'jit': '$\\rm m\\ s^{-1}$',
-    'dvdt': 'm s$^{-1}$ day$^{-1}$',
-    'curv': 'm s$^{-1}$ day$^{-2}$',
+    'dvdt': 'm s$^{-1}$ d$^{-1}$',
+    'curv': 'm s$^{-1}$ d$^{-2}$',
     'gp_amp': 'm s$-1$',
     'gp_explength': 'days',
     'gp_per': 'days',
-    'gp_perlength': ''
+    'gp_perlength': '',
+    'mpsini': '$M_\earth$',
+    'rp': '$R_\earth$',
+    'rhop': 'g cm$^{-3}$',
 }
 
-class RadvelReport():
+class RadvelReport(object):
     """Radvel report
 
     Class to handle the creation of the radvel summary PDF
@@ -191,22 +194,32 @@ class TexTable(RadvelReport):
         med, errlow, errhigh = radvel.utils.sigfig(med, low, high)
 
         if min(errlow,errhigh) <= 1e-12:
-            med = maxlike = r"$\equiv$ %s" % round(self.quantiles[param][0.5],4)
+            med = maxlike = r"\equiv%s" % round(self.quantiles[param][0.5],4)
             errfmt = ''
         else:
-            if errhigh == errlow: errfmt = '$\pm %s$' % (errhigh)    
-            else: errfmt = '$^{+%s}_{-%s}$' % (errhigh,errlow)
+            if errhigh == errlow: errfmt = '\pm %s' % (errhigh)    
+            else: errfmt = '^{+%s}_{-%s}' % (errhigh,errlow)
 
-        row = "%s & %s %s & %s & %s" % (tex,med,errfmt,maxlike,unit)
+        row = "%s & $%s%s$ & $%s$ & %s" % (tex,med,errfmt,maxlike,unit)
         return row
 
-    def _data(self, basis):
+    def _data(self, basis, dontloop=False):
         """
         Helper function to output the rows in the parameter table
+
+        Args:
+            basis (str): name of Basis object (see basis.py) to be printed
+            dontloop (Bool): if True, don't loop over number of planets (useful for
+                printing out gamma, dvdt, jitter, curv)
         """
         suffixes = ['_'+j for j in self.report.post.likelihood.suffixes]
         rows = []
-        for n in range(1,self.report.planet.nplanets+1):
+
+        nloop = self.report.planet.nplanets+1
+        if dontloop:
+            nloop=2
+
+        for n in range(1,nloop):
             for p in basis.split(): # loop over variables
                 unit = units.get(p, '')
                 if unit == '':
@@ -299,7 +312,7 @@ class TexTable(RadvelReport):
         kw = {}
         kw['fitting_basis_rows'] = self._data(self.fitting_basis)
         kw['print_basis_rows'] = self._data(print_basis)
-        kw['ep_rows'] = self._data(ep)
+        kw['ep_rows'] = self._data(ep, dontloop=True)
         kw['nlinks'] = len(self.report.chains)
         kw['time_base'] = self.report.post.likelihood.model.time_base
         if name_in_title:
