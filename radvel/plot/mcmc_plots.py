@@ -55,7 +55,11 @@ class TrendPlot(object):
                 pl.xlim(0, wchain.shape[1])
 
                 pl.xlabel('Step Number')
-                pl.ylabel(tex)
+                try:
+                    pl.ylabel(tex)
+                except ValueError:
+                    pl.ylabel(param)
+
 
                 ax = pl.gca()
                 ax.set_rasterized(True)

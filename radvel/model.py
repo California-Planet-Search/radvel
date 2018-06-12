@@ -109,7 +109,7 @@ should have only integers as keys."""
         for k in param_list:
             n = k[-1]
             p = k[:-1]
-            if n.isdigit():
+            if n.isdigit() and (not 'gamma' in p and not 'jit' in p):
                 tex_labels[k] = self._planet_texlabel(p, n)
             elif k in texdict.keys():
                 tex_labels[k] = "$%s$" % texdict[k]

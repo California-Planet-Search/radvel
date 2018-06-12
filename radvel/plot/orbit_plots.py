@@ -86,15 +86,9 @@ class MultipanelPlot(object):
         else:
             self.like_list = [ self.post.likelihood ] 
 
-# -----------------------------
-         # FIGURE PROVISIONING
-
+        # FIGURE PROVISIONING
         self.ax_rv_height = self.figwidth * 0.6
         self.ax_phase_height = self.ax_rv_height / 1.4
-
-        # FIGURE PROVISIONING
-# -----------------------------
-         
 
         # convert params to synth basis
         synthparams = self.post.params.basis.to_synth(self.post.params)

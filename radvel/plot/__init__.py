@@ -39,7 +39,7 @@ cmap = nipy_spectral
 rcParams['font.size'] = 9
 rcParams['lines.markersize'] = 5
 rcParams['axes.grid'] = False
-default_colors = ['orange', 'purple', 'magenta', 'pink', 'blue', 'grey', 'red']
+default_colors = ['orange', 'purple', 'magenta', 'pink', 'green', 'grey', 'red']
 
 
 def telplot(x, y, e, tel, ax, lw=1., telfmt={}):
