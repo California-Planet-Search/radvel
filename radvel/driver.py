@@ -230,11 +230,8 @@ def mcmc(args):
     post.writeto(postfile)
 
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
-    try:
-        chains.to_csv(csvfn, compression='bz2')
-    except ValueError:                              # Catch compression error
-        chains.to_csv(csvfn.replace('.bz2', ''))
-
+    chains.to_csv(csvfn, compression='bz2')
+        
     savestate = {'run': True,
                  'postfile': os.path.abspath(postfile),
                  'chainfile': os.path.abspath(csvfn),
