@@ -293,6 +293,7 @@ class MultipanelPlot(object):
             ax.set_ylim(-self.yscale_sigma*scale, self.yscale_sigma*scale)
         
         keys = [p+str(pnum) for p in ['per', 'k', 'e']]
+
         labels = [self.post.params.tex_labels().get(k, k) for k in keys]
         if pnum < self.num_planets:
             ticks = ax.yaxis.get_majorticklocs()
