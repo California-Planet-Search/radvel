@@ -20,6 +20,8 @@ import numpy as np
 import radvel
 from radvel.plot import orbit_plots, mcmc_plots
 from astropy import constants as c
+from numpy import inf
+
 
 def plots(args):
     """
@@ -229,8 +231,7 @@ def mcmc(args):
 
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
     chains.to_csv(csvfn, compression='bz2')
-
-
+        
     savestate = {'run': True,
                  'postfile': os.path.abspath(postfile),
                  'chainfile': os.path.abspath(csvfn),

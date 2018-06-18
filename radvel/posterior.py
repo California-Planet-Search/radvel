@@ -77,7 +77,16 @@ class Posterior(Likelihood):
         n = len(self.likelihood.y)
         k = len(self.likelihood.get_vary_params())
         aic = - 2.0 * self.logprob() + 2.0 * k
-        _aicc = aic + (2.0 * k * (k + 1.0)) / (n - k - 1.0)
+        # Small sample correction
+        _aicc = aic
+        denom = (n - k - 1.0)
+        if denom > 0:
+            _aicc += (2.0 * k * (k + 1.0)) / denom 
+        else:
+            print("Warning: The number of free parameters is greater than or equal to") 
+            print("         the number of data points. The AICc comparison calculations") 
+            print("         will fail in this case.") 
+            _aicc = np.inf
         return _aicc
 
     def logprob_array(self, param_values_array):

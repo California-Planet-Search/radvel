@@ -3,12 +3,8 @@ Command Line Interface
 """
 import os
 from argparse import ArgumentParser
-import warnings
 
 import radvel.driver
-
-warnings.simplefilter("ignore")
-warnings.simplefilter('once', DeprecationWarning)
 
 def main():
     psr = ArgumentParser(
