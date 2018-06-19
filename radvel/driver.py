@@ -190,6 +190,9 @@ def mcmc(args):
 
     final_logprob = post.logprob()
     final_residuals = post.likelihood.residuals().std()
+    final_chisq = np.sum(post.likelihood.residuals()**2 / (post.likelihood.errorbars()**2) )
+    deg_of_freedom = len(post.likelihood.y) - len(post.likelihood.get_vary_params())
+    final_chisq_reduced = final_chisq / deg_of_freedom
     synthparams = post.params.basis.to_synth(post.params)
     post.params.update(synthparams)
 
@@ -218,6 +221,7 @@ def mcmc(args):
 
     print("Final loglikelihood = %f" % final_logprob)
     print("Final RMS = %f" % final_residuals)
+    print("Final reduced chi-square = {}".format(final_chisq_reduced))
     print("Best-fit parameters:")
     print(post)
 
