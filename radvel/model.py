@@ -1,4 +1,5 @@
 import numpy as np
+import types
 from collections import OrderedDict
 
 from radvel import kepler
