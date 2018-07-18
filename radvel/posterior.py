@@ -25,6 +25,8 @@ class Posterior(Likelihood):
         self.params = likelihood.params
         self.uparams = likelihood.uparams
         self.priors = []
+
+        self.vparams_order = self.list_vary_params()
     
     def __repr__(self):
         s = super(Posterior, self).__repr__()

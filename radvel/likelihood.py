@@ -26,6 +26,8 @@ class Likelihood(object):
             self.params[key] = radvel.model.Parameter(value=0.0)
         self.uparams = None
 
+        self.vparams_order = self.list_vary_params()
+
     def __repr__(self):
         s = ""
         if self.uparams is None:
@@ -86,7 +88,12 @@ class Likelihood(object):
         return params_array
 
     def list_vary_params(self):
-        return [key for key in self.params.keys() if self.params[key].vary]
+        try:
+            keys = self.vparams_order
+        except AttributeError:
+            keys = self.params.keys()
+
+        return [key for key in keys if self.params[key].vary]
 
     def residuals(self):
         return self.y - self.model(self.x)
