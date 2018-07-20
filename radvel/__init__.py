@@ -9,9 +9,9 @@ from .plot import *
 from .fitting import *
 import os 
 import sys
-import warnings
 
-warnings.simplefilter('once')
+import warnings
+warnings.filterwarnings("once")
 
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'
@@ -19,7 +19,7 @@ def _custom_warningfmt(msg, *a, **b):
 __all__=['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
-__version__ = '1.1.11'
+__version__ = '1.1.12'
 
 MODULEDIR, filename = os.path.split(__file__)
 DATADIR = os.path.join(sys.prefix, 'radvel_example_data')

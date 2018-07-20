@@ -11,7 +11,7 @@ latex = {
 }
 
 telfmts_default = {
-    'j': dict(color='k', fmt='o', mfc='none', label='HIRES', mew=1),
+    'j': dict(color='r', marker=u'o', label='HIRES', mew=1),
     'k': dict(color='k', fmt='s', mfc='none', label='HIRES pre 2004', mew=1),
     'a': dict(color='g', fmt='d', label='APF'),
     'pfs': dict(color='magenta', fmt='p', label='PFS'),
@@ -39,7 +39,7 @@ cmap = nipy_spectral
 rcParams['font.size'] = 9
 rcParams['lines.markersize'] = 5
 rcParams['axes.grid'] = False
-default_colors = ['orange', 'purple', 'magenta', 'pink', 'blue', 'grey', 'red']
+default_colors = ['orange', 'purple', 'magenta', 'pink', 'green', 'grey', 'red']
 
 
 def telplot(x, y, e, tel, ax, lw=1., telfmt={}):
