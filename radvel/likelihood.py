@@ -91,7 +91,7 @@ class Likelihood(object):
         keys = self.list_params()
 
         return [key for key in keys if self.params[key].vary]
-    
+
     def list_params(self):
         try:
             keys = self.params_order

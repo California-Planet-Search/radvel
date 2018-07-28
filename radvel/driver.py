@@ -235,7 +235,7 @@ def mcmc(args):
 
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
     chains.to_csv(csvfn, compression='bz2')
-        
+
     savestate = {'run': True,
                  'postfile': os.path.abspath(postfile),
                  'chainfile': os.path.abspath(csvfn),
