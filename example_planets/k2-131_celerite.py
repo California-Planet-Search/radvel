@@ -5,8 +5,7 @@ import radvel
 
 # This setup file is provided to illustrate how to set up
 # a config file for use with Dan Foreman-Mackey's `celerite`
-# package. The results it produces are not meant to be
-# compared with those of Dai et al. (2017).
+# package.
 
 # Data from Dai+ 2017
 instnames = ['harps-n','pfs'] 
@@ -43,29 +42,16 @@ params['curv'] = radvel.Parameter(value=0.,vary=False)
 time_base = np.median(t)
 
 # Define Celerite GP hyperparameters.
-
-# First Celerite Term. AC>=BD must be true to ensure 
-# positive-definiteness. (A == params['1_logA'].value, etc.)
-params['1_logA'] = radvel.Parameter(value=np.log(26.))
-params['1_logB'] = radvel.Parameter(value=np.log(.0005))
-params['1_logC'] = radvel.Parameter(value=np.log(.5))
-params['1_logD'] = radvel.Parameter(value=np.log(.0005))
-
-# Second Celerite Term (real). Setting vary=False for 1_logB and 
-# 1_logD ensures that this term remains real throughout the fitting process.
-params['2_logA'] = radvel.Parameter(value=np.log(26.)) 
-params['2_logB'] = radvel.Parameter(value=np.log(0.005), vary=False)
-params['2_logC'] = radvel.Parameter(value=np.log(0.1)) 
-params['2_logD'] = radvel.Parameter(value=np.log(0.005), vary=False)
+params['gp_B'] = radvel.Parameter(value=30**2., vary=True)
+params['gp_C'] = radvel.Parameter(value=1., vary=True) 
+params['gp_L'] = radvel.Parameter(value=9., vary=True)
+params['gp_Prot'] = radvel.Parameter(value=9., vary=True)
 
 hnames = {}
 for tel in instnames:
-  hnames[tel] = ['1_logA','1_logB','1_logC','1_logD',
-                 '2_logA','2_logB','2_logC','2_logD'
-                 ]
+  hnames[tel] = ['gp_B','gp_C','gp_L','gp_Prot']
 
-kernel_name = {'harps-n':"Celerite", 
-               'pfs':"Celerite"}
+kernel_name = {'harps-n':"Celerite", 'pfs':"Celerite"}
 
 jit_guesses = {'harps-n':2.0, 'pfs':5.0}
 
@@ -85,5 +71,6 @@ priors = [radvel.prior.Gaussian('per1', Porb, Porb_unc),
           radvel.prior.Jeffreys('k1', 0.01, 10.),
           radvel.prior.Jeffreys('jit_pfs', 0.01, 10.),
           radvel.prior.Jeffreys('jit_harps-n', 0.01,10.),
-          radvel.prior.Jeffreys('1_logA', 0.005, 75.0)
+          radvel.prior.Gaussian('gp_L',9.5,1.), # constraints from photometry (Dai et al. 2017)
+          radvel.prior.Gaussian('gp_Prot',9.64,0.12)
           ]

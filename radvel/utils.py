@@ -84,8 +84,10 @@ Converting 'logjit' to 'jit' for you now.
             liketype = radvel.likelihood.GPLikelihood
             try:
                 kernel_name = P.kernel_name[inst]
+                # if kernel_name == "Celerite":
+                #     liketype = radvel.likelihood.CeleriteLikelihood
                 if kernel_name == "Celerite":
-                    liketype = radvel.likelihood.CeleriteLikelihood
+                     liketype = radvel.likelihood.CeleriteLikelihood
             except AttributeError:
                 kernel_name = "QuasiPer"
         except AttributeError:
