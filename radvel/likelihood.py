@@ -98,7 +98,7 @@ class Likelihood(object):
         except AttributeError:
             keys = list(self.params.keys())
             self.params_order = keys
-         return keys
+        return keys
 
     def residuals(self):
         return self.y - self.model(self.x)
