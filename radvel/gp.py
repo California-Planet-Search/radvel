@@ -409,9 +409,9 @@ CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'
     def __repr__(self):
 
         B = self.hparams['gp_B'].value
-        C = self.hparams['gp_amp'].value
-        L = self.hparams['gp_per'].value
-        Prot = self.hparams['gp_explength'].value
+        C = self.hparams['gp_C'].value
+        L = self.hparams['gp_L'].value
+        Prot = self.hparams['gp_Prot'].value
 
         msg = (
             "Celerite Kernel with B = {}, C = {}, L = {}, Prot = {}."

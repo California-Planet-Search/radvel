@@ -72,6 +72,8 @@ for tel in instnames:
     radvel.prior.Jeffreys('k1', 0.01, 10.),
     radvel.prior.Jeffreys('jit_pfs', 0.01, 10.),
     radvel.prior.Jeffreys('jit_harps-n', 0.01,10.),
-    radvel.prior.Gaussian('gp_L',9.5,1.), # constraints from photometry (Dai et al. 2017)
-    radvel.prior.Gaussian('gp_Prot',9.64,0.12)
+    radvel.prior.Gaussian('gp_L',9.5,1.), # constraints from photometry on hyperparams (Dai et al. 2017)
+    radvel.prior.Gaussian('gp_Prot',9.64,0.12),
+    radvel.prior.HardBounds('gp_C',0.,1e10),  # keep other two hyperparams positive
+    radvel.prior.HardBounds('gp_B',0.,1e10)
   ]
