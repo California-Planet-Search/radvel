@@ -385,7 +385,7 @@ class GPLikelihood(RVLikelihood):
 
             return like
 
-        except np.linalg.linalg.LinAlgError:
+        except (np.linalg.linalg.LinAlgError, ValueError):
             print("Warning: non-positive definite kernel detected.")
             return -np.inf 
 
