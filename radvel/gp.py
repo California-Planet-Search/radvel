@@ -13,7 +13,7 @@ KERNELS = {
     "SqExp": ['gp_length','gp_amp'],
     "Per": ['gp_per','gp_length','gp_amp'],
     "QuasiPer": ['gp_per','gp_perlength','gp_explength','gp_amp'],
-    "Celerite": ['gp_B','gp_C','gp_L','1_Prot']
+    "Celerite": ['gp_B','gp_C','gp_L','gp_Prot']
 }
 
 if sys.version_info[0] < 3:

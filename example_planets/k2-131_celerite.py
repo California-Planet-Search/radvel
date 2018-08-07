@@ -50,7 +50,7 @@ params['gp_Prot'] = radvel.Parameter(value=9., vary=True)
 
 hnames = {}
 for tel in instnames:
-  names[tel] = ['gp_B','gp_C','gp_L','gp_Prot']
+  hnames[tel] = ['gp_B','gp_C','gp_L','gp_Prot']
 
 kernel_name = {'harps-n':"Celerite", 'pfs':"Celerite"}
 
