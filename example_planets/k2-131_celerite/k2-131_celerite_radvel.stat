@@ -1,0 +1,7 @@
+[fit]
+postfile = /Users/bluez3303/Documents/GitHub/radvel/example_planets/k2-131_celerite/k2-131_celerite_post_obj.pkl
+run = True
+
+[plot]
+rv_plot = /Users/bluez3303/Documents/GitHub/radvel/example_planets/k2-131_celerite/k2-131_celerite_rv_multipanel.pdf
+

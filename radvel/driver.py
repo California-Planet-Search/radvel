@@ -164,7 +164,7 @@ def mcmc(args):
         .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
     print(msg)
 
-    chains = radvel.mcmc(
+    chains, minTz, maxGR = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
             maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=args.serial)
 
@@ -241,7 +241,10 @@ def mcmc(args):
                  'chainfile': os.path.abspath(csvfn),
                  'summaryfile': os.path.abspath(saveto),
                  'nwalkers': args.nwalkers,
-                 'nsteps': args.nsteps}
+                 'nsteps': args.nsteps,
+                 'nensembles': args.ensembles,
+                 'minTz': minTz,
+                 'maxGR': maxGR}
     save_status(statfile, 'mcmc', savestate)
 
 
