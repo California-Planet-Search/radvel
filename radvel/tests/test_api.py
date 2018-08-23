@@ -177,36 +177,6 @@ def test_kernels():
         except AttributeError:
             sys.stdout.write("passed #2\n")
 
-        # CeleriteKernel & subclasses catch some errors a little differently
-        if isinstance(test_kernel, radvel.gp.CeleriteKernel):
-            fakeparams3 = copy.deepcopy(hyperparams)
-            fakeparams3.pop(hnames[0])
-            fake_param = '9' + hnames[0][1:]
-            fakeparams3[fake_param] = radvel.Parameter(value=1.0)
-            try:
-                kernel_call(fakeparams3)
-                raise Exception('Test #3 failed for {}'.format(kernel))
-            except IndexError:
-                sys.stdout.write("passed #3\n")
-            fakeparams4 = copy.deepcopy(hyperparams)
-            fakeparams4.pop(hnames[0])
-            fakeparams4['dummy'] = radvel.Parameter(value=1.0)
-            try:
-                kernel_call(fakeparams4)
-                raise Exception('Test #4 failed for {}'.format(kernel))
-            except ValueError:
-                sys.stdout.write("passed #4\n")
-
-        else:
-            fakeparams3 = copy.deepcopy(hyperparams)
-            fakeparams3.pop(hnames[0])
-            fakeparams3['dummy'] = radvel.Parameter(value=1.0)
-            try:
-                kernel_call(fakeparams3)
-                raise Exception('Test #3 failed for {}'.format(kernel))
-            except KeyError:
-                sys.stdout.write("passed #3\n")
-
 
 def test_priors():
     """

@@ -98,7 +98,6 @@ class Likelihood(object):
         except AttributeError:
             keys = list(self.params.keys())
             self.params_order = keys
-
         return keys
 
     def residuals(self):
@@ -133,7 +132,7 @@ class CompositeLikelihood(Likelihood):
         params = like0.params
         self.model = like0.model
         self.x = like0.x
-        self.y = like0.y #- params[like0.gamma_param].value
+        self.y = like0.y
         self.yerr = like0.yerr
         self.telvec = like0.telvec
         self.extra_params = like0.extra_params
@@ -386,7 +385,7 @@ class GPLikelihood(RVLikelihood):
 
             return like
 
-        except np.linalg.linalg.LinAlgError:
+        except (np.linalg.linalg.LinAlgError, ValueError):
             print("Warning: non-positive definite kernel detected.")
             return -np.inf 
 
@@ -433,9 +432,10 @@ class CeleriteLikelihood(GPLikelihood):
     """Celerite GP Likelihood
 
     The Likelihood object for a radial velocity dataset modeled with a GP
-    whose kernel is a sum of celerite terms. 
+    whose kernel is an approximation to the quasi-periodic kernel.
+
     See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
-    for more details.
+    (equation 56) for more details.
 
     See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
     file that uses this Likelihood object.
@@ -452,48 +452,24 @@ class CeleriteLikelihood(GPLikelihood):
     """
 
     def __init__(self, model, t, vel, errvel, hnames, suffix='', **kwargs):
+
         super(CeleriteLikelihood, self).__init__(
             model, t, vel, errvel, hnames,
             suffix=suffix, kernel_name='Celerite'
         )
 
-        # sort inputs in time order. required for celerite.
+        # Sort inputs in time order. Required for celerite calculations.
         order = np.argsort(self.x)
         self.x = self.x[order]
         self.y = self.y[order]
         self.yerr = self.yerr[order]
         self.N = len(self.x)
 
-    def update_kernel_params(self):
-        """ Update the Kernel object with new values of the hyperparameters 
-        """
-        for key in self.list_vary_params():
-            if key in self.hnames:  
-                index = int(key[0][-1]) - 1 # grab index from hyperparameter string name
-                if 'logA' in key:
-                    self.kernel.hparams[index,0] = self.params[key].value
-                if 'logB' in key:
-                    self.kernel.hparams[index,1] = self.params[key].value
-                if 'logC' in key:
-                    self.kernel.hparams[index,2] = self.params[key].value
-                if 'logD' in key:
-                    self.kernel.hparams[index,3] = self.params[key].value
-
     def logprob(self):
 
         self.update_kernel_params()
 
-        can_proceed = True
-        for i in np.arange(self.kernel.num_terms):
-            if np.exp(self.kernel.hparams[i,0]+self.kernel.hparams[i,2]) >= \
-               np.exp(self.kernel.hparams[i,1]+self.kernel.hparams[i,3]):
-                pass
-            else:
-                can_proceed = False
-
-        if can_proceed:
-            r = self._resids() 
-
+        try:
             solver = self.kernel.compute_covmatrix(self.errorbars())
 
             # calculate log likelihood
@@ -501,15 +477,14 @@ class CeleriteLikelihood(GPLikelihood):
         
             return lnlike
 
-        else:
-           print("WARNING: CeleriteKernel has encountered a non-positive-definite"
-                +" kernel. Ensure that ac>=bd for all complex kernel terms.")
+        except celerite.solver.LinAlgError:
+            print("WARNING: non-positive definite kernel encountered!")
 
-           return -np.inf
+            return -np.inf
 
     def predict(self,xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
-            Used for making GP plots. Wrapper around `celerite.GP.predict()`.
+            Used for making GP plots. Wrapper for `celerite.GP.predict()`.
 
             Args:
                 xpred (np.array): numpy array of x values for realizing the GP
@@ -521,20 +496,32 @@ class CeleriteLikelihood(GPLikelihood):
 
         self.update_kernel_params()
 
+        B = self.kernel.hparams['gp_B'].value
+        C = self.kernel.hparams['gp_C'].value
+        L = self.kernel.hparams['gp_L'].value
+        Prot = self.kernel.hparams['gp_Prot'].value
+
         # build celerite kernel with current values of hparams
         kernel = celerite.terms.JitterTerm(
                 log_sigma = np.log(self.params[self.jit_param].value)
                 )
-        for i in np.arange(self.kernel.num_terms):
-            kernel = kernel + celerite.terms.ComplexTerm(
-                log_a = self.kernel.hparams[i,0],
-                log_b = self.kernel.hparams[i,1],
-                log_c = self.kernel.hparams[i,2],
-                log_d = self.kernel.hparams[i,3]
-                )
+
+        kernel += celerite.terms.RealTerm(
+            log_a=np.log(B*(1+C)/(2+C)),
+            log_c=np.log(1/L)
+        )
+
+        kernel += celerite.terms.ComplexTerm(
+            log_a=np.log(B/(2+C)),
+            log_b=-np.inf,
+            log_c=np.log(1/L),
+            log_d=np.log(2*np.pi/Prot)
+        )
+
         gp = celerite.GP(kernel)
         gp.compute(self.x, self.yerr)
-        mu, var = gp.predict(self.y-self.params[self.gamma_param].value, xpred, return_var=True)
+    #    mu, var = gp.predict(self.y-self.params[self.gamma_param].value, xpred, return_var=True)
+        mu, var = gp.predict(self._resids(), xpred, return_var=True)
 
         stdev = np.sqrt(var)
 
