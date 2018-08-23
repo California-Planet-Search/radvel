@@ -19,6 +19,7 @@ import numpy as np
 
 import radvel
 from radvel.plot import orbit_plots, mcmc_plots
+from radvel.mcmc import statevars
 from astropy import constants as c
 from numpy import inf
 
@@ -168,6 +169,9 @@ def mcmc(args):
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
             maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=args.serial)
 
+    mintz = statevars.mintz
+    maxgr = statevars.maxgr
+
     # Convert chains into synth basis
     synthchains = chains.copy()
     for par in post.params.keys():
@@ -241,7 +245,9 @@ def mcmc(args):
                  'chainfile': os.path.abspath(csvfn),
                  'summaryfile': os.path.abspath(saveto),
                  'nwalkers': args.nwalkers,
-                 'nsteps': args.nsteps}
+                 'nsteps': args.nsteps,
+                 'minTz': mintz,
+                 'maxGR': maxgr}
     save_status(statfile, 'mcmc', savestate)
 
 
