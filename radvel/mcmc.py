@@ -107,7 +107,10 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
         thin (int): (optional) save one sample every N steps (default=1, save every sample)
         serial (bool): set to true if MCMC should be run in serial
     Returns:
-        DataFrame: DataFrame containing the MCMC samples
+        tuple containing:
+            DataFrame: DataFrame containing the MCMC samples
+            GR: max GR stat for chains
+            minTz: min Tz stat for chains
     """
 
     # check if one or more likelihoods are GPs
@@ -258,7 +261,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
 
     df = df.iloc[::thin]
 
-    return df
+    return df, statevars.mintz, statevars.maxgr
 
 
 def gelman_rubin(pars0, minTz, maxGR):
