@@ -5,7 +5,6 @@ import os
 import pandas as pd
 import numpy as np
 import radvel
-import os
 
 # Define global planetary system and dataset parameters
 starname = 'epic203771098'
