@@ -122,8 +122,8 @@ class Likelihood(object):
             float: BIC
         """
 
-        n = len(self.likelihood.y)
-        k = len(self.likelihood.get_vary_params())
+        n = len(self.y)
+        k = len(self.get_vary_params())
         _bic = np.log(n) * k - 2.0 * self.logprob()
         return _bic
 
@@ -137,8 +137,8 @@ class Likelihood(object):
             float: AICC
         """
 
-        n = len(self.likelihood.y)
-        k = len(self.likelihood.get_vary_params())
+        n = len(self.y)
+        k = len(self.get_vary_params())
         aic = - 2.0 * self.logprob() + 2.0 * k
         # Small sample correction
         _aicc = aic

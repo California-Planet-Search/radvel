@@ -101,8 +101,8 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             print("logprob = %4.2f" % fitpost.logprob())
             print("chi = %4.2f" % chi)
             print("chi_red = %4.2f" % chi_red)
-            print("BIC = %4.2f" % fitpost.bic())
-            print("AIC = %4.2f" % fitpost.aic())
+            print("BIC = %4.2f" % fitpost.likelihood.bic())
+            print("AIC = %4.2f" % fitpost.likelihood.aic())
        
         comparison_parameters = ['Free Params', '$N_{\\rm free}$', '$N_{\\rm data}$',\
             'RMS', '$\\ln{\\mathcal{L}}$',\
@@ -122,11 +122,11 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             np.round(fitpost.logprob(),2), "natural log of the likelihood"
         )
         pdict['BIC'] = (
-            np.round(fitpost.bic(),2), 
+            np.round(fitpost.likelihood.bic(),2),
             'Bayesian information criterion'
         )
         pdict['AICc'] = (
-            np.round(fitpost.aic(),2), 
+            np.round(fitpost.likelihood.aic(),2),
             'Aikaike information (small sample corrected) criterion'
         )
         num_planets = fitpost.likelihood.model.num_planets
