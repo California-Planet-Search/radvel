@@ -201,8 +201,12 @@ class DerivedPlot(object):
 
 def texlabel(key, letter):
     """
-    key (list of string): list of parameter strings
-    letter (string): planet letter
+    Args:
+        key (list of string): list of parameter strings
+        letter (string): planet letter
+
+    Returns:
+        string: LaTeX label for parameter string
     """
     if key.count('mpsini') == 1:
         return '$M_' + letter + '\\sin i$'
