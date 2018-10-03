@@ -314,7 +314,7 @@ class MultipanelPlot(object):
                           "max-likelihood values and reported uncertainties " +
                           "may not be appropriate.")
                 err = self.uparams["%s%d" % (print_params[l], pnum)]
-                if err > 0:
+                if err > 1e-15:
                     val, err, errlow = sigfig(val, err)
                     _anotext = '$\\mathregular{%s}$ = %s $\\mathregular{\\pm}$ %s %s' \
                                % (labels[l].replace("$", ""), val, err, units[p])
