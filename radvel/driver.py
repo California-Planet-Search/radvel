@@ -245,6 +245,7 @@ def mcmc(args):
                  'chainfile': os.path.abspath(csvfn),
                  'summaryfile': os.path.abspath(saveto),
                  'nwalkers': statevars.nwalkers,
+                 'nensembles': args.ensembles,
                  'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
                  'nsteps': statevars.ncomplete,
                  'nburn': statevars.nburn,
