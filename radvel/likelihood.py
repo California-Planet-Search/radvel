@@ -130,9 +130,8 @@ class Likelihood(object):
     def aic(self):
         """
         Calculate the Aikike information criterion
-        The Small Sample AIC (AICC) is returned because for
-            most RV data sets n < 40 * k
-            (see Burnham & Anderson 2002 S2.4)
+        The Small Sample AIC (AICC) is returned because for most RV data sets n < 40 * k
+        (see Burnham & Anderson 2002 S2.4).
 
         Returns:
             float: AICC
