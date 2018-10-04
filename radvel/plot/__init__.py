@@ -11,7 +11,7 @@ latex = {
 }
 
 telfmts_default = {
-    'j': dict(color='r', marker=u'o', label='HIRES', mew=1),
+    'j': dict(color='k', marker=u'o', label='HIRES', mew=1),
     'k': dict(color='k', fmt='s', mfc='none', label='HIRES pre 2004', mew=1),
     'a': dict(color='g', fmt='d', label='APF'),
     'pfs': dict(color='magenta', fmt='p', label='PFS'),

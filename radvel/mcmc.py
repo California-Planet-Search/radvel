@@ -61,7 +61,7 @@ def convergence_check(samplers, maxGR, minTz, minsteps):
         # not work so just calculate it on the last sampler
         statevars.tchains = sampler.chain.transpose()
 
-    # Must have compelted at least 5% or 1000 steps per walker before
+    # Must have completed at least 5% or 1000 steps per walker before
     # attempting to calculate GR
     if statevars.pcomplete < 5 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
@@ -140,6 +140,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
         print("WARNING: Number of walkers is less than 2 times number \
 of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         statevars.nwalkers = 2*statevars.ndim
+
 
     # set up perturbation size
     pscales = []
@@ -252,7 +253,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         print(msg)
         
     df = pd.DataFrame(
-        statevars.tchains.reshape(statevars.ndim,statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
+        statevars.tchains.reshape(statevars.ndim, statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
         columns=post.list_vary_params())
     df['lnprobability'] = np.hstack(statevars.lnprob)
 

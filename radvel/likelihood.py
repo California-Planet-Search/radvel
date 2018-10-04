@@ -114,6 +114,44 @@ class Likelihood(object):
         _logprob = self.logprob()
         return _logprob
 
+    def bic(self):
+        """
+        Calculate the Bayesian information criterion
+
+        Returns:
+            float: BIC
+        """
+
+        n = len(self.y)
+        k = len(self.get_vary_params())
+        _bic = np.log(n) * k - 2.0 * self.logprob()
+        return _bic
+
+    def aic(self):
+        """
+        Calculate the Aikike information criterion
+        The Small Sample AIC (AICC) is returned because for most RV data sets n < 40 * k
+        (see Burnham & Anderson 2002 S2.4).
+
+        Returns:
+            float: AICC
+        """
+
+        n = len(self.y)
+        k = len(self.get_vary_params())
+        aic = - 2.0 * self.logprob() + 2.0 * k
+        # Small sample correction
+        _aicc = aic
+        denom = (n - k - 1.0)
+        if denom > 0:
+            _aicc += (2.0 * k * (k + 1.0)) / denom
+        else:
+            print("Warning: The number of free parameters is greater than or equal to")
+            print("         the number of data points. The AICc comparison calculations")
+            print("         will fail in this case.")
+            _aicc = np.inf
+        return _aicc
+
 
 class CompositeLikelihood(Likelihood):
     """Composite Likelihood

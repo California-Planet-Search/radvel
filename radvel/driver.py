@@ -244,8 +244,11 @@ def mcmc(args):
                  'postfile': os.path.abspath(postfile),
                  'chainfile': os.path.abspath(csvfn),
                  'summaryfile': os.path.abspath(saveto),
-                 'nwalkers': args.nwalkers,
-                 'nsteps': args.nsteps,
+                 'nwalkers': statevars.nwalkers,
+                 'nensembles': args.ensembles,
+                 'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
+                 'nsteps': statevars.ncomplete,
+                 'nburn': statevars.nburn,
                  'minTz': mintz,
                  'maxGR': maxgr}
     save_status(statfile, 'mcmc', savestate)
