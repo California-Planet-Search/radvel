@@ -85,6 +85,17 @@ class Posterior(Likelihood):
 
         return self.likelihood.residuals()
 
+    def bic(self):
+        """Moved to Likelihood.bic"""
+
+        return self.likelihood.bic()
+
+    def aic(self):
+        """Moved to Likelihood.aic"""
+
+        raise self.likelihood.aic()
+
+
 def load(filename):
     """
     Load posterior object from pickle file.

@@ -19,7 +19,7 @@ def _custom_warningfmt(msg, *a, **b):
 __all__=['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
-__version__ = '1.2.1'
+__version__ = '1.2.2'
 
 MODULEDIR, filename = os.path.split(__file__)
 DATADIR = os.path.join(sys.prefix, 'radvel_example_data')

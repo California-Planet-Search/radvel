@@ -311,7 +311,7 @@ class RVLikelihood(Likelihood):
         Returns:
             float: Natural log of likelihood
         """
-        
+
         sigma_jit = self.params[self.jit_param].value
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
@@ -511,7 +511,7 @@ class CeleriteLikelihood(GPLikelihood):
             solver = self.kernel.compute_covmatrix(self.errorbars())
 
             # calculate log likelihood
-            lnlike =  -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant() + self.N*np.log(2.*np.pi))
+            lnlike = -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant() + self.N*np.log(2.*np.pi))
         
             return lnlike
 
