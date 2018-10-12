@@ -263,7 +263,7 @@ class TexTable(RadvelReport):
         out = t.render(rows=rows, **kw)
         return out
 
-    def tab_rv(self, name_in_title=False):
+    def tab_rv(self, name_in_title=False, max_lines=50):
         """Table of input velocities
 
         Args:
@@ -273,7 +273,7 @@ class TexTable(RadvelReport):
 
         nvels = len(self.post.likelihood.x)
         rows = []
-        for i in range(nvels):
+        for i in range(nvels)[:max_lines]:
             t = self.post.likelihood.x[i]
             v = self.post.likelihood.y[i]
             e = self.post.likelihood.yerr[i]
