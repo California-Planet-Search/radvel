@@ -109,7 +109,7 @@ def plots(args):
             Derived = mcmc_plots.DerivedPlot(chains, P, saveplot=saveto)
             Derived.plot()
 
-        savestate = {'{}_plot'.format(ptype): os.path.abspath(saveto)}
+        savestate = {'{}_plot'.format(ptype): os.path.relpath(saveto)}
         save_status(statfile, 'plot', savestate)
             
         
@@ -133,7 +133,7 @@ def fit(args):
     post.writeto(postfile)
     
     savestate = {'run': True,
-                 'postfile': os.path.abspath(postfile)}
+                 'postfile': os.path.relpath(postfile)}
     save_status(os.path.join(args.outputdir,
                              '{}_radvel.stat'.format(conf_base)),
                              'fit', savestate)
@@ -241,9 +241,9 @@ def mcmc(args):
     chains.to_csv(csvfn, compression='bz2')
 
     savestate = {'run': True,
-                 'postfile': os.path.abspath(postfile),
-                 'chainfile': os.path.abspath(csvfn),
-                 'summaryfile': os.path.abspath(saveto),
+                 'postfile': os.path.relpath(postfile),
+                 'chainfile': os.path.relpath(csvfn),
+                 'summaryfile': os.path.relpath(saveto),
                  'nwalkers': statevars.nwalkers,
                  'nensembles': args.ensembles,
                  'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
@@ -361,7 +361,7 @@ def tables(args):
            # print(tex, file=f)
            f.write(tex)
 
-        savestate = {'{}_tex'.format(tabtype): os.path.abspath(saveto)}
+        savestate = {'{}_tex'.format(tabtype): os.path.relpath(saveto)}
         save_status(statfile, 'table', savestate)
 
 
@@ -464,7 +464,7 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
 
     csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.tar.bz2')
     chains.to_csv(csvfn, columns=outcols, compression='bz2')
-    savestate['chainfile'] = os.path.abspath(csvfn)
+    savestate['chainfile'] = os.path.relpath(csvfn)
 
     save_status(statfile, 'derive', savestate)
 
