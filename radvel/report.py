@@ -1,5 +1,6 @@
+import numpy as np
+
 import subprocess
-import copy
 import os
 import tempfile
 import shutil
@@ -34,6 +35,7 @@ units = {
     'rp': '$R_\earth$',
     'rhop': 'g cm$^{-3}$',
 }
+
 
 class RadvelReport(object):
     """Radvel report
@@ -86,14 +88,14 @@ class RadvelReport(object):
         reportkw['version'] = radvel.__version__
 
         # Render TeX for figures
-        figtypes = ['rv_multipanel','corner','corner_derived_pars']
+        figtypes = ['rv_multipanel', 'corner', 'corner_derived_pars']
         for figtype in figtypes:
-            infile = "{}_{}.pdf".format(self.runname,figtype)
+            infile = "{}_{}.pdf".format(self.runname, figtype)
             tmpfile = 'fig_{}.tex'.format(figtype)
             key = 'fig_{}'.format(figtype)
             if os.path.exists(infile):
                 t = env.get_template(tmpfile)
-                reportkw[key] = t.render(report=self,infile=infile)
+                reportkw[key] = t.render(report=self, infile=infile)
 
         # Render TeX for tables
         textable = TexTable(self)
@@ -158,6 +160,7 @@ or pass in the path as an argument
         shutil.rmtree(temp)
         os.chdir(current)
 
+
 class TexTable(RadvelReport):
     """LaTeX table
 
@@ -165,6 +168,7 @@ class TexTable(RadvelReport):
 
     Args:
         report (radvel.report.RadvelReport): radvel report object
+        full (bool): get full-length RV table [default: True]
     """
     
     def __init__(self, report):
@@ -271,9 +275,20 @@ class TexTable(RadvelReport):
                 the name of the star in the table title
         """
 
+        kw = {}
         nvels = len(self.post.likelihood.x)
+
+        if max_lines is None:
+            iters = range(nvels)
+            kw['notes'] = ''
+        else:
+            max_lines = int(np.round(max_lines))
+            iters = range(nvels)[:max_lines]
+            kw['notes'] = """Only the first %d of %d RVs are displayed in this table. \
+Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate file.""" % (max_lines, nvels)
+
         rows = []
-        for i in range(nvels)[:max_lines]:
+        for i in iters:
             t = self.post.likelihood.x[i]
             v = self.post.likelihood.y[i]
             e = self.post.likelihood.yerr[i]
@@ -281,7 +296,6 @@ class TexTable(RadvelReport):
             row = "{:.5f} & {:.2f} & {:.2f} & {:s}".format(t, v, e, inst)
             rows.append(row)
 
-        kw = {}
         if name_in_title:
             kw['title'] = "{} Radial Velocities".format(self.report.starname)
         else:

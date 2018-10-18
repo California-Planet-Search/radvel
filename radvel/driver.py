@@ -351,6 +351,8 @@ def tables(args):
             )
             tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
+        elif tabtype == 'rv':
+            tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title, max_lines=None)
         else:
             assert tabtype in attrdict, 'Invalid Table Type %s ' % tabtype
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title)

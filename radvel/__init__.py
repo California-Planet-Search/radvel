@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 from .model import *
 from .likelihood import *
 from . import posterior
@@ -10,11 +13,10 @@ from .fitting import *
 import os 
 import sys
 
-import warnings
-warnings.filterwarnings("once")
 
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'
+
 
 __all__=['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
@@ -36,6 +38,7 @@ if not os.path.isdir(DATADIR):
 
 # tell python how to pickle methods and fucntions; necessary for running MCMC in multi-
 #  threaded mode.
+
 
 def _pickle_method(method):
     func_name = method.im_func.__name__

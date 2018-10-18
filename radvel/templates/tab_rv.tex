@@ -14,7 +14,6 @@
 {% for row in rows %}
   {{ row }} \\
 {% endfor %}
-\tablecomments{Only the first $\leq50$ RVs are displayed in this table.
-Use \textttt{radvel table -t rv} to save the full LaTeX table in a separate file.}
+\tablecomments{ {{ notes}} }
 \enddata
 \end{deluxetable}
