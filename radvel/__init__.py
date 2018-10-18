@@ -11,14 +11,14 @@ import os
 import sys
 
 import warnings
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("once")
 
 
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'
 
 
-__all__=['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
+__all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
 __version__ = '1.2.3'
