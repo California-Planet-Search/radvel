@@ -1,6 +1,3 @@
-import warnings
-warnings.filterwarnings("ignore")
-
 from .model import *
 from .likelihood import *
 from . import posterior
@@ -12,6 +9,9 @@ from .plot import *
 from .fitting import *
 import os 
 import sys
+
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def _custom_warningfmt(msg, *a, **b):
