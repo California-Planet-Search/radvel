@@ -13,13 +13,15 @@ import sys
 import warnings
 warnings.filterwarnings("once")
 
+
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'
 
-__all__=['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
+
+__all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
-__version__ = '1.2.2'
+__version__ = '1.2.3'
 
 MODULEDIR, filename = os.path.split(__file__)
 DATADIR = os.path.join(sys.prefix, 'radvel_example_data')
@@ -36,6 +38,7 @@ if not os.path.isdir(DATADIR):
 
 # tell python how to pickle methods and fucntions; necessary for running MCMC in multi-
 #  threaded mode.
+
 
 def _pickle_method(method):
     func_name = method.im_func.__name__
