@@ -5,10 +5,8 @@ from .mcmc import *
 from .prior import *
 from .utils import *
 from .report import *
-from .plot import *
 from .fitting import *
-import os 
-import sys
+from .plot import *
 
 import warnings
 warnings.filterwarnings("once")

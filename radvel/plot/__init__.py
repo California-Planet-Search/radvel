@@ -1,6 +1,7 @@
 import numpy as np
-from matplotlib import pyplot as pl
 import matplotlib
+matplotlib.use('agg')
+from matplotlib import pyplot as pl
 from matplotlib.cm import nipy_spectral
 from matplotlib import rcParams
 from matplotlib.offsetbox import AnchoredText
