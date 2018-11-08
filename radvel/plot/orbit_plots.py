@@ -98,7 +98,6 @@ class MultipanelPlot(object):
         self.rvtimes = self.post.likelihood.x
         self.rverr = self.post.likelihood.errorbars()
         self.num_planets = self.model.num_planets
-   
 
         self.rawresid = self.post.likelihood.residuals()
 
@@ -106,7 +105,6 @@ class MultipanelPlot(object):
             self.rawresid + self.post.params['dvdt'].value*(self.rvtimes-self.model.time_base)
             + self.post.params['curv'].value*(self.rvtimes-self.model.time_base)**2
         )
-
 
         if self.saveplot is not None:
             resolution = 10000
@@ -116,8 +114,10 @@ class MultipanelPlot(object):
         periods = []
         for i in range(self.num_planets):
             periods.append(synthparams['per%d' % (i+1)].value)            
-        longp = max(periods)
-
+        if len(periods) > 0:
+            longp = max(periods)
+        else:
+            longp = max(self.post.likelihood.x) - min(self.post.likelihood.x)
 
         self.dt = max(self.rvtimes) - min(self.rvtimes)
         self.rvmodt = np.linspace(
@@ -280,7 +280,6 @@ class MultipanelPlot(object):
             ax.set_xlim(self.phase_limits[0],self.phase_limits[1])
         else:
             ax.set_xlim(-0.5, 0.5)
-            
 
         if not self.yscale_auto: 
             scale = np.std(rvdatcat)
