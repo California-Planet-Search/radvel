@@ -25,6 +25,8 @@ class Posterior(Likelihood):
         self.params = likelihood.params
         self.uparams = likelihood.uparams
         self.priors = []
+
+        self.vparams_order = self.list_vary_params()
     
     def __repr__(self):
         s = super(Posterior, self).__repr__()
@@ -49,45 +51,6 @@ class Posterior(Likelihood):
             _logprob += prior( self.params )
             
         return _logprob
-
-    def bic(self):
-        """
-        Calculate the Bayesian information criterion
-
-        Returns:
-            float: BIC
-        """
-    
-        n = len(self.likelihood.y)
-        k = len(self.likelihood.get_vary_params())
-        _bic = np.log(n) * k - 2.0 * self.logprob()
-        return _bic
-    
-    def aic(self):
-        """
-        Calculate the Aikike information criterion
-        The Small Sample AIC (AICC) is returned because for 
-            most RV data sets n < 40 * k 
-            (see Burnham & Anderson 2002 S2.4) 
-
-        Returns:
-            float: AICC
-        """
-    
-        n = len(self.likelihood.y)
-        k = len(self.likelihood.get_vary_params())
-        aic = - 2.0 * self.logprob() + 2.0 * k
-        # Small sample correction
-        _aicc = aic
-        denom = (n - k - 1.0)
-        if denom > 0:
-            _aicc += (2.0 * k * (k + 1.0)) / denom 
-        else:
-            print("Warning: The number of free parameters is greater than or equal to") 
-            print("         the number of data points. The AICc comparison calculations") 
-            print("         will fail in this case.") 
-            _aicc = np.inf
-        return _aicc
 
     def logprob_array(self, param_values_array):
         """Log probability for parameter vector
@@ -121,6 +84,17 @@ class Posterior(Likelihood):
         """Overwrite inherited residuals method that does not work"""
 
         return self.likelihood.residuals()
+
+    def bic(self):
+        """Moved to Likelihood.bic"""
+
+        return self.likelihood.bic()
+
+    def aic(self):
+        """Moved to Likelihood.aic"""
+
+        raise self.likelihood.aic()
+
 
 def load(filename):
     """

@@ -182,7 +182,7 @@ class Basis(object):
                 k = _getpar('k')
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
-            if basis_name=='per tc se w k':
+            if basis_name == 'per tc se w k':
                 # pull out parameters
                 per = _getpar('per')
                 tc = _getpar('tc')
@@ -360,9 +360,9 @@ class Basis(object):
                 w = _getpar('w')
                 tp = _getpar('tp')
                 
-                _setpar('tc', timeperi_to_timetrans(tp, per, e, w) )
-                _setpar('w', w )
-                _setpar('se',np.sqrt(e))
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
+                _setpar('w', w)
+                _setpar('se', np.sqrt(e))
 
                 if not kwargs.get('keep', True):
                     _delpar('tp')
@@ -524,9 +524,6 @@ class Basis(object):
 
     def get_eparams(self):
         """Return the eccentricity parameters for the object's basis
-   
-        Args:
-            None
 
         Returns:
             the params which have to do with eccentricity 
@@ -539,13 +536,9 @@ class Basis(object):
         assert len(eparamlist) == 2
     
         return eparamlist 
-    
-    
+
     def get_circparams(self):
         """Return the 3 parameters for a circular orbit of a plent in the object's basis
-   
-        Args:
-            None
 
         Returns:
             the params for a circular orbit 
@@ -556,8 +549,4 @@ class Basis(object):
         circparamlist = circparamstring.split()
         assert len(circparamlist) == 3
     
-        return circparamlist 
-
-
-        
- 
+        return circparamlist

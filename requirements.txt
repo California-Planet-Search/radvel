@@ -12,3 +12,4 @@ ipykernel
 pybind11
 celerite>=0.3.0
 jinja2
+python-dateutil>=2.5.0

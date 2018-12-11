@@ -86,15 +86,9 @@ class MultipanelPlot(object):
         else:
             self.like_list = [ self.post.likelihood ] 
 
-# -----------------------------
-         # FIGURE PROVISIONING
-
+        # FIGURE PROVISIONING
         self.ax_rv_height = self.figwidth * 0.6
         self.ax_phase_height = self.ax_rv_height / 1.4
-
-        # FIGURE PROVISIONING
-# -----------------------------
-         
 
         # convert params to synth basis
         synthparams = self.post.params.basis.to_synth(self.post.params)
@@ -104,7 +98,6 @@ class MultipanelPlot(object):
         self.rvtimes = self.post.likelihood.x
         self.rverr = self.post.likelihood.errorbars()
         self.num_planets = self.model.num_planets
-   
 
         self.rawresid = self.post.likelihood.residuals()
 
@@ -112,7 +105,6 @@ class MultipanelPlot(object):
             self.rawresid + self.post.params['dvdt'].value*(self.rvtimes-self.model.time_base)
             + self.post.params['curv'].value*(self.rvtimes-self.model.time_base)**2
         )
-
 
         if self.saveplot is not None:
             resolution = 10000
@@ -122,8 +114,10 @@ class MultipanelPlot(object):
         periods = []
         for i in range(self.num_planets):
             periods.append(synthparams['per%d' % (i+1)].value)            
-        longp = max(periods)
-
+        if len(periods) > 0:
+            longp = max(periods)
+        else:
+            longp = max(self.post.likelihood.x) - min(self.post.likelihood.x)
 
         self.dt = max(self.rvtimes) - min(self.rvtimes)
         self.rvmodt = np.linspace(
@@ -286,13 +280,13 @@ class MultipanelPlot(object):
             ax.set_xlim(self.phase_limits[0],self.phase_limits[1])
         else:
             ax.set_xlim(-0.5, 0.5)
-            
 
         if not self.yscale_auto: 
             scale = np.std(rvdatcat)
             ax.set_ylim(-self.yscale_sigma*scale, self.yscale_sigma*scale)
         
         keys = [p+str(pnum) for p in ['per', 'k', 'e']]
+
         labels = [self.post.params.tex_labels().get(k, k) for k in keys]
         if pnum < self.num_planets:
             ticks = ax.yaxis.get_majorticklocs()
@@ -319,7 +313,7 @@ class MultipanelPlot(object):
                           "max-likelihood values and reported uncertainties " +
                           "may not be appropriate.")
                 err = self.uparams["%s%d" % (print_params[l], pnum)]
-                if err > 0:
+                if err > 1e-15:
                     val, err, errlow = sigfig(val, err)
                     _anotext = '$\\mathregular{%s}$ = %s $\\mathregular{\\pm}$ %s %s' \
                                % (labels[l].replace("$", ""), val, err, units[p])

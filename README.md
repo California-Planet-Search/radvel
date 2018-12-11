@@ -24,7 +24,6 @@ Documentation is available [here](http://radvel.readthedocs.io/)
 
 ## Features
 
-
 With RadVel you can
 
 
