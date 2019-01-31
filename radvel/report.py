@@ -1,12 +1,16 @@
-import numpy as np
-
 import subprocess
+import copy
 import os
 import tempfile
 import shutil
+import sys
 from operator import itemgetter
+from collections import OrderedDict
 from jinja2 import Environment, PackageLoader, select_autoescape
-
+if sys.version_info[0] < 3:
+    import ConfigParser as configparser
+else:
+    import configparser
 import radvel
 
 env = Environment(loader=PackageLoader('radvel', 'templates'))
@@ -35,7 +39,6 @@ units = {
     'rp': '$R_\earth$',
     'rhop': 'g cm$^{-3}$',
 }
-
 
 class RadvelReport(object):
     """Radvel report
@@ -76,6 +79,9 @@ class RadvelReport(object):
         )
         self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
         self.compstats = compstats
+
+        #print("DEBUG")
+        #print(str(compstats))
         self.num_planets = self.post.params.num_planets 
 
     def texdoc(self):
@@ -88,14 +94,14 @@ class RadvelReport(object):
         reportkw['version'] = radvel.__version__
 
         # Render TeX for figures
-        figtypes = ['rv_multipanel', 'corner', 'corner_derived_pars']
+        figtypes = ['rv_multipanel','corner','corner_derived_pars']
         for figtype in figtypes:
-            infile = "{}_{}.pdf".format(self.runname, figtype)
+            infile = "{}_{}.pdf".format(self.runname,figtype)
             tmpfile = 'fig_{}.tex'.format(figtype)
             key = 'fig_{}'.format(figtype)
             if os.path.exists(infile):
                 t = env.get_template(tmpfile)
-                reportkw[key] = t.render(report=self, infile=infile)
+                reportkw[key] = t.render(report=self,infile=infile)
 
         # Render TeX for tables
         textable = TexTable(self)
@@ -160,7 +166,6 @@ or pass in the path as an argument
         shutil.rmtree(temp)
         os.chdir(current)
 
-
 class TexTable(RadvelReport):
     """LaTeX table
 
@@ -168,7 +173,6 @@ class TexTable(RadvelReport):
 
     Args:
         report (radvel.report.RadvelReport): radvel report object
-        full (bool): get full-length RV table [default: True]
     """
     
     def __init__(self, report):
@@ -267,7 +271,7 @@ class TexTable(RadvelReport):
         out = t.render(rows=rows, **kw)
         return out
 
-    def tab_rv(self, name_in_title=False, max_lines=50):
+    def tab_rv(self, name_in_title=False):
         """Table of input velocities
 
         Args:
@@ -275,20 +279,9 @@ class TexTable(RadvelReport):
                 the name of the star in the table title
         """
 
-        kw = {}
         nvels = len(self.post.likelihood.x)
-
-        if max_lines is None:
-            iters = range(nvels)
-            kw['notes'] = ''
-        else:
-            max_lines = int(np.round(max_lines))
-            iters = range(nvels)[:max_lines]
-            kw['notes'] = """Only the first %d of %d RVs are displayed in this table. \
-Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate file.""" % (max_lines, nvels)
-
         rows = []
-        for i in iters:
+        for i in range(nvels):
             t = self.post.likelihood.x[i]
             v = self.post.likelihood.y[i]
             e = self.post.likelihood.yerr[i]
@@ -296,6 +289,7 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
             row = "{:.5f} & {:.2f} & {:.2f} & {:s}".format(t, v, e, inst)
             rows.append(row)
 
+        kw = {}
         if name_in_title:
             kw['title'] = "{} Radial Velocities".format(self.report.starname)
         else:
@@ -345,9 +339,8 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
 
         if statsdict is None or len(statsdict) < 1:
             return ""
-
-        statsdict_sorted = sorted(statsdict, key=itemgetter('AICc'),\
-            reverse=False)
+        
+        statsdict_sorted = sorted(statsdict, key=itemgetter('AICc'),reverse=False)
 
         n_test = len(statsdict_sorted)
         if n_test > 50:
@@ -396,7 +389,9 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
                     row += " \{$\gamma$\}" 
                     #row = row[:-1] 
                 else:
-                    raise(ValueError, "Failed to format values for LaTeX: {}  {}".format(s, val))
+                    print(s)
+                    print(val)
+                    raise
             row += " & %.2f" % (statsdict_sorted[i]['AICc'][0] - minAIC) 
             #row = row[3:]
             if i == 0:

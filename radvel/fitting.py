@@ -4,7 +4,8 @@ import copy
 import collections
 import itertools
 import radvel.likelihood
-
+from math import isnan
+	
 ALPHABET = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', \
     'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
@@ -25,9 +26,15 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
 
     """
 
+    verbose=True
     if verbose:
         print("Initial loglikelihood = %f" % post.logprob())
         print("Performing maximum likelihood fit...")
+
+    print("debug1")
+    print(str(method))
+    print("debug2")
+    print(str(post))
     res = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method=method,
         options=dict(xtol=1e-8, maxiter=200, maxfev=100000)
@@ -85,9 +92,12 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     # If there are no parameters to compare simply do a maximum likelihood fit
     #   to get BIC and AIC values among other diagnostics. 
     if not params:
-        
-        fitpost = maxlike_fitting(post, verbose=verbose)
-
+        # PPP 12/9/18    
+        print("here none.\n")
+        #print(post.shape)
+        #print(post)
+        fitpost = maxlike_fitting(post, verbose=True) #verbose)
+        #end PPP
         ndata = len(fitpost.likelihood.y)
         nfree = len(fitpost.get_vary_params())
         chi = np.sum((fitpost.likelihood.residuals()/fitpost.likelihood.errorbars())**2)
@@ -101,8 +111,8 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             print("logprob = %4.2f" % fitpost.logprob())
             print("chi = %4.2f" % chi)
             print("chi_red = %4.2f" % chi_red)
-            print("BIC = %4.2f" % fitpost.likelihood.bic())
-            print("AIC = %4.2f" % fitpost.likelihood.aic())
+            print("BIC = %4.2f" % fitpost.bic())
+            print("AIC = %4.2f" % fitpost.aic())
        
         comparison_parameters = ['Free Params', '$N_{\\rm free}$', '$N_{\\rm data}$',\
             'RMS', '$\\ln{\\mathcal{L}}$',\
@@ -110,25 +120,34 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         pdict=collections.OrderedDict.fromkeys(comparison_parameters) 
         pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
         pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
-        pdict['RMS'] = (
-            np.round(np.std(fitpost.likelihood.residuals()), 2), 
-            'RMS of residuals in m s$^{-1}$'
-        )
+
+
+        # PPP 12/12/18 - deal with nans in dict. nans are models that are clearly ruled out, so they don't get added to the model comparison anyway...
+
+        rmstmp = np.round(np.std(fitpost.likelihood.residuals()), 2)
+        if np.isnan(rmstmp):
+            rmstmp=np.inf
+        pdict['RMS'] = (rmstmp,'RMS of residuals in m s$^{-1}$')
+
         #pdict['$\\chi^{2}$'] = (np.round(chi,2), "jitter fixed")
         #pdict['$\\chi^{2}_{\\nu}$'] = (
         #    np.round(chi_red,2), "jitter fixed"
         #)
-        pdict['$\\ln{\\mathcal{L}}$'] = (
-            np.round(fitpost.logprob(),2), "natural log of the likelihood"
-        )
-        pdict['BIC'] = (
-            np.round(fitpost.likelihood.bic(),2),
-            'Bayesian information criterion'
-        )
-        pdict['AICc'] = (
-            np.round(fitpost.likelihood.aic(),2),
-            'Aikaike information (small sample corrected) criterion'
-        )
+        lnptmp = np.round(fitpost.logprob(),2)
+        if np.isnan(lnptmp):
+            lnptmp=-np.inf
+        pdict['$\\ln{\\mathcal{L}}$'] = (lnptmp,"natural log of the likelihood")
+
+        bictmp =np.round(fitpost.bic(),2) 
+        if np.isnan(bictmp):
+            bictmp=np.inf
+        pdict['BIC'] = (bictmp,'Bayesian information criterion')
+
+        aicctmp = np.round(fitpost.aic(),2)
+        if np.isnan(aicctmp):
+            aicctmp=np.inf
+        pdict['AICc'] = (aicctmp,'Aikaike information (small sample corrected) criterion')
+
         num_planets = fitpost.likelihood.model.num_planets
         freepar = []
         thisbasis = fitpost.params.basis.name
@@ -169,6 +188,12 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     
     elif 'gp' in params: 
         newparams = [pi for pi in params if pi != 'gp'] 
+
+        # PPP 12/9/18    
+        print("here gp.\n")
+        print(newparams)
+        # end PPP
+
         if isinstance(post.likelihood, radvel.likelihood.GPLikelihood):
             print("Warning: BIC/AIC comparisons with and without GP are only implemented for "\
                 + "kernels where the amplitude of the GP is described by the 'gp_amp' "\
@@ -198,6 +223,12 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         ipost = copy.deepcopy(post)
         cpost = copy.deepcopy(ipost)
         newparams = [pi for pi in params if pi != 'jit'] 
+
+        # PPP 12/9/18    
+        print("here jit.\n")
+        print(newparams)
+        # end PPP
+
         anyjitteron = False
         for parami in ipost.params:
             if len(parami) >= 3 and parami[:3] == 'jit' and ipost.params[parami].vary == True:
@@ -217,6 +248,11 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     elif 'trend' in params:
         ipost = copy.deepcopy(post)
         newparams = [pi for pi in params if pi != 'trend'] 
+        # PPP 12/9/18    
+        print("here trend.\n")
+        print(newparams)
+        # end PPP
+
         trendparamlist = ['curv', 'dvdt']
         anytrendparam = False
         for cparam in trendparamlist:
@@ -241,6 +277,12 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
 
         ipost = copy.deepcopy(post)
         newparams = [pi for pi in params if pi != 'nplanets'] 
+
+        # PPP 12/9/18    
+        print("here nplanets.\n")
+        print(newparams)
+        # end PPP
+
         num_planets = post.likelihood.model.num_planets
         pllist = [pl+1 for pl in range(num_planets)]
         plgroups = ()
@@ -272,6 +314,12 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
 
         ipost = copy.deepcopy(post)
         newparams = [pi for pi in params if pi != 'e'] 
+
+        # PPP 12/9/18    
+        print("here ecc.\n")
+        print(newparams)
+        # end PPP
+
         num_planets = post.likelihood.model.num_planets
         pllist = [pl+1 for pl in range(num_planets)]
         plgroups = ()
@@ -300,6 +348,10 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
 
 
     else:
+        # PPP 12/9/18    
+        print("here error.\n")
+        # end PPP
+
         errorstring = 'The given params argument was:\n' + ' '.join(params)
         errorstring += '\n'
         errorstring += 'The only valid comparison parameters are:\n'\
