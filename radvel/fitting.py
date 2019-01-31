@@ -31,10 +31,10 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
         print("Initial loglikelihood = %f" % post.logprob())
         print("Performing maximum likelihood fit...")
 
-    print("debug1")
-    print(str(method))
-    print("debug2")
-    print(str(post))
+    #print("debug1")
+    #print(str(method))
+    #print("debug2")
+    #print(str(post))
     res = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method=method,
         options=dict(xtol=1e-8, maxiter=200, maxfev=100000)

@@ -7,7 +7,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import emcee
-print(emcee.__version__)
 
 import gc
 gc.enable()
@@ -56,8 +55,8 @@ def convergence_check(sampler, autocorrmin, minsteps):
         autocorrmin (float):  Minimum ration for the autocorrelation time-scale to the number of steps.
         minsteps (int): Minimum number of steps per walker before convergence tests are performed
     """
-    msg = ("DEBUG: Convergence check: pre-amble.")
-    print(msg)    
+    #msg = ("DEBUG: Convergence check: pre-amble.")
+    #print(msg)    
     statevars.ar = 0
     statevars.ncomplete=sampler.backend.iteration # *statevars.nwalkers
     statevars.ar = sampler.acceptance_fraction.mean() * 100
@@ -71,17 +70,17 @@ def convergence_check(sampler, autocorrmin, minsteps):
     #msg = ("DEBUG: ncomplete: {:d}; pcomplete: {:3.1f}; minsteps: {:d}; nwalkers {:d}").format(statevars.ncomplete, statevars.pcomplete,minsteps,statevars.nwalkers)
     #print(msg)
 
-    msg = ("DEBUG: Convergence check: getting log prob.")
-    print(msg)
+    #msg = ("DEBUG: Convergence check: getting log prob.")
+    #print(msg)
     statevars.lnprob = sampler.get_log_prob(discard=statevars.nburn,flat=True,thin=statevars.thin)
-    msg = ("DEBUG: Convergence check: getting auto-corr time.")
-    print(msg)
+    #msg = ("DEBUG: Convergence check: getting auto-corr time.")
+    #print(msg)
     statevars.autocorrnow = sampler.get_autocorr_time(discard=statevars.nburn,thin=statevars.thin,tol=0,quiet=True)
-    msg = ("DEBUG: autocorr values:")
-    print(msg)
-    print(str(statevars.autocorrnow))
-    msg = ("DEBUG: Convergence check: math.")
-    print(msg)
+    #msg = ("DEBUG: autocorr values:")
+    #print(msg)
+    #print(str(statevars.autocorrnow))
+    #msg = ("DEBUG: Convergence check: math.")
+    #print(msg)
     statevars.avgautocorrnow=np.mean(statevars.autocorrnow)
     statevars.minautocorrnow=np.min(statevars.autocorrnow)
     statevars.maxautocorrnow=np.max(statevars.autocorrnow)
@@ -96,8 +95,8 @@ def convergence_check(sampler, autocorrmin, minsteps):
     # in order to be converged, the MAX autocorr timescale must be < nsteps/ac-multipler-min, e.g., nsteps > MAX autocorr* ac-multipler min (MAX is over all parameters).
     # in order to be converged, the relative change in the auto corr timescale must be < the threshold, with 0.01 conservative...
 
-    msg = ("DEBUG C: ncomplete: {:d}; pcomplete: {:3.1f}; minsteps: {:d}; nwalkers {:d}").format(statevars.ncomplete, statevars.pcomplete,minsteps,statevars.nwalkers)
-    print(msg)
+    #msg = ("DEBUG C: ncomplete: {:d}; pcomplete: {:3.1f}; minsteps: {:d}; nwalkers {:d}").format(statevars.ncomplete, statevars.pcomplete,minsteps,statevars.nwalkers)
+    #print(msg)
     if statevars.pcomplete > 5 and statevars.ncomplete > minsteps:
         statevars.converged = np.all(statevars.autocorrnow * statevars.autocorrmin < statevars.ncomplete)
         statevars.converged &= np.all(np.abs(statevars.autocorrold-statevars.autocorrnow)/statevars.autocorrnow < statevars.autocorrrelthreshmax)
