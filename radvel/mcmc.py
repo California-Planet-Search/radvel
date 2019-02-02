@@ -100,9 +100,9 @@ def convergence_check(sampler, autocorrmin, minsteps):
     if statevars.pcomplete > 5 and statevars.ncomplete > minsteps:
         statevars.converged = np.all(statevars.autocorrnow * statevars.autocorrmin < statevars.ncomplete)
         statevars.converged &= np.all(np.abs(statevars.autocorrold-statevars.autocorrnow)/statevars.autocorrnow < statevars.autocorrrelthreshmax)
-        print(str(statevars.converged))
-        print(str(statevars.autocorrnow))
-        print(str(statevars.autocorrold))
+        #print(str(statevars.converged))
+        #print(str(statevars.autocorrnow))
+        #print(str(statevars.autocorrold))
      
     statevars.autocorrold=statevars.autocorrnow    
     statevars.avgautocorrold=statevars.avgautocorrnow
