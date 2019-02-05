@@ -10,7 +10,7 @@ _has_celerite = gp._try_celerite()
 if _has_celerite:
     import celerite
 
-
+    
 def custom_formatwarning(msg, *args, **kwargs):
     # ignore everything except the message
     return str(msg) + '\n'

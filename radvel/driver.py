@@ -21,7 +21,6 @@ import radvel
 from radvel.plot import orbit_plots, mcmc_plots
 from radvel.mcmc import statevars
 from astropy import constants as c
-from numpy import inf
 
 
 def plots(args):
