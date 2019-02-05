@@ -20,7 +20,6 @@ import numpy as np
 import radvel
 from radvel.plot import orbit_plots, mcmc_plots
 from astropy import constants as c
-from numpy import inf
 
 
 def plots(args):

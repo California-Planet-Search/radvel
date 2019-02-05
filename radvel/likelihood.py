@@ -2,11 +2,22 @@ import numpy as np
 import radvel.model
 from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
-from scipy import matrix
+from numpy import matrix
+import warnings
+
 
 _has_celerite = gp._try_celerite()
 if _has_celerite:
     import celerite
+
+    
+def custom_formatwarning(msg, *args, **kwargs):
+    # ignore everything except the message
+    return str(msg) + '\n'
+
+
+warnings.formatwarning = custom_formatwarning
+
 
 class Likelihood(object):
     """
@@ -183,6 +194,7 @@ class CompositeLikelihood(Likelihood):
             err = np.append(err, like.errorbars())
 
         return err
+
 
 class RVLikelihood(Likelihood):
     """RV Likelihood
@@ -376,10 +388,9 @@ class GPLikelihood(RVLikelihood):
 
             return like
 
-        except: # np.linalg.linalg.LinAlgError:
-            print("Warning: nan or non-positive definite kernel detected.")
-            return -np.inf 
-
+        except (np.linalg.linalg.LinAlgError, ValueError):
+            warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
+            return -np.inf
 
     def predict(self, xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
@@ -491,11 +502,9 @@ class CeleriteLikelihood(GPLikelihood):
         
             return lnlike
 
-        else:
-           print("WARNING: CeleriteKernel has encountered a non-positive-definite"
-                +" kernel. Ensure that ac>=bd for all complex kernel terms.")
-
-           return -np.inf
+        except celerite.solver.LinAlgError:
+            warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
+            return -np.inf
 
     def predict(self,xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
