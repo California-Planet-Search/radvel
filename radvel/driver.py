@@ -19,7 +19,6 @@ import numpy as np
 
 import radvel
 from radvel.plot import orbit_plots, mcmc_plots
-from radvel.mcmc import statevars
 from astropy import constants as c
 
 
@@ -108,7 +107,7 @@ def plots(args):
             Derived = mcmc_plots.DerivedPlot(chains, P, saveplot=saveto)
             Derived.plot()
 
-        savestate = {'{}_plot'.format(ptype): os.path.relpath(saveto)}
+        savestate = {'{}_plot'.format(ptype): os.path.abspath(saveto)}
         save_status(statfile, 'plot', savestate)
             
         
@@ -132,10 +131,38 @@ def fit(args):
     post.writeto(postfile)
     
     savestate = {'run': True,
-                 'postfile': os.path.relpath(postfile)}
+                 'postfile': os.path.abspath(postfile)}
     save_status(os.path.join(args.outputdir,
                              '{}_radvel.stat'.format(conf_base)),
                              'fit', savestate)
+
+
+
+def fit2(args):
+    """Perform maximum-likelihood fit
+
+    Args:
+        args (ArgumentParser): command line arguments
+    """
+
+    config_file = args.setupfn
+    conf_base = os.path.basename(config_file).split('.')[0]
+    print("Performing max-likelihood fitting for {}".format(conf_base))
+
+    P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
+
+    post = radvel.fitting.maxlike_fitting(post, verbose=True)
+    
+    postfile = os.path.join(args.outputdir,
+                            '{}_post_obj.pkl'.format(conf_base))
+    post.writeto(postfile)
+    
+    savestate = {'run': True,
+                 'postfile': os.path.abspath(postfile)}
+    save_status(os.path.join(args.outputdir,
+                             '{}_radvel.stat'.format(conf_base)),
+                             'fit2', savestate)
+
 
 
 def mcmc(args):
@@ -160,16 +187,13 @@ def mcmc(args):
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
 
-    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
-        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
+    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, autocorrmin = {}, autocorrrelthreshmax = {} ..."\
+        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.autocorrmin,args.autocorrrelthreshmax)
     print(msg)
 
+    # 2018/12/10: PPP someday just take a return value of the HD5 chains file rather than sticking it into a panda data frame.
     chains = radvel.mcmc(
-            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=args.serial)
-
-    mintz = statevars.mintz
-    maxgr = statevars.maxgr
+            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, autocorrmin=args.autocorrmin, autocorrrelthreshmax=args.autocorrrelthreshmax, minsteps=args.minsteps, thin=args.thin, serial=args.serial,checkinterval=args.checkinterval,nburn=args.nburn)
 
     # Convert chains into synth basis
     synthchains = chains.copy()
@@ -193,9 +217,6 @@ def mcmc(args):
 
     final_logprob = post.logprob()
     final_residuals = post.likelihood.residuals().std()
-    final_chisq = np.sum(post.likelihood.residuals()**2 / (post.likelihood.errorbars()**2) )
-    deg_of_freedom = len(post.likelihood.y) - len(post.likelihood.get_vary_params())
-    final_chisq_reduced = final_chisq / deg_of_freedom
     synthparams = post.params.basis.to_synth(post.params)
     post.params.update(synthparams)
 
@@ -224,7 +245,6 @@ def mcmc(args):
 
     print("Final loglikelihood = %f" % final_logprob)
     print("Final RMS = %f" % final_residuals)
-    print("Final reduced chi-square = {}".format(final_chisq_reduced))
     print("Best-fit parameters:")
     print(post)
 
@@ -239,17 +259,13 @@ def mcmc(args):
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
     chains.to_csv(csvfn, compression='bz2')
 
+
     savestate = {'run': True,
-                 'postfile': os.path.relpath(postfile),
-                 'chainfile': os.path.relpath(csvfn),
-                 'summaryfile': os.path.relpath(saveto),
-                 'nwalkers': statevars.nwalkers,
-                 'nensembles': args.ensembles,
-                 'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
-                 'nsteps': statevars.ncomplete,
-                 'nburn': statevars.nburn,
-                 'minTz': mintz,
-                 'maxGR': maxgr}
+                 'postfile': os.path.abspath(postfile),
+                 'chainfile': os.path.abspath(csvfn),
+                 'summaryfile': os.path.abspath(saveto),
+                 'nwalkers': args.nwalkers,
+                 'nsteps': args.nsteps}
     save_status(statfile, 'mcmc', savestate)
 
 
@@ -274,7 +290,7 @@ def ic_compare(args):
       "Must perform max-liklihood fit before running Information Criteria comparisons"
     post = radvel.posterior.load(status.get('fit', 'postfile'))
 
-    choices=['nplanets', 'e', 'trend', 'jit', 'gp']
+    choices=['nplanets', 'ecc', 'trend', 'jit', 'gp']
     statsdictlist=[]
     paramlist=[]
     compareparams = args.type
@@ -305,6 +321,9 @@ def ic_compare(args):
             if not anymatch:
                 new_statsdictlist.append(dicti)
         statsdictlist = new_statsdictlist
+
+    # PPP12/9/18
+    print(paramlist)
 
     if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
         statsdictlist += radvel.fitting.model_comp(ipost, \
@@ -344,14 +363,12 @@ def tables(args):
             assert status.has_option('ic_compare', 'ic'), \
                 "Must run Information Criteria comparison before making comparison tables"
 
-            compstats = eval(status.get('ic_compare', 'ic'))
+            compstats = status.get('ic_compare', 'ic')
             report = radvel.report.RadvelReport(
                 P, post, chains, compstats=compstats
             )
             tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
-        elif tabtype == 'rv':
-            tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title, max_lines=None)
         else:
             assert tabtype in attrdict, 'Invalid Table Type %s ' % tabtype
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title)
@@ -362,7 +379,7 @@ def tables(args):
            # print(tex, file=f)
            f.write(tex)
 
-        savestate = {'{}_tex'.format(tabtype): os.path.relpath(saveto)}
+        savestate = {'{}_tex'.format(tabtype): os.path.abspath(saveto)}
         save_status(statfile, 'table', savestate)
 
 
@@ -465,7 +482,7 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
 
     csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.tar.bz2')
     chains.to_csv(csvfn, columns=outcols, compression='bz2')
-    savestate['chainfile'] = os.path.relpath(csvfn)
+    savestate['chainfile'] = os.path.abspath(csvfn)
 
     save_status(statfile, 'derive', savestate)
 
@@ -487,6 +504,7 @@ def report(args):
 
     status = load_status(statfile)
 
+    
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
@@ -503,7 +521,7 @@ report.".format(args.comptype,
                              args.comptype))
         compstats = None
 
-    report = radvel.report.RadvelReport(P, post, chains, compstats=compstats)
+    report = radvel.report.RadvelReport(P, post, chains,compstats=compstats)
     report.runname = conf_base
 
     report_depfiles = []
@@ -517,7 +535,6 @@ report.".format(args.comptype,
             rfile, depfiles=report_depfiles, latex_compiler=args.latex_compiler
         )
 
-    
 def save_status(statfile, section, statevars):
     """Save pipeline status
 
