@@ -501,8 +501,7 @@ class CeleriteLikelihood(GPLikelihood):
             lnlike =  -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant() + self.N*np.log(2.*np.pi))
         
             return lnlike
-
-        except celerite.solver.LinAlgError:
+        else:
             warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
             return -np.inf
 
