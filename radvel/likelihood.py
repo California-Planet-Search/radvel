@@ -8,6 +8,7 @@ _has_celerite = gp._try_celerite()
 if _has_celerite:
     import celerite
 
+
 class Likelihood(object):
     """
     Generic Likelihood
