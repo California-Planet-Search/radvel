@@ -185,11 +185,14 @@ def mcmc(args):
         post = radvel.posterior.load(status.get('fit', 'postfile'))
     else:
         P, post = radvel.utils.initialize_posterior(config_file,
-                                                        decorr=args.decorr)
+                                                    decorr = args.decorr)
 
-    # 2018/12/10: PPP someday just take a return value of the HD5 chains file rather than sticking it into a panda data frame.
-    chains = radvel.mcmc(
-            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, autocorrmin=args.autocorrmin, autocorrrelthreshmax=args.autocorrrelthreshmax, minsteps=args.minsteps, thin=args.thin, serial=args.serial,checkinterval=args.checkinterval,nburn=args.nburn)
+    # 2018/12/10: PPP someday just take a return value of the HD5 chains file
+    # rather than sticking it into a panda data frame.
+    chains = radvel.mcmc(post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles,
+                         autocorrmin=args.autocorrmin, autocorrrelthreshmax=args.autocorrrelthreshmax,
+                         minsteps=args.minsteps, thin=args.thin, serial=args.serial,
+                         checkinterval=args.checkinterval, nburn=args.nburn, outputdir=args.outputdir)
 
     # Convert chains into synth basis
     synthchains = chains.copy()

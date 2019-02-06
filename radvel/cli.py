@@ -112,7 +112,7 @@ def main():
     help="Save one sample every N steps [default=1, save all samples]"
     )
     psr_mcmc.add_argument(
-    '--serial', dest='serial', action='store', default=False, type=bool,
+    '--serial', dest='serial', action='store_true',
     help="If True, run MCMC in serial instead of parallel. [False]"
     )
     psr_mcmc.add_argument(
