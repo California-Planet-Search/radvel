@@ -4,7 +4,7 @@ matplotlib>=1.5.3
 corner>=2.0
 cython>=0.23
 astropy>=1.1.2
-emcee>=2.2.1
+emcee>=3.0rc2
 pandas>=0.20.0
 nbsphinx
 jupyter_client
@@ -13,3 +13,4 @@ pybind11
 celerite>=0.3.0
 jinja2
 python-dateutil>=2.5.0
+h5py

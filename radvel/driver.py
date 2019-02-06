@@ -187,10 +187,6 @@ def mcmc(args):
         P, post = radvel.utils.initialize_posterior(config_file,
                                                         decorr=args.decorr)
 
-    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, autocorrmin = {}, autocorrrelthreshmax = {} ..."\
-        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.autocorrmin,args.autocorrrelthreshmax)
-    print(msg)
-
     # 2018/12/10: PPP someday just take a return value of the HD5 chains file rather than sticking it into a panda data frame.
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, autocorrmin=args.autocorrmin, autocorrrelthreshmax=args.autocorrrelthreshmax, minsteps=args.minsteps, thin=args.thin, serial=args.serial,checkinterval=args.checkinterval,nburn=args.nburn)

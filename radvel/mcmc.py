@@ -1,4 +1,8 @@
+import radvel
+from radvel import utils
+
 import sys
+import curses
 import time
 import multiprocessing as mp
 
@@ -11,25 +15,30 @@ import emcee
 import gc
 gc.enable()
 
-from radvel import utils
-import radvel
 
 class StateVars(object):
     def __init__(self):
         pass
 
+
 statevars = StateVars()
 
-def _status_message(statevars):
-    msg = (
-        "{:d}/{:d} ({:3.1f}%) steps complete; "
-        "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
-        "Convergence Progress: Is max(tau_ac={:5.3f})*(tau_ac multiplier={:d})<(Nsteps={:d})? Is max rel. change in (tau_ac={:6.4f})<(threshold act={:6.4f})?\r"
-    ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete,
-                 statevars.rate, statevars.ar, statevars.maxautocorrnow,int(statevars.autocorrmin),statevars.ncomplete,statevars.maxrelthresh,statevars.autocorrrelthreshmax)
-    sys.stdout.write(msg)
-    sys.stdout.flush()
-    if statevars.ncomplete>0:
+
+def _status_message(statevars, plot_progress=False):
+
+    msg = ["{:d}/{:d} ({:3.1f}%) steps complete".format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete),
+           "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%".format(statevars.rate, statevars.ar),
+           "Convergence Progress:",
+           "   Is max(tau_ac={:5.3f})*(tau_ac multiplier={:d})<(Nsteps={:d})?".format(statevars.maxautocorrnow,
+                                                                                      int(statevars.autocorrmin),
+                                                                                      statevars.ncomplete,),
+           "   Is max rel. change in (tau_ac={:6.4f})<(threshold act={:6.4f})?".format(statevars.maxrelthresh,
+                                                                                       statevars.autocorrrelthreshmax)]
+    for i, m in enumerate(msg):
+        statevars.screen.addstr(i, 0, m)
+    statevars.screen.refresh()
+
+    if statevars.ncomplete > 0 and plot_progress:
         n = statevars.checkinterval*np.arange(1,statevars.ncomplete/statevars.checkinterval+1)
         y= np.asarray(statevars.avgautocorr)
         y2= np.asarray(statevars.maxautocorr)
@@ -42,21 +51,23 @@ def _status_message(statevars):
         if np.isfinite(y2.max()) and np.isfinite(y3.min()):
             plt.ylim(0, y2.max() + 0.1*(y2.max() - y3.min()))
         plt.xlabel("number of steps")
-        plt.ylabel(r"min,mean,max ${\tau}$ (solid); nsteps/${\tau}$_ac_scale=${\tau}$_ac (dashed)");
+        plt.ylabel(r"min,mean,max ${\tau}$ (solid); nsteps/${\tau}$_ac_scale=${\tau}$_ac (dashed)")
+
         plt.savefig("MCMCprogress.png")
         plt.clf()
+
 
 def convergence_check(sampler, autocorrmin, minsteps):
     """Check for convergence
     Check for convergence for the emcee sampler, using get_autocorrtime
     
     Args:
-        samplers (list): List of emcee sampler objects
+        sampler (list): emcee sampler object
         autocorrmin (float):  Minimum ration for the autocorrelation time-scale to the number of steps.
         minsteps (int): Minimum number of steps per walker before convergence tests are performed
     """
     #msg = ("DEBUG: Convergence check: pre-amble.")
-    #print(msg)    
+    #print(msg)
     statevars.ar = 0
     statevars.ncomplete=sampler.backend.iteration # *statevars.nwalkers
     statevars.ar = sampler.acceptance_fraction.mean() * 100
@@ -65,22 +76,12 @@ def convergence_check(sampler, autocorrmin, minsteps):
 
     # Must have completed at least 5% or 1000 steps per walker before attempting to calculate convergence
     # emcee.backend will error out if ncomplete < numwalkers*50 with tol=0 not specified; tol=50 is default:
-    # emcee.autocorr.AutocorrError: The chain is shorter than 50 times the integrated autocorrelation time for 25 parameter(s). Use this estimate with caution and run a longer chain!
+    # emcee.autocorr.AutocorrError: The chain is shorter than 50 times the integrated autocorrelation time
+    # for 25 parameter(s). Use this estimate with caution and run a longer chain!
     minsteps=np.max([50,minsteps])
-    #msg = ("DEBUG: ncomplete: {:d}; pcomplete: {:3.1f}; minsteps: {:d}; nwalkers {:d}").format(statevars.ncomplete, statevars.pcomplete,minsteps,statevars.nwalkers)
-    #print(msg)
 
-    #msg = ("DEBUG: Convergence check: getting log prob.")
-    #print(msg)
     statevars.lnprob = sampler.get_log_prob(discard=statevars.nburn,flat=True,thin=statevars.thin)
-    #msg = ("DEBUG: Convergence check: getting auto-corr time.")
-    #print(msg)
     statevars.autocorrnow = sampler.get_autocorr_time(discard=statevars.nburn,thin=statevars.thin,tol=0,quiet=True)
-    #msg = ("DEBUG: autocorr values:")
-    #print(msg)
-    #print(str(statevars.autocorrnow))
-    #msg = ("DEBUG: Convergence check: math.")
-    #print(msg)
     statevars.avgautocorrnow=np.mean(statevars.autocorrnow)
     statevars.minautocorrnow=np.min(statevars.autocorrnow)
     statevars.maxautocorrnow=np.max(statevars.autocorrnow)
@@ -92,23 +93,21 @@ def convergence_check(sampler, autocorrmin, minsteps):
     statevars.minrelthresh = np.abs(statevars.minautocorrold-statevars.minautocorrnow)/statevars.minautocorrnow
     
     # this is the actual convergence check following the emcee v3rc2 readthedocs:
-    # in order to be converged, the MAX autocorr timescale must be < nsteps/ac-multipler-min, e.g., nsteps > MAX autocorr* ac-multipler min (MAX is over all parameters).
-    # in order to be converged, the relative change in the auto corr timescale must be < the threshold, with 0.01 conservative...
+    # in order to be converged, the MAX autocorr timescale must be < nsteps/ac-multipler-min,
+    # e.g., nsteps > MAX autocorr* ac-multipler min (MAX is over all parameters).
+    # in order to be converged, the relative change in the auto corr timescale must be < the threshold,
+    # with 0.01 conservative...
 
-    #msg = ("DEBUG C: ncomplete: {:d}; pcomplete: {:3.1f}; minsteps: {:d}; nwalkers {:d}").format(statevars.ncomplete, statevars.pcomplete,minsteps,statevars.nwalkers)
-    #print(msg)
     if statevars.pcomplete > 5 and statevars.ncomplete > minsteps:
         statevars.converged = np.all(statevars.autocorrnow * statevars.autocorrmin < statevars.ncomplete)
         statevars.converged &= np.all(np.abs(statevars.autocorrold-statevars.autocorrnow)/statevars.autocorrnow < statevars.autocorrrelthreshmax)
-        #print(str(statevars.converged))
-        #print(str(statevars.autocorrnow))
-        #print(str(statevars.autocorrold))
-     
+
     statevars.autocorrold=statevars.autocorrnow    
     statevars.avgautocorrold=statevars.avgautocorrnow
     statevars.maxautocorrold=statevars.maxautocorrnow
     statevars.minautocorrold=statevars.minautocorrnow
     _status_message(statevars)
+
 
 def _domcmc(input_tuple):
     """Function to be run in parallel on different CPUs
@@ -121,7 +120,9 @@ def _domcmc(input_tuple):
     sampler.run_mcmc(ipos, check_interval)
     return sampler
 
-def mcmc(post, nwalkers=30, nrun=10000, ensembles=8, checkinterval=200, nburn=0, autocorrmin=100, autocorrrelthreshmax=0.01, minsteps=100, thin=1, serial=False):
+
+def mcmc(post, nwalkers=30, nrun=10000, ensembles=8, checkinterval=200, nburn=0,
+         autocorrmin=100, autocorrrelthreshmax=0.01, minsteps=100, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -156,7 +157,13 @@ def mcmc(post, nwalkers=30, nrun=10000, ensembles=8, checkinterval=200, nburn=0,
         serial = True
 
     nrun = int(nrun)
-        
+
+    statevars.screen = curses.initscr()
+    msg = "Running MCMC: N_walkers = {}, N_steps = {}, N_ensembles = {}, autocorrmin = {}, autocorrrelthreshmax = {} ..."\
+        .format(nwalkers, nrun, ensembles, autocorrmin, autocorrrelthreshmax)
+    statevars.screen.addstr(msg)
+    statevars.screen.refresh()
+
     statevars.ensembles = ensembles
     statevars.nwalkers = nwalkers
     statevars.checkinterval = checkinterval 
@@ -213,6 +220,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     #filename = "PPPchains_ensemble_"+str(e)+".h5"
     filename = "PPPchains.h5"
     backend = emcee.backends.HDFBackend(filename, name='mcmc',read_only=False)
+    backend = emcee.backends.HDFBackend(filename, name='mcmc',read_only=False)
     backend.reset(statevars.nwalkers, statevars.ndim)
 
     pi = post.get_vary_params()
@@ -220,10 +228,11 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
     statevars.initial_positions=p0
     if serial:
-        statevars.sampler=emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array,backend=backend)
+        statevars.sampler=emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array, backend=backend)
     else:
         pool = mp.Pool(statevars.ensembles)
-        statevars.sampler=emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array,pool=pool,backend=backend)
+        statevars.sampler=emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array, backend=backend,
+                                                pool=pool)
 
     num_run = int(np.round(nrun / checkinterval))
     statevars.totsteps = nrun # *statevars.nwalkers #*statevars.ensembles
@@ -244,7 +253,11 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         gc.collect()
         #print("Uncollectable garbage", gc.garbage)
         mcmc_input = (statevars.sampler, statevars.initial_positions, checkinterval)
-        statevars.sampler = _domcmc(mcmc_input)
+        try:
+            statevars.sampler = _domcmc(mcmc_input)
+        except KeyboardInterrupt:
+            curses.endwin()
+            break
         t2 = time.time()
         statevars.interval = t2 - t1
 
@@ -255,6 +268,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
                 statevars.nburn=nburn
         if statevars.converged:
             tf = time.time()
+            curses.endwin()
             tdiff = tf - statevars.t0
             tdiff,units = utils.time_print(tdiff)
             msg = (
