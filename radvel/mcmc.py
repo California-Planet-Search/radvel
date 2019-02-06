@@ -273,7 +273,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         t2 = time.time()
         statevars.interval = t2 - t1
 
-        convergence_check(statevars.sampler, autocorrmin, minsteps=minsteps)
+        convergence_check(statevars.sampler, minsteps=minsteps)
 
         if nburn > 0:
             if statevars.ncomplete > nburn * statevars.nwalkers:  # burn-in complete
