@@ -1,7 +1,6 @@
 import radvel
 from radvel import utils
 
-import sys
 import os
 import curses
 import time
