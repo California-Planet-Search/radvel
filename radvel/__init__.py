@@ -9,7 +9,7 @@ from .fitting import *
 from .plot import *
 
 import warnings
-warnings.filterwarnings("once")
+warnings.filterwarnings("ignore")
 
 
 def _custom_warningfmt(msg, *a, **b):
@@ -20,6 +20,8 @@ __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
 __version__ = '1.2.5'
+__spec__ = __name__
+__package__ = __path__
 
 MODULEDIR, filename = os.path.split(__file__)
 DATADIR = os.path.join(sys.prefix, 'radvel_example_data')
@@ -58,4 +60,5 @@ def _unpickle_method(func_name, obj, cls):
 
 if sys.version_info[0] < 3:
     import copy_reg
+    import types
     copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
