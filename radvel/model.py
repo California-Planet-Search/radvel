@@ -1,10 +1,8 @@
 import numpy as np
-import types
 from collections import OrderedDict
 
 from radvel import kepler
 from radvel.basis import Basis
-from radvel import gp
 
 
 texdict = {
@@ -201,10 +199,10 @@ class RVModel(object):
         Returns:
             vel (array of floats): Radial velocity at each time in `t`
         """
-        vel = np.zeros( len(t) )
+        vel = np.zeros(len(t))
         params_synth = self.params.basis.to_synth(self.params)
         
-        if planet_num == None:
+        if planet_num is None:
             planets = range(1, self.num_planets+1)
         else:
             planets = [planet_num]
@@ -216,9 +214,9 @@ class RVModel(object):
             w = params_synth['w{}'.format(num_planet)].value
             k = params_synth['k{}'.format(num_planet)].value
             orbel_synth = np.array([per, tp, e, w, k])
-            vel+=kepler.rv_drive(t, orbel_synth)
-        vel+=self.params['dvdt'].value * ( t - self.time_base )
-        vel+=self.params['curv'].value * ( t - self.time_base )**2
+            vel += kepler.rv_drive(t, orbel_synth)
+        vel += self.params['dvdt'].value * (t - self.time_base)
+        vel += self.params['curv'].value * (t - self.time_base)**2
         return vel
 
 

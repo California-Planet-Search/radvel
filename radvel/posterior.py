@@ -48,7 +48,7 @@ class Posterior(Likelihood):
             
         _logprob = self.likelihood.logprob()
         for prior in self.priors:
-            _logprob += prior( self.params )
+            _logprob += prior(self.params)
             
         return _logprob
 
@@ -66,7 +66,7 @@ class Posterior(Likelihood):
         """
         self.likelihood.set_vary_params(param_values_array)
         _logprob = self.logprob()
-                
+
         return _logprob
 
     def writeto(self, filename):
