@@ -1,6 +1,6 @@
 .. _fitting:
 
-Maximum Likelihood Fitting
+Maximum A Posteriori Fitting
 ===========================
 .. module:: radvel
 
