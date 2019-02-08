@@ -10,9 +10,9 @@ ALPHABET = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
 
 
 def maxlike_fitting(post, verbose=True, method='Powell'):
-    """Maximum Likelihood Fitting
+    """Maximum A Posteriori Fitting
 
-    Perform a maximum likelihood fit.
+    Perform a maximum a posteriori fit.
 
     Args:
         post (radvel.Posterior): Posterior object with initial guesses
@@ -22,13 +22,13 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
 
     Returns: 
         radvel.Posterior : Posterior object with parameters
-        updated to their maximum likelihood values
+        updated to their maximum a posteriori values
 
     """
 
     if verbose:
         print("Initial loglikelihood = %f" % post.logprob())
-        print("Performing maximum likelihood fit...")
+        print("Performing maximum a posteriori fit...")
 
     _ = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method=method,

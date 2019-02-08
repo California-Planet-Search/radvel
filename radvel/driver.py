@@ -113,7 +113,7 @@ def plots(args):
             
         
 def fit(args):
-    """Perform maximum-likelihood fit
+    """Perform maximum a posteriori fit
 
     Args:
         args (ArgumentParser): command line arguments
@@ -121,7 +121,7 @@ def fit(args):
 
     config_file = args.setupfn
     conf_base = os.path.basename(config_file).split('.')[0]
-    print("Performing max-likelihood fitting for {}".format(conf_base))
+    print("Performing maximum a posteriori fitting for {}".format(conf_base))
 
     P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
 
