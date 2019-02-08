@@ -21,7 +21,7 @@ __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
 
 __version__ = '1.2.5'
 __spec__ = __name__
-__package__ = __path__
+__package__ = __path__[0]
 
 MODULEDIR, filename = os.path.split(__file__)
 DATADIR = os.path.join(sys.prefix, 'radvel_example_data')
