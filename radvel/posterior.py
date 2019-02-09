@@ -1,8 +1,9 @@
-from .likelihood  import Likelihood
-import numpy as np
+
 import pickle
 import radvel
-from radvel.gp import CeleriteKernel
+
+from .likelihood import Likelihood
+
 
 class Posterior(Likelihood):
     """Posterior object

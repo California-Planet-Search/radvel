@@ -293,7 +293,7 @@ class RVLikelihood(Likelihood):
 
         if not self.params[self.gamma_param].vary:
             ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params[self.jit_param].value**2)) / \
-                   np.sum(1/(self.yerr ** 2 + self.params[self.jit_param].value ** 2))
+                   np.sum(1/(self.yerr**2 + self.params[self.jit_param].value**2))
             if np.isnan(ztil):
                 ztil = 0.0
             self.params[self.gamma_param].value = ztil
@@ -340,7 +340,7 @@ class RVLikelihood(Likelihood):
 
         if not self.params[self.gamma_param].vary:
             sigz = 1/np.sum(1 / (self.yerr**2 + sigma_jit**2))
-            loglike *= np.sqrt(2 * np.pi * sigz)
+            loglike *= np.log(np.sqrt(2 * np.pi * sigz))
 
         return loglike
 
