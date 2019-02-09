@@ -340,6 +340,20 @@ def fastbin(x, y, nbins=30):
 
 
 def t_to_phase(params, t, num_planet, cat=False):
+    """Time to phase
+
+    Convert JD to orbital phase
+
+    Args:
+        params (radvel.params.RVParameters): RV parameters object
+        t (array): JD timestamps
+        num_planet (int): Which planet's ephemeris to phase fold on
+        cat (bool): Concatenate/double the output phase array to extend from 0 to 2
+
+    Returns:
+        array: orbital phase at each timestamp
+    """
+
     if ('tc%i' % num_planet) in params:
         timeparam = 'tc%i' % num_planet
     elif ('tp%i' % num_planet) in params:
