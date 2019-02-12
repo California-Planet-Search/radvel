@@ -3,6 +3,7 @@ import radvel
 import scipy
 from scipy import spatial
 import abc
+from collections import OrderedDict
 import numpy as np
 import warnings
 
