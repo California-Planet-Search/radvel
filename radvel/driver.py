@@ -562,5 +562,6 @@ def load_status(statfile):
     """
     
     config = configparser.RawConfigParser()
+    gl = config.read(statfile)
 
     return config
