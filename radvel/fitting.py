@@ -176,7 +176,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                     ipost.params[gpparam].value = 0.
                 if post.params[gpparam].vary:
                     allfixed = False
-                    ipost.params[par].vary = False
+                    ipost.params[gpparam].vary = False
             if not allfixed:
                 mc_list = model_comp(ipost, newparams, mc_list=mc_list)
             mc_list = model_comp(post, newparams, mc_list=mc_list)

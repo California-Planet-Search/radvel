@@ -10,7 +10,8 @@ from .plot import *
 
 import warnings
 warnings.filterwarnings("ignore")
-
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'
