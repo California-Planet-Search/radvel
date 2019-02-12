@@ -132,7 +132,7 @@ E.g. --plotkw "{'yscale_auto': True}"' ''')
     # Tables
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)
     psr_table.add_argument('-t', '--type', type=str, nargs='+',
-                           choices=['params', 'priors', 'rv', 'ic_compare'],
+                           choices=['params', 'priors', 'rv', 'ic_compare', 'derived'],
                            help="type of plot(s) to generate"
                            )
     psr_table.add_argument('--header', action='store_true',
