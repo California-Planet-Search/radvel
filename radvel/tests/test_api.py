@@ -43,7 +43,7 @@ def _standard_run(setupfn):
     args.verbose = True
     radvel.driver.ic_compare(args)
 
-    args.type = ['params', 'priors', 'rv', 'ic_compare']
+    args.type = ['params', 'priors', 'rv', 'ic_compare', 'derived']
     radvel.driver.tables(args)
 
     args.type = ['rv', 'corner', 'trend', 'derived']
@@ -106,6 +106,7 @@ def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
     args.gp = True
     args.plotkw = {'plot_likelihoods_separately':True}
     radvel.driver.plots(args)
+
 
 def test_basis():
     """
