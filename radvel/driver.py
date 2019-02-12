@@ -4,23 +4,24 @@ These functions are meant to be used only with\
 the `cli.py` command line interface.
 """
 from __future__ import print_function
-import os
-import sys
-import copy
-import collections
-from collections import OrderedDict
-if sys.version_info[0] < 3:
-    import ConfigParser as configparser
-else:
-    import configparser
-import pandas as pd
-
-import numpy as np 
 
 import radvel
 from radvel.plot import orbit_plots, mcmc_plots
 from radvel.mcmc import statevars
+
+import os
+import sys
+import copy
+import collections
+
+import pandas as pd
+import numpy as np
 from astropy import constants as c
+
+if sys.version_info[0] < 3:
+    import ConfigParser as configparser
+else:
+    import configparser
 
 
 def plots(args):
@@ -34,13 +35,13 @@ def plots(args):
     config_file = args.setupfn
     conf_base = os.path.basename(config_file).split('.')[0]
     statfile = os.path.join(
-        args.outputdir,"{}_radvel.stat".format(conf_base)
+        args.outputdir, "{}_radvel.stat".format(conf_base)
     )
 
     status = load_status(statfile)
 
     assert status.getboolean('fit', 'run'), \
-      "Must perform max-liklihood fit before plotting"
+        "Must perform max-liklihood fit before plotting"
     post = radvel.posterior.load(status.get('fit', 'postfile'))
 
     for ptype in args.type:
@@ -51,7 +52,7 @@ def plots(args):
             saveto = os.path.join(
                 args.outputdir,conf_base+'_rv_multipanel.pdf'
             )
-            P,_ = radvel.utils.initialize_posterior(config_file)
+            P, _ = radvel.utils.initialize_posterior(config_file)
             if hasattr(P, 'bjd0'):
                 args.plotkw['epoch'] = P.bjd0
 
@@ -70,16 +71,16 @@ def plots(args):
                 if isinstance(post.likelihood, radvel.likelihood.CompositeLikelihood):
                     like_list = post.likelihood.like_list
                 else:
-                    like_list = [ post.likelihood ] 
+                    like_list = [post.likelihood]
                 for like in like_list:
                     if isinstance(like, radvel.likelihood.GPLikelihood):
-                        print("WARNING: GP Likelihood(s) detected. You may want to use the '--gp' flag when making these plots.")
+                        print("WARNING: GP Likelihood(s) detected. \
+You may want to use the '--gp' flag when making these plots.")
                         break
-                
 
         if ptype == 'corner' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
-            "Must run MCMC before making corner or trend plots"
+                "Must run MCMC before making corner or trend plots"
 
             chains = pd.read_csv(status.get('mcmc', 'chainfile'))
 
@@ -97,7 +98,7 @@ def plots(args):
 
         if ptype == 'derived':
             assert status.has_section('derive'), \
-            "Must run `radvel derive` before plotting derived parameters"
+                "Must run `radvel derive` before plotting derived parameters"
 
             P,_ = radvel.utils.initialize_posterior(config_file)
             chains = pd.read_csv(status.get('derive', 'chainfile'))
@@ -134,8 +135,8 @@ def fit(args):
     savestate = {'run': True,
                  'postfile': os.path.relpath(postfile)}
     save_status(os.path.join(args.outputdir,
-                             '{}_radvel.stat'.format(conf_base)),
-                             'fit', savestate)
+                '{}_radvel.stat'.format(conf_base)),
+                'fit', savestate)
 
 
 def mcmc(args):
@@ -158,7 +159,7 @@ def mcmc(args):
         post = radvel.posterior.load(status.get('fit', 'postfile'))
     else:
         P, post = radvel.utils.initialize_posterior(config_file,
-                                                        decorr=args.decorr)
+                                                    decorr=args.decorr)
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
         .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
@@ -182,7 +183,7 @@ def mcmc(args):
 
     # Get quantiles and update posterior object to median 
     # values returned by MCMC chains
-    post_summary=chains.quantile([0.159, 0.5, 0.841])        
+    post_summary = chains.quantile([0.159, 0.5, 0.841])
 
     for k in chains.keys():
         if k in post.params.keys():
@@ -193,12 +194,11 @@ def mcmc(args):
 
     final_logprob = post.logprob()
     final_residuals = post.likelihood.residuals().std()
-    final_chisq = np.sum(post.likelihood.residuals()**2 / (post.likelihood.errorbars()**2) )
+    final_chisq = np.sum(post.likelihood.residuals()**2 / (post.likelihood.errorbars()**2))
     deg_of_freedom = len(post.likelihood.y) - len(post.likelihood.get_vary_params())
     final_chisq_reduced = final_chisq / deg_of_freedom
     synthparams = post.params.basis.to_synth(post.params)
     post.params.update(synthparams)
-
 
     print("Calculating uncertainties...")
     post.uparams = {}
@@ -220,7 +220,6 @@ def mcmc(args):
         post.uparams[par] = err
         post.medparams[par] = med
         post.maxparams[par] = maxlike
-
 
     print("Final loglikelihood = %f" % final_logprob)
     print("Final RMS = %f" % final_residuals)
@@ -253,7 +252,6 @@ def mcmc(args):
     save_status(statfile, 'mcmc', savestate)
 
 
-
 def ic_compare(args):
     """Compare different models and comparative statistics including
           AICc and BIC statistics. 
@@ -268,22 +266,21 @@ def ic_compare(args):
                             "{}_radvel.stat".format(conf_base))
 
     status = load_status(statfile)
-    savestate = {}
 
     assert status.getboolean('fit', 'run'), \
-      "Must perform max-liklihood fit before running Information Criteria comparisons"
+        "Must perform max-liklihood fit before running Information Criteria comparisons"
     post = radvel.posterior.load(status.get('fit', 'postfile'))
 
-    choices=['nplanets', 'e', 'trend', 'jit', 'gp']
-    statsdictlist=[]
-    paramlist=[]
+    choices = ['nplanets', 'e', 'trend', 'jit', 'gp']
+    statsdictlist = []
+    paramlist = []
     compareparams = args.type
 
     ipost = copy.deepcopy(post)
     if hasattr(args, 'fixjitter') and args.fixjitter:
         for param in ipost.params:
-             if len(param) >=3 and param[0:3] == 'jit':
-                 ipost.params[param].vary = False
+            if len(param) >= 3 and param[0:3] == 'jit':
+                ipost.params[param].vary = False
 
     for compareparam in compareparams:
         assert compareparam in choices, \
@@ -291,8 +288,7 @@ def ic_compare(args):
             + " ".join(choices)
         paramlist.append(compareparam)
         if hasattr(args, 'mixed') and not args.mixed:
-            statsdictlist += radvel.fitting.model_comp(ipost, \
-                params=[compareparam], verbose=args.verbose)
+            statsdictlist += radvel.fitting.model_comp(ipost, params=[compareparam], verbose=args.verbose)
     if hasattr(args, 'mixed') and not args.mixed:
         new_statsdictlist = []
         for dicti in statsdictlist:
@@ -307,8 +303,7 @@ def ic_compare(args):
         statsdictlist = new_statsdictlist
 
     if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
-        statsdictlist += radvel.fitting.model_comp(ipost, \
-            params=paramlist, verbose=args.verbose)
+        statsdictlist += radvel.fitting.model_comp(ipost, params=paramlist, verbose=args.verbose)
 
     savestate = {'ic': statsdictlist}
     save_status(statfile, 'ic_compare', savestate)
@@ -363,7 +358,7 @@ def tables(args):
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title)
 
         saveto = os.path.join(
-            args.outputdir, '{}_{}.tex'.format(conf_base,tabtype)
+            args.outputdir, '{}_{}.tex'.format(conf_base, tabtype)
         )
         with open(saveto, 'w+') as f:
             f.write(tex)
@@ -390,8 +385,7 @@ def derive(args):
     )
     print(msg)
 
-    assert status.getboolean('mcmc', 'run'), \
-        "Must run MCMC before making tables"
+    assert status.getboolean('mcmc', 'run'), "Must run MCMC before making tables"
 
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
@@ -419,30 +413,30 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
 
     savestate = {'run': True}
     outcols = []
-    for i in np.arange(1, P.nplanets +1, 1):
+    for i in np.arange(1, P.nplanets + 1, 1):
         # Grab parameters from the chain
         def _has_col(key):
             cols = list(synthchains.columns)
-            return cols.count('{}{}'.format(key,i))==1
+            return cols.count('{}{}'.format(key, i)) == 1
 
         def _get_param(key):
             if _has_col(key):
-                return synthchains['{}{}'.format(key,i)]
+                return synthchains['{}{}'.format(key, i)]
             else:
-                return P.params['{}{}'.format(key,i)].value
+                return P.params['{}{}'.format(key, i)].value
 
         def _set_param(key, value):
-            chains['{}{}'.format(key,i)] = value
+            chains['{}{}'.format(key, i)] = value
 
         def _get_colname(key):
-            return '{}{}'.format(key,i)
+            return '{}{}'.format(key, i)
 
         per = _get_param('per')
         k = _get_param('k')
         e = _get_param('e')
 
         mpsini = radvel.utils.Msini(k, per, mstar, e, Msini_units='earth')
-        _set_param('mpsini',mpsini)
+        _set_param('mpsini', mpsini)
         outcols.append(_get_colname('mpsini'))
         if np.median(mpsini) >= 0.1 * P.stellar['mstar']:
             print("WARNING: mpsini={:.2f} violates the implicit assumption that Mp<<Mstar. \
@@ -463,7 +457,7 @@ Interpret results with caution.")
                 size=len(chains)
             )
 
-            _set_param('rp',rp)
+            _set_param('rp', rp)
             _set_param('rhop', radvel.utils.density(mpsini, rp))
 
             outcols.append(_get_colname('rhop'))
@@ -485,7 +479,6 @@ def report(args):
     Args:
         args (ArgumentParser): command line arguments
     """
-
     
     config_file = args.setupfn
     conf_base = os.path.basename(config_file).split('.')[0]
@@ -513,8 +506,8 @@ in {}.\nPlease make sure that you have run `radvel ic` (or, e.g., `radvel \
 ic -t nplanets e trend jit gp`)\
 \nif you would like to include the model comparison table in the \
 report.".format(args.comptype,
-                             statfile,
-                             args.comptype))
+                statfile,
+                args.comptype))
         compstats = None
 
     report = radvel.report.RadvelReport(P, post, chains, compstats=compstats,
@@ -522,7 +515,7 @@ report.".format(args.comptype,
     report.runname = conf_base
 
     report_depfiles = []
-    for ptype,pfile in status.items('plot'):
+    for ptype, pfile in status.items('plot'):
         report_depfiles.append(pfile)
 
     with radvel.utils.working_directory(args.outputdir):
@@ -551,7 +544,7 @@ def save_status(statfile, section, statevars):
     if not config.has_section(section):
         config.add_section(section)
         
-    for key,val in statevars.items():
+    for key, val in statevars.items():
         config.set(section, key, val)
 
     with open(statfile, 'w') as f:
@@ -569,6 +562,5 @@ def load_status(statfile):
     """
     
     config = configparser.RawConfigParser()
-    gl = config.read(statfile)
 
     return config
