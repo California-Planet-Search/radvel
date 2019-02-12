@@ -1,4 +1,3 @@
-import warnings
 import sys
 import copy
 
@@ -8,7 +7,6 @@ import numpy as np
 import scipy
 import radvel.prior
 
-warnings.simplefilter('once')
 
 class _args(object):
     def __init__(self):
