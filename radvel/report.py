@@ -59,6 +59,7 @@ class RadvelReport(object):
         self.starname = planet.starname
         self.starname_tex = planet.starname.replace('_', '\\_')
         self.runname = self.starname_tex
+        self.derived = derived
                 
         post.params = post.params.basis.to_synth(post.params)
         post.params = post.params.basis.from_synth(
@@ -328,7 +329,14 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
             if len(op)==0: 
                 op = [o]
             [ep.append(i) for i in sorted(op)[::-1]]
+
+        # Add GP parameters
+        for par in self.report.post.likelihood.list_params():
+            if par.startswith('gp_'):
+                ep.append(par)
+
         ep = ' '.join(ep)
+
         kw = {}
         kw['fitting_basis_rows'] = self._data(self.fitting_basis)
         kw['print_basis_rows'] = self._data(print_basis)
@@ -350,6 +358,9 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
             name_in_title (Bool [optional]): if True, include
                 the name of the star in the table title
         """
+
+        if not self.report.derived:
+            return ""
 
         dpl = radvel.plot.mcmc_plots.DerivedPlot(self.report.chains, self.report.planet)
         derived_params = dpl.labels

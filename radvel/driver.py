@@ -333,9 +333,9 @@ def tables(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
-    if status.getboolean('derive', 'run'):
+    if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
-        chains = chains.join(dchains)
+        chains = chains.join(dchains, rsuffix='_derived')
     report = radvel.report.RadvelReport(P, post, chains)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
@@ -356,6 +356,9 @@ def tables(args):
         elif tabtype == 'rv':
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title, max_lines=None)
         else:
+            if tabtype == 'derived':
+                assert status.has_option('derive', 'run'), \
+                    "Must run `radvel derive` before making derived parameter table"
             assert tabtype in attrdict, 'Invalid Table Type %s ' % tabtype
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title)
 
@@ -496,10 +499,12 @@ def report(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
-    if status.getboolean('derive', 'run'):
+    if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
-        chains = chains.join(dchains)
-
+        chains = chains.join(dchains, rsuffix='_derived')
+        derived = True
+    else:
+        derived = False
     try:
         compstats = eval(status.get('ic_compare', args.comptype))
     except:
@@ -513,7 +518,7 @@ report.".format(args.comptype,
         compstats = None
 
     report = radvel.report.RadvelReport(P, post, chains, compstats=compstats,
-                                        derived=status.getboolean('derive', 'run'))
+                                        derived=derived)
     report.runname = conf_base
 
     report_depfiles = []

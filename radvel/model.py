@@ -27,8 +27,13 @@ texdict = {
     'gp_explength': '\\eta_{2}',
     'gp_per': '\\eta_{3}',
     'gp_perlength': '\\eta_{4}',
-    'gp_length':'\\eta_{2}'
+    'gp_length':'\\eta_{2}',
+    'gp_B': 'B',
+    'gp_C': 'C',
+    'gp_L': 'L',
+    'gp_Prot': 'P_{\\rm rot}',
 }
+
 
 class Parameters(OrderedDict):
 
