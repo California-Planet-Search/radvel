@@ -457,7 +457,7 @@ class UserDefinedPrior(Prior):
         ...         return 0.
         ...     else:
         ...         return -np.inf
-        >>> myTexString = 'Uniform Prior on $\sqrt{e}$'
+        >>> myTexString = 'Uniform Prior on $\\sqrt{e}$'
         >>> myPrior = radvel.prior.UserDefinedPrior(['se'], myPriorFunc, myTexString)
 
     Note:

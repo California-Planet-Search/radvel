@@ -146,10 +146,10 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             if (pari == 'dvdt') and fitpost.params[pari].vary:
                 freepar.append(r'$\dot{\gamma}$')
             if (pari == 'curv') and fitpost.params[pari].vary:
-                freepar.append('$\ddot{\gamma}$')
+                freepar.append(r'$\ddot{\gamma}$')
             if (len(pari) >= 3) and (pari[0:3] == 'jit') and fitpost.params[pari].vary \
                     and (not jitterchecked):
-                partex = '\{$\sigma$\}'
+                partex = r'{$\sigma$}'
                 freepar.append(partex)
                 jitterchecked = True
             if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and fitpost.params[pari].vary:

@@ -194,7 +194,7 @@ def test_priors():
     params['sesinw1'] = radvel.Parameter(0.0)
     params['logk1'] = radvel.Parameter(1.5)
 
-    testTex = 'Delta Function Prior on $\sqrt{e}\cos{\omega}_{b}$'
+    testTex = r'Delta Function Prior on $\sqrt{e}\cos{\omega}_{b}$'
 
     def userdef_prior_func(inp_list):
         if inp_list[0] >= 0. and inp_list[0] < 1.:
