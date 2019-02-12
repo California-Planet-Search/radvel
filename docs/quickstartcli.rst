@@ -1,7 +1,7 @@
 .. _quickstartcli:
 
 Getting Started
-============
+===============
 
 .. _installation:
 
