@@ -454,7 +454,7 @@ class GPLikelihood(RVLikelihood):
 
         self.update_kernel_params()
 
-        r = matrix(self._resids()).T
+        r = np.array([self._resids()]).T
 
         self.kernel.compute_distances(self.x, self.x)
         K = self.kernel.compute_covmatrix(self.errorbars())
