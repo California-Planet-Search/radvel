@@ -147,11 +147,11 @@ class DerivedPlot(object):
                 
                 is_column = list(self.chains.columns).count(label) == 1
                 if not is_column:
-                    break
+                    continue
                 
                 null_column = self.chains.isnull().any().loc[label]
                 if null_column:
-                    break
+                    continue
 
                 tl = texlabel(label, letter)
 

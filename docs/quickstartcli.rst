@@ -1,7 +1,7 @@
 .. _quickstartcli:
 
 Getting Started
-============
+===============
 
 .. _installation:
 
@@ -157,5 +157,5 @@ Generate and save only the TeX code for any/all of the tables.
 
 .. code-block:: bash
 
-    $ radvel table -t params priors ic_compare -s /path/to/radvel/example_planets/HD164922.py
+    $ radvel table -t params priors ic_compare derived -s /path/to/radvel/example_planets/HD164922.py
 
