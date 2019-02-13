@@ -375,8 +375,9 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
         units.update(dict(zip(derived_params, derived_units)))
 
         for par in derived_params:
-            self.report.post.maxparams[par] = self.report.chains[par].iloc[np.argmax(
-                self.report.chains['lnprobability'])]
+            # self.report.post.maxparams[par] = self.report.chains[par].iloc[
+            #     self.report.chains['lnprobability'].argmax]
+            self.report.post.maxparams[par] = self.report.chains.loc[self.report.chains['lnprobability'].idxmax(), par]
 
         kw = {}
         kw['derived_rows'] = self._data(derived_basis)

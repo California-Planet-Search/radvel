@@ -441,7 +441,7 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         outcols.append(_get_colname('mpsini'))
         if np.median(mpsini) >= 0.1 * P.stellar['mstar']:
             print("WARNING: mpsini={:.2f} violates the implicit assumption that Mp<<Mstar. \
-Interpret results with caution.")
+Interpret results with caution.".format(np.median(mpsini)))
 
         a = radvel.utils.semi_major_axis(per, mstar)
         _set_param('a', a)
