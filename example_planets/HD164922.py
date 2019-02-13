@@ -9,7 +9,7 @@ import radvel
 # Define global planetary system and dataset parameters
 starname = 'HD164922'
 nplanets = 2    # number of planets in the system
-instnames = ['k', 'j', 'a']    # list of instrument names. Can be whatever you like but should match 'tel' column in the input file.
+instnames = ['k', 'j', 'a']    # list of instrument names. Can be whatever you like (no spaces) but should match 'tel' column in the input file.
 ntels = len(instnames)       # number of instruments with unique velocity zero-points
 fitting_basis = 'per tc secosw sesinw logk'    # Fitting basis, see radvel.basis.BASIS_NAMES for available basis names
 bjd0 = 0   # reference epoch for RV timestamps (i.e. this number has been subtracted off your timestamps)
