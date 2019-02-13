@@ -1,11 +1,14 @@
 import sys
 import copy
+import warnings
 
 import radvel
 import radvel.driver
 import numpy as np
 import scipy
 import radvel.prior
+
+warnings.simplefilter('ignore')
 
 
 class _args(object):

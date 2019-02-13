@@ -1,3 +1,9 @@
+from __future__ import absolute_import
+
+# pre-import the big packages to avoid some warnings
+import emcee     # producing ABC warning
+import nbsphinx  # producing ABC warning
+
 from .model import *
 from .likelihood import *
 from . import posterior
@@ -10,8 +16,7 @@ from .plot import *
 
 import warnings
 warnings.filterwarnings("ignore")
-warnings.filterwarnings("ignore", message="numpy.dtype size changed")
-warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
 
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'
