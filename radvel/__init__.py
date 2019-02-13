@@ -1,3 +1,9 @@
+from __future__ import absolute_import
+
+# pre-import the big packages to avoid some warnings
+import emcee     # producing ABC warning
+import nbsphinx  # producing ABC warning
+
 from .model import *
 from .likelihood import *
 from . import posterior
@@ -19,7 +25,7 @@ def _custom_warningfmt(msg, *a, **b):
 __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
-__version__ = '1.2.5'
+__version__ = '1.2.6'
 __spec__ = __name__
 __package__ = __path__[0]
 

@@ -205,8 +205,10 @@ class TexTable(RadvelReport):
             med = maxlike = r"\equiv%s" % round(self.quantiles[param][0.5], 4)
             errfmt = ''
         else:
-            if errhigh == errlow: errfmt = '\pm %s' % (errhigh)    
-            else: errfmt = '^{+%s}_{-%s}' % (errhigh, errlow)
+            if errhigh == errlow:
+                errfmt = r'\pm %s' % errhigh
+            else:
+                errfmt = '^{+%s}_{-%s}' % (errhigh, errlow)
 
         row = "%s & $%s%s$ & $%s$ & %s" % (tex, med, errfmt, maxlike, unit)
         return row
@@ -291,8 +293,8 @@ class TexTable(RadvelReport):
         else:
             max_lines = int(np.round(max_lines))
             iters = range(nvels)[:max_lines]
-            kw['notes'] = """Only the first %d of %d RVs are displayed in this table. \
-Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate file.""" % (max_lines, nvels)
+            kw['notes'] = r"""Only the first %d of %d RVs are displayed in this table. \
+Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate file.""" % (max_lines, nvels)
 
         rows = []
         for i in iters:
@@ -300,6 +302,9 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
             v = self.post.likelihood.y[i]
             e = self.post.likelihood.yerr[i]
             inst = self.post.likelihood.telvec[i]
+            if '_' in inst:
+                inst = inst.replace('_', r'$_{\rm ')
+                inst += '}$'
             row = "{:.5f} & {:.2f} & {:.2f} & {:s}".format(t, v, e, inst)
             rows.append(row)
 
@@ -373,8 +378,9 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
         units.update(dict(zip(derived_params, derived_units)))
 
         for par in derived_params:
-            self.report.post.maxparams[par] = self.report.chains[par].iloc[np.argmax(
-                self.report.chains['lnprobability'])]
+            # self.report.post.maxparams[par] = self.report.chains[par].iloc[
+            #     self.report.chains['lnprobability'].argmax]
+            self.report.post.maxparams[par] = self.report.chains.loc[self.report.chains['lnprobability'].idxmax(), par]
 
         kw = {}
         kw['derived_rows'] = self._data(derived_basis)
@@ -443,14 +449,14 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
                     row += " &"
                     for item in val:
                         row += " %s," %item 
-                    row += " \{$\gamma$\}" 
+                    row += r" {$\gamma$}"
                     #row = row[:-1] 
                 else:
                     raise(ValueError, "Failed to format values for LaTeX: {}  {}".format(s, val))
             row += " & %.2f" % (statsdict_sorted[i]['AICc'][0] - minAIC) 
-            #row = row[3:]
+            # row = row[3:]
             if i == 0:
-            #    row = "{\\bf" + row + "}"
+                # row = "{\\bf" + row + "}"
                 row = "AICc Favored Model"+ row
             appendhline = False
             if (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AICc'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):

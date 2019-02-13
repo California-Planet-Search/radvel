@@ -8,6 +8,7 @@ import radvel
 from radvel import plot
 from radvel.utils import t_to_phase, fastbin, sigfig
 
+
 class MultipanelPlot(object):
     """
     Class to handle the creation of RV multipanel plots.
@@ -54,13 +55,13 @@ class MultipanelPlot(object):
         legend_kwargs (dict): dict of options to pass to legend (plotted in top panel)
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
-                phase_nrows=None, phase_ncols=None, uparams=None, telfmts={},legend=True,
-                phase_limits=[], nobin=False, phasetext_size='large', rv_phase_space=0.08, 
-                figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9,
-                legend_kwargs=dict(loc='best')):
+                 phase_nrows=None, phase_ncols=None, uparams=None, telfmts={}, legend=True,
+                 phase_limits=[], nobin=False, phasetext_size='large', rv_phase_space=0.08,
+                 figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9,
+                 legend_kwargs=dict(loc='best')):
 
         self.post = post
-        self.saveplot=saveplot
+        self.saveplot = saveplot
         self.epoch = epoch
         self.yscale_auto = yscale_auto
         self.yscale_sigma = yscale_sigma
@@ -68,13 +69,13 @@ class MultipanelPlot(object):
             self.phase_ncols = 1
         if phase_nrows is None:
             self.phase_nrows = self.post.likelihood.model.num_planets
-        self.uparams=uparams
-        self.rv_phase_space=rv_phase_space
-        self.telfmts=telfmts
-        self.legend=legend
-        self.phase_limits=phase_limits
-        self.nobin=nobin
-        self.phasetext_size=phasetext_size
+        self.uparams = uparams
+        self.rv_phase_space = rv_phase_space
+        self.telfmts = telfmts
+        self.legend = legend
+        self.phase_limits = phase_limits
+        self.nobin = nobin
+        self.phasetext_size = phasetext_size
         self.figwidth = figwidth
         self.fit_linewidth = fit_linewidth
         self.set_xlim = set_xlim
@@ -84,7 +85,7 @@ class MultipanelPlot(object):
         if isinstance(self.post.likelihood, radvel.likelihood.CompositeLikelihood):
             self.like_list = self.post.likelihood.like_list
         else:
-            self.like_list = [ self.post.likelihood ] 
+            self.like_list = [self.post.likelihood]
 
         # FIGURE PROVISIONING
         self.ax_rv_height = self.figwidth * 0.6
@@ -136,9 +137,8 @@ class MultipanelPlot(object):
             self.plttimes = self.rvtimes - self.epoch
             self.mplttimes = self.rvmodt - self.epoch
         else:
-           self.plttimes = self.rvtimes - self.epoch
-           self.mplttimes = self.rvmodt - self.epoch
-
+            self.plttimes = self.rvtimes - self.epoch
+            self.mplttimes = self.rvmodt - self.epoch
 
         self.slope = (
             self.post.params['dvdt'].value * (self.rvmodt-self.model.time_base)
@@ -152,7 +152,6 @@ class MultipanelPlot(object):
         # list for Axes objects
         self.ax_list = []
 
-
     def plot_timeseries(self):
         """
         Make a plot of the RV data and model in the current Axes.
@@ -163,7 +162,7 @@ class MultipanelPlot(object):
         ax.axhline(0, color='0.5', linestyle='--')
 
         # plot orbit model
-        ax.plot(self.mplttimes,self.orbit_model,'b-', rasterized=False, lw=self.fit_linewidth)
+        ax.plot(self.mplttimes, self.orbit_model, 'b-', rasterized=False, lw=self.fit_linewidth)
 
         # plot data
         plot.mtelplot(
@@ -195,19 +194,14 @@ class MultipanelPlot(object):
             scale = np.std(self.rawresid+self.rvmod)
             ax.set_ylim(-self.yscale_sigma * scale, self.yscale_sigma * scale)
 
-
         ax.set_ylabel('RV [{ms:}]'.format(**plot.latex), weight='bold')
         ticks = ax.yaxis.get_majorticklocs()
         ax.yaxis.set_ticks(ticks[1:])
-
-
-
 
     def plot_residuals(self):
         """
         Make a plot of residuals and RV trend in the current Axes.
         """
-
         
         ax = pl.gca()
 
@@ -227,7 +221,6 @@ class MultipanelPlot(object):
         pl.xlabel('JD - {:d}'.format(int(np.round(self.epoch))), weight='bold')
         ax.set_ylabel('Residuals', weight='bold')
         ax.yaxis.set_major_locator(MaxNLocator(5, prune='both'))
-        
 
     def plot_phasefold(self, pltletter, pnum):
         """
@@ -277,7 +270,7 @@ class MultipanelPlot(object):
             )
 
         if self.phase_limits:
-            ax.set_xlim(self.phase_limits[0],self.phase_limits[1])
+            ax.set_xlim(self.phase_limits[0], self.phase_limits[1])
         else:
             ax.set_xlim(-0.5, 0.5)
 
@@ -327,8 +320,7 @@ class MultipanelPlot(object):
             anotext, loc=1, frameon=True, prop=dict(size=self.phasetext_size, weight='bold'),
             bbox=dict(ec='none', fc='w', alpha=0.8)
         )
-   
-    
+
     def plot_multipanel(self, nophase=False, letter_labels=True):
         """
         Provision and plot an RV multipanel plot
@@ -353,7 +345,6 @@ class MultipanelPlot(object):
 
         figheight = self.ax_rv_height + self.ax_phase_height * scalefactor
 
-
         # provision figure
         fig = pl.figure(figsize=(self.figwidth, figheight))
         
@@ -375,7 +366,7 @@ class MultipanelPlot(object):
             plot.labelfig(pltletter)
             pltletter += 1
 
-         # residuals
+        # residuals
         ax_resid = pl.subplot(gs_rv[1, 0])
         self.ax_list += [ax_resid]
 
@@ -384,7 +375,6 @@ class MultipanelPlot(object):
         if letter_labels:
             plot.labelfig(pltletter)
             pltletter += 1
-
 
         # phase-folded plots
         if not nophase:
@@ -409,13 +399,11 @@ class MultipanelPlot(object):
                 self.plot_phasefold(pltletter, i+1)
                 pltletter += 1
 
-
         if self.saveplot is not None:
             pl.savefig(self.saveplot, dpi=150)
             print("RV multi-panel plot saved to %s" % self.saveplot)
 
         return fig, self.ax_list
-
 
 
 class GPMultipanelPlot(MultipanelPlot):
@@ -438,29 +426,29 @@ class GPMultipanelPlot(MultipanelPlot):
 
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
-                phase_nrows=None, phase_ncols=None, uparams=None, rv_phase_space=0.08, telfmts={},
-                legend=True,
-                phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
-                set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), subtract_gp_mean_model=False,
-                plot_likelihoods_separately=False, subtract_orbit_model=False):
+                 phase_nrows=None, phase_ncols=None, uparams=None, rv_phase_space=0.08, telfmts={},
+                 legend=True,
+                 phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
+                 set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), subtract_gp_mean_model=False,
+                 plot_likelihoods_separately=False, subtract_orbit_model=False):
 
         super(GPMultipanelPlot, self).__init__(
-            post,saveplot=saveplot, epoch=epoch, yscale_auto=yscale_auto,
-            yscale_sigma=yscale_sigma,phase_nrows=phase_nrows, phase_ncols=phase_ncols,
+            post, saveplot=saveplot, epoch=epoch, yscale_auto=yscale_auto,
+            yscale_sigma=yscale_sigma, phase_nrows=phase_nrows, phase_ncols=phase_ncols,
             uparams=uparams, rv_phase_space=rv_phase_space, telfmts=telfmts, legend=legend,
             phase_limits=phase_limits, nobin=nobin, phasetext_size=phasetext_size, 
             figwidth=figwidth, fit_linewidth=fit_linewidth, set_xlim=set_xlim, text_size=text_size,
             legend_kwargs=legend_kwargs
         )
 
-        self.subtract_gp_mean_model=subtract_gp_mean_model
-        self.plot_likelihoods_separately=plot_likelihoods_separately
-        self.subtract_orbit_model=subtract_orbit_model
+        self.subtract_gp_mean_model = subtract_gp_mean_model
+        self.plot_likelihoods_separately = plot_likelihoods_separately
+        self.subtract_orbit_model = subtract_orbit_model
 
-        is_gp=False
+        is_gp = False
         for like in self.like_list:
             if isinstance(like, radvel.likelihood.GPLikelihood):
-                is_gp=True
+                is_gp = True
                 break
             else:
                 pass
@@ -487,7 +475,7 @@ class GPMultipanelPlot(MultipanelPlot):
 
         if isinstance(like, radvel.likelihood.GPLikelihood):
 
-            xpred = np.linspace(np.min(like.x),np.max(like.x),num=int(3e3))
+            xpred = np.linspace(np.min(like.x), np.max(like.x), num=int(3e3))
             gpmu, stddev = like.predict(xpred)
             if self.subtract_orbit_model:
                 gp_orbit_model = np.zeros(xpred.shape)
@@ -524,12 +512,11 @@ class GPMultipanelPlot(MultipanelPlot):
 
         else:
             # plot orbit model
-            ax.plot(self.mplttimes,self.orbit_model,'b-', rasterized=False, lw=0.1)
+            ax.plot(self.mplttimes, self.orbit_model, 'b-', rasterized=False, lw=0.1)
 
         if not self.yscale_auto: 
             scale = np.std(self.rawresid+self.rvmod)
             ax.set_ylim(-self.yscale_sigma * scale, self.yscale_sigma * scale)
-
 
         ax.set_ylabel('RV [{ms:}]'.format(**plot.latex), weight='bold')
         ticks = ax.yaxis.get_majorticklocs()
@@ -555,11 +542,11 @@ class GPMultipanelPlot(MultipanelPlot):
         for like in self.like_list:
             ci = self.plot_gp_like(like, orbit_model4data, ci)
 
-
         # plot data
         plot.mtelplot(
             # data = residuals + model
-            self.plttimes, self.rawresid+orbit_model4data, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts
+            self.plttimes, self.rawresid+orbit_model4data, self.rverr,
+            self.post.likelihood.telvec, ax, telfmts=self.telfmts
         )
 
         if self.set_xlim is not None:
@@ -609,7 +596,6 @@ class GPMultipanelPlot(MultipanelPlot):
             n_likes = len(self.like_list)
             figheight = self.ax_rv_height*(n_likes+0.5) + self.ax_phase_height * scalefactor
 
-
             # provision figure
             fig = pl.figure(figsize=(self.figwidth, figheight))
             
@@ -647,18 +633,19 @@ class GPMultipanelPlot(MultipanelPlot):
                 # plot data
                 plot.mtelplot(
                     # data = residuals + model
-                    self.plttimes, self.rawresid+orbit_model4data, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts
+                    self.plttimes, self.rawresid+orbit_model4data, self.rverr,
+                    self.post.likelihood.telvec, ax, telfmts=self.telfmts
                 )
 
                 ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
                 pl.setp(ax.get_xticklabels(), visible=False)
 
                 # legend
-                if self.legend and i==1:
+                if self.legend and i == 1:
                     ax.legend(numpoints=1, **self.legend_kwargs)
 
                 # years on upper axis
-                if i==1:
+                if i == 1:
                     axyrs = ax.twiny()
                     xl = np.array(list(ax.get_xlim())) + self.epoch
                     decimalyear = Time(xl, format='jd', scale='utc').decimalyear
@@ -674,12 +661,10 @@ class GPMultipanelPlot(MultipanelPlot):
             ax_resid = pl.subplot(gs_rv[-1, 0])
             self.ax_list += [ax_resid]
 
-
             pl.sca(ax_resid)
             self.plot_residuals()
             plot.labelfig(pltletter)
             pltletter += 1
-
 
             # phase-folded plots
             if not nophase:
@@ -704,13 +689,8 @@ class GPMultipanelPlot(MultipanelPlot):
                     self.plot_phasefold(pltletter, i+1)
                     pltletter += 1
 
-
             if self.saveplot is not None:
                 pl.savefig(self.saveplot, dpi=150)
                 print("RV multi-panel plot saved to %s" % self.saveplot)
 
             return fig, self.ax_list
-
-
-
-

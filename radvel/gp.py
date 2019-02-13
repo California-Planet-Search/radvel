@@ -29,7 +29,7 @@ def _try_celerite():
         from celerite.solver import CholeskySolver
         return True
     except ImportError:
-        warnings.warn("celerite not installed. GP kernals using celerite will not work.\n\
+        warnings.warn("celerite not installed. GP kernals using celerite will not work. \
 Try installing celerite using 'pip install celerite'", ImportWarning)
         return False
 
@@ -133,7 +133,7 @@ class SqExpKernel(Kernel):
         length = self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
 
-        K = scipy.matrix(amp**2 * scipy.exp(-self.dist/(length**2)))
+        K = amp**2 * scipy.exp(-self.dist/(length**2))
 
         self.covmatrix = K
         # add errors along the diagonal
@@ -220,7 +220,7 @@ class PerKernel(Kernel):
         amp = self.hparams['gp_amp'].value
         per = self.hparams['gp_per'].value
 
-        K = scipy.matrix(amp**2 * scipy.exp(-np.sin(np.pi*self.dist/per)**2. / (2.*length**2)))
+        K = amp**2 * scipy.exp(-np.sin(np.pi*self.dist/per)**2. / (2.*length**2))
         self.covmatrix = K
         # add errors along the diagonal
         try:
@@ -315,15 +315,16 @@ class QuasiPerKernel(Kernel):
         per = self.hparams['gp_per'].value
         explength = self.hparams['gp_explength'].value
 
-        K = scipy.matrix(amp**2
-                         * scipy.exp(-self.dist_se/(explength**2))
-                         * scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.)
-                                      / (2.*perlength**2)))
+        K = np.array(amp**2
+                     * scipy.exp(-self.dist_se/(explength**2))
+                     * scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.) / (2.*perlength**2)))
+
         self.covmatrix = K
+
         # add errors along the diagonal
         try:
             self.covmatrix += (errors**2) * np.identity(K.shape[0])
-        except ValueError: # errors can't be added along diagonal to a non-square array
+        except ValueError:  # errors can't be added along diagonal to a non-square array
             pass
 
         return self.covmatrix

@@ -2,7 +2,6 @@ import numpy as np
 import radvel.model
 from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
-from numpy import matrix
 import warnings
 
 
@@ -467,7 +466,7 @@ class GPLikelihood(RVLikelihood):
 
         self.update_kernel_params()
 
-        r = matrix(self._resids()).T
+        r = np.array([self._resids()]).T
 
         self.kernel.compute_distances(self.x, self.x)
         K = self.kernel.compute_covmatrix(self.errorbars())
@@ -477,12 +476,12 @@ class GPLikelihood(RVLikelihood):
 
         L = cho_factor(K)
         alpha = cho_solve(L, r)
-        mu = np.array(Ks*alpha).flatten()
+        mu = np.dot(Ks, alpha).flatten()
 
         self.kernel.compute_distances(xpred, xpred)
         Kss = self.kernel.compute_covmatrix(0.)
-        B = cho_solve(L, Ks.T) 
-        var = np.array(np.diag(Kss - Ks * matrix(B))).flatten()
+        B = cho_solve(L, Ks.T)
+        var = np.array(np.diag(Kss - np.dot(Ks, B))).flatten()
         stdev = np.sqrt(var)
 
         # set the default distances back to their regular values
@@ -582,7 +581,6 @@ class CeleriteLikelihood(GPLikelihood):
 
         gp = celerite.GP(kernel)
         gp.compute(self.x, self.yerr)
-    #    mu, var = gp.predict(self.y-self.params[self.gamma_param].value, xpred, return_var=True)
         mu, var = gp.predict(self._resids(), xpred, return_var=True)
 
         stdev = np.sqrt(var)

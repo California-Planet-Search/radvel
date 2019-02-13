@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib
-matplotlib.use('agg')
+# matplotlib.use('agg')
 from matplotlib import pyplot as pl
 from matplotlib.cm import nipy_spectral
 from matplotlib import rcParams
