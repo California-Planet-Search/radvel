@@ -305,8 +305,6 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
             if '_' in inst:
                 inst = inst.replace('_', r'$_{\rm ')
                 inst += '}$'
-            else:
-                inst = r"${\rm "+inst+"}$"
             row = "{:.5f} & {:.2f} & {:.2f} & {:s}".format(t, v, e, inst)
             rows.append(row)
 
