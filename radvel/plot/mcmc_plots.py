@@ -13,6 +13,7 @@ Module for plotting results of MCMC analysis, including:
     - corner plot of derived parameters
 """
 
+
 class TrendPlot(object):
     """
     Class to handle the creation of a trend plot to show 
@@ -28,9 +29,9 @@ class TrendPlot(object):
 
     def __init__(self, post, chains, nwalkers, outfile=None):
 
-        self.chains=chains
-        self.outfile=outfile
-        self.nwalkers=nwalkers
+        self.chains = chains
+        self.outfile = outfile
+        self.nwalkers = nwalkers
 
         self.labels = sorted([k for k in post.params.keys() if post.params[k].vary])
         self.texlabels = [post.params.tex_labels().get(l, l) for l in self.labels]
@@ -60,7 +61,6 @@ class TrendPlot(object):
                 except ValueError:
                     pl.ylabel(param)
 
-
                 ax = pl.gca()
                 ax.set_rasterized(True)
 
@@ -84,9 +84,9 @@ class CornerPlot(object):
     """
     def __init__(self, post, chains, saveplot=None):
 
-        self.post=post
-        self.chains=chains
-        self.saveplot=saveplot
+        self.post = post
+        self.chains = chains
+        self.saveplot = saveplot
 
         self.labels = [k for k in post.params.keys() if post.params[k].vary]
         self.texlabels = [post.params.tex_labels().get(l, l) for l in self.labels]
@@ -112,6 +112,7 @@ class CornerPlot(object):
             pl.show()
 
         rcParams['font.size'] = f
+
 
 class DerivedPlot(object):
     """
@@ -147,11 +148,11 @@ class DerivedPlot(object):
                 
                 is_column = list(self.chains.columns).count(label) == 1
                 if not is_column:
-                    break
+                    continue
                 
                 null_column = self.chains.isnull().any().loc[label]
                 if null_column:
-                    break
+                    continue
 
                 tl = texlabel(label, letter)
 
@@ -214,4 +215,3 @@ def texlabel(key, letter):
         return '$\\rho_' + letter + '$'
     if key.count('a') == 1:
         return "$a_" + letter + "$"
-

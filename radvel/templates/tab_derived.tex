@@ -1,0 +1,16 @@
+\begin{deluxetable}{lrrr}
+\tablecaption{ {{ title }} }
+\tablehead{
+  \colhead{Parameter} & 
+  \colhead{Credible Interval} & 
+  \colhead{Maximum Likelihood} & 
+  \colhead{Units}
+}
+\startdata
+{% for row in derived_rows %}
+  {{ row }} \\
+{% endfor %}
+\enddata
+\tablenotetext{}{$Mp\sin{i}$ is calculated under the assumption that $Mp\sin{i}<<M{\star}$
+\label{tab:derived_params}}
+\end{deluxetable}

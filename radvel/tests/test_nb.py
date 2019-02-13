@@ -6,7 +6,7 @@ from glob import glob
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
-warnings.simplefilter('always')
+warnings.simplefilter('ignore')
 
 def test_notebooks(nbdir='docs/tutorials/'):
     """

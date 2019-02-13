@@ -1,7 +1,7 @@
 .. _tutorials:
 
 Advanced Usage
-==========
+==============
 
 These tutorials give some examples in the use of the 
 underlying ``radvel`` API. 

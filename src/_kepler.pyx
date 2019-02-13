@@ -1,7 +1,9 @@
 # cimport the Cython declarations for numpy
+from __future__ import absolute_import
 cimport numpy as np
 import numpy as np
 import cython
+
 
 # if you want to use the Numpy-C-API from Cython
 # (not strictly necessary for this example, but good practice)

@@ -35,7 +35,7 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
     if e == 0.0:
         m = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
         return k * np.cos(m + om)
-    
+
     if per < 0:
         per = 1e-4
     if e < 0:
@@ -53,20 +53,18 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
     return rv
 
 
-def kepler(inbigM, inecc):
+def kepler(Marr, eccarr):
     """Solve Kepler's Equation
 
     Args:
-        inbigM (array): input Mean anomaly
-        inecc (array): eccentricity
+        Marr (array): input Mean anomaly
+        eccarr (array): eccentricity
 
     Returns:
         array: eccentric anomaly
     
     """
     
-    Marr = inbigM  # protect inputs; necessary?
-    eccarr = inecc
     conv = 1.0e-12  # convergence criterion
     k = 0.85
 

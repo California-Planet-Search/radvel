@@ -5,13 +5,14 @@ import collections
 import itertools
 import radvel.likelihood
 
-ALPHABET = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', \
-    'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+ALPHABET = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+            'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+
 
 def maxlike_fitting(post, verbose=True, method='Powell'):
-    """Maximum Likelihood Fitting
+    """Maximum A Posteriori Fitting
 
-    Perform a maximum likelihood fit.
+    Perform a maximum a posteriori fit.
 
     Args:
         post (radvel.Posterior): Posterior object with initial guesses
@@ -21,19 +22,20 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
 
     Returns: 
         radvel.Posterior : Posterior object with parameters
-        updated to their maximum likelihood values
+        updated to their maximum a posteriori values
 
     """
 
     if verbose:
         print("Initial loglikelihood = %f" % post.logprob())
-        print("Performing maximum likelihood fit...")
-    res = scipy.optimize.minimize(
+        print("Performing maximum a posteriori fit...")
+
+    _ = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method=method,
-        options=dict(xtol=1e-8, maxiter=200, maxfev=100000)
-    )
-    synthparams = post.params.basis.to_synth(post.params, noVary = True) # setting "noVary" assigns each new parameter a vary attribute
-    post.params.update(synthparams)                                 # of '', for printing purposes
+        options=dict(xtol=0.0001, ftol=0.001, maxiter=200, maxfev=20000))
+    # setting "noVary" assigns each new parameter a vary attribute of '', for printing purposes
+    synthparams = post.params.basis.to_synth(post.params, noVary=True)
+    post.params.update(synthparams)
 
     if verbose:
         print("Final loglikelihood = %f" % post.logprob())
@@ -42,8 +44,6 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
         
     return post
     
-
-
 
 def model_comp(post, params=[], mc_list=[], verbose=False):
     """Model Comparison
@@ -73,15 +73,13 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         "mc_list must be either an empty list or a list of model comparison dictionaries"
     assert isinstance(params, list), \
         "The params argument must contain a list of parameters for model comparison." 
-    
 
-    VALID_MC_ARGS = ['e', 'nplanets', 'trend', 'jit', 'gp']
+    valid_mc_args = ['e', 'nplanets', 'trend', 'jit', 'gp']
     for element in params: 
-        assert element in VALID_MC_ARGS, \
+        assert element in valid_mc_args, \
             "The valid model comparison strings in the params argument are: " \
-            + ", ".join(VALID_MC_ARGS) 
+            + ", ".join(valid_mc_args)
 
- 
     # If there are no parameters to compare simply do a maximum likelihood fit
     #   to get BIC and AIC values among other diagnostics. 
     if not params:
@@ -104,34 +102,32 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             print("BIC = %4.2f" % fitpost.likelihood.bic())
             print("AIC = %4.2f" % fitpost.likelihood.aic())
        
-        comparison_parameters = ['Free Params', '$N_{\\rm free}$', '$N_{\\rm data}$',\
-            'RMS', '$\\ln{\\mathcal{L}}$',\
-            'BIC', 'AICc']
-        pdict=collections.OrderedDict.fromkeys(comparison_parameters) 
+        comparison_parameters = ['Free Params', '$N_{\\rm free}$', '$N_{\\rm data}$',
+                                 'RMS', '$\\ln{\\mathcal{L}}$', 'BIC', 'AICc']
+        pdict = collections.OrderedDict.fromkeys(comparison_parameters)
         pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
         pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
         pdict['RMS'] = (
             np.round(np.std(fitpost.likelihood.residuals()), 2), 
             'RMS of residuals in m s$^{-1}$'
         )
-        #pdict['$\\chi^{2}$'] = (np.round(chi,2), "jitter fixed")
-        #pdict['$\\chi^{2}_{\\nu}$'] = (
+        # pdict['$\\chi^{2}$'] = (np.round(chi,2), "jitter fixed")
+        # pdict['$\\chi^{2}_{\\nu}$'] = (
         #    np.round(chi_red,2), "jitter fixed"
-        #)
+        # )
         pdict['$\\ln{\\mathcal{L}}$'] = (
-            np.round(fitpost.logprob(),2), "natural log of the likelihood"
+            np.round(fitpost.logprob(), 2), "natural log of the likelihood"
         )
         pdict['BIC'] = (
-            np.round(fitpost.likelihood.bic(),2),
+            np.round(fitpost.likelihood.bic(), 2),
             'Bayesian information criterion'
         )
         pdict['AICc'] = (
-            np.round(fitpost.likelihood.aic(),2),
+            np.round(fitpost.likelihood.aic(), 2),
             'Aikaike information (small sample corrected) criterion'
         )
         num_planets = fitpost.likelihood.model.num_planets
         freepar = []
-        thisbasis = fitpost.params.basis.name
         eparams = fitpost.params.basis.get_eparams()
         circparams = fitpost.params.basis.get_circparams()
         eparam = eparams[0]
@@ -143,26 +139,25 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             planet_letters = [ALPHABET[i] for i in range(num_planets+1)] 
         jitterchecked = False
         for pari in fitpost.params:
-            if (len(pari) >= lcparam) and (pari[0:lcparam] == circparam) and (fitpost.params[pari].vary == True): 
+            if (len(pari) >= lcparam) and (pari[0:lcparam] == circparam) and fitpost.params[pari].vary:
                 freepar.append('$K_{'+planet_letters[int(pari[lcparam+0:])]+'}$')
-            if (len(pari) >= leparam) and (pari[0:leparam] == eparam) and (fitpost.params[pari].vary == True):
+            if (len(pari) >= leparam) and (pari[0:leparam] == eparam) and fitpost.params[pari].vary:
                 freepar.append('$e_{'+planet_letters[int(pari[leparam+0:])]+'}$')
-            if (pari == 'dvdt') and (fitpost.params[pari].vary == True):
+            if (pari == 'dvdt') and fitpost.params[pari].vary:
                 freepar.append(r'$\dot{\gamma}$')
-            if (pari == 'curv') and (fitpost.params[pari].vary == True):
-                freepar.append('$\ddot{\gamma}$')
-            if (len(pari) >= 3) and (pari[0:3] == 'jit') and (fitpost.params[pari].vary == True) \
-                    and (jitterchecked == False):
-                partex = '\{$\sigma$\}'
+            if (pari == 'curv') and fitpost.params[pari].vary:
+                freepar.append(r'$\ddot{\gamma}$')
+            if (len(pari) >= 3) and (pari[0:3] == 'jit') and fitpost.params[pari].vary \
+                    and (not jitterchecked):
+                partex = r'{$\sigma$}'
                 freepar.append(partex)
                 jitterchecked = True
-            if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and (fitpost.params[pari].vary == True):
+            if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and fitpost.params[pari].vary:
                 freepar.append('GP')
 
         pdict['Free Params'] = (freepar, "The free parameters in this model")
         mc_list.append(pdict)
         return mc_list
-
 
     # Otherwise parse the different parameter comparison options and perform a maximum 
     #   likelihood model comparison for each case
@@ -170,18 +165,18 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     elif 'gp' in params: 
         newparams = [pi for pi in params if pi != 'gp'] 
         if isinstance(post.likelihood, radvel.likelihood.GPLikelihood):
-            print("Warning: BIC/AIC comparisons with and without GP are only implemented for "\
-                + "kernels where the amplitude of the GP is described by the 'gp_amp' "\
-                + "hyper parameter")
+            print("Warning: BIC/AIC comparisons with and without GP are only implemented for "
+                  + "kernels where the amplitude of the GP is described by the 'gp_amp' "
+                  + "hyper parameter")
             gpparamlist = post.hnames
             ipost = copy.deepcopy(post)
             allfixed = False
             for gpparam in gpparamlist:
                 if len(gpparam) >= 6 and post.params[gpparam][0:6] == 'gp_amp':
                     ipost.params[gpparam].value = 0.
-                if post.params[gpparam].vary == True:
+                if post.params[gpparam].vary:
                     allfixed = False
-                    ipost.params[par].vary = False
+                    ipost.params[gpparam].vary = False
             if not allfixed:
                 mc_list = model_comp(ipost, newparams, mc_list=mc_list)
             mc_list = model_comp(post, newparams, mc_list=mc_list)
@@ -192,7 +187,6 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                 print("   However, your model does not include GPs")
             mc_list = model_comp(post, newparams, mc_list=mc_list)
             return mc_list
-         
 
     elif 'jit' in params:
         ipost = copy.deepcopy(post)
@@ -200,7 +194,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         newparams = [pi for pi in params if pi != 'jit'] 
         anyjitteron = False
         for parami in ipost.params:
-            if len(parami) >= 3 and parami[:3] == 'jit' and ipost.params[parami].vary == True:
+            if len(parami) >= 3 and parami[:3] == 'jit' and ipost.params[parami].vary:
                 cpost.params[parami].value = 0.
                 cpost.params[parami].vary = False
                 anyjitteron = True
@@ -213,14 +207,13 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
-
     elif 'trend' in params:
         ipost = copy.deepcopy(post)
         newparams = [pi for pi in params if pi != 'trend'] 
         trendparamlist = ['curv', 'dvdt']
         anytrendparam = False
         for cparam in trendparamlist:
-            if ipost.params[cparam].vary == True:
+            if ipost.params[cparam].vary:
                 ipost.params[cparam].value = 0.
                 cpost = copy.deepcopy(ipost)
                 mc_list = model_comp(cpost, newparams, mc_list=mc_list)
@@ -232,7 +225,6 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                 print("   However, your model has a fixed dv/dt and curv")
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
-
 
     elif 'nplanets' in params:
         eparams = post.params.basis.get_eparams()
@@ -249,9 +241,9 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         plparams = []
         for plgroup in plgroups:
             suffixes = [str(pl) for pl in plgroup]
-            plparams.append([ [pari+''+sufi for pari in allparams] for sufi in suffixes ])
+            plparams.append([[pari+''+sufi for pari in allparams] for sufi in suffixes])
         for plparamset in plparams:
-            if all( [any([post.params[pari].vary for pari in pparam]) for pparam in plparamset] ):
+            if all([any([post.params[pari].vary for pari in pparam]) for pparam in plparamset]):
                 cpost = copy.deepcopy(post)
                 for pparam in plparamset:
                     for pari in pparam:
@@ -263,12 +255,9 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                 mc_list = model_comp(cpost, newparams, mc_list=mc_list)
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
-    
 
     elif 'e' in params:
         eparams = post.params.basis.get_eparams()
-        lepar0 = len(eparams[0])
-        lepar1 = len(eparams[1])
 
         ipost = copy.deepcopy(post)
         newparams = [pi for pi in params if pi != 'e'] 
@@ -280,10 +269,10 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         plparams = []
         for plgroup in plgroups:
             suffixes = [str(pl) for pl in plgroup]
-            plparams.append([ [pari+''+sufi for pari in eparams] for sufi in suffixes ])
+            plparams.append([[pari+''+sufi for pari in eparams] for sufi in suffixes])
         anyefree = False
         for plparamset in plparams:
-            if all( [any([post.params[pari].vary for pari in pparam]) for pparam in plparamset] ):
+            if all([any([post.params[pari].vary for pari in pparam]) for pparam in plparamset]):
                 cpost = copy.deepcopy(post)
                 for pparam in plparamset:
                     for pari in pparam:
@@ -298,15 +287,9 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
-
     else:
         errorstring = 'The given params argument was:\n' + ' '.join(params)
         errorstring += '\n'
         errorstring += 'The only valid comparison parameters are:\n'\
-            +' '.join(VALID_MC_ARGS)
+            + ' '.join(valid_mc_args)
         raise NotImplementedError(errorstring)
-
-
-
-
-
