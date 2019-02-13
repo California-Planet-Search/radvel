@@ -442,6 +442,11 @@ def geterr(vec, angular=False):
         tuple: 50, 15.9 and 84.1 percentiles
     """
 
+    try:
+        vec = vec.values
+    except AttributeError:
+        pass
+
     if angular:
         val, edges = np.histogram(vec, bins=50)
         med = edges[np.argmax(val)]
