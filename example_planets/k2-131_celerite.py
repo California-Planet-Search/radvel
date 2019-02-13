@@ -7,7 +7,7 @@ import radvel
 # file for use with Dan Foreman-Mackey's `celerite` package.
 
 # Data from Dai+ 2017
-instnames = ['harps-n', 'pfs']
+instnames = ['harps-n', 'pfs']  # no spaces in instrument names
 data = pd.read_csv(os.path.join(radvel.DATADIR, 'k2-131.txt'), sep=' ')
 t = np.array(data['time']) 
 vel = np.array(data['mnvel'])
