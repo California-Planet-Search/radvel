@@ -54,7 +54,7 @@ params['per2'].vary = False
 # Load radial velocity data, in this example the data is contained in an hdf file,
 # the resulting dataframe or must have 'time', 'mnvel', 'errvel', and 'tel' keys
 # the velocities are expected to be in m/s
-path = os.path.join(radvel.DATADIR,'epic203771098.csv')
+path = os.path.join(radvel.DATADIR, 'epic203771098.csv')
 data = pd.read_csv(path)
 data['time'] = data.t
 data['mnvel'] = data.vel
