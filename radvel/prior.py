@@ -189,12 +189,12 @@ class HardBounds(Prior):
             self.finite = False
 
         if (len(param) == 2 and (param.startswith('k') or param.startswith('e'))) or param.startswith('logk'):
-            warnings.warn("HardBounds set on K or e parameter. PositveKPrior and EccentricityPriors are reccomended",
+            warnings.warn("HardBounds set on K or e parameter. PositveKPrior and EccentricityPriors are recommended",
                           UserWarning)
 
     def __call__(self, params):
         x = params[self.param].value
-        if x < self.minval or x > self.maxval:
+        if x <= self.minval or x >= self.maxval:
             return -np.inf
         else:
             if self.finite:
