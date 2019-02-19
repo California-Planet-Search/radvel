@@ -486,3 +486,46 @@ class UserDefinedPrior(Prior):
         s = self.tex_rep
         return s
 
+class Informative_Baseline_Prior(Prior):
+    """ Informative baseline prior suggested 
+    by A. Vanderburg (see Blunt et al. 2019). 
+
+    This prior follows the distribution:
+
+    .. math::
+        p(x) \\propto 1\\, \\mathrm{{if}}\\, x-t_{{d}} \\lt B
+
+            \\propto (B+t_{{d}})/x\\, \mathrm{{else}}
+
+    with upper bound.
+
+    Args:
+        param (string): parameter label
+        baseline (float): :math:`B` in eq above
+        duration (float): :math:`t_{{d}}` in eq above (default: 0.0)
+
+    """
+
+    def __init__(self, param, baseline, duration=0.0):
+        self.param = param
+        self.baseline = baseline
+        self.duration = duration
+
+    def __repr__(self):
+        s = "Informative baseline prior on {}, baseline={}, duration={}".format(
+            self.param, self.baseline, self.duration
+            )
+        return s
+
+    def __call__(self, params):
+
+        per = params[self.param].value
+
+        if self.param.startswith('logper'):
+            per = np.exp(per)
+
+        if (per-self.duration)<=self.baseline:
+            return 0.
+        else:
+            return np.log((self.baseline+self.duration)/per)
+
