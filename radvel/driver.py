@@ -155,7 +155,7 @@ def mcmc(args):
     status = load_status(statfile)
 
     if status.getboolean('fit', 'run'):
-        print("Loading starting positions from previous max-likelihood fit")
+        print("Loading starting positions from previous MAP fit")
 
         post = radvel.posterior.load(status.get('fit', 'postfile'))
     else:

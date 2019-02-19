@@ -32,7 +32,8 @@ anybasis_params['k2'] = radvel.Parameter(value=10.0)
 anybasis_params['dvdt'] = radvel.Parameter(value=0.0)        # slope
 anybasis_params['curv'] = radvel.Parameter(value=0.0)         # curvature
 
-anybasis_params['gamma_j'] = radvel.Parameter(1.0)      # velocity zero-point for hires_rj
+# Gammas are calculated analytically if vary=False
+anybasis_params['gamma_j'] = radvel.Parameter(1.0, vary=False)      # velocity zero-point for hires_rj
 anybasis_params['jit_j'] = radvel.Parameter(value=2.6)        # jitter for hires_rj
 
 

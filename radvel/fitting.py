@@ -32,7 +32,8 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
 
     _ = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method=method,
-        options=dict(maxiter=200, maxfev=100000, xtol=1e-8))
+        options=dict(xtol=1e-8, maxiter=200, maxfev=100000))
+
     # setting "noVary" assigns each new parameter a vary attribute of '', for printing purposes
     synthparams = post.params.basis.to_synth(post.params, noVary=True)
     post.params.update(synthparams)
