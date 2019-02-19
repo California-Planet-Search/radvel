@@ -495,7 +495,7 @@ class Informative_Baseline_Prior(Prior):
     .. math::
         p(x) \\propto 1\\, \\mathrm{{if}}\\, x-t_{{d}} \\lt B
 
-            \\propto (B+t_{{d}})/x\\, \mathrm{{else}}
+             \\propto (B+t_{{d}})/x\\, \mathrm{{else}}
 
     with upper bound.
 

@@ -215,7 +215,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         t2 = time.time()
         statevars.interval = t2 - t1
 
-        convergence_check(statevars.samplers, maxGR=maxGR, minTz=minTz, minsteps=minsteps, minpercent=minpercent)
+        convergence_check(maxGR=maxGR, minTz=minTz, minsteps=minsteps, minpercent=minpercent)
 
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers
