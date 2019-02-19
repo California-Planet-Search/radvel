@@ -32,8 +32,7 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
 
     _ = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method=method,
-        options=dict(xtol=1e-8, maxiter=200, maxfev=100000))
-
+        options=dict(maxiter=200, maxfev=100000, xtol=1e-8))
     # setting "noVary" assigns each new parameter a vary attribute of '', for printing purposes
     synthparams = post.params.basis.to_synth(post.params, noVary=True)
     post.params.update(synthparams)
@@ -196,7 +195,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         anyjitteron = False
         for parami in ipost.params:
             if len(parami) >= 3 and parami[:3] == 'jit' and ipost.params[parami].vary:
-                cpost.params[parami].value = 1e-6
+                cpost.params[parami].value = 0.
                 cpost.params[parami].vary = False
                 anyjitteron = True
         if anyjitteron:
