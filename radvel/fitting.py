@@ -195,7 +195,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         anyjitteron = False
         for parami in ipost.params:
             if len(parami) >= 3 and parami[:3] == 'jit' and ipost.params[parami].vary:
-                cpost.params[parami].value = 0.
+                cpost.params[parami].value = 1e-6
                 cpost.params[parami].vary = False
                 anyjitteron = True
         if anyjitteron:
