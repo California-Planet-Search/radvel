@@ -85,7 +85,12 @@ E.g. --plotkw "{'yscale_auto': True}"' ''')
                           help="Minimum Tz to consider well-mixed [1000]"
                           )
     psr_mcmc.add_argument('--minsteps', dest='minsteps', action='store', default=1000, type=int,
-                          help="Minimum number of steps per walker before convergence tests are performed [1000]"
+                          help="Minimum number of steps per walker before convergence tests are performed [1000].\
+Convergence checks will start after the minsteps threshold or the minpercent threshold has been hit."
+                          )
+    psr_mcmc.add_argument('--minpercent', dest='minpercent', action='store', default=5, type=float,
+                          help="Minimum percentage of steps before convergence tests are performed [5]. \
+Convergence checks will start after the minsteps threshold or the minpercent threshold has been hit."
                           )
     psr_mcmc.add_argument('--thin', dest='thin', action='store', default=1, type=int,
                           help="Save one sample every N steps [default=1, save all samples]"

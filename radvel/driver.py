@@ -168,7 +168,8 @@ def mcmc(args):
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=args.serial)
+            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent,
+            thin=args.thin, serial=args.serial)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
