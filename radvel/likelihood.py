@@ -290,13 +290,6 @@ class RVLikelihood(Likelihood):
         """
         mod = self.model(self.x)
 
-        if not self.params[self.gamma_param].vary:
-            ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params[self.jit_param].value**2)) / \
-                   np.sum(1/(self.yerr**2 + self.params[self.jit_param].value**2))
-            if np.isnan(ztil):
-                 ztil = 0.0
-            self.params[self.gamma_param].value = ztil
-
         res = self.y - self.params[self.gamma_param].value - mod
         
         if len(self.decorr_params) > 0:
@@ -336,10 +329,6 @@ class RVLikelihood(Likelihood):
         sigma_jit = self.params[self.jit_param].value
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
-
-        if not self.params[self.gamma_param].vary:
-            sigz = 1/np.sum(1 / (self.yerr**2 + sigma_jit**2))
-            loglike *= np.sqrt(2 * np.pi * sigz)
 
         return loglike
 
