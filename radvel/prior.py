@@ -1,4 +1,6 @@
 
+import warnings
+
 import numpy as np
 from scipy.stats import gaussian_kde
 
@@ -179,12 +181,26 @@ class HardBounds(Prior):
         self.maxval = maxval
         self.param = param
 
+        self.finite = True
+
+        if not np.isfinite(self.minval) or not np.isfinite(self.maxval):
+            warnings.warn("Non-finite boundary given to HardBounds. Your likelihood will not be properly normalized.",
+                          UserWarning)
+            self.finite = False
+
+        if (len(param) == 2 and (param.startswith('k') or param.startswith('e'))) or param.startswith('logk'):
+            warnings.warn("HardBounds set on K or e parameter. PositveKPrior and EccentricityPriors are reccomended",
+                          UserWarning)
+
     def __call__(self, params):
         x = params[self.param].value
         if x < self.minval or x > self.maxval:
             return -np.inf
         else:
-            return -np.log(self.maxval-self.minval)
+            if self.finite:
+                return -np.log(self.maxval-self.minval)
+            else:
+                return 0
 
     def __repr__(self):
         s = "Bounded prior on {}, min={}, max={}".format(
@@ -441,7 +457,7 @@ class UserDefinedPrior(Prior):
         ...         return 0.
         ...     else:
         ...         return -np.inf
-        >>> myTexString = 'Uniform Prior on $\sqrt{e}$'
+        >>> myTexString = 'Uniform Prior on $\\sqrt{e}$'
         >>> myPrior = radvel.prior.UserDefinedPrior(['se'], myPriorFunc, myTexString)
 
     Note:

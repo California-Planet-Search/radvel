@@ -5,7 +5,7 @@ import sys
 import radvel
 import radvel.cli
 
-warnings.simplefilter('always')
+warnings.simplefilter('ignore')
 
 def _run_cmd(cmd):
     p = subprocess.Popen(cmd.split())

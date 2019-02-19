@@ -10,10 +10,10 @@ warnings.simplefilter('once')
 
 # implemented kernels & examples of their associated hyperparameters
 KERNELS = {
-    "SqExp": ['gp_length','gp_amp'],
-    "Per": ['gp_per','gp_length','gp_amp'],
-    "QuasiPer": ['gp_per','gp_perlength','gp_explength','gp_amp'],
-    "Celerite": ['gp_B','gp_C','gp_L','gp_Prot']
+    "SqExp": ['gp_length', 'gp_amp'],
+    "Per": ['gp_per', 'gp_length', 'gp_amp'],
+    "QuasiPer": ['gp_per', 'gp_perlength', 'gp_explength', 'gp_amp'],
+    "Celerite": ['gp_B', 'gp_C', 'gp_L', 'gp_Prot']
 }
 
 if sys.version_info[0] < 3:
@@ -29,14 +29,16 @@ def _try_celerite():
         from celerite.solver import CholeskySolver
         return True
     except ImportError:
-        warnings.warn("celerite not installed. GP kernals using celerite will not work.\n\
+        warnings.warn("celerite not installed. GP kernals using celerite will not work. \
 Try installing celerite using 'pip install celerite'", ImportWarning)
         return False
+
 
 _has_celerite = _try_celerite()
 if _has_celerite:
     import celerite
     from celerite.solver import CholeskySolver
+
 
 class Kernel(ABC):
     """
@@ -95,8 +97,8 @@ class SqExpKernel(Kernel):
                 self.hparams['gp_amp'] = hparams[par]
 
         assert len(hparams) == 2, \
-        "SqExpKernel requires exactly 2 hyperparameters with names" \
-        + "'gp_length*' and 'gp_amp*'."
+            "SqExpKernel requires exactly 2 hyperparameters with names" \
+            + "'gp_length*' and 'gp_amp*'."
 
         try:
             self.hparams['gp_length'].value
@@ -131,7 +133,7 @@ class SqExpKernel(Kernel):
         length = self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
 
-        K = scipy.matrix(amp**2 * scipy.exp(-self.dist/(length**2)))
+        K = amp**2 * scipy.exp(-self.dist/(length**2))
 
         self.covmatrix = K
         # add errors along the diagonal
@@ -177,8 +179,8 @@ class PerKernel(Kernel):
                 self.hparams['gp_per'] = hparams[par]
 
         assert len(hparams) == 3, \
-        "PerKernel requires exactly 3 hyperparameters with names 'gp_length*'," \
-        + " 'gp_amp*', and 'gp_per*'."
+            "PerKernel requires exactly 3 hyperparameters with names 'gp_length*'," \
+            + " 'gp_amp*', and 'gp_per*'."
 
         try:
             self.hparams['gp_length'].value
@@ -192,7 +194,7 @@ class PerKernel(Kernel):
                                  + "radvel.Parameter objects as input.")
 
     def __repr__(self):
-        length= self.hparams['gp_length'].value
+        length = self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
         per = self.hparams['gp_per'].value
         return "Per Kernel with length: {}, amp: {}, per: {}".format(
@@ -218,13 +220,12 @@ class PerKernel(Kernel):
         amp = self.hparams['gp_amp'].value
         per = self.hparams['gp_per'].value
 
-        K = scipy.matrix(amp**2 * scipy.exp(-np.sin(np.pi*self.dist/per)**2.
-                                                 / (2.*length**2)))
+        K = amp**2 * scipy.exp(-np.sin(np.pi*self.dist/per)**2. / (2.*length**2))
         self.covmatrix = K
         # add errors along the diagonal
         try:
             self.covmatrix += (errors**2) * np.identity(K.shape[0])
-        except ValueError: # errors can't be added along diagonal to a non-square array
+        except ValueError:  # errors can't be added along diagonal to a non-square array
             pass
 
         return self.covmatrix
@@ -236,8 +237,8 @@ class QuasiPerKernel(Kernel):
 
     .. math::
 
-        C_{ij} = B/(2+C) * exp( -|t_i - t_j| / L) *  
-                           (\\cos(\\frac{ 2\\pi|t_i-t_j| }{ P_{rot} }) + (1+C) )     
+        C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 } -
+                 \\frac{ \\sin^2(\\frac{ \\pi|t_i-t_j| }{ \\eta_3^2 } ) }{ 2\\eta_4^2 } )
 
     Args:
         hparams (dict of radvel.Parameter): dictionary containing
@@ -265,8 +266,8 @@ class QuasiPerKernel(Kernel):
                 self.hparams['gp_explength'] = hparams[par]
 
         assert len(hparams) == 4, \
-        "QuasiPerKernel requires exactly 4 hyperparameters with names" \
-        + " 'gp_perlength*', 'gp_amp*', 'gp_per*', and 'gp_explength*'."
+            "QuasiPerKernel requires exactly 4 hyperparameters with names" \
+            + " 'gp_perlength*', 'gp_amp*', 'gp_per*', and 'gp_explength*'."
 
         try:
             self.hparams['gp_perlength'].value
@@ -314,15 +315,16 @@ class QuasiPerKernel(Kernel):
         per = self.hparams['gp_per'].value
         explength = self.hparams['gp_explength'].value
 
-        K = scipy.matrix(amp**2
-                         * scipy.exp(-self.dist_se/(explength**2))
-                         * scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.)
-                                      / (2.*perlength**2)))
+        K = np.array(amp**2
+                     * scipy.exp(-self.dist_se/(explength**2))
+                     * scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.) / (2.*perlength**2)))
+
         self.covmatrix = K
+
         # add errors along the diagonal
         try:
             self.covmatrix += (errors**2) * np.identity(K.shape[0])
-        except ValueError: # errors can't be added along diagonal to a non-square array
+        except ValueError:  # errors can't be added along diagonal to a non-square array
             pass
 
         return self.covmatrix
@@ -343,8 +345,7 @@ class CeleriteKernel(Kernel):
 
     .. math::
 
-        C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 } 
-                           - \\frac{ \\sin^2(\\frac{ \\pi|t_i-t_j| }{ \\eta_3^2 } ) }{ 2\\eta_4^2 } )     
+        C_{ij} = B/(2+C) * exp( -|t_i - t_j| / L) * (\\cos(\\frac{ 2\\pi|t_i-t_j| }{ P_{rot} }) + (1+C) )
 
     Args:
         hparams (dict of radvel.Parameter): dictionary containing

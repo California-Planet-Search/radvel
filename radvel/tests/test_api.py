@@ -1,6 +1,6 @@
-import warnings
 import sys
 import copy
+import warnings
 
 import radvel
 import radvel.driver
@@ -8,7 +8,8 @@ import numpy as np
 import scipy
 import radvel.prior
 
-warnings.simplefilter('once')
+warnings.simplefilter('ignore')
+
 
 class _args(object):
     def __init__(self):
@@ -27,6 +28,7 @@ class _args(object):
         self.thin = 1
         self.serial = False
 
+
 def _standard_run(setupfn):
     """
     Run through all of the standard steps
@@ -42,7 +44,7 @@ def _standard_run(setupfn):
     args.verbose = True
     radvel.driver.ic_compare(args)
 
-    args.type = ['params', 'priors', 'rv', 'ic_compare']
+    args.type = ['params', 'priors', 'rv', 'ic_compare', 'derived']
     radvel.driver.tables(args)
 
     args.type = ['rv', 'corner', 'trend', 'derived']
@@ -52,12 +54,14 @@ def _standard_run(setupfn):
     args.comptype = 'ic_compare'
     args.latex_compiler = 'pdflatex'
     radvel.driver.report(args)
-        
+
+
 def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
     """    
     _standard_run(setupfn)
+
 
 def test_hd(setupfn='example_planets/HD164922.py'):
     """
@@ -69,6 +73,7 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
+
 
 def test_k2131(setupfn='example_planets/k2-131.py'):
     """
@@ -88,6 +93,7 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     args.plotkw = {}
     radvel.driver.plots(args)
 
+
 def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
     """
     Check celerite GP fit
@@ -101,6 +107,7 @@ def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
     args.gp = True
     args.plotkw = {'plot_likelihoods_separately':True}
     radvel.driver.plots(args)
+
 
 def test_basis():
     """
@@ -190,7 +197,7 @@ def test_priors():
     params['sesinw1'] = radvel.Parameter(0.0)
     params['logk1'] = radvel.Parameter(1.5)
 
-    testTex = 'Delta Function Prior on $\sqrt{e}\cos{\omega}_{b}$'
+    testTex = r'Delta Function Prior on $\sqrt{e}\cos{\omega}_{b}$'
 
     def userdef_prior_func(inp_list):
         if inp_list[0] >= 0. and inp_list[0] < 1.:

@@ -2,11 +2,21 @@ import numpy as np
 import radvel.model
 from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
-from scipy import matrix
+import warnings
+
 
 _has_celerite = gp._try_celerite()
 if _has_celerite:
     import celerite
+
+    
+def custom_formatwarning(msg, *args, **kwargs):
+    # ignore everything except the message
+    return str(msg) + '\n'
+
+
+warnings.formatwarning = custom_formatwarning
+
 
 class Likelihood(object):
     """
@@ -69,6 +79,7 @@ class Likelihood(object):
         return s
 
     def set_vary_params(self, param_values_array):
+        param_values_array = list(param_values_array)
         i = 0
         for key in self.list_vary_params():
             # flip sign for negative jitter
@@ -233,6 +244,7 @@ class CompositeLikelihood(Likelihood):
             err = np.append(err, like.errorbars())
 
         return err
+
 
 class RVLikelihood(Likelihood):
     """RV Likelihood
@@ -424,9 +436,8 @@ class GPLikelihood(RVLikelihood):
             return like
 
         except (np.linalg.linalg.LinAlgError, ValueError):
-            print("Warning: non-positive definite kernel detected.")
-            return -np.inf 
-
+            warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
+            return -np.inf
 
     def predict(self, xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
@@ -442,7 +453,7 @@ class GPLikelihood(RVLikelihood):
 
         self.update_kernel_params()
 
-        r = matrix(self._resids()).T
+        r = np.array([self._resids()]).T
 
         self.kernel.compute_distances(self.x, self.x)
         K = self.kernel.compute_covmatrix(self.errorbars())
@@ -452,12 +463,12 @@ class GPLikelihood(RVLikelihood):
 
         L = cho_factor(K)
         alpha = cho_solve(L, r)
-        mu = np.array(Ks*alpha).flatten()
+        mu = np.dot(Ks, alpha).flatten()
 
         self.kernel.compute_distances(xpred, xpred)
         Kss = self.kernel.compute_covmatrix(0.)
-        B = cho_solve(L, Ks.T) 
-        var = np.array(np.diag(Kss - Ks * matrix(B))).flatten()
+        B = cho_solve(L, Ks.T)
+        var = np.array(np.diag(Kss - np.dot(Ks, B))).flatten()
         stdev = np.sqrt(var)
 
         # set the default distances back to their regular values
@@ -516,8 +527,7 @@ class CeleriteLikelihood(GPLikelihood):
             return lnlike
 
         except celerite.solver.LinAlgError:
-            print("WARNING: non-positive definite kernel encountered!")
-
+            warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
             return -np.inf
 
     def predict(self,xpred):
@@ -558,7 +568,6 @@ class CeleriteLikelihood(GPLikelihood):
 
         gp = celerite.GP(kernel)
         gp.compute(self.x, self.yerr)
-    #    mu, var = gp.predict(self.y-self.params[self.gamma_param].value, xpred, return_var=True)
         mu, var = gp.predict(self._resids(), xpred, return_var=True)
 
         stdev = np.sqrt(var)

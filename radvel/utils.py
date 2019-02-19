@@ -1,5 +1,5 @@
-import imp
 import os
+import sys
 from decimal import Decimal
 from contextlib import contextmanager
 import warnings
@@ -17,6 +17,35 @@ import radvel
 K_0 = 28.4329
 
 
+def load_module_from_file(module_name, module_path):
+    """Loads a python module from the path of the corresponding file.
+
+    Args:
+        module_name (str): namespace where the python module will be loaded,
+            e.g. ``foo.bar``
+        module_path (str): path of the python file containing the module
+    Returns:
+        A valid module object
+    Raises:
+        ImportError: when the module can't be loaded
+        FileNotFoundError: when module_path doesn't exist
+    """
+    if sys.version_info[0] == 3 and sys.version_info[1] >= 5:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    elif sys.version_info[0] == 3 and sys.version_info[1] < 5:
+        import importlib.machinery
+        loader = importlib.machinery.SourceFileLoader(module_name, module_path)
+        module = loader.load_module()
+    elif sys.version_info[0] == 2:
+        import imp
+        module = imp.load_source(module_name, module_path)
+
+    return module
+
+
 def initialize_posterior(config_file, decorr=False):
     """Initialize Posterior object
 
@@ -31,7 +60,7 @@ def initialize_posterior(config_file, decorr=False):
     """
 
     system_name = os.path.basename(config_file).split('.')[0]
-    P = imp.load_source(system_name, os.path.abspath(config_file))
+    P = load_module_from_file(system_name, os.path.abspath(config_file))
 
     params = P.params
     assert str(params.basis) == "Basis Object <{}>".format(P.fitting_basis), """
@@ -311,6 +340,20 @@ def fastbin(x, y, nbins=30):
 
 
 def t_to_phase(params, t, num_planet, cat=False):
+    """Time to phase
+
+    Convert JD to orbital phase
+
+    Args:
+        params (radvel.params.RVParameters): RV parameters object
+        t (array): JD timestamps
+        num_planet (int): Which planet's ephemeris to phase fold on
+        cat (bool): Concatenate/double the output phase array to extend from 0 to 2
+
+    Returns:
+        array: orbital phase at each timestamp
+    """
+
     if ('tc%i' % num_planet) in params:
         timeparam = 'tc%i' % num_planet
     elif ('tp%i' % num_planet) in params:
@@ -398,6 +441,11 @@ def geterr(vec, angular=False):
     Returns:
         tuple: 50, 15.9 and 84.1 percentiles
     """
+
+    try:
+        vec = vec.values
+    except AttributeError:
+        pass
 
     if angular:
         val, edges = np.histogram(vec, bins=50)

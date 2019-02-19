@@ -9,7 +9,7 @@ import radvel
 # Define global planetary system and dataset parameters
 starname = 'epic203771098'
 nplanets = 2    # number of planets in the system
-instnames = ['j']    # list of instrument names. Can be whatever you like but should match 'tel' column in the input file.
+instnames = ['j']    # list of instrument names. Can be whatever you like (no spaces) but should match 'tel' column in the input file.
 ntels = len(instnames)       # number of instruments with unique velocity zero-points
 fitting_basis = 'per tc secosw sesinw k'    # Fitting basis, see radvel.basis.BASIS_NAMES for available basis names
 bjd0 = 2454833.
@@ -54,7 +54,7 @@ params['per2'].vary = False
 # Load radial velocity data, in this example the data is contained in an hdf file,
 # the resulting dataframe or must have 'time', 'mnvel', 'errvel', and 'tel' keys
 # the velocities are expected to be in m/s
-path = os.path.join(radvel.DATADIR,'epic203771098.csv')
+path = os.path.join(radvel.DATADIR, 'epic203771098.csv')
 data = pd.read_csv(path)
 data['time'] = data.t
 data['mnvel'] = data.vel

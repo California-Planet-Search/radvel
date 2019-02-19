@@ -31,9 +31,9 @@ units = {
     'gp_explength': 'days',
     'gp_per': 'days',
     'gp_perlength': '',
-    'mpsini': '$M_\earth$',
-    'rp': '$R_\earth$',
-    'rhop': 'g cm$^{-3}$',
+    # 'mpsini': '$M_\earth$',
+    # 'rp': '$R_\earth$',
+    # 'rhop': 'g cm$^{-3}$',
 }
 
 
@@ -47,16 +47,19 @@ class RadvelReport(object):
             `kepfit.py` using `imp.load_source` 
         post (radvel.posterior): 
             radvel.posterior object containing the best-fit parameters in 
-                post.params 
+                post.params
+        compstats (dict): dictionary of model comparison results from `radvel ic`
+        derived (bool): included table of derived parameters
         chains (DataFrame): output DataFrame from a `radvel.mcmc` run
     """
     
-    def __init__(self, planet, post, chains, compstats=None):
+    def __init__(self, planet, post, chains, compstats=None, derived=False):
         self.planet = planet
         self.post = post
         self.starname = planet.starname
         self.starname_tex = planet.starname.replace('_', '\\_')
         self.runname = self.starname_tex
+        self.derived = derived
                 
         post.params = post.params.basis.to_synth(post.params)
         post.params = post.params.basis.from_synth(
@@ -101,6 +104,7 @@ class RadvelReport(object):
         textable = TexTable(self)
         reportkw['tab_rv'] = textable.tab_rv()
         reportkw['tab_params'] = textable.tab_params()
+        reportkw['tab_derived'] = textable.tab_derived()
         reportkw['tab_prior_summary'] = textable.tab_prior_summary()
 
         if self.compstats is not None:
@@ -198,13 +202,15 @@ class TexTable(RadvelReport):
         med, errlow, errhigh = radvel.utils.sigfig(med, low, high)
 
         if min(errlow,errhigh) <= 1e-12:
-            med = maxlike = r"\equiv%s" % round(self.quantiles[param][0.5],4)
+            med = maxlike = r"\equiv%s" % round(self.quantiles[param][0.5], 4)
             errfmt = ''
         else:
-            if errhigh == errlow: errfmt = '\pm %s' % (errhigh)    
-            else: errfmt = '^{+%s}_{-%s}' % (errhigh,errlow)
+            if errhigh == errlow:
+                errfmt = r'\pm %s' % errhigh
+            else:
+                errfmt = '^{+%s}_{-%s}' % (errhigh, errlow)
 
-        row = "%s & $%s%s$ & $%s$ & %s" % (tex,med,errfmt,maxlike,unit)
+        row = "%s & $%s%s$ & $%s$ & %s" % (tex, med, errfmt, maxlike, unit)
         return row
 
     def _data(self, basis, dontloop=False):
@@ -223,16 +229,19 @@ class TexTable(RadvelReport):
         if dontloop:
             nloop=2
 
-        for n in range(1,nloop):
-            for p in basis.split(): # loop over variables
+        for n in range(1, nloop):
+            for p in basis.split():  # loop over variables
+                par = p+str(n)
                 unit = units.get(p, '')
-                if unit == '':
+
+                if unit == '' and par not in units.keys():
                     for s in suffixes:
                         if s in p:
                             unit = units.get(p.replace(s, ''), '')
                             break
-                        
-                par = p+str(int(n))
+                else:
+                    unit = units.get(par, '')
+
                 try:
                     row = self._row(par, unit)
                 except KeyError:
@@ -284,8 +293,8 @@ class TexTable(RadvelReport):
         else:
             max_lines = int(np.round(max_lines))
             iters = range(nvels)[:max_lines]
-            kw['notes'] = """Only the first %d of %d RVs are displayed in this table. \
-Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate file.""" % (max_lines, nvels)
+            kw['notes'] = r"""Only the first %d of %d RVs are displayed in this table. \
+Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate file.""" % (max_lines, nvels)
 
         rows = []
         for i in iters:
@@ -293,6 +302,9 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
             v = self.post.likelihood.y[i]
             e = self.post.likelihood.yerr[i]
             inst = self.post.likelihood.telvec[i]
+            if '_' in inst:
+                inst = inst.replace('_', r'$_{\rm ')
+                inst += '}$'
             row = "{:.5f} & {:.2f} & {:.2f} & {:s}".format(t, v, e, inst)
             rows.append(row)
 
@@ -322,7 +334,14 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
             if len(op)==0: 
                 op = [o]
             [ep.append(i) for i in sorted(op)[::-1]]
+
+        # Add GP parameters
+        for par in self.report.post.likelihood.list_params():
+            if par.startswith('gp_'):
+                ep.append(par)
+
         ep = ' '.join(ep)
+
         kw = {}
         kw['fitting_basis_rows'] = self._data(self.fitting_basis)
         kw['print_basis_rows'] = self._data(print_basis)
@@ -336,6 +355,43 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
         tmpfile = 'tab_params.tex'
         t = env.get_template(tmpfile)
         out = t.render(**kw)
+        return out
+
+    def tab_derived(self, name_in_title=False):
+        """ Table of derived parameter values
+        Args:
+            name_in_title (Bool [optional]): if True, include
+                the name of the star in the table title
+        """
+
+        if not self.report.derived:
+            return ""
+
+        dpl = radvel.plot.mcmc_plots.DerivedPlot(self.report.chains, self.report.planet)
+        derived_params = dpl.labels
+        derived_basis = ' '.join(set([s[:-1] for s in derived_params]))
+        derived_tex = dpl.texlabels
+        derived_units = [s.split('[')[-1][:-1] for s in derived_tex]
+        derived_tex = [s.split('[')[0] for s in derived_tex]
+
+        self.report.latex_dict.update(dict(zip(derived_params, derived_tex)))
+        units.update(dict(zip(derived_params, derived_units)))
+
+        for par in derived_params:
+            # self.report.post.maxparams[par] = self.report.chains[par].iloc[
+            #     self.report.chains['lnprobability'].argmax]
+            self.report.post.maxparams[par] = self.report.chains.loc[self.report.chains['lnprobability'].idxmax(), par]
+
+        kw = {}
+        kw['derived_rows'] = self._data(derived_basis)
+        if name_in_title:
+            kw['title'] = "{} Derived Posteriors".format(self.report.starname)
+        else:
+            kw['title'] = "Derived Posteriors"
+        tmpfile = 'tab_derived.tex'
+        t = env.get_template(tmpfile)
+        out = t.render(**kw)
+
         return out
 
     def tab_comparison(self):
@@ -393,14 +449,14 @@ Use \\texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fi
                     row += " &"
                     for item in val:
                         row += " %s," %item 
-                    row += " \{$\gamma$\}" 
+                    row += r" {$\gamma$}"
                     #row = row[:-1] 
                 else:
                     raise(ValueError, "Failed to format values for LaTeX: {}  {}".format(s, val))
             row += " & %.2f" % (statsdict_sorted[i]['AICc'][0] - minAIC) 
-            #row = row[3:]
+            # row = row[3:]
             if i == 0:
-            #    row = "{\\bf" + row + "}"
+                # row = "{\\bf" + row + "}"
                 row = "AICc Favored Model"+ row
             appendhline = False
             if (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AICc'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):
