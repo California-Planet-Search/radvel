@@ -82,9 +82,6 @@ class Likelihood(object):
         param_values_array = list(param_values_array)
         i = 0
         for key in self.list_vary_params():
-            # flip sign for negative jitter
-            if key.startswith('jit') and param_values_array[i] < 0:
-                param_values_array[i] = -param_values_array[i]
             self.params[key].value = param_values_array[i]
             i += 1
         assert i == len(param_values_array), \
