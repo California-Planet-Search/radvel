@@ -283,45 +283,40 @@ class RVLikelihood(Likelihood):
             decorr_params=self.decorr_params, decorr_vectors=self.decorr_vectors
             )
 
-        # Check for correct linearization setup
-        rvlin = False
-        for param in self.model.params:
-            if param.linear:
-                rvlin = True
-                break
-        if rvlin:
-            assert self.params['dvdt'].linear, "params['dvdt'].linear must be true for linearization"
-            assert self.params['curv'].linear, "params['curv'].linear must be true for linearization"
-            assert self.params[self.gamma_param].linear, "params['gamma'].linear must be true for linearization"
-            lp = ['per', 'k']
-            for pl in self.params.num_planets:
+        # Check for correct linearization setup, not foolproof
+        if self.model.rvlin:
+            assert self.params['dvdt'].linear or not self.params['dvdt'].vary, \
+                "params['dvdt'].linear must be true for linearization"
+            assert self.params['curv'].linear or not self.params['curv'].vary, \
+                "params['curv'].linear must be true for linearization"
+            # assert self.params[self.gamma_param].linear, \
+            #     "params['{}'].linear must be true for linearization".format(self.gamma_param)
+            lp = ['k', 'w']
+            for pl in range(1, self.params.num_planets):
                 for par in lp:
-                    lin = self.params[par+str(pl)].linear
-                    assert lin, "params['{}'].linear must be true for linearization"
-
+                    pstr = par+str(pl)
+                    if pstr in self.params.keys():
+                        lin = self.params[pstr].linear
+                        assert lin, "params['{}'].linear must be true for linearization".format(pstr)
 
     def residuals(self):
         """Residuals
 
         Data minus model
         """
-        mod = self.model(self.x)
+        if self.model.rvlin:
+            mod = self.model(self.x, self.y, self.errorbars())
+        else:
+            mod = self.model(self.x)
 
-
-
-        if not self.params[self.gamma_param].vary:
+        if self.params[self.gamma_param].linear:
             ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params[self.jit_param].value**2)) / \
                    np.sum(1/(self.yerr**2 + self.params[self.jit_param].value**2))
             if np.isnan(ztil):
                  ztil = 0.0
             self.params[self.gamma_param].value = ztil
 
-
-
-
         res = self.y - self.params[self.gamma_param].value - mod
-
-
 
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:

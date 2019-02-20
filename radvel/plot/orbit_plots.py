@@ -125,7 +125,8 @@ class MultipanelPlot(object):
             min(self.rvtimes) - 0.05 * self.dt, max(self.rvtimes) + 0.05 * self.dt + longp,
             int(resolution)
         )
-        
+
+        self.model.rvlin = False
         self.orbit_model = self.model(self.rvmodt)
         self.rvmod = self.model(self.rvtimes)
 

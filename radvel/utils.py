@@ -89,12 +89,17 @@ Converting 'logjit' to 'jit' for you now.
             del params[key]
 
     iparams = radvel.basis._copy_params(params)
-    
+
     # Make sure we don't have duplicate indicies in the DataFrame
     P.data = P.data.reset_index(drop=True)
 
+    for param in iparams:
+        if iparams[param].linear:
+            rvlin = True
+            break
+
     # initialize RVmodel object
-    mod = radvel.RVModel(params, time_base=P.time_base)
+    mod = radvel.RVModel(params, time_base=P.time_base, rvlin=rvlin)
 
     # initialize Likelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups

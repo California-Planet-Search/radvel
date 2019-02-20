@@ -1,6 +1,7 @@
 import numpy as np
 from collections import OrderedDict
 
+import radvel
 from radvel import kepler
 from radvel.basis import Basis
 
@@ -164,12 +165,13 @@ class Parameter(object):
         if isinstance(other,self.__class__):
             return (self.value == other.value) \
                     and (self.vary == other.vary) \
-                    and (self.mcmcscale == other.mcmcscale)
+                    and (self.mcmcscale == other.mcmcscale) \
+                    and (self.linear == other.linear)
 
     def __repr__(self):
         s = (
-          "Parameter object: value = {}, vary = {}, mcmc scale = {}"
-        ).format(self.value, self.vary, self.mcmcscale)
+          "Parameter object: value = {}, vary = {}, mcmc scale = {}, linear = {}"
+        ).format(self.value, self.vary, self.mcmcscale, self.linear)
         return s
 
 if __name__ == "__main__":
@@ -185,16 +187,17 @@ class RVModel(object):
     classes. The different RV models, with different
     parameterizations, all inherit from this class.
     """
-    def __init__(self, params, time_base=0):
+    def __init__(self, params, time_base=0, rvlin=False):
         self.num_planets = params.num_planets
         self.params = params
         self.time_base = time_base
+        self.rvlin = rvlin
         if 'dvdt' not in params.keys():
-            self.params['dvdt']=Parameter(value=0.)
+            self.params['dvdt'] = Parameter(value=0.)
         if 'curv' not in params.keys():
-            self.params['curv']=Parameter(value=0.)
+            self.params['curv'] = Parameter(value=0.)
 
-    def __call__(self, t, planet_num=None):
+    def __call__(self, t, y=None, yerr=None, planet_num=None):
         """Compute the radial velocity.
         
         Includes all Keplerians and additional trends.
@@ -219,13 +222,44 @@ class RVModel(object):
             per = params_synth['per{}'.format(num_planet)].value
             tp = params_synth['tp{}'.format(num_planet)].value
             e = params_synth['e{}'.format(num_planet)].value
-            w = params_synth['w{}'.format(num_planet)].value
-            k = params_synth['k{}'.format(num_planet)].value
-            orbel_synth = np.array([per, tp, e, w, k])
-            vel += kepler.rv_drive(t, orbel_synth)
+
+            if self.rvlin:
+                if e > 0.99:
+                    e = 0.99
+                nu = radvel.orbit.true_anomaly(t, tp, per, e)
+                if num_planet == 1:
+                    F = np.vstack((np.cos(nu), np.sin(nu)))
+                else:
+                    F = np.vstack((F, np.cos(nu), np.sin(nu)))
+
+            else:
+                w = params_synth['w{}'.format(num_planet)].value
+                k = params_synth['k{}'.format(num_planet)].value
+
+                orbel_synth = np.array([per, tp, e, w, k])
+                vel += kepler.rv_drive(t, orbel_synth)
+
+        if self.rvlin:
+            W = 1 / (yerr ** 2) * np.identity(len(yerr))
+            vW = np.array([y]) / (yerr ** 2)
+
+            Ft = F.T
+            WFt = W @ Ft
+            epsilon = np.linalg.inv(F @ WFt)
+            beta = vW @ Ft @ epsilon
+            vel = beta @ F
+
+            beta = beta[0]
+            vel = vel[0]
+
+            for i in range(self.num_planets):
+                params_synth['k{}'.format(i+1)].value = np.sqrt(beta[0 + i] ** 2 + beta[1 + i] ** 2)
+                params_synth['w{}'.format(i+1)].value = np.arctan2(-beta[1 + i], beta[0 + i])
+
+            outparams = params_synth.basis.from_synth(params_synth, self.params.basis.name)
+            self.params.update(outparams)
+
         vel += self.params['dvdt'].value * (t - self.time_base)
         vel += self.params['curv'].value * (t - self.time_base)**2
+
         return vel
-
-
-
