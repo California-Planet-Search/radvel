@@ -283,12 +283,31 @@ class RVLikelihood(Likelihood):
             decorr_params=self.decorr_params, decorr_vectors=self.decorr_vectors
             )
 
+        # Check for correct linearization setup
+        rvlin = False
+        for param in self.model.params:
+            if param.linear:
+                rvlin = True
+                break
+        if rvlin:
+            assert self.params['dvdt'].linear, "params['dvdt'].linear must be true for linearization"
+            assert self.params['curv'].linear, "params['curv'].linear must be true for linearization"
+            assert self.params[self.gamma_param].linear, "params['gamma'].linear must be true for linearization"
+            lp = ['per', 'k']
+            for pl in self.params.num_planets:
+                for par in lp:
+                    lin = self.params[par+str(pl)].linear
+                    assert lin, "params['{}'].linear must be true for linearization"
+
+
     def residuals(self):
         """Residuals
 
         Data minus model
         """
         mod = self.model(self.x)
+
+
 
         if not self.params[self.gamma_param].vary:
             ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params[self.jit_param].value**2)) / \
@@ -297,8 +316,13 @@ class RVLikelihood(Likelihood):
                  ztil = 0.0
             self.params[self.gamma_param].value = ztil
 
+
+
+
         res = self.y - self.params[self.gamma_param].value - mod
-        
+
+
+
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:
                 var = parname.split('_')[1]
@@ -336,10 +360,6 @@ class RVLikelihood(Likelihood):
         sigma_jit = self.params[self.jit_param].value
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
-
-        if not self.params[self.gamma_param].vary:
-            sigz = 1/np.sum(1 / (self.yerr**2 + sigma_jit**2))
-            loglike *= np.sqrt(2 * np.pi * sigz)
 
         return loglike
 

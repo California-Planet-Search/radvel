@@ -150,11 +150,14 @@ class Parameter(object):
         vary (Bool): True if parameter is allowed to vary in
             MCMC or max likelihood fits, false if fixed
         mcmcscale (float): step size to be used for MCMC fitting
+        linear (bool): Set to true for all RVLIN linear parameters if linearization desired
+            (per, w, K, gamma, dvdt, curv)
     """
-    def __init__(self, value=None, vary=True, mcmcscale=None):
+    def __init__(self, value=None, vary=True, mcmcscale=None, linear=False):
         self.value = value
         self.vary = vary
         self.mcmcscale = mcmcscale
+        self.linear = linear
 
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
@@ -211,7 +214,7 @@ class RVModel(object):
             planets = range(1, self.num_planets+1)
         else:
             planets = [planet_num]
-        
+
         for num_planet in planets:
             per = params_synth['per{}'.format(num_planet)].value
             tp = params_synth['tp{}'.format(num_planet)].value
