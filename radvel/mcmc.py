@@ -29,15 +29,17 @@ def _status_message(statevars):
     sys.stdout.flush()
 
 
-def convergence_check(samplers, maxGR, minTz, minsteps):
+def convergence_check(maxGR, minTz, minsteps, minpercent):
     """Check for convergence
     Check for convergence for a list of emcee samplers
     
     Args:
-        samplers (list): List of emcee sampler objects
         maxGR (float): Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): Minimum Tz to consider well-mixed
-        minsteps (int): Minimum number of steps per walker before convergence tests are performed
+        minsteps (int): Minimum number of steps per walker before convergence tests are performed. Convergence checks
+            will start after the minsteps threshold or the minpercent threshold has been hit.
+        minpercent (float): Minimum percentage of total steps before convergence tests are performed. Convergence checks
+            will start after the minsteps threshold or the minpercent threshold has been hit.
     """
     
     statevars.ar = 0
@@ -61,9 +63,9 @@ def convergence_check(samplers, maxGR, minTz, minsteps):
         # not work so just calculate it on the last sampler
         statevars.tchains = sampler.chain.transpose()
 
-    # Must have completed at least 5% or 1000 steps per walker before
+    # Must have completed at least 5% or minsteps steps per walker before
     # attempting to calculate GR
-    if statevars.pcomplete < 5 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
+    if statevars.pcomplete < minpercent and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
     else:
         (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains, maxGR=maxGR, minTz=minTz)
@@ -89,7 +91,7 @@ def _domcmc(input_tuple):
     return sampler
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.03, maxGR=1.01,
-         minTz=1000, minsteps=1000, thin=1, serial=False):
+         minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -103,7 +105,10 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
         burnGR (float): (optional) Maximum G-R statistic to stop burn-in period
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
-        minsteps (int): (optional) Minimum number of steps per walker before convergence tests are performed
+        minsteps (int): Minimum number of steps per walker before convergence tests are performed. Convergence checks
+            will start after the minsteps threshold or the minpercent threshold has been hit.
+        minpercent (float): Minimum percentage of total steps before convergence tests are performed. Convergence checks
+            will start after the minsteps threshold or the minpercent threshold has been hit.
         thin (int): (optional) save one sample every N steps (default=1, save every sample)
         serial (bool): set to true if MCMC should be run in serial
     Returns:
@@ -210,7 +215,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         t2 = time.time()
         statevars.interval = t2 - t1
 
-        convergence_check(statevars.samplers, maxGR=maxGR, minTz=minTz, minsteps=minsteps)
+        convergence_check(maxGR=maxGR, minTz=minTz, minsteps=minsteps, minpercent=minpercent)
 
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers

@@ -189,12 +189,12 @@ class HardBounds(Prior):
             self.finite = False
 
         if (len(param) == 2 and (param.startswith('k') or param.startswith('e'))) or param.startswith('logk'):
-            warnings.warn("HardBounds set on K or e parameter. PositveKPrior and EccentricityPriors are reccomended",
+            warnings.warn("HardBounds set on K or e parameter. PositveKPrior and EccentricityPriors are recommended",
                           UserWarning)
 
     def __call__(self, params):
         x = params[self.param].value
-        if x < self.minval or x > self.maxval:
+        if x <= self.minval or x >= self.maxval:
             return -np.inf
         else:
             if self.finite:
@@ -485,4 +485,47 @@ class UserDefinedPrior(Prior):
     def __str__(self):
         s = self.tex_rep
         return s
+
+class Informative_Baseline_Prior(Prior):
+    """ Informative baseline prior suggested 
+    by A. Vanderburg (see Blunt et al. 2019). 
+
+    This prior follows the distribution:
+
+    .. math::
+        p(x) \\propto 1\\, \\mathrm{{if}}\\, x-t_{{d}} \\lt B
+
+             \\propto (B+t_{{d}})/x\\, \mathrm{{else}}
+
+    with upper bound.
+
+    Args:
+        param (string): parameter label
+        baseline (float): :math:`B` in eq above
+        duration (float): :math:`t_{{d}}` in eq above (default: 0.0)
+
+    """
+
+    def __init__(self, param, baseline, duration=0.0):
+        self.param = param
+        self.baseline = baseline
+        self.duration = duration
+
+    def __repr__(self):
+        s = "Informative baseline prior on {}, baseline={}, duration={}".format(
+            self.param, self.baseline, self.duration
+            )
+        return s
+
+    def __call__(self, params):
+
+        per = params[self.param].value
+
+        if self.param.startswith('logper'):
+            per = np.exp(per)
+
+        if (per-self.duration)<=self.baseline:
+            return 0.
+        else:
+            return np.log((self.baseline+self.duration)/per)
 

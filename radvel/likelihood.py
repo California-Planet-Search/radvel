@@ -288,7 +288,9 @@ class RVLikelihood(Likelihood):
 
         Data minus model
         """
-        res = self.y - self.params[self.gamma_param].value - self.model(self.x)
+        mod = self.model(self.x)
+
+        res = self.y - self.params[self.gamma_param].value - mod
         
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:
@@ -327,7 +329,7 @@ class RVLikelihood(Likelihood):
         sigma_jit = self.params[self.jit_param].value
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
-        
+
         return loglike
 
 

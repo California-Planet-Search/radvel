@@ -155,7 +155,7 @@ def mcmc(args):
     status = load_status(statfile)
 
     if status.getboolean('fit', 'run'):
-        print("Loading starting positions from previous max-likelihood fit")
+        print("Loading starting positions from previous MAP fit")
 
         post = radvel.posterior.load(status.get('fit', 'postfile'))
     else:
@@ -168,7 +168,8 @@ def mcmc(args):
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, thin=args.thin, serial=args.serial)
+            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent,
+            thin=args.thin, serial=args.serial)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
