@@ -487,7 +487,7 @@ class UserDefinedPrior(Prior):
         return s
 
 
-class Informative_Baseline_Prior(Prior):
+class InformativeBaselinePrior(Prior):
     """ Informative baseline prior suggested
     by A. Vanderburg (see Blunt et al. 2019).
 
