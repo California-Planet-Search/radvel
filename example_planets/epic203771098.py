@@ -73,7 +73,7 @@ priors = [
 ]
 
 # abscissa for slope and curvature terms (should be near mid-point of time baseline)
-time_base = np.mean([np.min(data.time), np.max(data.time)])  
+time_base = np.mean([np.min(data.time), np.max(data.time)])
 
 
 # optional argument that can contain stellar mass in solar units (mstar) and

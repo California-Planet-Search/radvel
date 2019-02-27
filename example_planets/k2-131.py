@@ -14,15 +14,15 @@ before coming back to this configuration file.
 # Data from Dai et al. (2017)
 instnames = ['harps-n','pfs']  # no spaces in instrument names
 data = pd.read_csv(os.path.join(radvel.DATADIR,'k2-131.txt'), sep=' ')
-t = np.array(data['time']) 
+t = np.array(data['time'])
 vel = np.array(data['mnvel'])
 errvel = np.array(data['errvel'])
 telgrps = data.groupby('tel').groups
-bjd = 0. 
+bjd = 0.
 
 starname = 'k2-131'
-ntels = len(instnames)      
-planet_letters = {1: 'b'}   
+ntels = len(instnames)
+planet_letters = {1: 'b'}
 
 nplanets = 1
 fitting_basis = 'per tc secosw sesinw k'
@@ -32,7 +32,7 @@ gp_explength_mean = 9.5*np.sqrt(2.) # sqrt(2)*tau in Dai et al. (2017) [days]
 gp_explength_unc = 1.0*np.sqrt(2.)
 gp_perlength_mean = np.sqrt(1./(2*3.32)) # sqrt(1/2*gamma) in Dai et al. (2017)
 gp_perlength_unc = 0.04
-""" 
+"""
 NOTE: this prior isn't equivalent to the one Dai et al. (2017) use. However,
 our formulation of the quasi-periodic kernel explicitly keeps the covariance
 matrix postitive semi-definite, so we use this instead. The orbit model
@@ -42,7 +42,7 @@ results aren't affected.
 gp_per_mean = 9.64 # T_bar in Dai et al. (2017) [days]
 gp_per_unc = 0.12
 Porb = 0.3693038 # [days]
-Porb_unc = 0.0000091 
+Porb_unc = 0.0000091
 Tc = 2457582.9360 # [BJD]
 Tc_unc = 0.0011
 
@@ -61,8 +61,8 @@ time_base = np.median(t)
 # Define GP hyperparameters as Parameter objects.
 params['gp_amp_j'] = radvel.Parameter(value=26.0)
 params['gp_amp_h'] = radvel.Parameter(value=26.0)
-params['gp_explength'] = radvel.Parameter(value=gp_explength_mean) 
-params['gp_per'] = radvel.Parameter(value=gp_per_mean) 
+params['gp_explength'] = radvel.Parameter(value=gp_explength_mean)
+params['gp_per'] = radvel.Parameter(value=gp_per_mean)
 params['gp_perlength'] = radvel.Parameter(value=gp_perlength_mean)
 
 
@@ -77,13 +77,13 @@ hnames = {
               'gp_per', # GP variability period
               'gp_explength', # GP non-periodic characteristic length
               'gp_perlength'], # GP periodic characteristic length
-  'pfs': ['gp_amp_j', 
-          'gp_per', 
-          'gp_explength', 
+  'pfs': ['gp_amp_j',
+          'gp_per',
+          'gp_explength',
           'gp_perlength']
 }
 
-kernel_name = {'harps-n':"QuasiPer", 
+kernel_name = {'harps-n':"QuasiPer",
                'pfs':"QuasiPer"}
 """
 NOTE: If all kernels are quasi-periodic, you don't need to include the
@@ -98,7 +98,7 @@ def initialize_instparams(tel_suffix):
     indices = telgrps[tel_suffix]
 
     params['gamma_'+tel_suffix] = radvel.Parameter(value=np.mean(vel[indices]))
-    params['jit_'+tel_suffix] = radvel.Parameter(value=jit_guesses[tel_suffix]) 
+    params['jit_'+tel_suffix] = radvel.Parameter(value=jit_guesses[tel_suffix])
 
 
 for tel in instnames:
