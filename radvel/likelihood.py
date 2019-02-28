@@ -9,7 +9,7 @@ _has_celerite = gp._try_celerite()
 if _has_celerite:
     import celerite
 
-    
+
 def custom_formatwarning(msg, *args, **kwargs):
     # ignore everything except the message
     return str(msg) + '\n'
@@ -46,7 +46,7 @@ class Likelihood(object):
                 )
             keys = self.params.keys()
             for key in keys:
-                vstr = str(self.params[key].vary)    
+                vstr = str(self.params[key].vary)
                 if (key.startswith('tc') or key.startswith('tp')) and self.params[key].value > 1e6:
                     par = self.params[key].value - 2450000
                 else:
@@ -72,7 +72,7 @@ class Likelihood(object):
                     par = self.params[key].value - 2450000
                 else:
                     par = self.params[key].value
-                    
+
                 s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
                     key, par, err, vstr
                      )
@@ -91,7 +91,7 @@ class Likelihood(object):
         params_array = []
         for key in self.list_vary_params():
             if self.params[key].vary:
-                params_array += [self.params[key].value]     
+                params_array += [self.params[key].value]
         params_array = np.array(params_array)
         return params_array
 
@@ -184,10 +184,10 @@ class CompositeLikelihood(Likelihood):
         self.extra_params = like0.extra_params
         self.suffixes = like0.suffix
         self.uparams = like0.uparams
-        
+
         for i in range(1, self.nlike):
             like = like_list[i]
-            
+
             self.x = np.append(self.x, like.x)
             self.y = np.append(self.y, like.y - like.params[like.gamma_param].value)
             self.yerr = np.append(self.yerr, like.yerr)
@@ -198,7 +198,7 @@ class CompositeLikelihood(Likelihood):
                 self.uparams = self.uparams.update(like.uparams)
             except AttributeError:
                 self.uparams = None
-            
+
             assert like.model is like0.model, \
                 "Likelihoods must use the same model"
 
@@ -211,7 +211,7 @@ class CompositeLikelihood(Likelihood):
         self.extra_params = list(set(self.extra_params))
         self.params = params
         self.like_list = like_list
-        
+
     def logprob(self):
         """
         See `radvel.likelihood.RVLikelihood.logprob`
@@ -231,7 +231,7 @@ class CompositeLikelihood(Likelihood):
             res = np.append(res, like.residuals())
 
         return res
-        
+
     def errorbars(self):
         """
         See `radvel.likelihood.RVLikelihood.errorbars`
@@ -269,7 +269,7 @@ class RVLikelihood(Likelihood):
             self.suffix = suffix
 
         self.telvec = np.array([self.suffix]*len(t))
-        
+
         self.decorr_params = []
         self.decorr_vectors = decorr_vectors
         if len(decorr_vars) > 0:
@@ -288,7 +288,7 @@ class RVLikelihood(Likelihood):
         mod = self.model(self.x)
 
         res = self.y - self.params[self.gamma_param].value - mod
-        
+
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:
                 var = parname.split('_')[1]
@@ -310,7 +310,7 @@ class RVLikelihood(Likelihood):
 
         Returns:
             array: uncertainties
-        
+
         """
         return np.sqrt(self.yerr**2 + self.params[self.jit_param].value**2)
 
@@ -340,18 +340,18 @@ class GPLikelihood(RVLikelihood):
         t (array): time array
         vel (array): array of velocities
         errvel (array): array of velocity uncertainties
-        hnames (list of string): keys corresponding to radvel.Parameter 
+        hnames (list of string): keys corresponding to radvel.Parameter
            objects in model.params that are GP hyperparameters
         suffix (string): suffix to identify this Likelihood object;
            useful when constructing a `CompositeLikelihood` object
     """
-    def __init__(self, model, t, vel, errvel, 
+    def __init__(self, model, t, vel, errvel,
                  hnames=['gp_per', 'gp_perlength', 'gp_explength', 'gp_amp'],
                  suffix='', kernel_name="QuasiPer", **kwargs):
 
         self.suffix = suffix
         super(GPLikelihood, self).__init__(
-              model, t, vel, errvel, suffix=self.suffix, 
+              model, t, vel, errvel, suffix=self.suffix,
               decorr_vars=[], decorr_vectors={}
             )
         assert kernel_name in gp.KERNELS.keys(), \
@@ -361,17 +361,17 @@ class GPLikelihood(RVLikelihood):
         self.hnames = hnames  # list of string names of hyperparameters
         self.hyperparams = {k: self.params[k] for k in self.hnames}
 
-        self.kernel_call = getattr(gp, kernel_name + "Kernel") 
+        self.kernel_call = getattr(gp, kernel_name + "Kernel")
         self.kernel = self.kernel_call(self.hyperparams)
 
         self.kernel.compute_distances(self.x, self.x)
         self.N = len(self.x)
 
     def update_kernel_params(self):
-        """ Update the Kernel object with new values of the hyperparameters 
+        """ Update the Kernel object with new values of the hyperparameters
         """
         for key in self.list_vary_params():
-            if key in self.hnames: 
+            if key in self.hnames:
                 hparams_key = key.split('_')
                 hparams_key = hparams_key[0] + '_' + hparams_key[1]
                 self.kernel.hparams[hparams_key].value = self.params[key].value
@@ -402,11 +402,11 @@ class GPLikelihood(RVLikelihood):
         .. math::
 
            lnL = -0.5r^TK^{-1}r - 0.5ln[det(K)] - 0.5N*ln(2pi)
-           
-        where r = vector of residuals (GPLikelihood._resids), 
-        K = covariance matrix, and N = number of datapoints. 
 
-        Priors are not applied here. 
+        where r = vector of residuals (GPLikelihood._resids),
+        K = covariance matrix, and N = number of datapoints.
+
+        Priors are not applied here.
         Constant has been omitted.
 
         Returns:
@@ -416,7 +416,7 @@ class GPLikelihood(RVLikelihood):
         # update the Kernel object hyperparameter values
         self.update_kernel_params()
 
-        r = self._resids()      
+        r = self._resids()
 
         self.kernel.compute_covmatrix(self.errorbars())
 
@@ -474,7 +474,7 @@ class GPLikelihood(RVLikelihood):
         self.kernel.compute_distances(self.x, self.x)
 
         return mu, stdev
-        
+
 
 class CeleriteLikelihood(GPLikelihood):
     """Celerite GP Likelihood
@@ -493,7 +493,7 @@ class CeleriteLikelihood(GPLikelihood):
         t (array): time array
         vel (array): array of velocities
         errvel (array): array of velocity uncertainties
-        hnames (list of string): keys corresponding to radvel.Parameter 
+        hnames (list of string): keys corresponding to radvel.Parameter
            objects in model.params that are GP hyperparameters
         suffix (string): suffix to identify this Likelihood object;
            useful when constructing a `CompositeLikelihood` object
@@ -522,7 +522,7 @@ class CeleriteLikelihood(GPLikelihood):
 
             # calculate log likelihood
             lnlike = -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant() + self.N*np.log(2.*np.pi))
-        
+
             return lnlike
 
         except celerite.solver.LinAlgError:
@@ -578,10 +578,10 @@ def loglike_jitter(residuals, sigma, sigma_jit):
     """
     Log-likelihood incorporating jitter
 
-    See equation (1) in Howard et al. 2014. Returns loglikelihood, where 
+    See equation (1) in Howard et al. 2014. Returns loglikelihood, where
     sigma**2 is replaced by sigma**2 + sigma_jit**2. It penalizes
     excessively large values of jitter
-    
+
     Args:
         residuals (array): array of residuals
         sigma (array): array of measurement errors
@@ -594,5 +594,5 @@ def loglike_jitter(residuals, sigma, sigma_jit):
     penalty = np.sum( np.log( np.sqrt( 2 * np.pi * sum_sig_quad ) ) )
     chi2 = np.sum(residuals**2 / sum_sig_quad)
     loglike = -0.5 * chi2 - penalty
-    
+
     return loglike

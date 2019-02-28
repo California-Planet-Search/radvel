@@ -4,7 +4,7 @@ import radvel
 
 # Try to import Kepler's equation solver written in C
 try:
-    from . import _kepler 
+    from . import _kepler
     cext = True
 except ImportError:
     print("WARNING: KEPLER: Unable to import C-based Kepler's\
@@ -14,7 +14,7 @@ equation solver. Falling back to the slower NumPy implementation.")
 
 def rv_drive(t, orbel, use_c_kepler_solver=cext):
     """RV Drive
-    
+
     Args:
         t (array of floats): times of observations
         orbel (array of floats): [per, tp, e, om, K].\
@@ -25,12 +25,12 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
             use the Python/NumPy version.
     Returns:
         rv: (array of floats): radial velocity model
-    
+
     """
-    
+
     # unpack array of parameters
     per, tp, e, om, k = orbel
-    
+
     # Performance boost for circular orbits
     if e == 0.0:
         m = 2 * np.pi * (((t - tp) / per) - np.floor((t - tp) / per))
@@ -49,7 +49,7 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
     else:
         nu = radvel.orbit.true_anomaly(t, tp, per, e)
         rv = k * (np.cos(nu + om) + e * np.cos(om))
-    
+
     return rv
 
 
@@ -62,22 +62,22 @@ def kepler(Marr, eccarr):
 
     Returns:
         array: eccentric anomaly
-    
+
     """
-    
+
     conv = 1.0e-12  # convergence criterion
     k = 0.85
 
     Earr = Marr + np.sign(np.sin(Marr)) * k * eccarr  # first guess at E
     # fiarr should go to zero when converges
-    fiarr = ( Earr - eccarr * np.sin(Earr) - Marr)  
+    fiarr = ( Earr - eccarr * np.sin(Earr) - Marr)
     convd = np.where(np.abs(fiarr) > conv)[0]  # which indices have not converged
     nd = len(convd)  # number of unconverged elements
     count = 0
 
     while nd > 0:  # while unconverged elements exist
         count += 1
-        
+
         M = Marr[convd]  # just the unconverged elements ...
         ecc = eccarr[convd]
         E = Earr[convd]
@@ -88,7 +88,7 @@ def kepler(Marr, eccarr):
         fippp = 1 - fip  # d/dE(d/dE(d/dE(fi))) ;i.e.,  fi^(\prime\prime\prime)
 
         # first, second, and third order corrections to E
-        d1 = -fi / fip 
+        d1 = -fi / fip
         d2 = -fi / (fip + d1 * fipp / 2.0)
         d3 = -fi / (fip + d2 * fipp / 2.0 + d2 * d2 * fippp / 6.0)
         E = E + d3
@@ -96,10 +96,10 @@ def kepler(Marr, eccarr):
         fiarr = ( Earr - eccarr * np.sin( Earr ) - Marr) # how well did we do?
         convd = np.abs(fiarr) > conv  # test for convergence
         nd = np.sum(convd is True)
-        
-    if Earr.size > 1: 
+
+    if Earr.size > 1:
         return Earr
-    else: 
+    else:
         return Earr[0]
 
 
@@ -108,7 +108,7 @@ def profile():
     # Python/Numpy implementation
 
     import timeit
-    
+
     ecc = 0.1
     numloops = 5000
     print("\nECCENTRICITY = {}".format(ecc))

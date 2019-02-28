@@ -43,16 +43,16 @@ class RadvelReport(object):
     Class to handle the creation of the radvel summary PDF
 
     Args:
-        planet (planet object): planet configuration object loaded in 
-            `kepfit.py` using `imp.load_source` 
-        post (radvel.posterior): 
-            radvel.posterior object containing the best-fit parameters in 
+        planet (planet object): planet configuration object loaded in
+            `kepfit.py` using `imp.load_source`
+        post (radvel.posterior):
+            radvel.posterior object containing the best-fit parameters in
                 post.params
         compstats (dict): dictionary of model comparison results from `radvel ic`
         derived (bool): included table of derived parameters
         chains (DataFrame): output DataFrame from a `radvel.mcmc` run
     """
-    
+
     def __init__(self, planet, post, chains, compstats=None, derived=False):
         self.planet = planet
         self.post = post
@@ -60,7 +60,7 @@ class RadvelReport(object):
         self.starname_tex = planet.starname.replace('_', '\\_')
         self.runname = self.starname_tex
         self.derived = derived
-                
+
         post.params = post.params.basis.to_synth(post.params)
         post.params = post.params.basis.from_synth(
             post.params, print_basis
@@ -79,7 +79,7 @@ class RadvelReport(object):
         )
         self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
         self.compstats = compstats
-        self.num_planets = self.post.params.num_planets 
+        self.num_planets = self.post.params.num_planets
 
     def texdoc(self):
         """TeX for entire document
@@ -123,7 +123,7 @@ class RadvelReport(object):
         Args:
             pdfname (str): name of the output PDF file
             latex_compiler (str): path to latex compiler
-            depfiles (list): list of file names of dependencies needed for 
+            depfiles (list): list of file names of dependencies needed for
                 LaTex compilation (e.g. figure files)
 
         """
@@ -134,7 +134,7 @@ class RadvelReport(object):
             shutil.copy2(
                 os.path.join(current, fname), os.path.join(temp, fname)
             )
-        
+
         os.chdir(temp)
 
         f = open(texname, 'w')
@@ -148,11 +148,11 @@ class RadvelReport(object):
                 # LaTex likes to be compiled a few times
                 # to get the table widths correct
                 proc = subprocess.Popen(
-                    [latex_compiler, texname], stdout=subprocess.PIPE, 
+                    [latex_compiler, texname], stdout=subprocess.PIPE,
                 )
                 proc.communicate()  # Let the subprocess complete
         except (OSError):
-            msg = """ 
+            msg = """
 WARNING: REPORT: could not run %s. Ensure that %s is in your PATH
 or pass in the path as an argument
 """ % (latex_compiler, latex_compiler)
@@ -174,20 +174,20 @@ class TexTable(RadvelReport):
         report (radvel.report.RadvelReport): radvel report object
         full (bool): get full-length RV table [default: True]
     """
-    
+
     def __init__(self, report):
         self.report = report
         self.post = report.post
         self.quantiles = report.quantiles
         self.fitting_basis = report.post.params.basis.name
-    
+
     def _row(self, param, unit):
         """
         Helper function to output the rows in the parameter table
         """
         if unit == 'radians':
             par = radvel.utils.geterr(self.report.chains[param], angular=True)
-            med, low, high = par 
+            med, low, high = par
         else:
             med = self.quantiles[param][0.5]
             low = self.quantiles[param][0.5] - self.quantiles[param][0.159]
@@ -247,7 +247,7 @@ class TexTable(RadvelReport):
                 except KeyError:
                     row = self._row(p, unit)
                 rows.append(row)
-                
+
         return rows
 
     def tab_prior_summary(self, name_in_title=False):
@@ -331,7 +331,7 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
             for p in self.post.likelihood.extra_params:
                 if o in p:
                     op.append(p)
-            if len(op)==0: 
+            if len(op)==0:
                 op = [o]
             [ep.append(i) for i in sorted(op)[::-1]]
 
@@ -426,7 +426,7 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
         head += r" & \colhead{$\Delta$AICc}"
         head += r"}"
 
-        minAIC = statsdict_sorted[0]['AICc'][0]   
+        minAIC = statsdict_sorted[0]['AICc'][0]
         # See Burnham + Anderson 2004
         deltaAIClevels = [0., 2., 4., 10.]
         deltaAICmessages = ["Nearly Indistinguishable", "Somewhat Disfavored", \
@@ -444,31 +444,31 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
                 elif type(val) is float:
                     row += " & %.2f" % val
                 elif type(val) is str:
-                    row += " & %s" % val 
+                    row += " & %s" % val
                 elif type(val) is list:
                     row += " &"
                     for item in val:
-                        row += " %s," %item 
+                        row += " %s," %item
                     row += r" {$\gamma$}"
-                    #row = row[:-1] 
+                    #row = row[:-1]
                 else:
                     raise(ValueError, "Failed to format values for LaTeX: {}  {}".format(s, val))
-            row += " & %.2f" % (statsdict_sorted[i]['AICc'][0] - minAIC) 
+            row += " & %.2f" % (statsdict_sorted[i]['AICc'][0] - minAIC)
             # row = row[3:]
             if i == 0:
                 # row = "{\\bf" + row + "}"
                 row = "AICc Favored Model"+ row
             appendhline = False
             if (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AICc'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):
-                deltaAICtrigger += 1 
+                deltaAICtrigger += 1
                 while (deltaAICtrigger < maxtrigger) and ((statsdict_sorted[i]['AICc'][0] - minAIC) > deltaAIClevels[deltaAICtrigger]):
-                    deltaAICtrigger += 1 
+                    deltaAICtrigger += 1
                 row = deltaAICmessages[deltaAICtrigger-1] + row
                 appendhline = True
             if appendhline or (i == 1):
                 rows.append(r"\hline")
             rows.append(row)
-        
+
         t = env.get_template('tab_comparison.tex')
         out = t.render(coldefs=coldefs, head=head, rows=rows)
         return out

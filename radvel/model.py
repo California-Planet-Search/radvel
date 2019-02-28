@@ -44,19 +44,19 @@ class Parameters(OrderedDict):
 
     Args:
         num_planets (int): Number of planets in model
-        basis (string): parameterization of orbital parameters. See 
+        basis (string): parameterization of orbital parameters. See
             ``radvel.basis.Basis`` for a list of valid basis strings.
-        planet_letters (dict [optional): custom map to match the planet 
+        planet_letters (dict [optional): custom map to match the planet
             numbers in the Parameter object to planet letters.
-            Default {1: 'b', 2: 'c', etc.}. The keys of this dictionary must 
+            Default {1: 'b', 2: 'c', etc.}. The keys of this dictionary must
             all be integers.
 
     Attributes:
         basis (radvel.Basis): Basis object
-        planet_parameters (list): orbital parameters contained within the 
+        planet_parameters (list): orbital parameters contained within the
             specified basis
         num_planets (int): number of planets in the model
-    
+
     Examples:
        >>> import radvel
        # create a Parameters object for a 2-planet system with
@@ -64,7 +64,7 @@ class Parameters(OrderedDict):
        >>> params = radvel.Parameters(2, planet_letters={1:'d', 2:'e'})
 
     """
-    def __init__(self, num_planets, basis='per tc secosw sesinw logk', 
+    def __init__(self, num_planets, basis='per tc secosw sesinw logk',
                  planet_letters=None):
         super(Parameters, self).__init__()
 
@@ -75,7 +75,7 @@ class Parameters(OrderedDict):
             for parameter in self.planet_parameters:
                 new_name = self._sparameter(parameter, num_planet)
                 self.__setitem__(new_name, Parameter())
-                
+
         if planet_letters is not None:
             for k in planet_letters.keys():
                 assert isinstance(k, int), """\
@@ -99,7 +99,7 @@ should have only integers as keys."""
 
         Args:
             param_list (list [optional]): Manually pass a list of parameter labels
-        
+
         Returns:
             dict: dictionary mapping Parameters keys to TeX code
 
@@ -107,7 +107,7 @@ should have only integers as keys."""
 
         if param_list is None:
             param_list = self.keys()
-        
+
         tex_labels = {}
         for k in param_list:
             n = k[-1]
@@ -127,17 +127,17 @@ should have only integers as keys."""
                 tex_labels[k] = k
 
         return tex_labels
-        
+
     def _sparameter(self, parameter, num_planet):
         return '{0}{1}'.format(parameter, num_planet)
 
-    def _planet_texlabel(self, parameter, num_planet):        
+    def _planet_texlabel(self, parameter, num_planet):
         pname = texdict.get(parameter, parameter)
         if self.planet_letters is not None:
             lett_planet = self.planet_letters[int(num_planet)]
         else:
             lett_planet = chr(int(num_planet)+97)
-        return '$%s_{%s}$' % (pname, lett_planet) 
+        return '$%s_{%s}$' % (pname, lett_planet)
 
 
 
@@ -146,7 +146,7 @@ class Parameter(object):
     """Object to store attributes of each orbital parameter
 
     Attributes:
-        value (float): value of parameter. 
+        value (float): value of parameter.
         vary (Bool): True if parameter is allowed to vary in
             MCMC or max likelihood fits, false if fixed
         mcmcscale (float): step size to be used for MCMC fitting
@@ -193,12 +193,12 @@ class RVModel(object):
 
     def __call__(self, t, planet_num=None):
         """Compute the radial velocity.
-        
+
         Includes all Keplerians and additional trends.
 
         Args:
             t (array of floats): Timestamps to calculate the RV model
-            planet_num (int [optional]): calculate the RV model for a single 
+            planet_num (int [optional]): calculate the RV model for a single
                 planet within a multi-planet system
 
         Returns:
@@ -206,12 +206,12 @@ class RVModel(object):
         """
         vel = np.zeros(len(t))
         params_synth = self.params.basis.to_synth(self.params)
-        
+
         if planet_num is None:
             planets = range(1, self.num_planets+1)
         else:
             planets = [planet_num]
-        
+
         for num_planet in planets:
             per = params_synth['per{}'.format(num_planet)].value
             tp = params_synth['tp{}'.format(num_planet)].value

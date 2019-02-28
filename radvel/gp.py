@@ -128,7 +128,7 @@ class SqExpKernel(Kernel):
                 errors (float or numpy array): If covariance matrix is non-square,
                     this arg must be set to 0. If covariance matrix is square,
                     this can be a numpy array of observational errors and jitter
-                    added in quadrature. 
+                    added in quadrature.
         """
         length = self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
@@ -214,7 +214,7 @@ class PerKernel(Kernel):
                 errors (float or numpy array): If covariance matrix is non-square,
                     this arg must be set to 0. If covariance matrix is square,
                     this can be a numpy array of observational errors and jitter
-                    added in quadrature. 
+                    added in quadrature.
         """
         length= self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
@@ -244,7 +244,7 @@ class QuasiPerKernel(Kernel):
         hparams (dict of radvel.Parameter): dictionary containing
             radvel.Parameter objects that are GP hyperparameters
             of this kernel. Must contain exactly four objects, 'gp_explength*',
-            'gp_amp*', 'gp_per*', and 'gp_perlength*', where * is a suffix 
+            'gp_amp*', 'gp_per*', and 'gp_perlength*', where * is a suffix
             identifying these hyperparameters with a likelihood object.
 
     """
@@ -289,7 +289,7 @@ class QuasiPerKernel(Kernel):
         explength = self.hparams['gp_explength'].value
 
         msg = (
-            "QuasiPer Kernel with amp: {}, per length: {}, per: {}, " 
+            "QuasiPer Kernel with amp: {}, per length: {}, per: {}, "
             "exp length: {}"
         ).format(amp, perlength, per, explength)
         return msg
@@ -308,7 +308,7 @@ class QuasiPerKernel(Kernel):
                 errors (float or numpy array): If covariance matrix is non-square,
                     this arg must be set to 0. If covariance matrix is square,
                     this can be a numpy array of observational errors and jitter
-                    added in quadrature. 
+                    added in quadrature.
         """
         perlength = self.hparams['gp_perlength'].value
         amp = self.hparams['gp_amp'].value
@@ -351,7 +351,7 @@ class CeleriteKernel(Kernel):
         hparams (dict of radvel.Parameter): dictionary containing
             radvel.Parameter objects that are GP hyperparameters
             of this kernel. Must contain exactly four objects, 'gp_B*',
-            'gp_C*', 'gp_L*', and 'gp_Prot*', where * is a suffix 
+            'gp_C*', 'gp_L*', and 'gp_Prot*', where * is a suffix
             identifying these hyperparameters with a likelihood object.
     """
 
@@ -421,9 +421,9 @@ CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'
 
     def compute_distances(self, x1, x2):
         """
-        The celerite.solver.CholeskySolver object does 
-        not require distances to be precomputed, so 
-        this method has been co-opted to define some 
+        The celerite.solver.CholeskySolver object does
+        not require distances to be precomputed, so
+        this method has been co-opted to define some
         unchanging variables.
         """
         self.x = x1
@@ -450,9 +450,9 @@ CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'
 
         self.compute_real_and_complex_hparams()
         solver.compute(
-            0., self.real[:,0], self.real[:,2], 
-            self.complex[:,0], self.complex[:,1], 
-            self.complex[:,2], self.complex[:,3], 
+            0., self.real[:,0], self.real[:,2],
+            self.complex[:,0], self.complex[:,1],
+            self.complex[:,2], self.complex[:,3],
             self.A, self.U, self.V,
             self.x, errors**2
         )
