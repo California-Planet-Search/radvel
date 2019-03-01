@@ -333,7 +333,8 @@ def tables(args):
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
-    report = radvel.report.RadvelReport(P, post, chains)
+        derived = True
+    report = radvel.report.RadvelReport(P, post, chains, derived=derived)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
                 'params': 'tab_params', 'derived': 'tab_derived'}
