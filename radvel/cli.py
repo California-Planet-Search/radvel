@@ -52,7 +52,7 @@ def main():
                           help="type of plot(s) to generate"
                           )
     psr_plot.add_argument('--plotkw', dest='plotkw', action='store', default="{}", type=eval,
-                          help='''Dictionary of keywords sent to MultipanelPlot or GPMultipanelPlot. 
+                          help='''Dictionary of keywords sent to MultipanelPlot or GPMultipanelPlot.
 E.g. --plotkw "{'yscale_auto': True}"' ''')
     psr_plot.add_argument('--gp',
                           dest='gp',
@@ -60,7 +60,7 @@ E.g. --plotkw "{'yscale_auto': True}"' ''')
                           default=False,
                           help="Make a multipanel plot with GP bands. For use only with GPLikleihood objects"
                           )
-    
+
     psr_plot.set_defaults(func=radvel.driver.plots)
 
     # MCMC
@@ -107,7 +107,7 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
                                      )
 
     psr_physical.set_defaults(func=radvel.driver.derive)
-    
+
     # Information Criteria comparison (BIC/AIC)
     psr_ic = subpsr.add_parser('ic', parents=[psr_parent],)
     psr_ic.add_argument('-t', '--type', type=str, nargs='+', default='trend',
@@ -147,7 +147,7 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
                            help='''Include star name in table headers. Default just prints \
 descriptive titles without star name [False]'''
                            )
-    
+
     psr_table.set_defaults(func=radvel.driver.tables)
 
     # Report
@@ -160,7 +160,7 @@ descriptive titles without star name [False]'''
     psr_report.add_argument('--latex-compiler', default='pdflatex', type=str, help='Path to latex compiler')
 
     psr_report.set_defaults(func=radvel.driver.report)
-    
+
     args = psr.parse_args()
 
     if args.outputdir is None:
@@ -169,10 +169,10 @@ descriptive titles without star name [False]'''
         system_name = os.path.basename(setupfile).split('.')[0]
         outdir = os.path.join('./', system_name)
         args.outputdir = outdir
-            
+
     if not os.path.isdir(args.outputdir):
         os.mkdir(args.outputdir)
-        
+
     args.func(args)
 
 

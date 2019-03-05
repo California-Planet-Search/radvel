@@ -9,21 +9,21 @@ import radvel
 # Data from Dai+ 2017
 instnames = ['harps-n', 'pfs']  # no spaces in instrument names
 data = pd.read_csv(os.path.join(radvel.DATADIR, 'k2-131.txt'), sep=' ')
-t = np.array(data['time']) 
+t = np.array(data['time'])
 vel = np.array(data['mnvel'])
 errvel = np.array(data['errvel'])
 telgrps = data.groupby('tel').groups
-bjd = 0. 
+bjd = 0.
 
 # Constraints from transits
 Porb = 0.3693038  # [days]
-Porb_unc = 0.0000091 
+Porb_unc = 0.0000091
 Tc = 2457582.9360  # [BJD]
 Tc_unc = 0.0011
 
 starname = 'k2-131'
-ntels = len(instnames)      
-planet_letters = {1: 'b'}   
+ntels = len(instnames)
+planet_letters = {1: 'b'}
 
 nplanets = 1
 fitting_basis = 'per tc secosw sesinw k'
@@ -44,7 +44,7 @@ time_base = np.median(t)
 
 # Define Celerite GP hyperparameters.
 params['gp_B'] = radvel.Parameter(value=30**2., vary=True)
-params['gp_C'] = radvel.Parameter(value=1., vary=True) 
+params['gp_C'] = radvel.Parameter(value=1., vary=True)
 params['gp_L'] = radvel.Parameter(value=9., vary=True)
 params['gp_Prot'] = radvel.Parameter(value=9., vary=True)
 

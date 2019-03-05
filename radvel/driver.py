@@ -32,7 +32,7 @@ def plots(args):
     Args:
         args (ArgumentParser): command line arguments
     """
-    
+
     config_file = args.setupfn
     conf_base = os.path.basename(config_file).split('.')[0]
     statfile = os.path.join(
@@ -112,8 +112,8 @@ You may want to use the '--gp' flag when making these plots.")
 
         savestate = {'{}_plot'.format(ptype): os.path.relpath(saveto)}
         save_status(statfile, 'plot', savestate)
-            
-        
+
+
 def fit(args):
     """Perform maximum a posteriori fit
 
@@ -128,11 +128,11 @@ def fit(args):
     P, post = radvel.utils.initialize_posterior(config_file, decorr=args.decorr)
 
     post = radvel.fitting.maxlike_fitting(post, verbose=True)
-    
+
     postfile = os.path.join(args.outputdir,
                             '{}_post_obj.pkl'.format(conf_base))
     post.writeto(postfile)
-    
+
     savestate = {'run': True,
                  'postfile': os.path.relpath(postfile)}
     save_status(os.path.join(args.outputdir,
@@ -183,7 +183,7 @@ def mcmc(args):
     synthchains = post.params.basis.to_synth(synthchains)
     synth_quantile = synthchains.quantile([0.159, 0.5, 0.841])
 
-    # Get quantiles and update posterior object to median 
+    # Get quantiles and update posterior object to median
     # values returned by MCMC chains
     post_summary = chains.quantile([0.159, 0.5, 0.841])
 
@@ -256,7 +256,7 @@ def mcmc(args):
 
 def ic_compare(args):
     """Compare different models and comparative statistics including
-          AICc and BIC statistics. 
+          AICc and BIC statistics.
 
     Args:
         args (ArgumentParser): command line arguments
@@ -333,7 +333,8 @@ def tables(args):
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
-    report = radvel.report.RadvelReport(P, post, chains)
+        derived = True
+    report = radvel.report.RadvelReport(P, post, chains, derived=derived)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
                 'params': 'tab_params', 'derived': 'tab_derived'}
@@ -394,7 +395,7 @@ def derive(args):
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
 
     mstar = np.random.normal(
-        loc=P.stellar['mstar'], scale=P.stellar['mstar_err'], 
+        loc=P.stellar['mstar'], scale=P.stellar['mstar_err'],
         size=len(chains)
         )
 
@@ -454,7 +455,7 @@ Interpret results with caution.".format(np.median(mpsini)))
 
         try:
             rp = np.random.normal(
-                loc=P.planet['rp{}'.format(i)], 
+                loc=P.planet['rp{}'.format(i)],
                 scale=P.planet['rp_err{}'.format(i)],
                 size=len(chains)
             )
@@ -481,7 +482,7 @@ def report(args):
     Args:
         args (ArgumentParser): command line arguments
     """
-    
+
     config_file = args.setupfn
     conf_base = os.path.basename(config_file).split('.')[0]
     print("Assembling report for {}".format(conf_base))
@@ -527,7 +528,7 @@ report.".format(args.comptype,
             rfile, depfiles=report_depfiles, latex_compiler=args.latex_compiler
         )
 
-    
+
 def save_status(statfile, section, statevars):
     """Save pipeline status
 
@@ -539,13 +540,13 @@ def save_status(statfile, section, statevars):
     """
 
     config = configparser.RawConfigParser()
-    
+
     if os.path.isfile(statfile):
         config.read(statfile)
 
     if not config.has_section(section):
         config.add_section(section)
-        
+
     for key, val in statevars.items():
         config.set(section, key, val)
 
@@ -562,7 +563,7 @@ def load_status(statfile):
     Returns:
         configparser.RawConfigParser
     """
-    
+
     config = configparser.RawConfigParser()
     gl = config.read(statfile)
 
