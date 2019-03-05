@@ -11,5 +11,5 @@ jupyter_client>=5.2.4
 ipykernel>=4.10.0
 pybind11>=2.2.3
 celerite>=0.3.0
-jinja2==2.9.6
+jinja2>=2.9
 python-dateutil>=2.5.0
