@@ -377,12 +377,14 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
         self.report.latex_dict.update(dict(zip(derived_params, derived_tex)))
         units.update(dict(zip(derived_params, derived_units)))
 
+        self.quantiles = dpl.chains.quantile([0.159, 0.5, 0.841])
+
         for par in derived_params:
             # self.report.post.maxparams[par] = self.report.chains[par].iloc[
             #     self.report.chains['lnprobability'].argmax]
-            self.report.post.maxparams[par] = self.report.chains.loc[self.report.chains['lnprobability'].idxmax(), par]
+            self.post.maxparams[par] = dpl.chains.loc[dpl.chains['lnprobability'].idxmax(), par]
 
-        kw = {}
+        kw = dict()
         kw['derived_rows'] = self._data(derived_basis)
         if name_in_title:
             kw['title'] = "{} Derived Posteriors".format(self.report.starname)
@@ -402,16 +404,15 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
         if statsdict is None or len(statsdict) < 1:
             return ""
 
-        statsdict_sorted = sorted(statsdict, key=itemgetter('AICc'),\
-            reverse=False)
+        statsdict_sorted = sorted(statsdict, key=itemgetter('AICc'), reverse=False)
 
         n_test = len(statsdict_sorted)
         if n_test > 50:
-            print("Warning, the number of model comparisons is very"\
-                + " large. Printing 50 best models.\nConsider using"\
-                + " the --unmixed flag when performing ic comparisons")
-            n_test=50
-            #statsdict_sorted = statsdict_sorted[:50]
+            print("Warning, the number of model comparisons is very"
+                  + " large. Printing 50 best models.\nConsider using"
+                  + " the --unmixed flag when performing ic comparisons")
+            n_test = 50
+            # statsdict_sorted = statsdict_sorted[:50]
 
         statskeys = statsdict_sorted[0].keys()
         coldefs = r"\begin{deluxetable*}{%s}" % ('l'+'l'+'r'*(len(statskeys)-1) + 'r')
