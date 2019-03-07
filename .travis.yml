@@ -1,5 +1,4 @@
 os:
-  - windows
   - linux
   - osx
 
@@ -16,7 +15,7 @@ cache:
 
 python:
   - "2.7"
-  - "3.6"
+  - "3.7"
 
 before_install:
     - export py="$(echo $TRAVIS_PYTHON_VERSION | head -c 1)"

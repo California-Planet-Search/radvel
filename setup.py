@@ -2,7 +2,7 @@ from setuptools import setup, find_packages, Extension
 import numpy
 import Cython.Build as cb
 import re
-
+import platform
 
 def get_property(prop, project):
     result = re.search(r'{}\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop),
