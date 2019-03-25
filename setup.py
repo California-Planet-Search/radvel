@@ -1,13 +1,20 @@
 from setuptools import setup, find_packages, Extension
 import numpy
-import Cython.Build as cb
 import re
+
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    def cythonize(*args, **kwargs):
+        from Cython.Build import cythonize
+        return cythonize(*args, **kwargs)
 
 
 def get_property(prop, project):
     result = re.search(r'{}\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop),
                        open(project + '/__init__.py').read())
     return result.group(1)
+
 
 extensions = [Extension("radvel._kepler", ["src/_kepler.pyx"],)]
 
@@ -21,7 +28,8 @@ setup(
     version=get_property('__version__', 'radvel'),
     author="BJ Fulton, Erik Petigura, Sarah Blunt, Evan Sinukoff",
     packages=find_packages(),
-    ext_modules=cb.cythonize(extensions),
+    setu_requires=['Cython'],
+    ext_modules=cythonize(extensions),
     include_dirs=[numpy.get_include()],
     data_files=[
         (
