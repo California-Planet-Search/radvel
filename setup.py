@@ -28,7 +28,7 @@ setup(
     version=get_property('__version__', 'radvel'),
     author="BJ Fulton, Erik Petigura, Sarah Blunt, Evan Sinukoff",
     packages=find_packages(),
-    setu_requires=['Cython'],
+    setup_requires=['Cython'],
     ext_modules=cythonize(extensions),
     include_dirs=[numpy.get_include()],
     data_files=[
