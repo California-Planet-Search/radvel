@@ -8,6 +8,10 @@ Getting Started
 Installation
 ++++++++++++
 
+While it is possible to install ``radvel`` inside a minimal Python environment like that built-in to Mac OSX,
+we recommend first installing a scientific Python environment such as
+`Anaconda <https://www.anaconda.com/distribution/>`_ or `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_.
+
 Install ``radvel`` using pip:
 
 .. code-block:: bash
