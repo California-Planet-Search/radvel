@@ -2,12 +2,12 @@ from setuptools import setup, find_packages, Extension
 import numpy
 import re
 
-try:
-    from Cython.Build import cythonize
-except ImportError:
-    def cythonize(*args, **kwargs):
-        from Cython.Build import cythonize
-        return cythonize(*args, **kwargs)
+# try:
+#     from Cython.Build import cythonize
+# except ImportError:
+#     def cythonize(*args, **kwargs):
+#         from Cython.Build import cythonize
+#         return cythonize(*args, **kwargs)
 
 
 def get_property(prop, project):
@@ -29,7 +29,7 @@ setup(
     author="BJ Fulton, Erik Petigura, Sarah Blunt, Evan Sinukoff",
     packages=find_packages(),
     setup_requires=['Cython'],
-    ext_modules=cythonize(extensions),
+    ext_modules=extensions,
     include_dirs=[numpy.get_include()],
     data_files=[
         (
