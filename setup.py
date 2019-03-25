@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages, Extension
-import numpy
+from setuptools.command.build_ext import build_ext as _build_ext
 import re
 
 # try:
@@ -8,6 +8,15 @@ import re
 #     def cythonize(*args, **kwargs):
 #         from Cython.Build import cythonize
 #         return cythonize(*args, **kwargs)
+
+
+class build_ext(_build_ext):
+    def finalize_options(self):
+        _build_ext.finalize_options(self)
+        # Prevent numpy from thinking it is still in its setup process:
+        __builtins__.__NUMPY_SETUP__ = False
+        import numpy
+        self.include_dirs.append(numpy.get_include())
 
 
 def get_property(prop, project):
@@ -28,9 +37,9 @@ setup(
     version=get_property('__version__', 'radvel'),
     author="BJ Fulton, Erik Petigura, Sarah Blunt, Evan Sinukoff",
     packages=find_packages(),
-    setup_requires=['Cython', 'numpy'],
+    setup_requires=['numpy'],
     ext_modules=extensions,
-    include_dirs=[numpy.get_include()],
+    cmdclass={'build_ext': build_ext},
     data_files=[
         (
             'radvel_example_data', 
