@@ -2,13 +2,6 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
 import re
 
-# try:
-#     from Cython.Build import cythonize
-# except ImportError:
-#     def cythonize(*args, **kwargs):
-#         from Cython.Build import cythonize
-#         return cythonize(*args, **kwargs)
-
 
 class build_ext(_build_ext):
     def finalize_options(self):
