@@ -552,15 +552,16 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
     Mjup = c.M_jup.value         # added Jupiter's mass
     Msun = c.M_sun.value         # added sun's mass
 
-    P = (P * u.d).to(u.second).value
     P_year = (P * u.d).to(u.year).value
+    P = (P * u.d).to(u.second).value
     Mstar = Mstar*Msun
 
     # First assume that Mp << Mstar
-    Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * Mstar ** (2.0 / 3.0) * P_year ** (1 / 3.0)
+    Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * (Mstar/Msun) ** (2.0 / 3.0) * P_year ** (1 / 3.0)
 
     # Use correct calculation if any elements are >10% of the stellar mass
-    if ((Msini * u.Mjup).to(u.M_sun) / Mstar).value.any() > 0.1:
+    if (((Msini * u.Mjup).to(u.M_sun) / (Mstar/Msun)).value > 0.1).any():
+        import pdb; pdb.set_trace()
         print("Mpsini << Mstar assumption broken, correcting Msini calculation.")
 
         a = K*(((2*(np.pi)*G)/P)**(-1/3))*np.sqrt(1-(e**2))
