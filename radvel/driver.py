@@ -445,7 +445,9 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
             print("WARNING: mpsini={:.2f} violates the implicit assumption that Mp<<Mstar. \
 Interpret results with caution.".format(np.median(mpsini)))
 
-        a = radvel.utils.semi_major_axis(per, mstar)
+        mtotal = mstar + (mpsini*c.M_earth.value)/c.M_sun.value      # get total star plus planet mass
+        a = radvel.utils.semi_major_axis(per, mtotal)               # changed from mstar to mtotal
+        
         _set_param('a', a)
         outcols.append(_get_colname('a'))
 
