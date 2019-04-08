@@ -534,7 +534,7 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
     Args:
         K (float): Doppler semi-amplitude [m/s]
         P (float): Orbital period [days]
-        Mtotal (float): Mass of star + mass of planet [Msun]
+        Mstar (float): Mass of star [Msun]
         e (float): eccentricity
         Msini_units (Optional[str]): Units of Msini {'earth','jupiter'}
             default: 'earth'
@@ -553,18 +553,25 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
     Msun = c.M_sun.value         # added sun's mass
 
     P = (P * u.d).to(u.second).value
+    P_year = (P * u.d).to(u.year).value
     Mstar = Mstar*Msun
-       
-    a = K*(((2*(np.pi)*G)/P)**(-1/3))*np.sqrt(1-(e**2))
-    Msini = []
-    for i in range(len(P)):
-        def func(x):
-            return x - a[i]*((Mstar[i]+x)**(2/3))
-        sol = root(func,Mjup)
-        Msini.append(sol.x[0])
-   
-    Msini = np.array(Msini)
-    Msini = Msini/Mjup
+
+    # First assume that Mp << Mstar
+    Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * Mstar ** (2.0 / 3.0) * P_year ** (1 / 3.0)
+
+    if (Msini*(Msun/Mjup)) / Mstar > 0.1:
+        print("Mpsini << Mstar assumption broken, correcting Msini calculation.")
+
+        a = K*(((2*(np.pi)*G)/P)**(-1/3))*np.sqrt(1-(e**2))
+        Msini = []
+        for i in range(len(P)):
+            def func(x):
+                return x - a[i]*((Mstar[i]+x)**(2/3))
+            sol = root(func,Mjup)
+            Msini.append(sol.x[0])
+
+        Msini = np.array(Msini)
+        Msini = Msini/Mjup
     
     if Msini_units.lower() == 'jupiter':
         pass
