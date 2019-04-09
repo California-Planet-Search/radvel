@@ -564,11 +564,11 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
         import pdb; pdb.set_trace()
         print("Mpsini << Mstar assumption broken, correcting Msini calculation.")
 
-        a = K*(((2*(np.pi)*G)/P)**(-1/3))*np.sqrt(1-(e**2))
+        a = K*(((2*(np.pi)*G)/P)**(-1/3.)*np.sqrt(1-(e**2))
         Msini = []
         for i in range(len(P)):
             def func(x):
-                return x - a[i]*((Mstar[i]+x)**(2/3))
+                return x - a[i]*((Mstar[i]+x)**(2/3.))
             sol = root(func,Mjup)
             Msini.append(sol.x[0])
 
