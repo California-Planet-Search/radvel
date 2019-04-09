@@ -517,10 +517,10 @@ def semi_major_axis(P, Mtotal):
     Mtotal = np.array(Mtotal)
 
     Mtotal = Mtotal*c.M_sun.value
-    P = P = (P * u.d).to(u.second).value
+    P = (P * u.d).to(u.second).value
     G = c.G.value
     
-    a = ((P**2)*G*Mtotal/(4*(np.pi)**2))**(1/3)
+    a = ((P**2)*G*Mtotal/(4*(np.pi)**2))**(1/3.)
     a = a/c.au.value
 
     return a
