@@ -284,7 +284,7 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
     ntels = len(np.unique(telvec))
     if ntels == 1:
         t_bin, vel_bin, err_bin = timebin(t, vel, err, binsize=binsize)
-        return t_bin, vel_bin, err_bin, telvec
+        return t_bin, vel_bin, err_bin, telvec[0:len(t_bin)]
 
     uniqorder = np.argsort(np.unique(telvec, return_index=1)[1])
     uniqsort = np.unique(telvec)[uniqorder]
