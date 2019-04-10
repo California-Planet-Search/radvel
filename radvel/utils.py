@@ -517,10 +517,10 @@ def semi_major_axis(P, Mtotal):
     Mtotal = np.array(Mtotal)
 
     Mtotal = Mtotal*c.M_sun.value
-    P = P = (P * u.d).to(u.second).value
+    P = (P * u.d).to(u.second).value
     G = c.G.value
     
-    a = ((P**2)*G*Mtotal/(4*(np.pi)**2))**(1/3)
+    a = ((P**2)*G*Mtotal/(4*(np.pi)**2))**(1/3.)
     a = a/c.au.value
 
     return a
@@ -534,7 +534,7 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
     Args:
         K (float): Doppler semi-amplitude [m/s]
         P (float): Orbital period [days]
-        Mtotal (float): Mass of star + mass of planet [Msun]
+        Mstar (float): Mass of star [Msun]
         e (float): eccentricity
         Msini_units (Optional[str]): Units of Msini {'earth','jupiter'}
             default: 'earth'
@@ -552,19 +552,27 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
     Mjup = c.M_jup.value         # added Jupiter's mass
     Msun = c.M_sun.value         # added sun's mass
 
+    P_year = (P * u.d).to(u.year).value
     P = (P * u.d).to(u.second).value
     Mstar = Mstar*Msun
-       
-    a = K*(((2*(np.pi)*G)/P)**(-1/3))*np.sqrt(1-(e**2))
-    Msini = []
-    for i in range(len(P)):
-        def func(x):
-            return x - a[i]*((Mstar[i]+x)**(2/3))
-        sol = root(func,Mjup)
-        Msini.append(sol.x[0])
-   
-    Msini = np.array(Msini)
-    Msini = Msini/Mjup
+
+    # First assume that Mp << Mstar
+    Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * (Mstar/Msun) ** (2.0 / 3.0) * P_year ** (1 / 3.0)
+
+    # Use correct calculation if any elements are >10% of the stellar mass
+    if (((Msini * u.Mjup).to(u.M_sun) / (Mstar/Msun)).value > 0.1).any():
+        print("Mpsini << Mstar assumption broken, correcting Msini calculation.")
+
+        a = K*(((2*(np.pi)*G)/P)**(-1/3.))*np.sqrt(1-(e**2))
+        Msini = []
+        for i in range(len(P)):
+            def func(x):
+                return x - a[i]*((Mstar[i]+x)**(2/3.))
+            sol = root(func, Mjup)
+            Msini.append(sol.x[0])
+
+        Msini = np.array(Msini)
+        Msini = Msini/Mjup
     
     if Msini_units.lower() == 'jupiter':
         pass
