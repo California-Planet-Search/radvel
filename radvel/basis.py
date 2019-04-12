@@ -50,7 +50,7 @@ def _copy_params(params_in):
     params_out = radvel.model.Parameters(num_planets, basis=basis,
                                          planet_letters=planet_letters)
     params_out.update(params_in)
-    
+
     return params_out
 
 
@@ -69,7 +69,7 @@ class Basis(object):
     Note:
         Valid basis functions: \n
         'per tp e w k' (The synthesis basis) \n
-        'per tc secosw sesinw logk'  \n 
+        'per tc secosw sesinw logk'  \n
         'per tc secosw sesinw k'  \n
         'per tc ecosw esinw k'  \n
         'per tc e w k' \n
@@ -85,7 +85,7 @@ class Basis(object):
         if len(args) == 0:
             _print_valid_basis()
         #    return None
-        
+
         name, num_planets = args
 
         if BASIS_NAMES.count(name) == 0:
@@ -121,12 +121,12 @@ class Basis(object):
         synth basis
 
         Args:
-            params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
+            params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing
                 orbital parameters expressed in current basis
-            noVary (bool [optional]): if True, set the 'vary' attribute of the returned Parameter objects 
+            noVary (bool [optional]): if True, set the 'vary' attribute of the returned Parameter objects
                 to '' (used for displaying best fit parameters)
 
-        Returns: 
+        Returns:
             Parameters or DataFrame: parameters expressed in the synth basis
 
         """
@@ -162,7 +162,7 @@ class Basis(object):
                         local_vary = True
                         local_mcmcscale = None
 
-                    params_out[key_name] = radvel.model.Parameter(value=new_value, 
+                    params_out[key_name] = radvel.model.Parameter(value=new_value,
                                                                   vary=local_vary,
                                                                   mcmcscale=local_mcmcscale)
 
@@ -172,9 +172,9 @@ class Basis(object):
                 per = _getpar('per')
                 tp = _getpar('tp')
                 e = _getpar('e')
-                w = _getpar('w')   
+                w = _getpar('w')
                 k = _getpar('k')
-                
+
             if basis_name == 'per tc e w k':
                 per = _getpar('per')
                 tc = _getpar('tc')
@@ -192,7 +192,7 @@ class Basis(object):
                 k = _getpar('k')
                 e = se**2
                 tp = timetrans_to_timeperi(tc, per, e, w)
-    
+
             if basis_name == 'per tc secosw sesinw logk':
                 # pull out parameters
                 per = _getpar('per')
@@ -213,7 +213,7 @@ class Basis(object):
                 secosw = _getpar('secosw')
                 sesinw = _getpar('sesinw')
                 k = _getpar('k')
-            
+
                 # transform into synth basis
                 e = secosw**2 + sesinw**2
                 w = np.arctan2(sesinw, secosw)
@@ -226,7 +226,7 @@ class Basis(object):
                 secosw = _getpar('secosw')
                 sesinw = _getpar('sesinw')
                 k = _getpar('k')
-            
+
                 # transform into synth basis
                 per = np.exp(logper)
                 e = secosw**2 + sesinw**2
@@ -255,7 +255,7 @@ class Basis(object):
                 ecosw = _getpar('ecosw')
                 esinw = _getpar('esinw')
                 k = _getpar('k')
-            
+
                 # transform into synth basis
                 e = np.sqrt(ecosw**2 + esinw**2)
                 w = np.arctan2(esinw, ecosw)
@@ -272,7 +272,7 @@ class Basis(object):
                 # transform into synth basis
                 per = np.exp(logper)
                 k = np.exp(k)
-                
+
             # shoves synth parameters from namespace into param_out
             _setpar('per', per)
             _setpar('tp', tp)
@@ -290,7 +290,7 @@ class Basis(object):
         Convert instance of Parameters with parameters of a given basis into the synth basis
 
         Args:
-            params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing 
+            params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing
                 orbital parameters expressed in current basis
             newbasis (string): string corresponding to basis to switch into
             keep (bool [optional]): keep the parameters expressed in
@@ -300,12 +300,12 @@ class Basis(object):
         Returns:
             dict or dataframe with the parameters converted into the new basis
         """
-        
+
         if newbasis not in BASIS_NAMES:
             print("{} not valid basis".format(newbasis))
             _print_valid_basis()
             return None
-        
+
         if isinstance(params_in, pd.core.frame.DataFrame):
             # Output by emcee
             params_out = params_in.copy()
@@ -333,8 +333,8 @@ class Basis(object):
                         local_vary = True
                         local_mcmcscale = None
 
-                    params_out[key_name] = radvel.model.Parameter(value=new_value, 
-                                                                  vary=local_vary, 
+                    params_out[key_name] = radvel.model.Parameter(value=new_value,
+                                                                  vary=local_vary,
                                                                   mcmcscale=local_mcmcscale)
 
             def _delpar(key):
@@ -348,7 +348,7 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 tp = _getpar('tp')
-                
+
                 _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
                 _setpar('w', w)
 
@@ -360,7 +360,7 @@ class Basis(object):
                 e = _getpar('e')
                 w = _getpar('w')
                 tp = _getpar('tp')
-                
+
                 _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
                 _setpar('w', w)
                 _setpar('se', np.sqrt(e))
@@ -380,7 +380,7 @@ class Basis(object):
                     tc = _getpar('tc')
                     tp = timetrans_to_timeperi(tc, per, e, w)
                     _setpar('tp', tp)
-                    
+
                 _setpar('secosw', np.sqrt(e)*np.cos(w))
                 _setpar('sesinw', np.sqrt(e)*np.sin(w))
                 _setpar('logk', np.log(k))
@@ -394,7 +394,7 @@ class Basis(object):
 
                 # basis_name = newbasis
                 self.params = newbasis.split()
-                
+
             if newbasis == 'per tc secosw sesinw k':
                 per = _getpar('per')
                 e = _getpar('e')
@@ -518,16 +518,16 @@ class Basis(object):
 
                 self.name = newbasis
                 self.params = newbasis.split()
-                
+
         params_out.basis = Basis(newbasis, self.num_planets)
-                
+
         return params_out
 
     def get_eparams(self):
         """Return the eccentricity parameters for the object's basis
 
         Returns:
-            the params which have to do with eccentricity 
+            the params which have to do with eccentricity
         """
 
         assert BASIS_NAMES.count(self.name) == 1, "Invalid basis"
@@ -535,19 +535,19 @@ class Basis(object):
         eparamstring = ECCENTRICITY_PARAMS_DICT[self.name]
         eparamlist = eparamstring.split()
         assert len(eparamlist) == 2
-    
-        return eparamlist 
+
+        return eparamlist
 
     def get_circparams(self):
         """Return the 3 parameters for a circular orbit of a plent in the object's basis
 
         Returns:
-            the params for a circular orbit 
+            the params for a circular orbit
         """
         assert BASIS_NAMES.count(self.name) == 1, "Invalid basis"
 
         circparamstring = CIRCULAR_PARAMS_DICT[self.name]
         circparamlist = circparamstring.split()
         assert len(circparamlist) == 3
-    
+
         return circparamlist

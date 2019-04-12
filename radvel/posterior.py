@@ -1,9 +1,8 @@
-
+from .likelihood  import Likelihood
+import numpy as np
 import pickle
 import radvel
-
-from .likelihood import Likelihood
-
+from radvel.gp import CeleriteKernel
 
 class Posterior(Likelihood):
     """Posterior object
@@ -20,7 +19,7 @@ class Posterior(Likelihood):
         Append `radvel.prior.Prior` objects to the Posterior.priors list
         to apply priors in the likelihood calculations.
     """
-    
+
     def __init__(self,likelihood):
         self.likelihood = likelihood
         self.params = likelihood.params
@@ -28,7 +27,7 @@ class Posterior(Likelihood):
         self.priors = []
 
         self.vparams_order = self.list_vary_params()
-    
+
     def __repr__(self):
         s = super(Posterior, self).__repr__()
         s += "\nPriors\n"
@@ -36,7 +35,7 @@ class Posterior(Likelihood):
         for prior in self.priors:
             s += prior.__repr__() + "\n"
         return s
-    
+
     def logprob(self):
         """Log probability
 
@@ -46,11 +45,11 @@ class Posterior(Likelihood):
         Returns:
             float: log probability of the likelihood + priors
         """
-            
+
         _logprob = self.likelihood.logprob()
         for prior in self.priors:
             _logprob += prior(self.params)
-            
+
         return _logprob
 
     def logprob_array(self, param_values_array):

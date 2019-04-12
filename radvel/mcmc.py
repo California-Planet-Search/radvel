@@ -29,17 +29,19 @@ def _status_message(statevars):
     sys.stdout.flush()
 
 
-def convergence_check(samplers, maxGR, minTz, minsteps):
+def convergence_check(maxGR, minTz, minsteps, minpercent):
     """Check for convergence
     Check for convergence for a list of emcee samplers
-    
+
     Args:
-        samplers (list): List of emcee sampler objects
         maxGR (float): Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): Minimum Tz to consider well-mixed
-        minsteps (int): Minimum number of steps per walker before convergence tests are performed
+        minsteps (int): Minimum number of steps per walker before convergence tests are performed. Convergence checks
+            will start after the minsteps threshold or the minpercent threshold has been hit.
+        minpercent (float): Minimum percentage of total steps before convergence tests are performed. Convergence checks
+            will start after the minsteps threshold or the minpercent threshold has been hit.
     """
-    
+
     statevars.ar = 0
     statevars.ncomplete = statevars.nburn
     statevars.tchains = np.empty((statevars.ndim,
@@ -61,9 +63,9 @@ def convergence_check(samplers, maxGR, minTz, minsteps):
         # not work so just calculate it on the last sampler
         statevars.tchains = sampler.chain.transpose()
 
-    # Must have completed at least 5% or 1000 steps per walker before
+    # Must have completed at least 5% or minsteps steps per walker before
     # attempting to calculate GR
-    if statevars.pcomplete < 5 and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
+    if statevars.pcomplete < minpercent and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
     else:
         (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains, maxGR=maxGR, minTz=minTz)
@@ -78,7 +80,7 @@ def convergence_check(samplers, maxGR, minTz, minsteps):
 
 def _domcmc(input_tuple):
     """Function to be run in parallel on different CPUs
-    Input is a tuple: first element is an emcee sampler object, second is an array of 
+    Input is a tuple: first element is an emcee sampler object, second is an array of
     initial positions, third is number of steps to run before doing a convergence check
     """
     sampler = input_tuple[0]
@@ -89,7 +91,7 @@ def _domcmc(input_tuple):
     return sampler
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.03, maxGR=1.01,
-         minTz=1000, minsteps=1000, thin=1, serial=False):
+         minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -103,7 +105,10 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
         burnGR (float): (optional) Maximum G-R statistic to stop burn-in period
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
-        minsteps (int): (optional) Minimum number of steps per walker before convergence tests are performed
+        minsteps (int): Minimum number of steps per walker before convergence tests are performed. Convergence checks
+            will start after the minsteps threshold or the minpercent threshold has been hit.
+        minpercent (float): Minimum percentage of total steps before convergence tests are performed. Convergence checks
+            will start after the minsteps threshold or the minpercent threshold has been hit.
         thin (int): (optional) save one sample every N steps (default=1, save every sample)
         serial (bool): set to true if MCMC should be run in serial
     Returns:
@@ -114,7 +119,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
     if isinstance(post.likelihood, radvel.likelihood.CompositeLikelihood):
         check_gp = [like for like in post.likelihood.like_list if isinstance(like, radvel.likelihood.GPLikelihood)]
     else:
-        check_gp = isinstance(post.likelihood, radvel.likelihood.GPLikelihood)  
+        check_gp = isinstance(post.likelihood, radvel.likelihood.GPLikelihood)
 
     np_info = np.__config__.blas_opt_info
     if 'extra_link_args' in np_info.keys() \
@@ -129,9 +134,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
     statevars.ensembles = ensembles
     statevars.nwalkers = nwalkers
     statevars.checkinterval = checkinterval
-    
+
     nrun = int(nrun)
-        
+
     # Get an initial array value
     pi = post.get_vary_params()
     statevars.ndim = pi.size
@@ -168,7 +173,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         p0 = np.vstack([pi]*statevars.nwalkers)
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
         statevars.initial_positions.append(p0)
-        statevars.samplers.append(emcee.EnsembleSampler( 
+        statevars.samplers.append(emcee.EnsembleSampler(
             statevars.nwalkers, statevars.ndim, post.logprob_array, threads=1))
 
     num_run = int(np.round(nrun / checkinterval))
@@ -210,7 +215,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         t2 = time.time()
         statevars.interval = t2 - t1
 
-        convergence_check(statevars.samplers, maxGR=maxGR, minTz=minTz, minsteps=minsteps)
+        convergence_check(maxGR=maxGR, minTz=minTz, minsteps=minsteps, minpercent=minpercent)
 
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers
@@ -239,19 +244,19 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             break
 
     print("\n")
-    if statevars.ismixed and statevars.mixcount < 5: 
+    if statevars.ismixed and statevars.mixcount < 5:
         msg = (
             "MCMC: WARNING: chains did not pass 5 consecutive convergence "
             "tests. They may be marginally well=mixed."
         )
         print(msg)
-    elif not statevars.ismixed: 
+    elif not statevars.ismixed:
         msg = (
             "MCMC: WARNING: chains did not pass convergence tests. They are "
             "likely not well-mixed."
         )
         print(msg)
-        
+
     df = pd.DataFrame(
         statevars.tchains.reshape(statevars.ndim, statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
         columns=post.list_vary_params())
@@ -279,21 +284,21 @@ def gelman_rubin(pars0, minTz, maxGR):
             consider well-mixed
     Returns:
         tuple: tuple containing:
-            ismixed (bool): 
+            ismixed (bool):
                 Are the chains well-mixed?
-            gelmanrubin (array): 
+            gelmanrubin (array):
                 An NPARS element array containing the
                 Gelman-Rubin statistic for each parameter (equation
                 25)
-            Tz (array): 
+            Tz (array):
                 An NPARS element array containing the number
                 of independent draws for each parameter (equation 26)
-                
-    History: 
+
+    History:
         2010/03/01:
-            Written: Jason Eastman - The Ohio State University   
+            Written: Jason Eastman - The Ohio State University
         2012/10/08:
-            Ported to Python by BJ Fulton - University of Hawaii, 
+            Ported to Python by BJ Fulton - University of Hawaii,
             Institute for Astronomy
         2016/04/20:
             Adapted for use in RadVel. Removed "angular" parameter.
@@ -302,10 +307,10 @@ def gelman_rubin(pars0, minTz, maxGR):
 
 
     pars = pars0.copy() # don't modify input parameters
-    
+
     sz = pars.shape
     msg = 'MCMC: GELMAN_RUBIN: ERROR: pars must have 3 dimensions'
-    assert pars.ndim == 3, msg 
+    assert pars.ndim == 3, msg
 
     npars = float(sz[0])
     nsteps = float(sz[1])
@@ -318,16 +323,16 @@ def gelman_rubin(pars0, minTz, maxGR):
     variances = np.var(pars,axis=1, dtype=np.float64)
     meanofvariances = np.mean(variances,axis=1)
     withinChainVariances = np.mean(variances, axis=1)
-    
+
     # Equation 23: B(z) in Ford 2006
     means = np.mean(pars,axis=1)
     betweenChainVariances = np.var(means,axis=1, dtype=np.float64) * nsteps
     varianceofmeans = np.var(means,axis=1, dtype=np.float64) / (nchains-1)
     varEstimate = (
-        (1.0 - 1.0/nsteps) * withinChainVariances 
+        (1.0 - 1.0/nsteps) * withinChainVariances
         + 1.0 / nsteps * betweenChainVariances
     )
-    
+
     bz = varianceofmeans * nsteps
 
     # Equation 24: varhat+(z) in Ford 2006
@@ -344,5 +349,5 @@ def gelman_rubin(pars0, minTz, maxGR):
 
     # well-mixed criteria
     ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR
-        
+
     return (ismixed, gelmanrubin, tz)

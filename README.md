@@ -10,6 +10,9 @@ General Toolkit for Modeling Radial Velocities.
 [![ASCL:1801.012](https://img.shields.io/badge/ascl-1801.012-blue.svg?colorB=262255)](http://ascl.net/1801.012)
 [![Requirements Status](https://requires.io/github/California-Planet-Search/radvel/requirements.svg?branch=next-release)](https://requires.io/github/California-Planet-Search/radvel/requirements/?branch=next-release)
 
+[![Powered by emcee](https://img.shields.io/badge/powered_by-emcee-EB5368.svg?style=flat)](https://emcee.readthedocs.io)
+[![Powered by AstroPy](https://img.shields.io/badge/powered_by-AstroPy-EB5368.svg?style=flat)](http://www.astropy.org)
+[![Powered by celerite](https://img.shields.io/badge/powered_by-celerite-EB5368.svg?style=flat)](https://celerite.readthedocs.io)
 
 ## Attribution
 

@@ -115,3 +115,4 @@ priors = [radvel.prior.Gaussian('per1', Porb, Porb_unc),
           radvel.prior.Gaussian('gp_explength', gp_explength_mean, gp_explength_unc),
           radvel.prior.Gaussian('gp_per', gp_per_mean, gp_per_unc),
           radvel.prior.Gaussian('gp_perlength', gp_perlength_mean, gp_perlength_unc)]
+

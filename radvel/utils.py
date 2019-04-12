@@ -10,6 +10,7 @@ from astropy import constants as c
 from astropy import units as u
 
 import radvel
+from scipy.optimize import root
 
 # Normalization.
 # RV m/s of a 1.0 Jupiter mass planet tugging on a 1.0
@@ -75,7 +76,7 @@ Parameters in config file must be converted to fitting basis.
  but decorr_vars is not found in your setup file.")
     else:
         decorr_vars = []
-    
+
     for key in params.keys():
         if key.startswith('logjit'):
             msg = """
@@ -89,7 +90,7 @@ Converting 'logjit' to 'jit' for you now.
             del params[key]
 
     iparams = radvel.basis._copy_params(params)
-    
+
     # Make sure we don't have duplicate indicies in the DataFrame
     P.data = P.data.reset_index(drop=True)
 
@@ -126,8 +127,8 @@ Converting 'logjit' to 'jit' for you now.
         likes[inst] = liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, hnames=hnames, suffix='_'+inst, 
-            kernel_name=kernel_name, decorr_vars=decorr_vars, 
+            P.data.iloc[telgrps[inst]].errvel, hnames=hnames, suffix='_'+inst,
+            kernel_name=kernel_name, decorr_vars=decorr_vars,
             decorr_vectors=decorr_vectors
         )
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
@@ -169,10 +170,10 @@ def sigfig(med, errlow, errhigh=None):
         tuple: (med,errlow,errhigh) rounded to the lowest number of significant figures
 
     """
-    
+
     if errhigh is None:
         errhigh = errlow
-        
+
     ndec = Decimal(str(errlow)).as_tuple().exponent
     if abs(Decimal(str(errhigh)).as_tuple().exponent) > abs(ndec):
         ndec = Decimal(str(errhigh)).as_tuple().exponent
@@ -284,8 +285,8 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
     ntels = len(np.unique(telvec))
     if ntels == 1:
         t_bin, vel_bin, err_bin = timebin(t, vel, err, binsize=binsize)
-        return t_bin, vel_bin, err_bin, telvec
-    
+        return t_bin, vel_bin, err_bin, telvec[0:len(t_bin)]
+
     uniqorder = np.argsort(np.unique(telvec, return_index=1)[1])
     uniqsort = np.unique(telvec)[uniqorder]
     rvtimes = np.array([])
@@ -301,7 +302,7 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
         rvdat = np.hstack((rvdat, vel_bin))
         rverr = np.hstack((rverr, err_bin))
         newtelvec = np.hstack((newtelvec, np.array([tel]*len(t_bin))))
-        
+
     return rvtimes, rvdat, rverr, newtelvec
 
 
@@ -358,10 +359,10 @@ def t_to_phase(params, t, num_planet, cat=False):
         timeparam = 'tc%i' % num_planet
     elif ('tp%i' % num_planet) in params:
         timeparam = 'tp%i' % num_planet
-        
+
     P = params['per%i' % num_planet].value
     tc = params[timeparam].value
-    phase = np.mod(t - tc, P) 
+    phase = np.mod(t - tc, P)
     phase /= P
     if cat:
         phase = np.concatenate((phase, phase+1))
@@ -376,7 +377,7 @@ def working_directory(dir):
 
     Args:
        dir (string): name of directory to work in
-    
+
     Example:
         >>> with workdir('/temp'):
             # do something within the /temp directory
@@ -391,7 +392,7 @@ def working_directory(dir):
 
 def cmd_exists(cmd):
     return any(
-        os.access(os.path.join(path, cmd), os.X_OK) 
+        os.access(os.path.join(path, cmd), os.X_OK)
         for path in os.environ["PATH"].split(os.pathsep))
 
 
@@ -404,7 +405,7 @@ def date2jd(date):
     Returns:
         float: Julian date
      """
-    
+
     jd_td = date - datetime(2000, 1, 1, 12, 0, 0)
     jd = 2451545.0 + jd_td.days + jd_td.seconds/86400.0
     return jd
@@ -419,7 +420,7 @@ def jd2date(jd):
     Returns:
         datetime.datetime: calendar date
     """
-    
+
     mjd = jd - 2400000.5
     td = timedelta(days=mjd)
     dt = datetime(1858, 11, 17, 0, 0, 0) + td
@@ -457,11 +458,11 @@ def geterr(vec, angular=False):
         med = np.median(vec)
     else:
         med = np.median(vec)
-        
+
     s = sorted(vec)
     errlow = med - s[int(0.159*len(s))]
     errhigh = s[int(0.841*len(s))] - med
-            
+
     return med, errlow, errhigh
 
 def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
@@ -488,7 +489,7 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
 
     P = (P * u.d).to(u.year).value
     if Msini_units.lower() == 'jupiter':
-        pass 
+        pass
     elif Msini_units.lower() == 'earth':
         Msini = (Msini * u.M_earth).to(u.M_jup).value
     else:
@@ -503,7 +504,7 @@ def semi_major_axis(P, Mtotal):
 
     Kepler's third law
 
-    Args: 
+    Args:
         P (float): Orbital period [days]
         Mtotal (float): Mass [Msun]
 
@@ -515,15 +516,17 @@ def semi_major_axis(P, Mtotal):
     P = np.array(P)
     Mtotal = np.array(Mtotal)
 
-    Mtotal = Mtotal*u.Msun
-    P = P * u.d
-    a = (c.G * Mtotal * P**2 / 4.0 / np.pi**2)**(1.0/3.0)
-    a = a.to(u.AU).value
+    Mtotal = Mtotal*c.M_sun.value
+    P = (P * u.d).to(u.second).value
+    G = c.G.value
+    
+    a = ((P**2)*G*Mtotal/(4*(np.pi)**2))**(1/3.)
+    a = a/c.au.value
 
     return a
 
 
-def Msini(K, P, Mtotal, e, Msini_units='earth'):
+def Msini(K, P, Mstar, e, Msini_units='earth'):
     """Calculate Msini
 
     Calculate Msini for a given K, P, stellar mass, and e
@@ -531,9 +534,9 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
     Args:
         K (float): Doppler semi-amplitude [m/s]
         P (float): Orbital period [days]
-        Mtotal (float): Mass of star + mass of planet [Msun]
+        Mstar (float): Mass of star [Msun]
         e (float): eccentricity
-        Msini_units (Optional[str]): Units of Msini {'earth','jupiter'} 
+        Msini_units (Optional[str]): Units of Msini {'earth','jupiter'}
             default: 'earth'
 
     Returns:
@@ -542,14 +545,37 @@ def Msini(K, P, Mtotal, e, Msini_units='earth'):
     """
     # convert inputs to array so they work with units
     P = np.array(P)
-    Mtotal = np.array(Mtotal)
+    Mstar = np.array(Mstar)
     K = np.array(K)
     e = np.array(e)
+    G = c.G.value                # added gravitational constant
+    Mjup = c.M_jup.value         # added Jupiter's mass
+    Msun = c.M_sun.value         # added sun's mass
 
-    P = (P * u.d).to(u.year).value
-    Msini = K / K_0 * np.sqrt(1.0 - e**2.0)*Mtotal**(2.0 / 3.0)*P**(1 / 3.0) 
+    P_year = (P * u.d).to(u.year).value
+    P = (P * u.d).to(u.second).value
+    Mstar = Mstar*Msun
+
+    # First assume that Mp << Mstar
+    Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * (Mstar/Msun) ** (2.0 / 3.0) * P_year ** (1 / 3.0)
+
+    # Use correct calculation if any elements are >10% of the stellar mass
+    if (((Msini * u.Mjup).to(u.M_sun) / (Mstar/Msun)).value > 0.1).any():
+        print("Mpsini << Mstar assumption broken, correcting Msini calculation.")
+
+        a = K*(((2*(np.pi)*G)/P)**(-1/3.))*np.sqrt(1-(e**2))
+        Msini = []
+        for i in range(len(P)):
+            def func(x):
+                return x - a[i]*((Mstar[i]+x)**(2/3.))
+            sol = root(func, Mjup)
+            Msini.append(sol.x[0])
+
+        Msini = np.array(Msini)
+        Msini = Msini/Mjup
+    
     if Msini_units.lower() == 'jupiter':
-        pass 
+        pass
     elif Msini_units.lower() == 'earth':
         Msini = (Msini * u.M_jup).to(u.M_earth).value
     else:

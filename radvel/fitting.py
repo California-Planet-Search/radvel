@@ -20,7 +20,7 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
         method (string [optional]): Minimization method. See documentation for `scipy.optimize.minimize` for available
             options.
 
-    Returns: 
+    Returns:
         radvel.Posterior : Posterior object with parameters
         updated to their maximum a posteriori values
 
@@ -32,7 +32,7 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
 
     _ = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method=method,
-        options=dict(xtol=0.0001, ftol=0.001, maxiter=200, maxfev=20000))
+        options=dict(maxiter=200, maxfev=100000, xtol=1e-8))
     # setting "noVary" assigns each new parameter a vary attribute of '', for printing purposes
     synthparams = post.params.basis.to_synth(post.params, noVary=True)
     post.params.update(synthparams)
@@ -41,9 +41,9 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
         print("Final loglikelihood = %f" % post.logprob())
         print("Best-fit parameters:")
         print(post)
-        
+
     return post
-    
+
 
 def model_comp(post, params=[], mc_list=[], verbose=False):
     """Model Comparison
@@ -52,18 +52,18 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     Save results as list of dictionaries of posterior statistics.
 
     Args:
-        post (radvel.Posterior): posterior object for final best-fit solution 
+        post (radvel.Posterior): posterior object for final best-fit solution
             with all planets
         params (list of strings): (optional) type of comparison to make via bic/aic
         mc_list (list of OrderedDicts): (optional) list of dictionaries from different
             model comparisons. Each value in the dictionary is a tuple with a statistic
             as the first element and a description as the second element.
         verbose (bool): (optional) print out statistics
-        
+
     Returns:
-        list of OrderedDicts: 
-            List of dictionaries with fit statistics. Each value in the 
-            dictionary is a tuple with the statistic value as the first 
+        list of OrderedDicts:
+            List of dictionaries with fit statistics. Each value in the
+            dictionary is a tuple with the statistic value as the first
             element and a description of that statistic in the second element.
     """
 
@@ -72,18 +72,18 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     assert isinstance(mc_list, list), \
         "mc_list must be either an empty list or a list of model comparison dictionaries"
     assert isinstance(params, list), \
-        "The params argument must contain a list of parameters for model comparison." 
+        "The params argument must contain a list of parameters for model comparison."
 
     valid_mc_args = ['e', 'nplanets', 'trend', 'jit', 'gp']
-    for element in params: 
+    for element in params:
         assert element in valid_mc_args, \
             "The valid model comparison strings in the params argument are: " \
             + ", ".join(valid_mc_args)
 
     # If there are no parameters to compare simply do a maximum likelihood fit
-    #   to get BIC and AIC values among other diagnostics. 
+    #   to get BIC and AIC values among other diagnostics.
     if not params:
-        
+
         fitpost = maxlike_fitting(post, verbose=verbose)
 
         ndata = len(fitpost.likelihood.y)
@@ -101,14 +101,14 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             print("chi_red = %4.2f" % chi_red)
             print("BIC = %4.2f" % fitpost.likelihood.bic())
             print("AIC = %4.2f" % fitpost.likelihood.aic())
-       
+
         comparison_parameters = ['Free Params', '$N_{\\rm free}$', '$N_{\\rm data}$',
                                  'RMS', '$\\ln{\\mathcal{L}}$', 'BIC', 'AICc']
         pdict = collections.OrderedDict.fromkeys(comparison_parameters)
         pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
         pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
         pdict['RMS'] = (
-            np.round(np.std(fitpost.likelihood.residuals()), 2), 
+            np.round(np.std(fitpost.likelihood.residuals()), 2),
             'RMS of residuals in m s$^{-1}$'
         )
         # pdict['$\\chi^{2}$'] = (np.round(chi,2), "jitter fixed")
@@ -136,7 +136,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         lcparam = len(circparam)
         planet_letters = fitpost.likelihood.params.planet_letters
         if planet_letters is None:
-            planet_letters = [ALPHABET[i] for i in range(num_planets+1)] 
+            planet_letters = [ALPHABET[i] for i in range(num_planets+1)]
         jitterchecked = False
         for pari in fitpost.params:
             if (len(pari) >= lcparam) and (pari[0:lcparam] == circparam) and fitpost.params[pari].vary:
@@ -159,11 +159,11 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         mc_list.append(pdict)
         return mc_list
 
-    # Otherwise parse the different parameter comparison options and perform a maximum 
+    # Otherwise parse the different parameter comparison options and perform a maximum
     #   likelihood model comparison for each case
-    
-    elif 'gp' in params: 
-        newparams = [pi for pi in params if pi != 'gp'] 
+
+    elif 'gp' in params:
+        newparams = [pi for pi in params if pi != 'gp']
         if isinstance(post.likelihood, radvel.likelihood.GPLikelihood):
             print("Warning: BIC/AIC comparisons with and without GP are only implemented for "
                   + "kernels where the amplitude of the GP is described by the 'gp_amp' "
@@ -191,11 +191,11 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     elif 'jit' in params:
         ipost = copy.deepcopy(post)
         cpost = copy.deepcopy(ipost)
-        newparams = [pi for pi in params if pi != 'jit'] 
+        newparams = [pi for pi in params if pi != 'jit']
         anyjitteron = False
         for parami in ipost.params:
             if len(parami) >= 3 and parami[:3] == 'jit' and ipost.params[parami].vary:
-                cpost.params[parami].value = 0.
+                cpost.params[parami].value = 1e-6
                 cpost.params[parami].vary = False
                 anyjitteron = True
         if anyjitteron:
@@ -209,7 +209,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
 
     elif 'trend' in params:
         ipost = copy.deepcopy(post)
-        newparams = [pi for pi in params if pi != 'trend'] 
+        newparams = [pi for pi in params if pi != 'trend']
         trendparamlist = ['curv', 'dvdt']
         anytrendparam = False
         for cparam in trendparamlist:
@@ -229,15 +229,15 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
     elif 'nplanets' in params:
         eparams = post.params.basis.get_eparams()
         circparams = post.params.basis.get_circparams()
-        allparams = eparams+circparams  
+        allparams = eparams+circparams
 
         ipost = copy.deepcopy(post)
-        newparams = [pi for pi in params if pi != 'nplanets'] 
+        newparams = [pi for pi in params if pi != 'nplanets']
         num_planets = post.likelihood.model.num_planets
         pllist = [pl+1 for pl in range(num_planets)]
         plgroups = ()
         for p in [pl+1 for pl in range(num_planets)]:
-            plgroups = itertools.chain(plgroups, itertools.combinations(pllist, p)) 
+            plgroups = itertools.chain(plgroups, itertools.combinations(pllist, p))
         plparams = []
         for plgroup in plgroups:
             suffixes = [str(pl) for pl in plgroup]
@@ -260,12 +260,12 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         eparams = post.params.basis.get_eparams()
 
         ipost = copy.deepcopy(post)
-        newparams = [pi for pi in params if pi != 'e'] 
+        newparams = [pi for pi in params if pi != 'e']
         num_planets = post.likelihood.model.num_planets
         pllist = [pl+1 for pl in range(num_planets)]
         plgroups = ()
         for p in [pl+1 for pl in range(num_planets)]:
-            plgroups = itertools.chain(plgroups, itertools.combinations(pllist, p)) 
+            plgroups = itertools.chain(plgroups, itertools.combinations(pllist, p))
         plparams = []
         for plgroup in plgroups:
             suffixes = [str(pl) for pl in plgroup]

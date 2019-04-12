@@ -25,6 +25,7 @@ class _args(object):
         self.burnGR = 1.30
         self.minTz = 1000
         self.minsteps = 100
+        self.minpercent = 5
         self.thin = 1
         self.serial = False
 
@@ -221,7 +222,10 @@ def test_priors():
         ):                                                  scipy.stats.norm(0, 1).pdf(0.),
         radvel.prior.UserDefinedPrior(
             ['secosw1'], userdef_prior_func, testTex
-        ):                                                  1.0
+        ):                                                  1.0,
+        radvel.prior.InformativeBaselinePrior(
+            'per1', 5.0, duration=1.0
+        ):                                                  6./10.
 
     }
 
