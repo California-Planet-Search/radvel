@@ -203,59 +203,14 @@ class GeneralRVModel(object):
     """
     def __init__(self,params,forward_model,time_base=0):
         self.params = params
-        self.forward_model = forward_model
+        self.time_base = time_base
+        self._forward_model = forward_model
         assert callable(forward_model)
         if 'dvdt' not in params.keys():
             self.params['dvdt'] = Parameter(value=0.)
         if 'curv' not in params.keys():
             self.params['curv'] = Parameter(value=0.)
     def __call__(self,t,*args,**kwargs):
-        vel = forward_model(t,params,*args,**kwargs)
-        vel += self.params['dvdt'].value * (t - self.time_base)
-        vel += self.params['curv'].value * (t - self.time_base)**2
-        return vel
-
-def _standard_rv_calc(t,params,planet_num=None)
-        vel = np.zeros(len(t))
-        params_synth = self.params.basis.to_synth(self.params)
-
-        if planet_num is None:
-            planets = range(1, self.num_planets+1)
-        else:
-            planets = [planet_num]
-
-        for num_planet in planets:
-            per = params_synth['per{}'.format(num_planet)].value
-            tp = params_synth['tp{}'.format(num_planet)].value
-            e = params_synth['e{}'.format(num_planet)].value
-            w = params_synth['w{}'.format(num_planet)].value
-            k = params_synth['k{}'.format(num_planet)].value
-            orbel_synth = np.array([per, tp, e, w, k])
-            vel += kepler.rv_drive(t, orbel_synth)
-        vel += self.params['dvdt'].value * (t - self.time_base)
-        vel += self.params['curv'].value * (t - self.time_base)**2
-        return vel
-#class RVModel(GeneralRVModel):
-#    def __init__(self,params, time_base=0):
-
-class RVModel(object):
-    """
-    Generic RV Model
-
-    This class defines the methods common to all RV modeling
-    classes. The different RV models, with different
-    parameterizations, all inherit from this class.
-    """
-    def __init__(self, params, time_base=0):
-        self.num_planets = params.num_planets
-        self.params = params
-        self.time_base = time_base
-        if 'dvdt' not in params.keys():
-            self.params['dvdt']=Parameter(value=0.)
-        if 'curv' not in params.keys():
-            self.params['curv']=Parameter(value=0.)
-
-    def __call__(self, t, planet_num=None):
         """Compute the radial velocity.
 
         Includes all Keplerians and additional trends.
@@ -268,11 +223,16 @@ class RVModel(object):
         Returns:
             vel (array of floats): Radial velocity at each time in `t`
         """
-        vel = np.zeros(len(t))
-        params_synth = self.params.basis.to_synth(self.params)
+        vel = self._forward_model(t,self.params,*args,**kwargs)
+        vel += self.params['dvdt'].value * (t - self.time_base)
+        vel += self.params['curv'].value * (t - self.time_base)**2
+        return vel
 
+def _standard_rv_calc(t,params,planet_num=None):
+        vel = np.zeros(len(t))
+        params_synth = params.basis.to_synth(params)
         if planet_num is None:
-            planets = range(1, self.num_planets+1)
+            planets = range(1, params.num_planets+1)
         else:
             planets = [planet_num]
 
@@ -284,9 +244,16 @@ class RVModel(object):
             k = params_synth['k{}'.format(num_planet)].value
             orbel_synth = np.array([per, tp, e, w, k])
             vel += kepler.rv_drive(t, orbel_synth)
-        vel += self.params['dvdt'].value * (t - self.time_base)
-        vel += self.params['curv'].value * (t - self.time_base)**2
         return vel
 
+class RVModel(GeneralRVModel):
+    """
+    Generic RV Model
 
-
+    This class defines the methods common to all RV modeling
+    classes. The different RV models, with different
+    parameterizations, all inherit from this class.
+    """
+    def __init__(self,params, time_base=0):
+        super(RVModel,self).__init__(params,_standard_rv_calc,time_base)
+        self.num_planets=params.num_planets
