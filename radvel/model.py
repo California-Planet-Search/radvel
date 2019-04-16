@@ -151,10 +151,11 @@ class Parameter(object):
             MCMC or max likelihood fits, false if fixed
         mcmcscale (float): step size to be used for MCMC fitting
     """
-    def __init__(self, value=None, vary=True, mcmcscale=None):
+    def __init__(self, value=None, vary=True, mcmcscale=None, linear=False):
         self.value = value
         self.vary = vary
         self.mcmcscale = mcmcscale
+        self.linear = linear
 
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
