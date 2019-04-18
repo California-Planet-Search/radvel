@@ -45,11 +45,11 @@ class Posterior(Likelihood):
         Returns:
             float: log probability of the likelihood + priors
         """
-
-        _logprob = self.likelihood.logprob()
+        _logprob=0 
         for prior in self.priors:
             _logprob += prior(self.params)
-
+        if np.isfinite(_logprob):
+            return _logprob + self.likelihood.logprob()
         return _logprob
 
     def logprob_array(self, param_values_array):
