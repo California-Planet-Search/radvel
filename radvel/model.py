@@ -27,7 +27,7 @@ texdict = {
     'gp_explength': '\\eta_{2}',
     'gp_per': '\\eta_{3}',
     'gp_perlength': '\\eta_{4}',
-    'gp_length':'\\eta_{2}',
+    'gp_length': '\\eta_{2}',
     'gp_B': 'B',
     'gp_C': 'C',
     'gp_L': 'L',
@@ -68,10 +68,10 @@ class Parameters(OrderedDict):
                  planet_letters=None):
         super(Parameters, self).__init__()
 
-        basis = Basis(basis,num_planets)
+        basis = Basis(basis, num_planets)
         self.planet_parameters = basis.name.split()
 
-        for num_planet in range(1,1+num_planets):
+        for num_planet in range(1, 1+num_planets):
             for parameter in self.planet_parameters:
                 new_name = self._sparameter(parameter, num_planet)
                 self.__setitem__(new_name, Parameter())
@@ -90,8 +90,7 @@ should have only integers as keys."""
 
         red = (self.__class__, (self.num_planets,
                                 self.basis.name,
-                                self.planet_letters),
-                                None,None,iter(self.items()))
+                                self.planet_letters), None, None, iter(self.items()))
         return red
 
     def tex_labels(self, param_list=None):
@@ -140,7 +139,6 @@ should have only integers as keys."""
         return '$%s_{%s}$' % (pname, lett_planet)
 
 
-
 class Parameter(object):
 
     """Object to store attributes of each orbital parameter
@@ -159,7 +157,7 @@ class Parameter(object):
 
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
-        if isinstance(other,self.__class__):
+        if isinstance(other, self.__class__):
             return (self.value == other.value) \
                     and (self.vary == other.vary) \
                     and (self.mcmcscale == other.mcmcscale)
@@ -173,10 +171,6 @@ class Parameter(object):
     def __float__(self):
         return self.value
 
-if __name__ == "__main__":
-    a = Parameter(value=1.3)
-    a.mcmcscale = 100.
-    print(a)
 
 class GeneralRVModel(object):
     """
@@ -198,11 +192,11 @@ class GeneralRVModel(object):
         #  contained in radvel.Parameters as well as some additional
         #  parameter, 'my_param'.
         >>> params = radvel.Parameters(2)
-        >>> params['my_param'] = rv.Parameter(my_param_value,vary=True)
-        >>> rvmodel = radvel.GeneralRVModel(myparams,my_rv_function)
+        >>> params['my_param'] = rv.Parameter(my_param_value, vary=True)
+        >>> rvmodel = radvel.GeneralRVModel(myparams, my_rv_function)
         >>> rv = rvmodel(10)
     """
-    def __init__(self,params,forward_model,time_base=0):
+    def __init__(self, params, forward_model, time_base=0):
         self.params = params
         self.time_base = time_base
         self._forward_model = forward_model
@@ -211,7 +205,8 @@ class GeneralRVModel(object):
             self.params['dvdt'] = Parameter(value=0.)
         if 'curv' not in params.keys():
             self.params['curv'] = Parameter(value=0.)
-    def __call__(self,t,*args,**kwargs):
+
+    def __call__(self, t, *args, **kwargs):
         """Compute the radial velocity.
 
         Includes all Keplerians and additional trends.
@@ -224,14 +219,19 @@ class GeneralRVModel(object):
         Returns:
             vel (array of floats): Radial velocity at each time in `t`
         """
-        vel = self._forward_model(t,self.params,*args,**kwargs)
+        vel = self._forward_model(t, self.params, *args, **kwargs)
         vel += self.params['dvdt'].value * (t - self.time_base)
         vel += self.params['curv'].value * (t - self.time_base)**2
         return vel
 
-def _standard_rv_calc(t,params,planet_num=None):
+
+def _standard_rv_calc(t, params, planet_num=None):
         vel = np.zeros(len(t))
-        params_synth = params.basis.to_synth(params)
+
+        if params.basis.name != 'per tp e w k':
+            params_synth = params.basis.to_synth(params)
+        else:
+            params_synth = params
         if planet_num is None:
             planets = range(1, params.num_planets+1)
         else:
@@ -247,6 +247,7 @@ def _standard_rv_calc(t,params,planet_num=None):
             vel += kepler.rv_drive(t, orbel_synth)
         return vel
 
+
 class RVModel(GeneralRVModel):
     """
     Generic RV Model
@@ -255,6 +256,12 @@ class RVModel(GeneralRVModel):
     classes. The different RV models, with different
     parameterizations, all inherit from this class.
     """
-    def __init__(self,params, time_base=0):
-        super(RVModel,self).__init__(params,_standard_rv_calc,time_base)
-        self.num_planets=params.num_planets
+    def __init__(self, params, time_base=0):
+        super(RVModel, self).__init__(params, _standard_rv_calc, time_base)
+        self.num_planets = params.num_planets
+
+
+if __name__ == "__main__":
+    a = Parameter(value=1.3)
+    a.mcmcscale = 100.
+    print(a)

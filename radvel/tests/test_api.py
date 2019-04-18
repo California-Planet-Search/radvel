@@ -29,7 +29,6 @@ class _args(object):
         self.thin = 1
         self.serial = False
 
-
 def _standard_run(setupfn):
     """
     Run through all of the standard steps
@@ -247,4 +246,8 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_priors()
+    args = _args()
+    setupfn = '/Users/bjfulton/code/radvel/example_planets/epic203771098.py'
+    args.setupfn = setupfn
+    for i in range(100):
+        radvel.driver.fit(args)

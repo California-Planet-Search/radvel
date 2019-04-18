@@ -43,10 +43,10 @@ params = anybasis_params.basis.to_any_basis(anybasis_params,fitting_basis)
 # Set the 'vary' attributes of each of the parameters in the fitting basis. A parameter's 'vary' attribute should
 # 	be set to False if you wish to hold it fixed during the fitting process. By default, all 'vary' parameters
 #	are set to True.
-params['secosw1'].vary = False
-params['sesinw1'].vary = False
-params['secosw2'].vary = False
-params['sesinw2'].vary = False
+# params['secosw1'].vary = False
+# params['sesinw1'].vary = False
+# params['secosw2'].vary = False
+# params['sesinw2'].vary = False
 params['tc1'].vary = False
 params['per1'].vary = False
 params['tc2'].vary = False

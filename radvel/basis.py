@@ -130,6 +130,9 @@ class Basis(object):
             Parameters or DataFrame: parameters expressed in the synth basis
 
         """
+        if params_in.basis.name == 'per tp e w k':
+            return params_in
+
         basis_name = kwargs.setdefault('basis_name', self.name)
 
         if isinstance(params_in, pd.core.frame.DataFrame):

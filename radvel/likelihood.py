@@ -80,6 +80,7 @@ class Likelihood(object):
 
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
+
         i = 0
         for key in self.list_vary_params():
             self.params[key].value = param_values_array[i]
