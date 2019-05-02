@@ -241,12 +241,14 @@ class TexTable(RadvelReport):
                             break
                 else:
                     unit = units.get(par, '')
-
                 try:
-                    row = self._row(par, unit)
-                except KeyError:
-                    row = self._row(p, unit)
-                rows.append(row)
+                    try:
+                        row = self._row(par, unit)
+                    except KeyError:
+                        row = self._row(p, unit)
+                    rows.append(row)
+                except:
+                    pass
 
         return rows
 
