@@ -178,9 +178,10 @@ class MultipanelPlot(object):
         ax.plot(self.mplttimes, self.orbit_model, 'b-', rasterized=False, lw=self.fit_linewidth)
 
         # plot data
+        vels = self.rawresid+self.rvmod
         plot.mtelplot(
             # data = residuals + model
-            self.plttimes, self.rawresid+self.rvmod, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts,
+            self.plttimes, vels, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts,
             rms_values=rms_values
         )
 
@@ -189,6 +190,10 @@ class MultipanelPlot(object):
         else:
             ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
         pl.setp(ax.get_xticklabels(), visible=False)
+
+        if self.highlight_last:
+            ind = np.argmax(self.plttimes)
+            pl.plot(self.plttimes[ind], vels[ind], **plot.highlight_format)
 
         # legend
         if self.legend:
@@ -225,6 +230,10 @@ class MultipanelPlot(object):
         if not self.yscale_auto: 
             scale = np.std(self.resid)
             ax.set_ylim(-self.yscale_sigma * scale, self.yscale_sigma * scale)
+
+        if self.highlight_last:
+            ind = np.argmax(self.plttimes)
+            pl.plot(self.plttimes[ind], self.resid[ind], **plot.highlight_format)
 
         if self.set_xlim is not None:
             ax.set_xlim(self.set_xlim)
@@ -275,6 +284,13 @@ class MultipanelPlot(object):
         plot.labelfig(pltletter)
 
         telcat = np.concatenate((self.post.likelihood.telvec, self.post.likelihood.telvec))
+
+        if self.highlight_last:
+            ind = np.argmax(self.rvtimes)
+            hphase = t_to_phase(self.post.params, self.rvtimes[ind], pnum, cat=False)
+            if hphase > 0.5:
+                hphase -= 1
+            pl.plot(hphase, rvdatcat[ind], **plot.highlight_format)
 
         plot.mtelplot(phase, rvdatcat, rverrcat, telcat, ax, telfmts=self.telfmts)
         if not self.nobin and len(rvdat) > 10: 

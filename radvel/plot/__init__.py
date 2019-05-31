@@ -42,6 +42,8 @@ rcParams['lines.markersize'] = 5
 rcParams['axes.grid'] = False
 default_colors = ['orange', 'purple', 'magenta', 'pink', 'green', 'grey', 'red']
 
+highlight_format = dict(marker='o', ms=16, mfc='none', mew=2, mec='gold', zorder=99)
+
 
 def telplot(x, y, e, tel, ax, lw=1., telfmt={}, rms=0):
     """Plot data from from a single telescope
