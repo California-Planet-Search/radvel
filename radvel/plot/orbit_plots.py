@@ -52,13 +52,15 @@ class MultipanelPlot(object):
         set_xlim (list of float): limits to use for x-axes of the timeseries and residuals plots, in
             JD - `epoch`. Ex: [7000., 70005.]
         text_size (int): set matplotlib.rcParams['font.size'] (default: 9)
+        highlight_last (bool): make the most recent measurement much larger in all panels
+        show_rms (bool): show RMS of the residuals by instrument in the legend
         legend_kwargs (dict): dict of options to pass to legend (plotted in top panel)
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
                  phase_nrows=None, phase_ncols=None, uparams=None, telfmts={}, legend=True,
                  phase_limits=[], nobin=False, phasetext_size='large', rv_phase_space=0.08,
-                 figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9,
-                 legend_kwargs=dict(loc='best')):
+                 figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9, highlight_last=False,
+                 show_rms=False, legend_kwargs=dict(loc='best')):
 
         self.post = post
         self.saveplot = saveplot
@@ -79,6 +81,8 @@ class MultipanelPlot(object):
         self.figwidth = figwidth
         self.fit_linewidth = fit_linewidth
         self.set_xlim = set_xlim
+        self.highlight_last = highlight_last
+        self.show_rms = show_rms
         self.legend_kwargs = legend_kwargs
         rcParams['font.size'] = text_size
 
@@ -161,13 +165,24 @@ class MultipanelPlot(object):
 
         ax.axhline(0, color='0.5', linestyle='--')
 
+        if self.show_rms:
+            rms_values = dict()
+            for like in self.like_list:
+                inst = like.suffix
+                rms = np.std(like.residuals())
+                rms_values[inst] = rms
+        else:
+            rms_values = False
+
         # plot orbit model
         ax.plot(self.mplttimes, self.orbit_model, 'b-', rasterized=False, lw=self.fit_linewidth)
 
         # plot data
+        vels = self.rawresid+self.rvmod
         plot.mtelplot(
             # data = residuals + model
-            self.plttimes, self.rawresid+self.rvmod, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts
+            self.plttimes, vels, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts,
+            rms_values=rms_values
         )
 
         if self.set_xlim is not None:
@@ -175,6 +190,10 @@ class MultipanelPlot(object):
         else:
             ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
         pl.setp(ax.get_xticklabels(), visible=False)
+
+        if self.highlight_last:
+            ind = np.argmax(self.plttimes)
+            pl.plot(self.plttimes[ind], vels[ind], **plot.highlight_format)
 
         # legend
         if self.legend:
@@ -211,6 +230,10 @@ class MultipanelPlot(object):
         if not self.yscale_auto: 
             scale = np.std(self.resid)
             ax.set_ylim(-self.yscale_sigma * scale, self.yscale_sigma * scale)
+
+        if self.highlight_last:
+            ind = np.argmax(self.plttimes)
+            pl.plot(self.plttimes[ind], self.resid[ind], **plot.highlight_format)
 
         if self.set_xlim is not None:
             ax.set_xlim(self.set_xlim)
@@ -261,6 +284,13 @@ class MultipanelPlot(object):
         plot.labelfig(pltletter)
 
         telcat = np.concatenate((self.post.likelihood.telvec, self.post.likelihood.telvec))
+
+        if self.highlight_last:
+            ind = np.argmax(self.rvtimes)
+            hphase = t_to_phase(self.post.params, self.rvtimes[ind], pnum, cat=False)
+            if hphase > 0.5:
+                hphase -= 1
+            pl.plot(hphase, rvdatcat[ind], **plot.highlight_format)
 
         plot.mtelplot(phase, rvdatcat, rverrcat, telcat, ax, telfmts=self.telfmts)
         if not self.nobin and len(rvdat) > 10: 

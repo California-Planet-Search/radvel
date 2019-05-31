@@ -49,7 +49,7 @@ def _standard_run(setupfn):
     radvel.driver.tables(args)
 
     args.type = ['rv', 'corner', 'trend', 'derived']
-    args.plotkw = {}
+    args.plotkw = {'highlight_last': True, 'show_rms': True}
     radvel.driver.plots(args)
 
     args.comptype = 'ic_compare'

@@ -185,6 +185,9 @@ class TexTable(RadvelReport):
         """
         Helper function to output the rows in the parameter table
         """
+        if param not in self.quantiles.keys():
+            param = param[:-1]
+
         if unit == 'radians':
             par = radvel.utils.geterr(self.report.chains[param], angular=True)
             med, low, high = par
@@ -245,7 +248,8 @@ class TexTable(RadvelReport):
                 try:
                     row = self._row(par, unit)
                 except KeyError:
-                    row = self._row(p, unit)
+                    continue
+
                 rows.append(row)
 
         return rows

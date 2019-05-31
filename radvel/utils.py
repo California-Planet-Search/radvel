@@ -560,7 +560,7 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
     Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * (Mstar/Msun) ** (2.0 / 3.0) * P_year ** (1 / 3.0)
 
     # Use correct calculation if any elements are >10% of the stellar mass
-    if (((Msini * u.Mjup).to(u.M_sun) / (Mstar/Msun)).value > 0.1).any():
+    if (np.array(((Msini * u.Mjup).to(u.M_sun) / (Mstar/Msun)).value > 0.1)).any():
         print("Mpsini << Mstar assumption broken, correcting Msini calculation.")
 
         a = K*(((2*(np.pi)*G)/P)**(-1/3.))*np.sqrt(1-(e**2))
