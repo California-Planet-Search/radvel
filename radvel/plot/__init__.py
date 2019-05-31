@@ -43,7 +43,7 @@ rcParams['axes.grid'] = False
 default_colors = ['orange', 'purple', 'magenta', 'pink', 'green', 'grey', 'red']
 
 
-def telplot(x, y, e, tel, ax, lw=1., telfmt={}):
+def telplot(x, y, e, tel, ax, lw=1., telfmt={}, rms=0):
     """Plot data from from a single telescope
 
     x (array): Either time or phase
@@ -76,11 +76,14 @@ def telplot(x, y, e, tel, ax, lw=1., telfmt={}):
             kw['label'] = telfmts_default[tel]['label']
         else:
             kw['label'] = tel
+
+    if rms:
+        kw['label'] += '\nRMS={:.2f} {:s}'.format(rms, latex['ms'])
         
     pl.errorbar(x, y, yerr=e, **kw)
 
 
-def mtelplot(x, y, e, tel, ax, lw=1., telfmts={}):
+def mtelplot(x, y, e, tel, ax, lw=1., telfmts={}, **kwargs):
     """
     Overplot data from from multiple telescopes.
 
@@ -97,6 +100,8 @@ def mtelplot(x, y, e, tel, ax, lw=1., telfmts={}):
              'harps-n' dict(fmt='s')
         }
     """
+
+    rms_values = kwargs.pop('rms_values', False)
 
     utel = np.unique(tel)
 
@@ -119,7 +124,12 @@ def mtelplot(x, y, e, tel, ax, lw=1., telfmts={}):
         else:
             telfmt = {}
 
-        telplot(xt, yt, et, t, ax, lw=1., telfmt=telfmt)
+        if rms_values:
+            rms = rms_values[t]
+        else:
+            rms = 0
+
+        telplot(xt, yt, et, t, ax, lw=1., telfmt=telfmt, rms=rms)
 
     ax.yaxis.set_major_formatter(
         matplotlib.ticker.ScalarFormatter(useOffset=False)
