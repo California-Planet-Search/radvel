@@ -34,6 +34,7 @@ time_base = 2456778          # abscissa for slope and curvature terms (should be
 anybasis_params['dvdt'] = radvel.Parameter(value=0.0)         # slope: (If rv is m/s and time is days then [dvdt] is m/s/day)
 anybasis_params['curv'] = radvel.Parameter(value=0.0)        # curvature: (If rv is m/s and time is days then [curv] is m/s/day^2)
 
+# analytically calculate gamma if vary=False and linear=True
 anybasis_params['gamma_k'] = radvel.Parameter(value=0.0)       # velocity zero-point for hires_rk
 anybasis_params['gamma_j'] = radvel.Parameter(value=1.0)       # "                   "   hires_rj
 anybasis_params['gamma_a'] = radvel.Parameter(value=0.0)       # "                   "   hires_apf
