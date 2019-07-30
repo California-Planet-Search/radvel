@@ -19,7 +19,6 @@ before_install:
     - chmod +x miniconda.sh
     - bash miniconda.sh -b -u -p $HOME/miniconda
     - export PATH=/home/travis/miniconda/bin:$PATH
-    - conda update --yes conda
     - sudo rm -rf /dev/shm
     - sudo ln -s /run/shm /dev/shm
 
