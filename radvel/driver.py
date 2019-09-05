@@ -394,10 +394,14 @@ def derive(args):
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
 
-    mstar = np.random.normal(
-        loc=P.stellar['mstar'], scale=P.stellar['mstar_err'],
-        size=len(chains)
-        )
+    try:
+        mstar = np.random.normal(
+            loc=P.stellar['mstar'], scale=P.stellar['mstar_err'],
+            size=len(chains)
+            )
+    except AttributeError:
+        print("Unable to calculate derived parameters, stellar parameters not defined the config file.")
+        return
 
     if (mstar <= 0.0).any():
         num_nan = np.sum(mstar <= 0.0)
