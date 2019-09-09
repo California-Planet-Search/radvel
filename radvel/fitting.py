@@ -153,7 +153,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                 freepar.append(partex)
                 jitterchecked = True
             if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and fitpost.params[pari].vary:
-                freepar.append(r'GPamp$_{%s}$' % pari[6:].replace('_', ''))
+                freepar.append(r'GP$_{\rm %s}$' % pari[6:].replace('_', ''))
 
         pdict['Free Params'] = (freepar, "The free parameters in this model")
         mc_list.append(pdict)
