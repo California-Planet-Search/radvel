@@ -34,6 +34,40 @@ texdict = {
     'gp_Prot': 'P_{\\rm rot}',
 }
 
+class Parameter(object):
+    """Object to store attributes of each orbital parameter
+
+    Attributes:
+        value (float): value of parameter.
+        vary (Bool): True if parameter is allowed to vary in
+            MCMC or max likelihood fits, false if fixed
+        mcmcscale (float): step size to be used for MCMC fitting
+        linear (bool): if vary=False and linear=True for gamma parameters then they will be calculated analytically
+            using the `trick <http://cadence.caltech.edu/~bfulton/share/Marginalizing_the_likelihood.pdf>`_. derived by Timothy Brandt.
+    """
+
+    def __init__(self, value=None, vary=True, mcmcscale=None, linear=False):
+        self.value = value
+        self.vary = vary
+        self.mcmcscale = mcmcscale
+        self.linear = linear
+
+    def _equals(self, other):
+        """method to assess the equivalence of two Parameter objects"""
+        if isinstance(other, self.__class__):
+            return (self.value == other.value) \
+                   and (self.vary == other.vary) \
+                   and (self.mcmcscale == other.mcmcscale)
+
+    def __repr__(self):
+        s = (
+            "Parameter object: value = {}, vary = {}, mcmc scale = {}"
+        ).format(self.value, self.vary, self.mcmcscale)
+        return s
+
+    def __float__(self):
+        return self.value
+
 
 class Parameters(OrderedDict):
 
@@ -139,39 +173,6 @@ should have only integers as keys."""
             lett_planet = chr(int(num_planet)+97)
         return '$%s_{%s}$' % (pname, lett_planet)
 
-
-
-class Parameter(object):
-
-    """Object to store attributes of each orbital parameter
-
-    Attributes:
-        value (float): value of parameter.
-        vary (Bool): True if parameter is allowed to vary in
-            MCMC or max likelihood fits, false if fixed
-        mcmcscale (float): step size to be used for MCMC fitting
-    """
-    def __init__(self, value=None, vary=True, mcmcscale=None, linear=False):
-        self.value = value
-        self.vary = vary
-        self.mcmcscale = mcmcscale
-        self.linear = linear
-
-    def _equals(self, other):
-        """method to assess the equivalence of two Parameter objects"""
-        if isinstance(other,self.__class__):
-            return (self.value == other.value) \
-                    and (self.vary == other.vary) \
-                    and (self.mcmcscale == other.mcmcscale)
-
-    def __repr__(self):
-        s = (
-          "Parameter object: value = {}, vary = {}, mcmc scale = {}"
-        ).format(self.value, self.vary, self.mcmcscale)
-        return s
-    
-    def __float__(self):
-        return self.value
 
 if __name__ == "__main__":
     a = Parameter(value=1.3)
