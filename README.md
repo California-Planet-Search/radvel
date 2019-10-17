@@ -33,7 +33,7 @@ With RadVel you can
 - *Optimize*
   - leverages the suite of minimizers in [scipy.optimize](https://docs.scipy.org/doc/scipy/reference/optimize.html)
 - *Run MCMC*
-  - leverages [emcee](http://dfm.io/emcee/) package for MCMC exploration of posterior
+  - leverages the [emcee](http://dfm.io/emcee/) package for MCMC exploration of the posterior probability distribution
 - *Visualize*
   - creates quicklook summary plots and statistics
  
