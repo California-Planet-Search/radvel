@@ -21,19 +21,23 @@ def _status_message(statevars):
     msg = (
         "{:d}/{:d} ({:3.1f}%) steps complete; "
         "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
+        "Min Autocorrelation Factor = {:4.1f}; Max Autocorrelation Relative-Change = {:5.3}; "
         "Min Tz = {:.1f}; Max G-R = {:5.3f}      \r"
     ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete,
-                 statevars.rate, statevars.ar, statevars.mintz, statevars.maxgr)
+                statevars.rate, statevars.ar, statevars.minafactor, statevars.maxarchange,
+                statevars.mintz, statevars.maxgr)
 
     sys.stdout.write(msg)
     sys.stdout.flush()
 
 
-def convergence_check(maxGR, minTz, minsteps, minpercent):
+def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent):
     """Check for convergence
     Check for convergence for a list of emcee samplers
 
     Args:
+        minAfactor (float): Minimum autocorrelation time factor for chains to be deemed well-mixed
+        maxArchange (float): Maximum relative change in the autocorrelative time factor to be deemed well-mixed
         maxGR (float): Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): Minimum Tz to consider well-mixed
         minsteps (int): Minimum number of steps per walker before convergence tests are performed. Convergence checks
@@ -66,17 +70,21 @@ def convergence_check(maxGR, minTz, minsteps, minpercent):
     # Must have completed at least 5% or minsteps steps per walker before
     # attempting to calculate GR
     if statevars.pcomplete < minpercent and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
-        (statevars.ismixed, statevars.maxgr, statevars.mintz) = 0, np.inf, -1
+        (statevars.ismixed, statevars.minafactor, statevars.maxarchange, statevars.oac, statevars.maxgr,
+            statevars.mintz) = 0, -1, np.inf, np.zeros(int(statevars.tchains.shape[0])), np.inf, -1
     else:
-        (statevars.ismixed, gr, tz) = gelman_rubin(statevars.tchains, maxGR=maxGR, minTz=minTz)
+        (statevars.ismixed, afactor, archange, autocorrelation, gr, tz) \
+            = gelman_rubin(statevars.tchains, complete=statevars.ncomplete, oldautocorrelation=statevars.oac,
+                           minAfactor=minAfactor, maxArchange=maxArchange, maxGR=maxGR, minTz=minTz)
         statevars.mintz = min(tz)
         statevars.maxgr = max(gr)
+        statevars.minafactor = min(afactor)
+        statevars.maxarchange = max(archange)
+        statevars.oac = autocorrelation
         if statevars.ismixed:
             statevars.mixcount += 1
         else:
             statevars.mixcount = 0
-
-    _status_message(statevars)
 
 def _domcmc(input_tuple):
     """Function to be run in parallel on different CPUs
@@ -90,8 +98,8 @@ def _domcmc(input_tuple):
 
     return sampler
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.03, maxGR=1.01,
-         minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=75, maxArchange=1.01,
+         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -102,6 +110,8 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
             in parallel on separate CPUs
         checkinterval (int): (optional) check MCMC convergence statistics every
             `checkinterval` steps
+        minAfactor (float): Minimum autocorrection time factor to deem chains as well-mixed and halt the MCMC run
+        maxArchange (float): Maximum relative change in autocorrection time factor to deem chains and well-mixed
         burnGR (float): (optional) Maximum G-R statistic to stop burn-in period
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
@@ -146,7 +156,6 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, burnGR=1.
 of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         statevars.nwalkers = 2*statevars.ndim
 
-
     # set up perturbation size
     pscales = []
     for par in post.list_vary_params():
@@ -186,6 +195,8 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     statevars.pcomplete = 0
     statevars.rate = 0
     statevars.ar = 0
+    statevars.minAfactor = -1
+    statevars.maxArchange = np.inf
     statevars.mintz = -1
     statevars.maxgr = np.inf
     statevars.t0 = time.time()
@@ -215,7 +226,8 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         t2 = time.time()
         statevars.interval = t2 - t1
 
-        convergence_check(maxGR=maxGR, minTz=minTz, minsteps=minsteps, minpercent=minpercent)
+        convergence_check(minAfactor=minAfactor, maxArchange=maxArchange, maxGR=maxGR, minTz=minTz,
+                          minsteps=minsteps, minpercent=minpercent)
 
         # Burn-in complete after maximum G-R statistic first reaches burnGR
         # reset samplers
@@ -267,18 +279,26 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     return df
 
 
-def gelman_rubin(pars0, minTz, maxGR):
+def gelman_rubin(pars0, complete, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
     """Gelman-Rubin Statistic
 
-    Calculates the Gelman-Rubin statistic and the number of
+    Calculates the Gelman-Rubin statistic, autocorrelation time factor,
+    relative change in autocorrection time, and the number of
     independent draws for each parameter, as defined by Ford et
     al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
     The chain is considered well-mixed if all parameters have a
-    Gelman-Rubin statistic of <= 1.03 and >= 1000 independent draws.
+    Gelman-Rubin statistic of <= 1.03, an autocorrelation time factor >= 75 or
+    a relative change in autocorrelation time <= 1.01, and >= 1000 independent draws.
 
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
             parameter values
+        complete (int): number of samples completed
+        oldautocorrection (float): previously calculated autocorrection time
+        minAfactor (float): minimum autocorrelation
+            time factor to consider well-mixed
+        maxArchange (float): maximum relative change in
+            autocorrelation time factor to consider well-mixed
         minTz (int): minimum Tz to consider well-mixed
         maxGR (float): maximum Gelman-Rubin statistic to
             consider well-mixed
@@ -286,6 +306,14 @@ def gelman_rubin(pars0, minTz, maxGR):
         tuple: tuple containing:
             ismixed (bool):
                 Are the chains well-mixed?
+            afactor (array):
+                An NPARS element array containing the
+                autocorrelation time factor for each parameter
+            archange (array):
+                An NPARS element array containing the relative
+                change in the autocorrelation time factor for each parameter
+            autocorrelation (array):
+                An NPARS array containing the autocorrelation time factor for each paramter
             gelmanrubin (array):
                 An NPARS element array containing the
                 Gelman-Rubin statistic for each parameter (equation
@@ -302,6 +330,9 @@ def gelman_rubin(pars0, minTz, maxGR):
             Institute for Astronomy
         2016/04/20:
             Adapted for use in RadVel. Removed "angular" parameter.
+        2019/10/21:
+            Adapted to calculate and consider autocorrelation times
+            :param oldautocorrelation:
 
     """
 
@@ -347,7 +378,13 @@ def gelman_rubin(pars0, minTz, maxGR):
     if tz.size == 0:
         tz = [-1]
 
-    # well-mixed criteria
-    ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR
+    autocorrelation = emcee.autocorr.integrated_time(pars, axis=1, quiet=True)
 
-    return (ismixed, gelmanrubin, tz)
+    afactor = complete/autocorrelation
+
+    archange = (autocorrelation - oldautocorrelation)/oldautocorrelation
+
+    # well-mixed criteria
+    ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR and (min(afactor) > minAfactor or max(archange) < maxArchange)
+
+    return (ismixed, afactor, archange, autocorrelation, gelmanrubin, tz)

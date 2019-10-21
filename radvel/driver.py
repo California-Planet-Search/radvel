@@ -162,17 +162,21 @@ def mcmc(args):
         P, post = radvel.utils.initialize_posterior(config_file,
                                                     decorr=args.decorr)
 
-    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
-        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
+    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Autocorrelation Factor = {},\
+Max Autocorrelation Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."\
+        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
     print(msg)
 
     chains = radvel.mcmc(
-            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent,
-            thin=args.thin, serial=args.serial)
+            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
+            maxArchange=args.maxArchange, burnGR=args.burnGR, maxGR=args.maxGR, minTz=args.minTz,
+            minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
+    minafactor = statevars.minafactor
+    maxarchange = statevars.maxarchange
+
 
     # Convert chains into synth basis
     synthchains = chains.copy()
@@ -249,6 +253,8 @@ def mcmc(args):
                  'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
                  'nsteps': statevars.ncomplete,
                  'nburn': statevars.nburn,
+                 'minafactor': minafactor,
+                 'maxarchange': maxarchange,
                  'minTz': mintz,
                  'maxGR': maxgr}
     save_status(statfile, 'mcmc', savestate)
