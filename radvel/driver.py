@@ -164,8 +164,7 @@ def mcmc(args):
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Autocorrelation Factor = {},\
 Max Autocorrelation Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."\
-        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles,
-                args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
+        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
     print(msg)
 
     chains = radvel.mcmc(
