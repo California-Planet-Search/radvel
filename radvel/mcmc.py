@@ -49,14 +49,14 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
     statevars.ar = 0
     statevars.ncomplete = statevars.nburn
     statevars.tchains = np.empty((statevars.ndim,
-                        statevars.samplers[0].flatlnprobability.shape[0],
+                        statevars.samplers[0].get_log_prob(flat=True).shape[0],
                         statevars.ensembles))
     statevars.lnprob = []
     for i,sampler in enumerate(statevars.samplers):
-        statevars.ncomplete += sampler.flatlnprobability.shape[0]
+        statevars.ncomplete += sampler.get_log_prob(flat=True).shape[0]
         statevars.ar += sampler.acceptance_fraction.mean() * 100
         statevars.tchains[:,:,i] = sampler.flatchain.transpose()
-        statevars.lnprob.append(sampler.flatlnprobability)
+        statevars.lnprob.append(sampler.get_log_prob(flat=True))
     statevars.ar /= statevars.ensembles
 
     statevars.pcomplete = statevars.ncomplete/float(statevars.totsteps) * 100
@@ -69,7 +69,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
 
     # Must have completed at least 5% or minsteps steps per walker before
     # attempting to calculate GR
-    if statevars.pcomplete < minpercent and sampler.flatlnprobability.shape[0] <= minsteps*statevars.nwalkers:
+    if statevars.pcomplete < minpercent and sampler.get_log_prob(flat=True).shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.minafactor, statevars.maxarchange, statevars.oac, statevars.maxgr,
             statevars.mintz) = 0, -1, np.inf, np.zeros(int(statevars.tchains.shape[0])), np.inf, -1
     else:
@@ -205,7 +205,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         t1 = time.time()
         mcmc_input_array = []
         for i, sampler in enumerate(statevars.samplers):
-            if sampler.flatlnprobability.shape[0] == 0:
+            if sampler.get_log_prob(flat=True).shape[0] == 0:
                 p1 = statevars.initial_positions[i]
             else:
                 p1 = None
