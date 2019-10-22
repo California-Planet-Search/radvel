@@ -177,7 +177,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
 
     statevars.samplers = []
     statevars.initial_positions = []
-    statevars.backend = []
+    statevars.backends = []
     for e in range(ensembles):
         bk = emcee.backends.Backend()
         bk.reset(nwalkers=statevars.nwalkers, ndim=statevars.ndim)
@@ -208,12 +208,12 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     for r in range(num_run):
         t1 = time.time()
         mcmc_input_array = []
-        for i, sampler in enumerate(statevars.samplers):
-            if sampler.get_log_prob(flat=True).shape[0] == 0:
+        for i, backend in enumerate(statevars.backends):
+            if backend.get_log_prob(flat=True).shape[0] == 0:
                 p1 = statevars.initial_positions[i]
             else:
                 p1 = None
-            mcmc_input = (backend, p1, checkinterval)
+            mcmc_input = (sampler, p1, checkinterval)
             mcmc_input_array.append(mcmc_input)
 
         if serial:
