@@ -186,7 +186,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
         statevars.initial_positions.append(p0)
         statevars.samplers.append(emcee.EnsembleSampler(
-            statevars.nwalkers, statevars.ndim, post.logprob_array, backend=backend, threads=1))
+            statevars.nwalkers, statevars.ndim, post.logprob_array, backend=bk, threads=1))
         statevars.backend.append(bk)
 
     num_run = int(np.round(nrun / checkinterval))
