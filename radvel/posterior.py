@@ -66,9 +66,9 @@ class Posterior(Likelihood):
         """
         self.likelihood.set_vary_params(param_values_array)
         _logprob = self.logprob()
-        if not np.isfinite(_logprob):
-            raise ValueError("logprob is NaN for the following posterior:\n{}\n{}".format(self.list_vary_params(),
-                                                                                          self.get_vary_params()))
+        # if not np.isfinite(_logprob):
+        #     raise ValueError("logprob is NaN for the following posterior:\n{}\n{}".format(self.list_vary_params(),
+        #                                                                                   self.get_vary_params()))
 
         return _logprob
 
