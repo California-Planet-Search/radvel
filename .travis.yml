@@ -4,8 +4,6 @@ services:
   - docker
 
 before_install:
-  - pwd
-  - ls -latr
   - docker build --tag radvel .
 
 before_script:
