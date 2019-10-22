@@ -178,7 +178,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     statevars.samplers = []
     statevars.initial_positions = []
     for e in range(ensembles):
-        backend.reset(statevars.nwalkers, statevars.ndim)
+        backend.reset(nwalkers=statevars.nwalkers, ndim=statevars.ndim)
         pi = post.get_vary_params()
         p0 = np.vstack([pi]*statevars.nwalkers)
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
