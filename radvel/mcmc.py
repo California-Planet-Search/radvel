@@ -205,7 +205,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         t1 = time.time()
         mcmc_input_array = []
         for i, sampler in enumerate(statevars.samplers):
-            if sampler.shape[0] == 0:
+            if len(sampler) == 0:
                 p1 = statevars.initial_positions[i]
             else:
                 p1 = None
