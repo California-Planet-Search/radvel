@@ -12,6 +12,6 @@ WORKDIR /code/radvel
 
 RUN pip install --no-cache-dir . && \
     python setup.py build_ext -i && \
-    pip install --no-cache-dir nose coveralls celerite
+    pip install --no-cache-dir nose coveralls pybind11 celerite
 
 CMD nosetests radvel --with-coverage --cover-package=radvel
