@@ -124,7 +124,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
-    backend = emcee.backends.Backend
+
     # check if one or more likelihoods are GPs
     if isinstance(post.likelihood, radvel.likelihood.CompositeLikelihood):
         check_gp = [like for like in post.likelihood.like_list if isinstance(like, radvel.likelihood.GPLikelihood)]
@@ -178,6 +178,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     statevars.samplers = []
     statevars.initial_positions = []
     for e in range(ensembles):
+        backend = emcee.backends.Backend()
         backend.reset(nwalkers=statevars.nwalkers, ndim=statevars.ndim)
         pi = post.get_vary_params()
         p0 = np.vstack([pi]*statevars.nwalkers)
@@ -185,7 +186,6 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         statevars.initial_positions.append(p0)
         statevars.samplers.append(emcee.EnsembleSampler(
             statevars.nwalkers, statevars.ndim, post.logprob_array, backend=backend, threads=1))
-        statevars.backends.append(backend)
 
     num_run = int(np.round(nrun / checkinterval))
     statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
@@ -206,8 +206,8 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     for r in range(num_run):
         t1 = time.time()
         mcmc_input_array = []
-        for i, backend in enumerate(statevars.backends):
-            if backend.get_log_prob(flat=True).shape[0] == 0:
+        for i, sampler in enumerate(statevars.samplers):
+            if sampler.get_log_prob(flat=True).shape[0] == 0:
                 p1 = statevars.initial_positions[i]
             else:
                 p1 = None
