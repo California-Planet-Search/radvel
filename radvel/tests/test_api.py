@@ -24,7 +24,7 @@ class _args(object):
         self.maxGR = 1.10
         self.burnGR = 1.30
         self.minAfactor = 75
-        self.maxArchange = 1.01
+        self.maxArchange = .01
         self.minTz = 1000
         self.minsteps = 100
         self.minpercent = 5

@@ -163,7 +163,7 @@ def mcmc(args):
                                                     decorr=args.decorr)
 
     msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Autocorrelation Factor = {},\
-Max Autocorrelation Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."\
+ Max Autocorrelation Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."\
         .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
     print(msg)
 
