@@ -31,7 +31,6 @@ class _args(object):
         self.thin = 1
         self.serial = False
 
-
 def _standard_run(setupfn):
     """
     Run through all of the standard steps
@@ -249,4 +248,10 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_priors()
+    test_k2()
+    test_hd()
+    test_k2131()
+    test_celerite()
+    test_basis()
+    test_kernels()
+    test_kepler()

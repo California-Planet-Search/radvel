@@ -16,6 +16,7 @@ class StateVars(object):
         pass
 
 statevars = StateVars()
+statevars.oac = 0
 
 def _status_message(statevars):
     msg = (
@@ -98,7 +99,7 @@ def _domcmc(input_tuple):
 
     return sampler
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=75, maxArchange=1.01,
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=75, maxArchange=.01,
          burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
@@ -176,8 +177,8 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     pscales = np.array(pscales)
 
     statevars.samplers = []
+    statevars.sampled = []
     statevars.initial_positions = []
-    statevars.backends = []
     for e in range(ensembles):
         bk = emcee.backends.Backend()
         bk.reset(nwalkers=statevars.nwalkers, ndim=statevars.ndim)
@@ -185,9 +186,8 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         p0 = np.vstack([pi]*statevars.nwalkers)
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
         statevars.initial_positions.append(p0)
-        statevars.samplers.append(emcee.EnsembleSampler(
-            statevars.nwalkers, statevars.ndim, post.logprob_array, backend=bk, threads=1))
-        statevars.backends.append(bk)
+        statevars.samplers.append(emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array,
+                                                        threads=1))
 
     num_run = int(np.round(nrun / checkinterval))
     statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
@@ -208,13 +208,14 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     for r in range(num_run):
         t1 = time.time()
         mcmc_input_array = []
-        for i, backend in enumerate(statevars.backends):
-            if backend.get_log_prob(flat=True).shape[0] == 0:
-                p1 = statevars.initial_positions[i]
-            else:
-                p1 = None
-            mcmc_input = (sampler, p1, checkinterval)
-            mcmc_input_array.append(mcmc_input)
+        for i, sampler in enumerate(statevars.samplers):
+            for sample in sampler.sample(statevars.initial_positions[i], store=True):
+                if sampler.iteration == 1:
+                    p1 = statevars.initial_positions[i]
+                else:
+                    p1 = None
+                mcmc_input = (sampler, p1, checkinterval)
+                mcmc_input_array.append(mcmc_input)
 
         if serial:
             statevars.samplers = []
@@ -237,7 +238,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
         # reset samplers
         if not statevars.burn_complete and statevars.maxgr <= burnGR:
             for i, sampler in enumerate(statevars.samplers):
-                statevars.initial_positions[i] = sampler._last_run_mcmc_result[0]
+                statevars.initial_positions[i] = sampler.get_last_sample()
                 sampler.reset()
                 statevars.samplers[i] = sampler
             msg = (
@@ -292,7 +293,7 @@ def gelman_rubin(pars0, complete, oldautocorrelation, minAfactor, maxArchange, m
     al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
     The chain is considered well-mixed if all parameters have a
     Gelman-Rubin statistic of <= 1.03, an autocorrelation time factor >= 75 or
-    a relative change in autocorrelation time <= 1.01, and >= 1000 independent draws.
+    a relative change in autocorrelation time <= .01, and >= 1000 independent draws.
 
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
@@ -382,13 +383,13 @@ def gelman_rubin(pars0, complete, oldautocorrelation, minAfactor, maxArchange, m
     if tz.size == 0:
         tz = [-1]
 
-    autocorrelation = emcee.autocorr.integrated_time(pars, axis=1, quiet=True)
+    autocorrelation = emcee.autocorr.integrated_time(np.concatenate(pars,axis=1), quiet=True)
 
     afactor = complete/autocorrelation
 
-    archange = (autocorrelation - oldautocorrelation)/oldautocorrelation
+    archange = (np.abs(autocorrelation - oldautocorrelation)/oldautocorrelation)
 
     # well-mixed criteria
-    ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR and (min(afactor) > minAfactor or max(archange) < maxArchange)
+    ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR and min(afactor) > minAfactor and max(archange) < maxArchange
 
     return (ismixed, afactor, archange, autocorrelation, gelmanrubin, tz)

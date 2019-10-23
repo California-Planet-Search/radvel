@@ -39,3 +39,4 @@ def test_clipy():
 
 if __name__ == '__main__':
     test_clipy()
+    test_help()
