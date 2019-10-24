@@ -13,10 +13,10 @@ import radvel
 
 class StateVars(object):
     def __init__(self):
+        self.oac = 0
         pass
 
 statevars = StateVars()
-statevars.oac = 0
 
 def _status_message(statevars):
     msg = (
@@ -71,11 +71,11 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
     # Must have completed at least 5% or minsteps steps per walker before
     # attempting to calculate GR
     if statevars.pcomplete < minpercent and sampler.get_log_prob(flat=True).shape[0] <= minsteps*statevars.nwalkers:
-        (statevars.ismixed, statevars.minafactor, statevars.maxarchange, statevars.oac, statevars.maxgr,
-            statevars.mintz) = 0, -1, np.inf, np.zeros(int(statevars.tchains.shape[0])), np.inf, -1
+        (statevars.ismixed, statevars.minafactor, statevars.maxarchange, statevars.maxgr,
+            statevars.mintz) = 0, -1, np.inf, np.inf, -1
     else:
         (statevars.ismixed, afactor, archange, autocorrelation, gr, tz) \
-            = gelman_rubin(statevars.tchains, complete=statevars.ncomplete, oldautocorrelation=statevars.oac,
+            = convergence_calculate(statevars.tchains, complete=statevars.ncomplete, oldautocorrelation=statevars.oac,
                            minAfactor=minAfactor, maxArchange=maxArchange, maxGR=maxGR, minTz=minTz)
         statevars.mintz = min(tz)
         statevars.maxgr = max(gr)
@@ -179,11 +179,8 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     pscales = np.array(pscales)
 
     statevars.samplers = []
-    statevars.sampled = []
     statevars.initial_positions = []
     for e in range(ensembles):
-        bk = emcee.backends.Backend()
-        bk.reset(nwalkers=statevars.nwalkers, ndim=statevars.ndim)
         pi = post.get_vary_params()
         p0 = np.vstack([pi]*statevars.nwalkers)
         p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
@@ -286,7 +283,7 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     return df
 
 
-def gelman_rubin(pars0, complete, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
+def convergence_calculate(pars0, complete, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
     """Gelman-Rubin Statistic
 
     Calculates the Gelman-Rubin statistic, autocorrelation time factor,
