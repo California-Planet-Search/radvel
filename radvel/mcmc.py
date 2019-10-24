@@ -22,7 +22,7 @@ def _status_message(statevars):
     msg = (
         "{:d}/{:d} ({:3.1f}%) steps complete; "
         "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
-        "Min Autocorrelation Factor = {:4.1f}; Max Autocorrelation Relative-Change = {:5.3}; "
+        "Min Auto Factor = {:3.0f}; Max Auto Relative-Change = {:5.3}; "
         "Min Tz = {:.1f}; Max G-R = {:5.3f}      \r"
     ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete,
                 statevars.rate, statevars.ar, statevars.minafactor, statevars.maxarchange,
@@ -86,6 +86,8 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
             statevars.mixcount += 1
         else:
             statevars.mixcount = 0
+
+        _status_message(statevars)
 
 def _domcmc(input_tuple):
     """Function to be run in parallel on different CPUs
@@ -383,7 +385,7 @@ def gelman_rubin(pars0, complete, oldautocorrelation, minAfactor, maxArchange, m
     if tz.size == 0:
         tz = [-1]
 
-    autocorrelation = emcee.autocorr.integrated_time(np.concatenate(pars,axis=1), quiet=True)
+    autocorrelation = emcee.autocorr.integrated_time(np.concatenate(pars,axis=1), tol=0, quiet=True)
 
     afactor = complete/autocorrelation
 
