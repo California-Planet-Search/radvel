@@ -53,13 +53,14 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
                         statevars.samplers[0].get_log_prob(flat=True).shape[0],
                         statevars.ensembles))
     statevars.lnprob = []
+    statevars.autocorrelation = []
     for i,sampler in enumerate(statevars.samplers):
         statevars.ncomplete += sampler.get_log_prob(flat=True).shape[0]
         statevars.autocomplete = sampler.iteration
         statevars.ar += sampler.acceptance_fraction.mean() * 100
         statevars.tchains[:,:,i] = sampler.flatchain.transpose()
         statevars.lnprob.append(sampler.get_log_prob(flat=True))
-        statevars.autocorrelation = sampler.get_autocorr_time(tol=0)
+        statevars.autocorrelation.append(sampler.get_autocorr_time(tol=0))
     statevars.ar /= statevars.ensembles
 
     statevars.pcomplete = statevars.ncomplete/float(statevars.totsteps) * 100
@@ -82,8 +83,8 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
                                     maxGR=maxGR, minTz=minTz)
         statevars.mintz = min(tz)
         statevars.maxgr = max(gr)
-        statevars.minafactor = min(afactor)
-        statevars.maxarchange = max(archange)
+        statevars.minafactor = np.amin(afactor)
+        statevars.maxarchange = np.amax(archange)
         statevars.oac = autocorrelation
         if statevars.ismixed:
             statevars.mixcount += 1
@@ -287,22 +288,22 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
 
 
 def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
-    """Gelman-Rubin Statistic
+    """Calculate Convergence Criterion
 
     Calculates the Gelman-Rubin statistic, autocorrelation time factor,
     relative change in autocorrellation time, and the number of
     independent draws for each parameter, as defined by Ford et
     al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
     The chain is considered well-mixed if all parameters have a
-    Gelman-Rubin statistic of <= 1.03, an autocorrelation time factor >= 75 or
-    a relative change in autocorrelation time <= .01, and >= 1000 independent draws.
+    Gelman-Rubin statistic of <= 1.03, the min autocorrelation time factor >= 75,
+    a max relative change in autocorrelation time <= .01, and >= 1000 independent draws.
 
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
             parameter values
-        complete (integer): number of samples to calculate autocorrelation factor
+        complete (integer): number of samples completed
         autocorrelation (float): current autocorrelation time
-        oldautocorrelation (float): previously calculated autocorrelation time
+        oldautocorrelation (float): previously autocorrelation time
         minAfactor (float): minimum autocorrelation
             time factor to consider well-mixed
         maxArchange (float): maximum relative change in
@@ -315,13 +316,13 @@ def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, 
             ismixed (bool):
                 Are the chains well-mixed?
             afactor (array):
-                An NPARS element array containing the
-                autocorrelation time factor for each parameter
-            archange (array):
-                An NPARS element array containing the relative
-                change in the autocorrelation time factor for each parameter
-            autocorrelation (array):
-                An NPARS array containing the autocorrelation time factor for each paramter
+                A matrix containing the
+                autocorrelation time factor for each parameter and ensemble combination
+            archange (matrix):
+                A matrix containing the relative
+                change in the autocorrelation time factor for each parameter and ensemble combination
+            autocorrelation (matrix):
+                A matrix containing the autocorrelation time for each parameter and ensemble combination
             gelmanrubin (array):
                 An NPARS element array containing the
                 Gelman-Rubin statistic for each parameter (equation
@@ -338,9 +339,11 @@ def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, 
             Institute for Astronomy
         2016/04/20:
             Adapted for use in RadVel. Removed "angular" parameter.
-        2019/10/21:
+        2019/10/24:
             Adapted to calculate and consider autocorrelation times
             :param oldautocorrelation:
+            :param autocorrelation:
+            :param complete:
 
     """
 
@@ -386,11 +389,11 @@ def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, 
     if tz.size == 0:
         tz = [-1]
 
-    afactor = complete/autocorrelation
+    afactor = np.divide(complete, autocorrelation)
 
-    archange = (np.abs(autocorrelation - oldautocorrelation)/oldautocorrelation)
+    archange = np.divide(np.abs(np.subtract(autocorrelation, oldautocorrelation)),oldautocorrelation)
 
     # well-mixed criteria
-    ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR and min(afactor) > minAfactor and max(archange) < maxArchange
+    ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR and np.amin(afactor) > minAfactor and np.amax(archange) < maxArchange
 
     return (ismixed, afactor, archange, autocorrelation, gelmanrubin, tz)
