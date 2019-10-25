@@ -163,15 +163,17 @@ def mcmc(args):
                                                     decorr=args.decorr)
 
     msg1 = (
-            "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Auto Factor = {},"
+            "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Auto Factor = {}, "
             ).format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.minAfactor)
 
     msg2 = (
             "Max Auto Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."
             ).format(args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
 
-    print(msg1 + '\n' + msg2)
-    sys.stdout.flush()
+    if hasattr(__builtins__,'__IPYTHON__') == True:
+        print(msg1 + msg2)
+    else:
+        print(msg1 + '\n' + msg2)
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,

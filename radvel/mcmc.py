@@ -20,23 +20,50 @@ class StateVars(object):
 
 statevars = StateVars()
 
-def _status_message(statevars):
+def _progress_bar(step, totsteps, width=50):
+    fltot = float(totsteps)
+    numsym = int(np.round(width * (step / fltot)))
+
+    bar = ''.join(["=" for s in range(numsym)])
+    bar += ''.join([" " for s in range(width - numsym)])
+
+    msg = "[" + bar + "]"
+
+    return(msg)
+
+def _status_message_NB(statevars):
+
+    msg1 = (
+        "{:d}/{:d} ({:3.1f}%) steps complete; "
+        "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
+        "Min Auto Factor = {:3.0f}; Max Auto Relative-Change = {:5.3}; "
+        "Min Tz = {:.1f}; Max G-R = {:5.3f}"
+    ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete, statevars.rate, statevars.ar,
+             statevars.minafactor, statevars.maxarchange, statevars.mintz, statevars.maxgr)
+
+    sys.stdout.write(msg1)
+    sys.stdout.flush()
+
+def _status_message_CLI(statevars):
 
     statevars.screen = curses.initscr()
 
     statevars.screen.clear()
 
+    barline = _progress_bar(statevars.ncomplete, statevars.totsteps)
+
     msg1 = (
-        "{:d}/{:d} ({:3.1f}%) steps complete; "
-        "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; \n"
-    ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete, statevars.rate, statevars.ar)
+            barline + " {:d}/{:d} ({:3.1f}%) steps complete; "
+    ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete)
 
     msg2 = (
-        "Min Auto Factor = {:3.0f}; Max Auto Relative-Change = {:5.3}; "
-        "Min Tz = {:.1f}; Max G-R = {:5.3f}      \r"
-    ).format(statevars.minafactor, statevars.maxarchange, statevars.mintz, statevars.maxgr)
+        "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
+        "Min Auto Factor = {:3.0f}; \nMax Auto Relative-Change = {:5.3}; "
+        "Min Tz = {:.1f}; Max G-R = {:5.3f}\n"
+    ).format(statevars.rate, statevars.ar, statevars.minafactor, statevars.maxarchange,
+             statevars.mintz, statevars.maxgr)
 
-    statevars.screen.addstr(0, 0, msg1+msg2)
+    statevars.screen.addstr(0, 0, msg1+ '\n' + msg2)
 
     statevars.screen.refresh()
 
@@ -99,7 +126,10 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         else:
             statevars.mixcount = 0
 
-        _status_message(statevars)
+        if hasattr(__builtins__,'__IPYTHON__') == True:
+            _status_message_NB(statevars)
+        else:
+            _status_message_CLI(statevars)
 
 def _domcmc(input_tuple):
     """Function to be run in parallel on different CPUs
@@ -271,7 +301,8 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     "\nChains are well-mixed after {:d} steps! MCMC completed in "
                     "{:3.1f} {:s}"
                 ).format(statevars.ncomplete, tdiff, units)
-                curses.endwin()
+                if hasattr(__builtins__,'__IPYTHON__') == False:
+                    curses.endwin()
                 print(msg)
                 break
 
@@ -281,14 +312,16 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 "MCMC: WARNING: chains did not pass 5 consecutive convergence "
                 "tests. They may be marginally well=mixed."
             )
-            curses.endwin()
+            if hasattr(__builtins__, '__IPYTHON__') == False:
+                curses.endwin()
             print(msg)
         elif not statevars.ismixed:
             msg = (
                 "MCMC: WARNING: chains did not pass convergence tests. They are "
                 "likely not well-mixed."
             )
-            curses.endwin()
+            if hasattr(__builtins__, '__IPYTHON__') == False:
+                curses.endwin()
             print(msg)
 
         df = pd.DataFrame(
