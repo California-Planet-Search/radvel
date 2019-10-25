@@ -162,10 +162,16 @@ def mcmc(args):
         P, post = radvel.utils.initialize_posterior(config_file,
                                                     decorr=args.decorr)
 
-    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Autocorrelation Factor = {},\
- Max Autocorrelation Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."\
-        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
-    print(msg)
+    msg1 = (
+            "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Auto Factor = {},"
+            ).format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.minAfactor)
+
+    msg2 = (
+            "Max Auto Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."
+            ).format(args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
+
+    print(msg1 + '\n' + msg2)
+    sys.stdout.flush()
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
@@ -176,7 +182,6 @@ def mcmc(args):
     maxgr = statevars.maxgr
     minafactor = statevars.minafactor
     maxarchange = statevars.maxarchange
-
 
     # Convert chains into synth basis
     synthchains = chains.copy()
