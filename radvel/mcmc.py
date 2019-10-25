@@ -55,9 +55,11 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
     statevars.lnprob = []
     for i,sampler in enumerate(statevars.samplers):
         statevars.ncomplete += sampler.get_log_prob(flat=True).shape[0]
+        statevars.autocomplete = sampler.iteration
         statevars.ar += sampler.acceptance_fraction.mean() * 100
         statevars.tchains[:,:,i] = sampler.flatchain.transpose()
         statevars.lnprob.append(sampler.get_log_prob(flat=True))
+        statevars.autocorrelation = sampler.get_autocorr_time(tol=0)
     statevars.ar /= statevars.ensembles
 
     statevars.pcomplete = statevars.ncomplete/float(statevars.totsteps) * 100
@@ -75,8 +77,9 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
             statevars.mintz) = 0, -1, np.inf, np.inf, -1
     else:
         (statevars.ismixed, afactor, archange, autocorrelation, gr, tz) \
-            = convergence_calculate(statevars.tchains, complete=statevars.ncomplete, oldautocorrelation=statevars.oac,
-                           minAfactor=minAfactor, maxArchange=maxArchange, maxGR=maxGR, minTz=minTz)
+            = convergence_calculate(statevars.tchains, complete = statevars.autocomplete, autocorrelation=statevars.autocorrelation,
+                                    oldautocorrelation=statevars.oac, minAfactor=minAfactor, maxArchange=maxArchange,
+                                    maxGR=maxGR, minTz=minTz)
         statevars.mintz = min(tz)
         statevars.maxgr = max(gr)
         statevars.minafactor = min(afactor)
@@ -113,8 +116,8 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             in parallel on separate CPUs
         checkinterval (int): (optional) check MCMC convergence statistics every
             `checkinterval` steps
-        minAfactor (float): Minimum autocorrection time factor to deem chains as well-mixed and halt the MCMC run
-        maxArchange (float): Maximum relative change in autocorrection time factor to deem chains and well-mixed
+        minAfactor (float): Minimum autocorrelation time factor to deem chains as well-mixed and halt the MCMC run
+        maxArchange (float): Maximum relative change in autocorrellation time factor to deem chains and well-mixed
         burnGR (float): (optional) Maximum G-R statistic to stop burn-in period
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
@@ -283,11 +286,11 @@ of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
     return df
 
 
-def convergence_calculate(pars0, complete, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
+def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
     """Gelman-Rubin Statistic
 
     Calculates the Gelman-Rubin statistic, autocorrelation time factor,
-    relative change in autocorrection time, and the number of
+    relative change in autocorrellation time, and the number of
     independent draws for each parameter, as defined by Ford et
     al. (2006) (http://adsabs.harvard.edu/abs/2006ApJ...642..505F).
     The chain is considered well-mixed if all parameters have a
@@ -297,8 +300,9 @@ def convergence_calculate(pars0, complete, oldautocorrelation, minAfactor, maxAr
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
             parameter values
-        complete (int): number of samples completed
-        oldautocorrection (float): previously calculated autocorrection time
+        complete (integer): number of samples to calculate autocorrelation factor
+        autocorrelation (float): current autocorrelation time
+        oldautocorrelation (float): previously calculated autocorrelation time
         minAfactor (float): minimum autocorrelation
             time factor to consider well-mixed
         maxArchange (float): maximum relative change in
@@ -381,8 +385,6 @@ def convergence_calculate(pars0, complete, oldautocorrelation, minAfactor, maxAr
     tz = nchains*nsteps*vbz[vbz < 1]
     if tz.size == 0:
         tz = [-1]
-
-    autocorrelation = emcee.autocorr.integrated_time(np.concatenate(pars,axis=1), tol=0, quiet=True)
 
     afactor = complete/autocorrelation
 
