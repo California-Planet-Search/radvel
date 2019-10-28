@@ -11,7 +11,7 @@ before_script:
   - sleep 2
 
 script:
-  - docker run -e TERM radvel
+  - docker run radvel
 
 deploy:
   provider: pypi

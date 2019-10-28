@@ -79,6 +79,13 @@ def _status_message_CLI(statevars):
 
     statevars.screen.refresh()
 
+def _closescr():
+    if isnotebook() == False:
+        try:
+            curses.endwin()
+        except curses._curses.error:
+            pass
+
 def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent):
     """Check for convergence
     Check for convergence for a list of emcee samplers
@@ -313,8 +320,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     "\nChains are well-mixed after {:d} steps! MCMC completed in "
                     "{:3.1f} {:s}"
                 ).format(statevars.ncomplete, tdiff, units)
-                if isnotebook() == False:
-                    curses.endwin()
+                _closescr()
                 print(msg)
                 break
 
@@ -324,16 +330,14 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 "MCMC: WARNING: chains did not pass 5 consecutive convergence "
                 "tests. They may be marginally well=mixed."
             )
-            if isnotebook() == False:
-                curses.endwin()
+            _closescr()
             print(msg)
         elif not statevars.ismixed:
             msg = (
                 "MCMC: WARNING: chains did not pass convergence tests. They are "
                 "likely not well-mixed."
             )
-            if isnotebook() == False:
-                curses.endwin()
+            _closescr()
             print(msg)
 
         df = pd.DataFrame(
