@@ -20,6 +20,18 @@ class StateVars(object):
 
 statevars = StateVars()
 
+def isnotebook():
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True   # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False      # Probably standard Python interpreter
+
 def _progress_bar(step, totsteps, width=50):
     fltot = float(totsteps)
     numsym = int(np.round(width * (step / fltot)))
@@ -33,15 +45,11 @@ def _progress_bar(step, totsteps, width=50):
 
 def _status_message_NB(statevars):
 
-    statevars.screen = curses.initscr()
-
-    statevars.screen.clear()
-
     msg1 = (
         "{:d}/{:d} ({:3.1f}%) steps complete; "
         "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
         "Min Auto Factor = {:3.0f}; Max Auto Relative-Change = {:5.3}; "
-        "Min Tz = {:.1f}; Max G-R = {:5.3f}"
+        "Min Tz = {:.1f}; Max G-R = {:5.3f}\r"
     ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete, statevars.rate, statevars.ar,
              statevars.minafactor, statevars.maxarchange, statevars.mintz, statevars.maxgr)
 
@@ -130,7 +138,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         else:
             statevars.mixcount = 0
 
-        if hasattr(__builtins__,'__IPYTHON__') == True:
+        if isnotebook() == True:
             _status_message_NB(statevars)
         else:
             _status_message_CLI(statevars)
@@ -263,7 +271,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     mcmc_input = (sampler, p1, checkinterval)
                     mcmc_input_array.append(mcmc_input)
 
-            if serial:
+            if serial or __name__!='__main__':
                 statevars.samplers = []
                 for i in range(ensembles):
                     result = _domcmc(mcmc_input_array[i])
@@ -305,7 +313,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     "\nChains are well-mixed after {:d} steps! MCMC completed in "
                     "{:3.1f} {:s}"
                 ).format(statevars.ncomplete, tdiff, units)
-                if hasattr(__builtins__,'__IPYTHON__') == False:
+                if isnotebook() == False:
                     curses.endwin()
                 print(msg)
                 break
@@ -316,7 +324,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 "MCMC: WARNING: chains did not pass 5 consecutive convergence "
                 "tests. They may be marginally well=mixed."
             )
-            if hasattr(__builtins__, '__IPYTHON__') == False:
+            if isnotebook() == False:
                 curses.endwin()
             print(msg)
         elif not statevars.ismixed:
@@ -324,7 +332,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 "MCMC: WARNING: chains did not pass convergence tests. They are "
                 "likely not well-mixed."
             )
-            if hasattr(__builtins__, '__IPYTHON__') == False:
+            if isnotebook() == False:
                 curses.endwin()
             print(msg)
 
