@@ -12,13 +12,16 @@ import emcee
 from radvel import utils
 import radvel
 
+
 class StateVars(object):
     def __init__(self):
         self.oac = 0
         self.firstrun = 0
         pass
 
+
 statevars = StateVars()
+
 
 def isnotebook():
     try:
@@ -32,6 +35,7 @@ def isnotebook():
     except NameError:
         return False      # Probably standard Python interpreter
 
+
 def _progress_bar(step, totsteps, width=50):
     fltot = float(totsteps)
     numsym = int(np.round(width * (step / fltot)))
@@ -42,6 +46,7 @@ def _progress_bar(step, totsteps, width=50):
     msg = "[" + bar + "]"
 
     return(msg)
+
 
 def _status_message_NB(statevars):
 
@@ -55,6 +60,7 @@ def _status_message_NB(statevars):
 
     sys.stdout.write(msg1)
     sys.stdout.flush()
+
 
 def _status_message_CLI(statevars):
 
@@ -79,12 +85,14 @@ def _status_message_CLI(statevars):
 
     statevars.screen.refresh()
 
+
 def _closescr():
     if isnotebook() == False:
         try:
             curses.endwin()
-        except curses._curses.error:
+        except:
             pass
+
 
 def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent):
     """Check for convergence
@@ -150,6 +158,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         else:
             _status_message_CLI(statevars)
 
+
 def _domcmc(input_tuple):
     """Function to be run in parallel on different CPUs
     Input is a tuple: first element is an emcee sampler object, second is an array of
@@ -161,6 +170,7 @@ def _domcmc(input_tuple):
     sampler.run_mcmc(ipos, check_interval)
 
     return sampler
+
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=75, maxArchange=.01,
          burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
@@ -351,6 +361,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
 
     except KeyboardInterrupt:
         curses.endwin()
+
 
 def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
     """Calculate Convergence Criterion
