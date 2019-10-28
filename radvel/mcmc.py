@@ -16,6 +16,7 @@ class StateVars(object):
     def __init__(self):
         self.oac = 0
         self.firstrun = 0
+        self.screen = curses.initscr()
         pass
 
 statevars = StateVars()
@@ -33,6 +34,8 @@ def _progress_bar(step, totsteps, width=50):
 
 def _status_message_NB(statevars):
 
+    statevars.screen.clear()
+
     msg1 = (
         "{:d}/{:d} ({:3.1f}%) steps complete; "
         "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
@@ -45,8 +48,6 @@ def _status_message_NB(statevars):
     sys.stdout.flush()
 
 def _status_message_CLI(statevars):
-
-    statevars.screen = curses.initscr()
 
     statevars.screen.clear()
 
