@@ -12,16 +12,17 @@ import emcee
 from radvel import utils
 import radvel
 
-
 class StateVars(object):
     def __init__(self):
         self.oac = 0
         self.firstrun = 0
+        self.autosteps = []
+        self.automin = []
+        self.automean = []
+        self.automax = []
         pass
 
-
 statevars = StateVars()
-
 
 def isnotebook():
     try:
@@ -35,7 +36,6 @@ def isnotebook():
     except NameError:
         return False      # Probably standard Python interpreter
 
-
 def _progress_bar(step, totsteps, width=50):
     fltot = float(totsteps)
     numsym = int(np.round(width * (step / fltot)))
@@ -46,7 +46,6 @@ def _progress_bar(step, totsteps, width=50):
     msg = "[" + bar + "]"
 
     return(msg)
-
 
 def _status_message_NB(statevars):
 
@@ -60,7 +59,6 @@ def _status_message_NB(statevars):
 
     sys.stdout.write(msg1)
     sys.stdout.flush()
-
 
 def _status_message_CLI(statevars):
 
@@ -84,15 +82,6 @@ def _status_message_CLI(statevars):
     statevars.screen.addstr(0, 0, msg1+ '\n' + msg2)
 
     statevars.screen.refresh()
-
-
-def _closescr():
-    if isnotebook() == False:
-        try:
-            curses.endwin()
-        except:
-            pass
-
 
 def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent):
     """Check for convergence
@@ -124,6 +113,10 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         statevars.lnprob.append(sampler.get_log_prob(flat=True))
         statevars.autocorrelation.append(sampler.get_autocorr_time(tol=0))
     statevars.ar /= statevars.ensembles
+    statevars.autosteps.append(statevars.autocomplete)
+    statevars.automin.append(np.amin(statevars.autocorrelation))
+    statevars.automean.append(np.mean(statevars.autocorrelation))
+    statevars.automax.append(np.amax(statevars.autocorrelation))
 
     statevars.pcomplete = statevars.ncomplete/float(statevars.totsteps) * 100
     statevars.rate = (statevars.checkinterval*statevars.nwalkers*statevars.ensembles) / statevars.interval
@@ -158,7 +151,6 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         else:
             _status_message_CLI(statevars)
 
-
 def _domcmc(input_tuple):
     """Function to be run in parallel on different CPUs
     Input is a tuple: first element is an emcee sampler object, second is an array of
@@ -171,9 +163,8 @@ def _domcmc(input_tuple):
 
     return sampler
 
-
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=75, maxArchange=.01,
-         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
+         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, autograph=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -288,7 +279,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     mcmc_input = (sampler, p1, checkinterval)
                     mcmc_input_array.append(mcmc_input)
 
-            if serial or __name__!='__main__':
+            if serial:
                 statevars.samplers = []
                 for i in range(ensembles):
                     result = _domcmc(mcmc_input_array[i])
@@ -330,7 +321,10 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     "\nChains are well-mixed after {:d} steps! MCMC completed in "
                     "{:3.1f} {:s}"
                 ).format(statevars.ncomplete, tdiff, units)
-                _closescr()
+                if isnotebook() == False:
+                    stdscr = curses.initscr()
+                    stdscr.addstr(' ')
+                    curses.endwin()
                 print(msg)
                 break
 
@@ -340,14 +334,20 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 "MCMC: WARNING: chains did not pass 5 consecutive convergence "
                 "tests. They may be marginally well=mixed."
             )
-            _closescr()
+            if isnotebook() == False:
+                stdscr = curses.initscr()
+                stdscr.addstr(' ')
+                curses.endwin()
             print(msg)
         elif not statevars.ismixed:
             msg = (
                 "MCMC: WARNING: chains did not pass convergence tests. They are "
                 "likely not well-mixed."
             )
-            _closescr()
+            if isnotebook() == False:
+                stdscr = curses.initscr()
+                stdscr.addstr(' ')
+                curses.endwin()
             print(msg)
 
         df = pd.DataFrame(
@@ -357,11 +357,20 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
 
         df = df.iloc[::thin]
 
-        return df
+        if autograph == False:
+            return df
+        else:
+            factor = [minAfactor]*len(statevars.autosteps)
+            auto = pd.DataFrame()
+            auto['autosteps'] = statevars.autosteps
+            auto['automin'] = statevars.automin
+            auto['automean'] = statevars.automean
+            auto['automax'] = statevars.automax
+            auto['factor'] = factor
+            return df, auto
 
     except KeyboardInterrupt:
         curses.endwin()
-
 
 def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
     """Calculate Convergence Criterion

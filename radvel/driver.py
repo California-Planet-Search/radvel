@@ -79,11 +79,17 @@ def plots(args):
 You may want to use the '--gp' flag when making these plots.")
                         break
 
-        if ptype == 'corner' or ptype == 'trend':
+        if ptype == 'corner' or ptype == 'auto' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
                 "Must run MCMC before making corner or trend plots"
 
             chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+            autocorr = pd.read_csv(status.get('mcmc', 'autocorrfile'))
+
+        if ptype == 'auto':
+            saveto = os.path.join(args.outputdir, conf_base+'_auto.pdf')
+            Auto = mcmc_plots.AutoPlot(autocorr, saveplot=saveto)
+            Auto.plot()
 
         if ptype == 'corner':
             saveto = os.path.join(args.outputdir, conf_base+'_corner.pdf')
@@ -170,15 +176,20 @@ def mcmc(args):
             "Max Auto Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."
             ).format(args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
 
-    if hasattr(__builtins__,'__IPYTHON__') == True:
-        print(msg1 + msg2)
-    else:
-        print(msg1 + '\n' + msg2)
+    print(msg1 + '\n' + msg2)
 
-    chains = radvel.mcmc(
+    if args.autograph == True:
+        chains, auto = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
             maxArchange=args.maxArchange, burnGR=args.burnGR, maxGR=args.maxGR, minTz=args.minTz,
-            minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial)
+            minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial,
+            autograph=args.autograph)
+    else:
+        chains = radvel.mcmc(
+                post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
+                maxArchange=args.maxArchange, burnGR=args.burnGR, maxGR=args.maxGR, minTz=args.minTz,
+                minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial,
+                autograph=args.autograph)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
@@ -251,9 +262,14 @@ def mcmc(args):
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
     chains.to_csv(csvfn, compression='bz2')
 
+    if args.autograph==True:
+        autocorr = os.path.join(args.outputdir, conf_base+'_autocorr.csv')
+        auto.to_csv(autocorr, sep=',')
+
     savestate = {'run': True,
                  'postfile': os.path.relpath(postfile),
                  'chainfile': os.path.relpath(csvfn),
+                 'autocorrfile': os.path.relpath(autocorr),
                  'summaryfile': os.path.relpath(saveto),
                  'nwalkers': statevars.nwalkers,
                  'nensembles': args.ensembles,
