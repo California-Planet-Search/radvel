@@ -75,10 +75,10 @@ E.g. --plotkw "{'yscale_auto': True}"' ''')
     psr_mcmc.add_argument('--nensembles', dest='ensembles', action='store', default=8, type=int,
                           help="Number of ensembles. Will be run in parallel on separate CPUs [8]"
                           )
-    psr_mcmc.add_argument('--minAfactor', dest='minAfactor', action='store', default=75, type=float,
+    psr_mcmc.add_argument('--minAfactor', dest='minAfactor', action='store', default=50, type=float,
                           help="Minimum factor between autocorrelation time and number of samples for chains to be deemed well-mixed [75]"
                           )
-    psr_mcmc.add_argument('--maxArchange', dest='maxArchange', action='store', default=.01, type=float,
+    psr_mcmc.add_argument('--maxArchange', dest='maxArchange', action='store', default=.05, type=float,
                           help="Max relative-change in autocorrelation time for chains to be deemed well-mixed [.01]"
                           )
     psr_mcmc.add_argument('--maxGR', dest='maxGR', action='store', default=1.01, type=float,

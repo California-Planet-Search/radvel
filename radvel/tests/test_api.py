@@ -30,6 +30,7 @@ class _args(object):
         self.minpercent = 5
         self.thin = 1
         self.serial = False
+        self.autograph = False
 
 def _standard_run(setupfn):
     """

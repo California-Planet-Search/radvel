@@ -177,7 +177,7 @@ def _domcmc(input_tuple):
     return sampler
 
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=75, maxArchange=.01,
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=50, maxArchange=.05,
          burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, autograph=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
