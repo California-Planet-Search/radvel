@@ -158,10 +158,10 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         else:
             statevars.mixcount = 0
 
-        if isnotebook() == True:
-            _status_message_NB(statevars)
-        else:
-            _status_message_CLI(statevars)
+    if isnotebook() == True:
+        _status_message_NB(statevars)
+    else:
+        _status_message_CLI(statevars)
 
 
 def _domcmc(input_tuple):

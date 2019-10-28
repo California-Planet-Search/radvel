@@ -79,11 +79,16 @@ def plots(args):
 You may want to use the '--gp' flag when making these plots.")
                         break
 
-        if ptype == 'corner' or ptype == 'auto' or ptype == 'trend':
+        if ptype == 'corner' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
                 "Must run MCMC before making corner or trend plots"
 
             chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+
+        if ptype == 'auto':
+            assert status.getboolean('auto'), \
+                "Must run MCMC with autograph = True before making auto plots"
+
             autocorr = pd.read_csv(status.get('mcmc', 'autocorrfile'))
 
         if ptype == 'auto':
@@ -266,21 +271,37 @@ def mcmc(args):
         autocorr = os.path.join(args.outputdir, conf_base+'_autocorr.csv')
         auto.to_csv(autocorr, sep=',')
 
-    savestate = {'run': True,
-                 'postfile': os.path.relpath(postfile),
-                 'chainfile': os.path.relpath(csvfn),
-                 'autocorrfile': os.path.relpath(autocorr),
-                 'summaryfile': os.path.relpath(saveto),
-                 'nwalkers': statevars.nwalkers,
-                 'nensembles': args.ensembles,
-                 'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
-                 'nsteps': statevars.ncomplete,
-                 'nburn': statevars.nburn,
-                 'minafactor': minafactor,
-                 'maxarchange': maxarchange,
-                 'minTz': mintz,
-                 'maxGR': maxgr}
-    save_status(statfile, 'mcmc', savestate)
+        savestate = {'run': True,
+                    'postfile': os.path.relpath(postfile),
+                    'chainfile': os.path.relpath(csvfn),
+                    'autocorrfile': os.path.relpath(autocorr),
+                    'summaryfile': os.path.relpath(saveto),
+                    'nwalkers': statevars.nwalkers,
+                    'nensembles': args.ensembles,
+                    'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
+                    'nsteps': statevars.ncomplete,
+                    'nburn': statevars.nburn,
+                    'minafactor': minafactor,
+                    'maxarchange': maxarchange,
+                    'minTz': mintz,
+                    'maxGR': maxgr}
+        save_status(statfile, 'mcmc', savestate)
+
+    else:
+        savestate = {'run': True,
+                    'postfile': os.path.relpath(postfile),
+                    'chainfile': os.path.relpath(csvfn),
+                    'summaryfile': os.path.relpath(saveto),
+                    'nwalkers': statevars.nwalkers,
+                    'nensembles': args.ensembles,
+                    'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
+                    'nsteps': statevars.ncomplete,
+                    'nburn': statevars.nburn,
+                    'minafactor': minafactor,
+                    'maxarchange': maxarchange,
+                    'minTz': mintz,
+                    'maxGR': maxgr}
+        save_status(statfile, 'mcmc', savestate)
 
 
 def ic_compare(args):
