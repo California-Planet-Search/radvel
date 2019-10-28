@@ -2,6 +2,7 @@ FROM conda/miniconda3
 
 ENV DISPLAY=localhost:0
 ENV TERM=xterm
+ENV TERMINFO=/etc/terminfo
 ENV COVERALLS_REPO_TOKEN=7ZpQ0LQWM2PNl5iu7ZndyFEisQnZow8oT
 
 RUN mkdir /code && \
