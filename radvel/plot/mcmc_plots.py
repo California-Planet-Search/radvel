@@ -9,6 +9,7 @@ from radvel import plot
 """
 Module for plotting results of MCMC analysis, including:
     - trend plot
+    - autocorrelation plot
     - corner plot of fitted parameters
     - corner plot of derived parameters
 """
@@ -69,6 +70,42 @@ class TrendPlot(object):
 
         print("Trend plot saved to %s" % self.outfile)
 
+class AutoPlot(object):
+    """
+    Class to handle the creation of an autocorrelation time plot
+    from output autocorrelation times.
+
+    Args:
+        auto (DataFrame): Autocorrelation times output by radvel.mcmc
+        saveplot (str, optional): Name of output file, will show as
+            interactive matplotlib window if not defined.
+
+    """
+    def __init__(self, auto, saveplot=None):
+
+        self.auto = auto
+        self.saveplot = saveplot
+
+    def plot(self):
+        """
+        Make and either save or display the autocorrelation plot
+        """
+
+        pl.scatter(self.auto['autosteps'], self.auto['automax'], color='red', label='Max')
+        pl.scatter(self.auto['autosteps'], self.auto['automean'], color = 'black', label='Mean')
+        pl.scatter(self.auto['autosteps'], self.auto['automin'], color = 'blue', label='Min')
+        pl.plot(self.auto['autosteps'], self.auto['autosteps']/self.auto['factor'][0], linestyle=':', color='gray', label='Autocorrelation Factor Criterion')
+        pl.xlim(self.auto['autosteps'].min(), self.auto['autosteps'].max())
+        pl.ylim(self.auto['automin'].min(), (self.auto['autosteps']/self.auto['factor']).max())
+        pl.xlabel('Steps per Ensemble')
+        pl.ylabel('Parameter/Ensemble Autocorrelation Time')
+        pl.legend()
+
+        if self.saveplot is not None:
+            pl.savefig(self.saveplot, dpi=150)
+            print("Corner plot saved to %s" % self.saveplot)
+        else:
+            pl.show
 
 class CornerPlot(object):
     """

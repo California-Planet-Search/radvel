@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 import subprocess
 import os
@@ -359,6 +360,32 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
         tmpfile = 'tab_params.tex'
         t = env.get_template(tmpfile)
         out = t.render(**kw)
+        return out
+
+    def tab_crit(self, criterion, name_in_title=False):
+        """Table of final convergence criterion values
+        Args:
+            name_in_title (Bool [optional]): if True, include
+                the name of the star in the table title
+        """
+
+        names = list(criterion)
+        rows = []
+        for i in range(1,len(names)):
+            value = criterion.iloc[0][str(names[i])]
+            rows.append("$%s$ & $%s$" % (names[i], value))
+
+        kw = dict()
+        kw['rows'] = rows
+        if name_in_title:
+            kw['title'] = "{} Final Convergence Criterion".format(self.report.starname)
+        else:
+            kw['title'] = "Final Convergence Criterion"
+
+        tmpfile = 'tab_crit.tex'
+        t = env.get_template(tmpfile)
+        out = t.render(**kw)
+
         return out
 
     def tab_derived(self, name_in_title=False):

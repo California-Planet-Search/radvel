@@ -23,12 +23,13 @@ class _args(object):
         self.ensembles = 8
         self.maxGR = 1.10
         self.burnGR = 1.30
+        self.minAfactor = 75
+        self.maxArchange = .01
         self.minTz = 1000
         self.minsteps = 100
         self.minpercent = 5
         self.thin = 1
         self.serial = False
-
 
 def _standard_run(setupfn):
     """
@@ -247,4 +248,10 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_priors()
+    test_k2()
+    test_hd()
+    test_k2131()
+    test_celerite()
+    test_basis()
+    test_kernels()
+    test_kepler()

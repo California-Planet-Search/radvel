@@ -48,7 +48,7 @@ def main():
     psr_plot = subpsr.add_parser('plot', parents=[psr_parent],)
     psr_plot.add_argument('-t', '--type',
                           type=str, nargs='+',
-                          choices=['rv', 'corner', 'trend', 'derived'],
+                          choices=['rv', 'auto', 'corner', 'trend', 'derived'],
                           help="type of plot(s) to generate"
                           )
     psr_plot.add_argument('--plotkw', dest='plotkw', action='store', default="{}", type=eval,
@@ -74,6 +74,12 @@ E.g. --plotkw "{'yscale_auto': True}"' ''')
                           )
     psr_mcmc.add_argument('--nensembles', dest='ensembles', action='store', default=8, type=int,
                           help="Number of ensembles. Will be run in parallel on separate CPUs [8]"
+                          )
+    psr_mcmc.add_argument('--minAfactor', dest='minAfactor', action='store', default=50, type=float,
+                          help="Minimum factor between autocorrelation time and number of samples for chains to be deemed well-mixed [75]"
+                          )
+    psr_mcmc.add_argument('--maxArchange', dest='maxArchange', action='store', default=.05, type=float,
+                          help="Max relative-change in autocorrelation time for chains to be deemed well-mixed [.01]"
                           )
     psr_mcmc.add_argument('--maxGR', dest='maxGR', action='store', default=1.01, type=float,
                           help="Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run [1.01]"
@@ -137,7 +143,7 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
     # Tables
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)
     psr_table.add_argument('-t', '--type', type=str, nargs='+',
-                           choices=['params', 'priors', 'rv', 'ic_compare', 'derived'],
+                           choices=['params', 'priors', 'rv', 'ic_compare', 'derived', 'crit'],
                            help="type of tables(s) to generate"
                            )
     psr_table.add_argument('--header', action='store_true',
