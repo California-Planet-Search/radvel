@@ -94,9 +94,13 @@ class AutoPlot(object):
         pl.scatter(self.auto['autosteps'], self.auto['automax'], color='red', label='Max')
         pl.scatter(self.auto['autosteps'], self.auto['automean'], color = 'black', label='Mean')
         pl.scatter(self.auto['autosteps'], self.auto['automin'], color = 'blue', label='Min')
-        pl.plot(self.auto['autosteps'], self.auto['autosteps']/self.auto['factor'][0], linestyle=':', color='gray', label='Autocorrelation Factor Criterion')
+        pl.plot(self.auto['autosteps'], self.auto['autosteps']/self.auto['factor'][0], linestyle=':', color='gray',
+                label='Autocorrelation Factor Criterion (N/{})'.format(self.auto['factor'][0]))
         pl.xlim(self.auto['autosteps'].min(), self.auto['autosteps'].max())
-        pl.ylim(self.auto['automin'].min(), (self.auto['autosteps']/self.auto['factor']).max())
+        if (self.auto['autosteps']/self.auto['factor']).max() > self.auto['automax'].max():
+            pl.ylim(self.auto['automin'].min(), (self.auto['autosteps']/self.auto['factor']).max())
+        else:
+            pl.ylim(self.auto['automin'].min(), self.auto['automax'].max())
         pl.xlabel('Steps per Ensemble')
         pl.ylabel('Parameter/Ensemble Autocorrelation Time')
         pl.legend()

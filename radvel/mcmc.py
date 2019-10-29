@@ -177,8 +177,8 @@ def _domcmc(input_tuple):
     return sampler
 
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=50, maxArchange=.05,
-         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=25, maxArchange=.05, burnAfactor=15,
+         burnGR=1.015, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -190,8 +190,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         checkinterval (int): (optional) check MCMC convergence statistics every
             `checkinterval` steps
         minAfactor (float): Minimum autocorrelation time factor to deem chains as well-mixed and halt the MCMC run
-        maxArchange (float): Maximum relative change in autocorrellation time factor to deem chains and well-mixed
-        burnGR (float): (optional) Maximum G-R statistic to stop burn-in period
+        maxArchange (float): Maximum relative change in autocorrelation time factor to deem chains and well-mixed
+        burnAfactor (float): Minimum autocorrelation time factor to stop burn-in period. Burn-in ends once burnGr or burnAfactor are reached.
+        burnGR (float): (optional) Maximum G-R statistic to stop burn-in period. Burn-in ends once burnGr or burnAfactor are reached.
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
         minsteps (int): Minimum number of steps per walker before convergence tests are performed. Convergence checks
@@ -312,9 +313,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             convergence_check(minAfactor=minAfactor, maxArchange=maxArchange, maxGR=maxGR, minTz=minTz,
                           minsteps=minsteps, minpercent=minpercent)
 
-            # Burn-in complete after maximum G-R statistic first reaches burnGR
+            # Burn-in complete after maximum G-R statistic first reaches burnGR or minAfactor reaches burnAfactor
             # reset samplers
-            if not statevars.burn_complete and statevars.maxgr <= burnGR:
+            if not statevars.burn_complete and (statevars.maxgr <= burnGR or burnAfactor <= statevars.minafactor):
                 for i, sampler in enumerate(statevars.samplers):
                     statevars.initial_positions[i] = sampler.get_last_sample()
                     sampler.reset()

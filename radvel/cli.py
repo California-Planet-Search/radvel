@@ -75,7 +75,7 @@ E.g. --plotkw "{'yscale_auto': True}"' ''')
     psr_mcmc.add_argument('--nensembles', dest='ensembles', action='store', default=8, type=int,
                           help="Number of ensembles. Will be run in parallel on separate CPUs [8]"
                           )
-    psr_mcmc.add_argument('--minAfactor', dest='minAfactor', action='store', default=50, type=float,
+    psr_mcmc.add_argument('--minAfactor', dest='minAfactor', action='store', default=25, type=float,
                           help="Minimum factor between autocorrelation time and number of samples for chains to be deemed well-mixed [75]"
                           )
     psr_mcmc.add_argument('--maxArchange', dest='maxArchange', action='store', default=.05, type=float,
@@ -84,8 +84,11 @@ E.g. --plotkw "{'yscale_auto': True}"' ''')
     psr_mcmc.add_argument('--maxGR', dest='maxGR', action='store', default=1.01, type=float,
                           help="Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run [1.01]"
                           )
-    psr_mcmc.add_argument('--burnGR', dest='burnGR', action='store', default=1.03, type=float,
-                          help="Maximum G-R statistic to stop burn-in period [1.03]"
+    psr_mcmc.add_argument('--burnGR', dest='burnGR', action='store', default=1.015, type=float,
+                          help="Maximum G-R statistic to stop burn-in period [1.015]. Burn-in ends once burnGr or burnAfactor are reached."
+                          )
+    psr_mcmc.add_argument('--burnAfactor', dest='burnAfactor', action='store', default=15, type=float,
+                          help='Minimum autocorrelation time factor to stop burn-in period [15]. Burn-in ends once burnGr or burnAfactor are reached.'
                           )
     psr_mcmc.add_argument('--minTz', dest='minTz', action='store', default=1000, type=int,
                           help="Minimum Tz to consider well-mixed [1000]"
