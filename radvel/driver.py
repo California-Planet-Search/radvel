@@ -79,16 +79,11 @@ def plots(args):
 You may want to use the '--gp' flag when making these plots.")
                         break
 
-        if ptype == 'corner' or ptype == 'trend':
+        if ptype == 'corner' or ptype == 'auto' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
                 "Must run MCMC before making corner or trend plots"
 
             chains = pd.read_csv(status.get('mcmc', 'chainfile'))
-
-        if ptype == 'auto':
-            assert status.getboolean('auto'), \
-                "Must run MCMC with autograph = True before making auto plots"
-
             autocorr = pd.read_csv(status.get('mcmc', 'autocorrfile'))
 
         if ptype == 'auto':
@@ -183,18 +178,10 @@ def mcmc(args):
 
     print(msg1 + '\n' + msg2)
 
-    if args.autograph == True:
-        chains, auto = radvel.mcmc(
+    chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
             maxArchange=args.maxArchange, burnGR=args.burnGR, maxGR=args.maxGR, minTz=args.minTz,
-            minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial,
-            autograph=args.autograph)
-    else:
-        chains = radvel.mcmc(
-                post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
-                maxArchange=args.maxArchange, burnGR=args.burnGR, maxGR=args.maxGR, minTz=args.minTz,
-                minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial,
-                autograph=args.autograph)
+            minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
@@ -267,41 +254,38 @@ def mcmc(args):
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
     chains.to_csv(csvfn, compression='bz2')
 
-    if args.autograph==True:
-        autocorr = os.path.join(args.outputdir, conf_base+'_autocorr.csv')
-        auto.to_csv(autocorr, sep=',')
+    auto = pd.DataFrame()
+    auto['autosteps'] = statevars.autosteps
+    auto['automin'] = statevars.automin
+    auto['automean'] = statevars.automean
+    auto['automax'] = statevars.automax
+    auto['factor'] = statevars.factor
+    autocorr = os.path.join(args.outputdir, conf_base+'_autocorr.csv')
+    auto.to_csv(autocorr, sep=',')
 
-        savestate = {'run': True,
-                    'postfile': os.path.relpath(postfile),
-                    'chainfile': os.path.relpath(csvfn),
-                    'autocorrfile': os.path.relpath(autocorr),
-                    'summaryfile': os.path.relpath(saveto),
-                    'nwalkers': statevars.nwalkers,
-                    'nensembles': args.ensembles,
-                    'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
-                    'nsteps': statevars.ncomplete,
-                    'nburn': statevars.nburn,
-                    'minafactor': minafactor,
-                    'maxarchange': maxarchange,
-                    'minTz': mintz,
-                    'maxGR': maxgr}
-        save_status(statfile, 'mcmc', savestate)
+    savestate = {'run': True,
+                'postfile': os.path.relpath(postfile),
+                'chainfile': os.path.relpath(csvfn),
+                'summaryfile': os.path.relpath(saveto),
+                'nwalkers': statevars.nwalkers,
+                'nensembles': args.ensembles,
+                'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
+                'nsteps': statevars.ncomplete,
+                'nburn': statevars.nburn,
+                'minafactor': minafactor,
+                'maxarchange': maxarchange,
+                'minTz': mintz,
+                'maxGR': maxgr}
+    save_status(statfile, 'mcmc', savestate)
 
-    else:
-        savestate = {'run': True,
-                    'postfile': os.path.relpath(postfile),
-                    'chainfile': os.path.relpath(csvfn),
-                    'summaryfile': os.path.relpath(saveto),
-                    'nwalkers': statevars.nwalkers,
-                    'nensembles': args.ensembles,
-                    'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
-                    'nsteps': statevars.ncomplete,
-                    'nburn': statevars.nburn,
-                    'minafactor': minafactor,
-                    'maxarchange': maxarchange,
-                    'minTz': mintz,
-                    'maxGR': maxgr}
-        save_status(statfile, 'mcmc', savestate)
+    final_crit = pd.DataFrame()
+    final_crit['minAfactor'] = minafactor
+    final_crit['maxArchange'] = maxarchange
+    final_crit['maxGR'] = maxgr
+    final_crit['minTz'] = mintz
+    fc = os.path.join(args.outputdir, conf_base + '_finalcrit.csv')
+    final_crit.to_csv(fc, sep=',')
+
 
 
 def ic_compare(args):

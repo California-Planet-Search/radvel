@@ -178,7 +178,7 @@ def _domcmc(input_tuple):
 
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=50, maxArchange=.05,
-         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, autograph=False):
+         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -362,17 +362,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
 
         df = df.iloc[::thin]
 
-        if autograph == False:
-            return df
-        else:
-            factor = [minAfactor]*len(statevars.autosteps)
-            auto = pd.DataFrame()
-            auto['autosteps'] = statevars.autosteps
-            auto['automin'] = statevars.automin
-            auto['automean'] = statevars.automean
-            auto['automax'] = statevars.automax
-            auto['factor'] = factor
-            return df, auto
+        statevars.factor = [minAfactor] * len(statevars.autosteps)
+
+        return df
 
     except KeyboardInterrupt:
         curses.endwin()

@@ -104,10 +104,6 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
     psr_mcmc.add_argument('--serial', dest='serial', action='store', default=False, type=bool,
                           help='''If True, run MCMC in serial instead of parallel. [False]'''
                           )
-    psr_mcmc.add_argument('--autograph', dest='autograph', action='store', default=False, type=bool,
-                          help='If True, a second dataframe will be returned, called auto. It will contain \
-                               information about the autocorrelation times that can be plotted.'
-                          )
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
     # Derive physical parameters
