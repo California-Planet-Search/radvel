@@ -263,9 +263,19 @@ def mcmc(args):
     autocorr = os.path.join(args.outputdir, conf_base+'_autocorr.csv')
     auto.to_csv(autocorr, sep=',')
 
+    final_crit = pd.DataFrame()
+    final_crit['minAfactor'] = [minafactor]
+    final_crit['maxArchange'] = [maxarchange]
+    final_crit['maxGR'] = [maxgr]
+    final_crit['minTz'] = [mintz]
+    fc = os.path.join(args.outputdir, conf_base + '_finalcrit.csv')
+    final_crit.to_csv(fc, sep=',')
+
     savestate = {'run': True,
                 'postfile': os.path.relpath(postfile),
                 'chainfile': os.path.relpath(csvfn),
+                'autocorrfile': os.path.relpath(autocorr),
+                'finalcritfile': os.path.relpath(fc),
                 'summaryfile': os.path.relpath(saveto),
                 'nwalkers': statevars.nwalkers,
                 'nensembles': args.ensembles,
@@ -278,19 +288,10 @@ def mcmc(args):
                 'maxGR': maxgr}
     save_status(statfile, 'mcmc', savestate)
 
-    final_crit = pd.DataFrame()
-    final_crit['minAfactor'] = minafactor
-    final_crit['maxArchange'] = maxarchange
-    final_crit['maxGR'] = maxgr
-    final_crit['minTz'] = mintz
-    fc = os.path.join(args.outputdir, conf_base + '_finalcrit.csv')
-    final_crit.to_csv(fc, sep=',')
-
-
 
 def ic_compare(args):
     """Compare different models and comparative statistics including
-          AICc and BIC statistics.
+          AIC and BIC statistics.
 
     Args:
         args (ArgumentParser): command line arguments
@@ -364,14 +365,17 @@ def tables(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+    criterion = pd.read_csv(status.get('mcmc', 'finalcritfile'))
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
         derived = True
+    else: derived = False
     report = radvel.report.RadvelReport(P, post, chains, derived=derived)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
-                'params': 'tab_params', 'derived': 'tab_derived'}
+                'params': 'tab_params', 'derived': 'tab_derived',
+                'crit': 'tab_crit'}
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
@@ -387,6 +391,8 @@ def tables(args):
             tex = tabletex.tab_comparison()
         elif tabtype == 'rv':
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title, max_lines=None)
+        elif tabtype == 'crit':
+            tex = getattr(tabletex, attrdict[tabtype])(criterion=criterion, name_in_title=args.name_in_title)
         else:
             if tabtype == 'derived':
                 assert status.has_option('derive', 'run'), \

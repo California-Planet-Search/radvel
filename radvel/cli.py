@@ -143,7 +143,7 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
     # Tables
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)
     psr_table.add_argument('-t', '--type', type=str, nargs='+',
-                           choices=['params', 'priors', 'rv', 'ic_compare', 'derived'],
+                           choices=['params', 'priors', 'rv', 'ic_compare', 'derived', 'crit'],
                            help="type of tables(s) to generate"
                            )
     psr_table.add_argument('--header', action='store_true',

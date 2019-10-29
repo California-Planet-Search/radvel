@@ -1,0 +1,12 @@
+\begin{deluxetable}{lrrr}
+\tablecaption{ {{ title }} }
+\tablehead{
+  \colhead{Criterion} &
+  \colhead{Final Value}
+}
+\startdata
+{% for row in rows %}
+  {{ row }} \\
+{% endfor %}
+\enddata
+\end{deluxetable}
