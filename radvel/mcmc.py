@@ -191,8 +191,8 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             `checkinterval` steps
         minAfactor (float): Minimum autocorrelation time factor to deem chains as well-mixed and halt the MCMC run
         maxArchange (float): Maximum relative change in autocorrelation time factor to deem chains and well-mixed
-        burnAfactor (float): Minimum autocorrelation time factor to stop burn-in period
-        burnGR (float): (optional) Maximum G-R statistic to stop burn-in period
+        burnAfactor (float): Minimum autocorrelation time factor to stop burn-in period. Burn-in ends once burnGr or burnAfactor are reached.
+        burnGR (float): (optional) Maximum G-R statistic to stop burn-in period. Burn-in ends once burnGr or burnAfactor are reached.
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
         minsteps (int): Minimum number of steps per walker before convergence tests are performed. Convergence checks

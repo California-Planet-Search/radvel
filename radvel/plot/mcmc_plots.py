@@ -97,7 +97,6 @@ class AutoPlot(object):
         pl.plot(self.auto['autosteps'], self.auto['autosteps']/self.auto['factor'][0], linestyle=':', color='gray',
                 label='Autocorrelation Factor Criterion (N/{})'.format(self.auto['factor'][0]))
         pl.xlim(self.auto['autosteps'].min(), self.auto['autosteps'].max())
-
         if (self.auto['autosteps']/self.auto['factor']).max() > self.auto['automax'].max():
             pl.ylim(self.auto['automin'].min(), (self.auto['autosteps']/self.auto['factor']).max())
         else:

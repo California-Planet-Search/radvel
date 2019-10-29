@@ -85,10 +85,10 @@ E.g. --plotkw "{'yscale_auto': True}"' ''')
                           help="Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run [1.01]"
                           )
     psr_mcmc.add_argument('--burnGR', dest='burnGR', action='store', default=1.015, type=float,
-                          help="Maximum G-R statistic to stop burn-in period [1.03]"
+                          help="Maximum G-R statistic to stop burn-in period [1.015]. Burn-in ends once burnGr or burnAfactor are reached."
                           )
     psr_mcmc.add_argument('--burnAfactor', dest='burnAfactor', action='store', default=15, type=float,
-                          help='Minimum autocorrelation time factor to stop burn-in period [15]'
+                          help='Minimum autocorrelation time factor to stop burn-in period [15]. Burn-in ends once burnGr or burnAfactor are reached.'
                           )
     psr_mcmc.add_argument('--minTz', dest='minTz', action='store', default=1000, type=int,
                           help="Minimum Tz to consider well-mixed [1000]"
