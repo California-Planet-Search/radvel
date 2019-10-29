@@ -23,6 +23,7 @@ class _args(object):
         self.ensembles = 8
         self.maxGR = 1.10
         self.burnGR = 1.30
+        self.burnAfactor = 15
         self.minAfactor = 75
         self.maxArchange = .01
         self.minTz = 1000
