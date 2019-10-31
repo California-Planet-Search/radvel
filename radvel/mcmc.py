@@ -97,6 +97,7 @@ def _status_message_CLI(statevars):
 
 def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent):
     """Check for convergence
+
     Check for convergence for a list of emcee samplers
 
     Args:
@@ -425,9 +426,6 @@ def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, 
             Adapted for use in RadVel. Removed "angular" parameter.
         2019/10/24:
             Adapted to calculate and consider autocorrelation times
-            :param oldautocorrelation:
-            :param autocorrelation:
-            :param complete:
 
     """
 
