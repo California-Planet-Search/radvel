@@ -15,11 +15,8 @@ import radvel
 class StateVars(object):
     def __init__(self):
         self.oac = 0
-        self.firstrun = 0
-        self.autosteps = []
-        self.automin = []
+        self.autosamples = []
         self.automean = []
-        self.automax = []
         pass
 
 statevars = StateVars()
@@ -118,18 +115,14 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
                         statevars.ensembles))
     statevars.lnprob = []
     statevars.autocorrelation = []
+    statevars.chains = []
     for i,sampler in enumerate(statevars.samplers):
         statevars.ncomplete += sampler.get_log_prob(flat=True).shape[0]
-        statevars.autocomplete = sampler.iteration
         statevars.ar += sampler.acceptance_fraction.mean() * 100
         statevars.tchains[:,:,i] = sampler.flatchain.transpose()
+        statevars.chains.append(sampler.get_chain()[:,:,1].T)
         statevars.lnprob.append(sampler.get_log_prob(flat=True))
-        statevars.autocorrelation.append(sampler.get_autocorr_time(tol=0))
     statevars.ar /= statevars.ensembles
-    statevars.autosteps.append(statevars.autocomplete)
-    statevars.automin.append(np.amin(statevars.autocorrelation))
-    statevars.automean.append(np.mean(statevars.autocorrelation))
-    statevars.automax.append(np.amax(statevars.autocorrelation))
 
     statevars.pcomplete = statevars.ncomplete/float(statevars.totsteps) * 100
     statevars.rate = (statevars.checkinterval*statevars.nwalkers*statevars.ensembles) / statevars.interval
@@ -145,15 +138,19 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         (statevars.ismixed, statevars.minafactor, statevars.maxarchange, statevars.maxgr,
             statevars.mintz) = 0, -1, np.inf, np.inf, -1
     else:
-        (statevars.ismixed, afactor, archange, autocorrelation, gr, tz) \
-            = convergence_calculate(statevars.tchains, complete = statevars.autocomplete, autocorrelation=statevars.autocorrelation,
+        (statevars.ismixed, afactor, archange, oac, gr, tz) \
+            = convergence_calculate(statevars.tchains, statevars.chains,
                                     oldautocorrelation=statevars.oac, minAfactor=minAfactor, maxArchange=maxArchange,
                                     maxGR=maxGR, minTz=minTz)
         statevars.mintz = min(tz)
         statevars.maxgr = max(gr)
         statevars.minafactor = np.amin(afactor)
         statevars.maxarchange = np.amax(archange)
-        statevars.oac = autocorrelation
+        statevars.oac = oac
+        if statevars.burn_complete == True:
+            statevars.autosamples.append(len(statevars.chains)*statevars.chains[0].shape[1])
+            statevars.automean.append(np.mean(statevars.oac))
+
         if statevars.ismixed:
             statevars.mixcount += 1
         else:
@@ -178,8 +175,8 @@ def _domcmc(input_tuple):
     return sampler
 
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=25, maxArchange=.05, burnAfactor=15,
-         burnGR=1.015, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=75, maxArchange=.03, burnAfactor=15,
+         burnGR=1.02, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -224,7 +221,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
 
         statevars.ensembles = ensembles
         statevars.nwalkers = nwalkers
-        statevars.checkinterval = checkinterval
+        statevars.checkinterval = checkinterval - 1
 
         nrun = int(nrun)
 
@@ -266,7 +263,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             statevars.samplers.append(emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array,
                                                             threads=1))
 
-        num_run = int(np.round(nrun / checkinterval))
+        num_run = int(np.round(nrun / (checkinterval -1)))
         statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
         statevars.mixcount = 0
         statevars.ismixed = 0
@@ -292,7 +289,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                         p1 = statevars.initial_positions[i]
                     else:
                         p1 = None
-                    mcmc_input = (sampler, p1, checkinterval)
+                    mcmc_input = (sampler, p1, (checkinterval - 1))
                     mcmc_input_array.append(mcmc_input)
 
             if serial:
@@ -364,7 +361,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
 
         df = df.iloc[::thin]
 
-        statevars.factor = [minAfactor] * len(statevars.autosteps)
+        statevars.factor = [minAfactor] * len(statevars.autosamples)
 
         return df
 
@@ -372,7 +369,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         curses.endwin()
 
 
-def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
+def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
     """Calculate Convergence Criterion
 
     Calculates the Gelman-Rubin statistic, autocorrelation time factor,
@@ -386,9 +383,9 @@ def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, 
     Args:
         pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
             parameter values
-        complete (integer): number of samples completed
-        autocorrelation (float): current autocorrelation time
-        oldautocorrelation (float): previously autocorrelation time
+        chains (array): A 3 dimensional array of parameter values shaped to calculate
+            autocorrelation time
+        oldautocorrelation (float): previously calculated autocorrelation time
         minAfactor (float): minimum autocorrelation
             time factor to consider well-mixed
         maxArchange (float): maximum relative change in
@@ -471,7 +468,12 @@ def convergence_calculate(pars0, complete, autocorrelation, oldautocorrelation, 
     if tz.size == 0:
         tz = [-1]
 
-    afactor = np.divide(complete, autocorrelation)
+    chains = np.hstack(chains)
+    chains = np.swapaxes(chains, 0, 1)
+
+    autocorrelation = emcee.autocorr.integrated_time(chains, tol=0)
+
+    afactor = np.divide(chains.shape[0], autocorrelation)
 
     archange = np.divide(np.abs(np.subtract(autocorrelation, oldautocorrelation)),oldautocorrelation)
 
