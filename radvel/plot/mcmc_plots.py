@@ -90,21 +90,23 @@ class AutoPlot(object):
         """
         Make and either save or display the autocorrelation plot
         """
-        pl.scatter(self.auto['autosamples'], self.auto['automean'], color = 'red', label='Autocorrelation Time')
+        pl.scatter(self.auto['autosamples'], self.auto['automin'], color = 'blue', label='Minimum Autocorrelation Time')
+        pl.scatter(self.auto['autosamples'], self.auto['automean'], color = 'black', label='Mean Autocorrelation Time')
+        pl.scatter(self.auto['autosamples'], self.auto['automax'], color = 'red', label='Maximum Autocorrelation Time')
         pl.plot(self.auto['autosamples'], self.auto['autosamples']/self.auto['factor'][0], linestyle=':', color='gray',
                 label='Autocorrelation Factor Criterion (N/{})'.format(self.auto['factor'][0]))
         pl.xlim(self.auto['autosamples'].min(), self.auto['autosamples'].max())
-        if (self.auto['autosamples']/self.auto['factor']).max() > self.auto['automean'].max():
-            pl.ylim(self.auto['automean'].min(), (self.auto['autosamples']/self.auto['factor']).max())
+        if (self.auto['autosamples']/self.auto['factor']).max() > self.auto['automax'].max():
+            pl.ylim(self.auto['automin'].min(), (self.auto['autosamples']/self.auto['factor']).max())
         else:
-            pl.ylim(self.auto['automean'].min(), self.auto['automean'].max())
-        pl.xlabel('Number of Samples')
+            pl.ylim(self.auto['automin'].min(), self.auto['automax'].max())
+        pl.xlabel('Steps per Parameter')
         pl.ylabel('Autocorrelation Time')
         pl.legend()
 
         if self.saveplot is not None:
             pl.savefig(self.saveplot, dpi=150)
-            print("Corner plot saved to %s" % self.saveplot)
+            print("Auto plot saved to %s" % self.saveplot)
         else:
             pl.show
 

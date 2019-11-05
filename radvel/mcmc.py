@@ -17,6 +17,8 @@ class StateVars(object):
         self.oac = 0
         self.autosamples = []
         self.automean = []
+        self.automin = []
+        self.automax = []
         pass
 
 statevars = StateVars()
@@ -120,7 +122,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         statevars.ncomplete += sampler.get_log_prob(flat=True).shape[0]
         statevars.ar += sampler.acceptance_fraction.mean() * 100
         statevars.tchains[:,:,i] = sampler.flatchain.transpose()
-        statevars.chains.append(sampler.get_chain()[:,:,1].T)
+        statevars.chains.append(sampler.get_chain()[:,:,:].T)
         statevars.lnprob.append(sampler.get_log_prob(flat=True))
     statevars.ar /= statevars.ensembles
 
@@ -136,7 +138,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
     # attempting to calculate GR
     if statevars.pcomplete < minpercent and sampler.get_log_prob(flat=True).shape[0] <= minsteps*statevars.nwalkers:
         (statevars.ismixed, statevars.minafactor, statevars.maxarchange, statevars.maxgr,
-            statevars.mintz) = 0, -1, np.inf, np.inf, -1
+            statevars.mintz) = 0, -1.0, np.inf, np.inf, -1.0
     else:
         (statevars.ismixed, afactor, archange, oac, gr, tz) \
             = convergence_calculate(statevars.tchains, statevars.chains,
@@ -148,8 +150,10 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         statevars.maxarchange = np.amax(archange)
         statevars.oac = oac
         if statevars.burn_complete == True:
-            statevars.autosamples.append(len(statevars.chains)*statevars.chains[0].shape[1])
+            statevars.autosamples.append(len(statevars.chains)*statevars.chains[0].shape[2])
             statevars.automean.append(np.mean(statevars.oac))
+            statevars.automin.append(np.amin(statevars.oac))
+            statevars.automax.append(np.amax(statevars.oac))
 
         if statevars.ismixed:
             statevars.mixcount += 1
@@ -175,7 +179,7 @@ def _domcmc(input_tuple):
     return sampler
 
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=75, maxArchange=.03, burnAfactor=15,
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=50, maxArchange=.07, burnAfactor=25,
          burnGR=1.02, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
@@ -468,10 +472,10 @@ def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArch
     if tz.size == 0:
         tz = [-1]
 
-    chains = np.hstack(chains)
-    chains = np.swapaxes(chains, 0, 1)
+    chains = np.dstack(chains)
+    chains = np.swapaxes(chains, 0, 2)
 
-    autocorrelation = emcee.autocorr.integrated_time(chains, tol=0)
+    autocorrelation = emcee.autocorr.integrated_time(chains, tol = 0)
 
     afactor = np.divide(chains.shape[0], autocorrelation)
 

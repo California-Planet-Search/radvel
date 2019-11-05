@@ -81,7 +81,7 @@ You may want to use the '--gp' flag when making these plots.")
 
         if ptype == 'corner' or ptype == 'auto' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
-                "Must run MCMC before making corner or trend plots"
+                "Must run MCMC before making corner, auto, or trend plots"
 
             chains = pd.read_csv(status.get('mcmc', 'chainfile'))
             autocorr = pd.read_csv(status.get('mcmc', 'autocorrfile'))
@@ -174,7 +174,7 @@ def mcmc(args):
 
     msg2 = (
             "Max Auto Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."
-            ).format(args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
+            ).format(args.maxArchange, args.maxArchange, args.maxGR, args.minTz)
 
     print(msg1 + '\n' + msg2)
 
@@ -256,7 +256,9 @@ def mcmc(args):
 
     auto = pd.DataFrame()
     auto['autosamples'] = statevars.autosamples
+    auto['automin'] = statevars.automin
     auto['automean'] = statevars.automean
+    auto['automax'] = statevars.automax
     auto['factor'] = statevars.factor
     autocorr = os.path.join(args.outputdir, conf_base+'_autocorr.csv')
     auto.to_csv(autocorr, sep=',')
