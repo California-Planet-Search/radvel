@@ -100,8 +100,9 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
     Check for convergence for a list of emcee samplers
 
     Args:
-        minAfactor (float): Minimum autocorrelation time factor for chains to be deemed well-mixed
-        maxArchange (float): Maximum relative change in the autocorrelative time factor to be deemed well-mixed
+        minAfactor (float): Minimum autocorrelation time factor for chains to be deemed well-mixed and halt the MCMC run
+        maxArchange (float): Maximum relative change in the autocorrelative time to be deemed well-mixed and
+            halt the MCMC run
         maxGR (float): Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): Minimum Tz to consider well-mixed
         minsteps (int): Minimum number of steps per walker before convergence tests are performed. Convergence checks
@@ -192,9 +193,11 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         checkinterval (int): (optional) check MCMC convergence statistics every
             `checkinterval` steps
         minAfactor (float): Minimum autocorrelation time factor to deem chains as well-mixed and halt the MCMC run
-        maxArchange (float): Maximum relative change in autocorrelation time factor to deem chains and well-mixed
-        burnAfactor (float): Minimum autocorrelation time factor to stop burn-in period. Burn-in ends once burnGr or burnAfactor are reached.
-        burnGR (float): (optional) Maximum G-R statistic to stop burn-in period. Burn-in ends once burnGr or burnAfactor are reached.
+        maxArchange (float): Maximum relative change in autocorrelation time to deem chains and well-mixed
+        burnAfactor (float): Minimum autocorrelation time factor to stop burn-in period. Burn-in ends once burnGr
+            or burnAfactor are reached.
+        burnGR (float): (optional) Maximum G-R statistic to stop burn-in period. Burn-in ends once burnGr or
+            burnAfactor are reached.
         maxGR (float): (optional) Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run
         minTz (int): (optional) Minimum Tz to consider well-mixed
         minsteps (int): Minimum number of steps per walker before convergence tests are performed. Convergence checks
@@ -393,7 +396,7 @@ def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArch
         minAfactor (float): minimum autocorrelation
             time factor to consider well-mixed
         maxArchange (float): maximum relative change in
-            autocorrelation time factor to consider well-mixed
+            autocorrelation time to consider well-mixed
         minTz (int): minimum Tz to consider well-mixed
         maxGR (float): maximum Gelman-Rubin statistic to
             consider well-mixed

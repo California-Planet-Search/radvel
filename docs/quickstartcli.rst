@@ -119,7 +119,7 @@ We can summarize our analysis with the `radvel report` command.
 
     $ radvel report -s /path/to/radvel/example_planets/HD164922.py
 
-whihc creates a LaTeX document and corresponding PDF to summarize the
+which creates a LaTeX document and corresponding PDF to summarize the
 results. Note that this command assembles values and plots that have been computed 
 through other commands, if you want to update, rerun the previous commands before 
 reruning `radvel report`
