@@ -23,6 +23,7 @@ Contents:
    :maxdepth: 2
 
    quickstartcli
+   autocorrintro
    tutorials
    api
 

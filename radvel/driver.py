@@ -81,7 +81,7 @@ You may want to use the '--gp' flag when making these plots.")
 
         if ptype == 'corner' or ptype == 'auto' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
-                "Must run MCMC before making corner or trend plots"
+                "Must run MCMC before making corner, auto, or trend plots"
 
             chains = pd.read_csv(status.get('mcmc', 'chainfile'))
             autocorr = pd.read_csv(status.get('mcmc', 'autocorrfile'))
@@ -174,7 +174,7 @@ def mcmc(args):
 
     msg2 = (
             "Max Auto Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."
-            ).format(args.minAfactor, args.maxArchange, args.maxGR, args.minTz)
+            ).format(args.maxArchange, args.maxArchange, args.maxGR, args.minTz)
 
     print(msg1 + '\n' + msg2)
 
@@ -255,7 +255,7 @@ def mcmc(args):
     chains.to_csv(csvfn, compression='bz2')
 
     auto = pd.DataFrame()
-    auto['autosteps'] = statevars.autosteps
+    auto['autosamples'] = statevars.autosamples
     auto['automin'] = statevars.automin
     auto['automean'] = statevars.automean
     auto['automax'] = statevars.automax
@@ -371,7 +371,7 @@ def tables(args):
         chains = chains.join(dchains, rsuffix='_derived')
         derived = True
     else: derived = False
-    report = radvel.report.RadvelReport(P, post, chains, derived=derived)
+    report = radvel.report.RadvelReport(P, post, chains, criterion, derived=derived)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
                 'params': 'tab_params', 'derived': 'tab_derived',
@@ -385,14 +385,14 @@ def tables(args):
 
             compstats = eval(status.get('ic_compare', 'ic'))
             report = radvel.report.RadvelReport(
-                P, post, chains, compstats=compstats
+                P, post, chains, criterion, compstats=compstats
             )
             tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
         elif tabtype == 'rv':
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title, max_lines=None)
         elif tabtype == 'crit':
-            tex = getattr(tabletex, attrdict[tabtype])(criterion=criterion, name_in_title=args.name_in_title)
+            tex = getattr(tabletex, attrdict[tabtype])( name_in_title=args.name_in_title)
         else:
             if tabtype == 'derived':
                 assert status.has_option('derive', 'run'), \
@@ -538,6 +538,7 @@ def report(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+    criterion = pd.read_csv(status.get('mcmc', 'finalcritfile'))
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
@@ -556,7 +557,7 @@ report.".format(args.comptype,
                 args.comptype))
         compstats = None
 
-    report = radvel.report.RadvelReport(P, post, chains, compstats=compstats,
+    report = radvel.report.RadvelReport(P, post, chains, criterion, compstats=compstats,
                                         derived=derived)
     report.runname = conf_base
 
