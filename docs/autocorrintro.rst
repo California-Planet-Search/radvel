@@ -38,8 +38,7 @@ The autocorrelation factor is calculated for each parameter and the minimum of t
 is returned in real time as the MCMC run progresses.
 Once the minimum autocorrelation factor is below ``minAfactor``, this criterion
 for convergence is met. Whether or not ``minAfactor`` has been satisfied can be seen in the autocorrelation plot below. Once the
-maximum autocorrelation time has passed the dashed line labeled 'Autocorrelation Factor Criterion,' the chain is
-beginning likely converged. After five consecutive status checks appear past the dashed line, the MCMC will halt if all other criterion have also been met.
+maximum autocorrelation time has passed the dashed line labeled 'Autocorrelation Factor Criterion,' the chain is likely converged. After five consecutive status checks appear past the dashed line, the MCMC will halt if all other criterion have also been met.
 
 .. image:: plots/minAfactor.png
 
