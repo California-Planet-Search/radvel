@@ -107,6 +107,12 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
     psr_mcmc.add_argument('--serial', dest='serial', action='store', default=False, type=bool,
                           help='''If True, run MCMC in serial instead of parallel. [False]'''
                           )
+    psr_mcmc.add_argument('--save', dest='save', action='store', default=True, type=bool,
+                          help='If True, MCMC chains will be saved to be continued in a future run'
+                          )
+    psr_mcmc.add_argument('--proceed', dest='proceed', action='store', default=False, type=bool,
+                          help='If True, MCMC chains will resume from the previous run'
+                          )
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
     # Derive physical parameters

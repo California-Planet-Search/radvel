@@ -158,6 +158,11 @@ def mcmc(args):
     statfile = os.path.join(args.outputdir,
                             "{}_radvel.stat".format(conf_base))
 
+    if args.save == True or args.proceed == True:
+        backend_loc = os.path.join(args.outputdir, conf_base+'_rawchain.h5')
+    else:
+        backend_loc = None
+
     status = load_status(statfile)
 
     if status.getboolean('fit', 'run'):
@@ -181,7 +186,8 @@ def mcmc(args):
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
             maxArchange=args.maxArchange, burnAfactor=args.burnAfactor, burnGR=args.burnGR, maxGR=args.maxGR,
-            minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial)
+            minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial,
+            save=args.save, savename=backend_loc, proceed=args.proceed, proceedname=backend_loc)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
@@ -285,7 +291,8 @@ def mcmc(args):
                 'minafactor': minafactor,
                 'maxarchange': maxarchange,
                 'minTz': mintz,
-                'maxGR': maxgr}
+                'maxGR': maxgr,
+                'burned': statevars.burn_complete}
     save_status(statfile, 'mcmc', savestate)
 
 

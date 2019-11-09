@@ -31,6 +31,10 @@ class _args(object):
         self.minpercent = 5
         self.thin = 1
         self.serial = False
+        self.save = False
+        self.savename = None
+        self.proceed = False
+        self.proceedname = None
 
 def _standard_run(setupfn):
     """

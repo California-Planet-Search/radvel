@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np
 
 import emcee
+import h5py
 
 from radvel import utils
 import radvel
@@ -181,7 +182,8 @@ def _domcmc(input_tuple):
 
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=50, maxArchange=.07, burnAfactor=25,
-         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False):
+         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=True,
+         savename=None, proceed=True, proceedname=None):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -210,6 +212,29 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         DataFrame: DataFrame containing the MCMC samples
     """
     try:
+        if save==True and savename==None:
+            raise ValueError('save set to true but no savename provided')
+
+        if save==True or proceed==True:
+            h5f = h5py.File(savename, 'a')
+
+        if proceed==True:
+            if proceedname == None:
+                raise ValueError('proceed set to true but no proceedname provided')
+            statevars.prechains = []
+            statevars.prelog_probs = []
+            statevars.preaccepted = []
+            statevars.preburned = h5f['burned'][0]
+            for i in range(0,int((len(h5f.keys()) - 1)/3)):
+                str_chain = str(i) + '_chain'
+                str_log_prob = str(i) + '_log_prob'
+                str_accepted = str(i) + '_accepted'
+                statevars.prechains.append(h5f[str_chain])
+                statevars.prelog_probs.append(h5f[str_log_prob])
+                statevars.preaccepted.append(h5f[str_accepted])
+            if len(h5f.keys()) != (3*ensembles + 1):
+                raise ValueError('number of ensembles must be equal to that from previous run: {}'.format(((len(h5f.keys()) - 1)/3)))
+
         # check if one or more likelihoods are GPs
         if isinstance(post.likelihood, radvel.likelihood.CompositeLikelihood):
             check_gp = [like for like in post.likelihood.like_list if isinstance(like, radvel.likelihood.GPLikelihood)]
@@ -266,16 +291,31 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             pi = post.get_vary_params()
             p0 = np.vstack([pi]*statevars.nwalkers)
             p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
-            statevars.initial_positions.append(p0)
+            if proceed==False:
+                statevars.initial_positions.append(p0)
+            else:
+                statevars.initial_positions.append(statevars.prechains[i][0,:,:])
             statevars.samplers.append(emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array,
-                                                            threads=1))
+                                                                threads=1))
+
+        if proceed == True:
+            for i, sampler in enumerate(statevars.samplers):
+                sampler.backend.grow(statevars.prechains[i].shape[0], None)
+                sampler.backend.chain = statevars.prechains[i]
+                sampler.backend.log_prob = statevars.prelog_probs[i]
+                sampler.backend.accepted = statevars.preaccepted[i]
+                sampler.backend.iteration = statevars.prechains[i].shape[0]
 
         num_run = int(np.round(nrun / (checkinterval -1)))
         statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
         statevars.mixcount = 0
         statevars.ismixed = 0
-        statevars.burn_complete = False
-        statevars.nburn = 0
+        if proceed == True and statevars.preburned != 0:
+            statevars.burn_complete = True
+            statevars.nburn = statevars.preburned
+        else:
+            statevars.burn_complete = False
+            statevars.nburn = 0
         statevars.ncomplete = statevars.nburn
         statevars.pcomplete = 0
         statevars.rate = 0
@@ -286,13 +326,12 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         statevars.maxgr = np.inf
         statevars.t0 = time.time()
 
-
         for r in range(num_run):
             t1 = time.time()
             mcmc_input_array = []
             for i, sampler in enumerate(statevars.samplers):
                 for sample in sampler.sample(statevars.initial_positions[i], store=True):
-                    if sampler.iteration == 1:
+                    if sampler.iteration==1 or proceed==True:
                         p1 = statevars.initial_positions[i]
                     else:
                         p1 = None
@@ -310,13 +349,32 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 pool.close()  # terminates worker processes once all work is done
                 pool.join()   # waits for all processes to finish before proceeding
 
-
-
             t2 = time.time()
             statevars.interval = t2 - t1
 
             convergence_check(minAfactor=minAfactor, maxArchange=maxArchange, maxGR=maxGR, minTz=minTz,
                           minsteps=minsteps, minpercent=minpercent)
+
+            if save==True:
+                for i, sampler in enumerate(statevars.samplers):
+                    str_chain = str(i) + '_chain'
+                    str_log_prob = str(i) + '_log_prob'
+                    str_accepted = str(i) + '_accepted'
+                    if str_chain in h5f.keys():
+                        del h5f[str_chain]
+                    if str_log_prob in h5f.keys():
+                        del h5f[str_log_prob]
+                    if str_accepted in h5f.keys():
+                        del h5f[str_accepted]
+                    if 'burned' in h5f.keys():
+                        del h5f['burned']
+                    h5f.create_dataset(str_chain, data=sampler.get_chain())
+                    h5f.create_dataset(str_log_prob, data=sampler.get_log_prob())
+                    h5f.create_dataset(str_accepted, data=sampler.backend.accepted)
+                    if statevars.burn_complete==True:
+                        h5f.create_dataset('burned', data=[statevars.nburn])
+                    else:
+                        h5f.create_dataset('burned', data=[0])
 
             # Burn-in complete after maximum G-R statistic first reaches burnGR or minAfactor reaches burnAfactor
             # reset samplers
