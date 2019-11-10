@@ -227,7 +227,8 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 raise ValueError('proceed set to true but no proceedname provided')
             else:
                 h5p = h5py.File(savename, 'r')
-                print(h5p.keys())
+                msg = 'Loading chains and run information from previous MCMC'
+                print(msg)
             if len(h5p.keys()) != (3*ensembles + 6):
                 raise ValueError('number of ensembles must be equal to that from previous run: {}'.format(((len(h5f.keys()) - 6)/3)))
             statevars.prechains = []
