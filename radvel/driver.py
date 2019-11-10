@@ -385,7 +385,7 @@ def tables(args):
 
             compstats = eval(status.get('ic_compare', 'ic'))
             report = radvel.report.RadvelReport(
-                P, post, chains, criterion, compstats=compstats
+                P, post, chains, minafactor, maxarchange, maxgr, mintz, compstats=compstats
             )
             tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
