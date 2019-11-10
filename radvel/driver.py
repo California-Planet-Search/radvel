@@ -179,7 +179,7 @@ def mcmc(args):
 
     msg2 = (
             "Max Auto Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."
-            ).format(args.maxArchange, args.maxArchange, args.maxGR, args.minTz)
+            ).format(args.maxArchange, args.maxGR, args.minTz)
 
     print(msg1 + '\n' + msg2)
 

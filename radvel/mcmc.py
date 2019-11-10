@@ -208,6 +208,10 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             will start after the minsteps threshold or the minpercent threshold has been hit.
         thin (int): (optional) save one sample every N steps (default=1, save every sample)
         serial (bool): set to true if MCMC should be run in serial
+        save (bool): set to true to save MCMC chains that can be continued in a future run
+        savename (string): location of h5py file where MCMC chains will be saved for future use
+        proceed (bool): set to true to continue a previously saved run
+        proceedname (string): location of h5py file with previously MCMC run chains
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
@@ -215,25 +219,36 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         if save==True and savename==None:
             raise ValueError('save set to true but no savename provided')
 
-        if save==True or proceed==True:
+        if save==True:
             h5f = h5py.File(savename, 'a')
 
         if proceed==True:
             if proceedname == None:
                 raise ValueError('proceed set to true but no proceedname provided')
+            else:
+                h5p = h5py.File(savename, 'r')
+                print(h5p.keys())
+            if len(h5p.keys()) != (3*ensembles + 6):
+                raise ValueError('number of ensembles must be equal to that from previous run: {}'.format(((len(h5f.keys()) - 6)/3)))
             statevars.prechains = []
             statevars.prelog_probs = []
             statevars.preaccepted = []
-            statevars.preburned = h5f['burned'][0]
-            for i in range(0,int((len(h5f.keys()) - 1)/3)):
+            statevars.preburned = h5p['burned'][0]
+            statevars.minafactor = h5p['crit'][0]
+            statevars.maxarchange = h5p['crit'][1]
+            statevars.mintz = h5p['crit'][2]
+            statevars.maxgr = h5p['crit'][3]
+            statevars.autosamples = list(h5p['autosample'])
+            statevars.automin = list(h5p['automin'])
+            statevars.automean = list(h5p['automean'])
+            statevars.automax = list(h5p['automax'])
+            for i in range(0,int((len(h5p.keys()) - 6)/3)):
                 str_chain = str(i) + '_chain'
                 str_log_prob = str(i) + '_log_prob'
                 str_accepted = str(i) + '_accepted'
-                statevars.prechains.append(h5f[str_chain])
-                statevars.prelog_probs.append(h5f[str_log_prob])
-                statevars.preaccepted.append(h5f[str_accepted])
-            if len(h5f.keys()) != (3*ensembles + 1):
-                raise ValueError('number of ensembles must be equal to that from previous run: {}'.format(((len(h5f.keys()) - 1)/3)))
+                statevars.prechains.append(h5p[str_chain])
+                statevars.prelog_probs.append(h5p[str_log_prob])
+                statevars.preaccepted.append(h5p[str_accepted])
 
         # check if one or more likelihoods are GPs
         if isinstance(post.likelihood, radvel.likelihood.CompositeLikelihood):
@@ -366,11 +381,27 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                         del h5f[str_log_prob]
                     if str_accepted in h5f.keys():
                         del h5f[str_accepted]
+                    if 'crit' in h5f.keys():
+                        del h5f['crit']
+                    if 'autosample' in h5f.keys():
+                        del h5f['autosample']
+                    if 'automin' in h5f.keys():
+                        del h5f['automin']
+                    if 'automean' in h5f.keys():
+                        del h5f['automean']
+                    if 'automax' in h5f.keys():
+                        del h5f['automax']
                     if 'burned' in h5f.keys():
                         del h5f['burned']
                     h5f.create_dataset(str_chain, data=sampler.get_chain())
                     h5f.create_dataset(str_log_prob, data=sampler.get_log_prob())
                     h5f.create_dataset(str_accepted, data=sampler.backend.accepted)
+                    h5f.create_dataset('crit', data=[statevars.minafactor, statevars.maxarchange, statevars.mintz,
+                                                     statevars.maxgr])
+                    h5f.create_dataset('autosample', data=statevars.autosamples)
+                    h5f.create_dataset('automin', data=statevars.automin)
+                    h5f.create_dataset('automean', data=statevars.automean)
+                    h5f.create_dataset('automax', data=statevars.automax)
                     if statevars.burn_complete==True:
                         h5f.create_dataset('burned', data=[statevars.nburn])
                     else:
