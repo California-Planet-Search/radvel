@@ -13,6 +13,11 @@ before_install:
 
 script:
   - docker run radvel
+  - docker ps
+  # Copy coverage results from docker container
+  - docker cp radvel:/code/$(docker exec -it radvel bash -c "ls -a .coverage.*" | tr -d '\r') ./
+  # Use coverage combine to canonicalize the source paths.
+  - coverage combine
 
 deploy:
   provider: pypi
@@ -25,9 +30,5 @@ deploy:
 after_success:
   - docker ps
   - pip install coveralls
-  # Copy coverage results from docker container
-  - docker cp radvel:/code/$(docker exec -it radvel bash -c "ls -a .coverage.*" | tr -d '\r') ./
-  # Use coverage combine to canonicalize the source paths.
-  - coverage combine
   # Upload coverage information to Coveralls.
   - coveralls
