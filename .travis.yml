@@ -9,12 +9,12 @@ env:
 
 before_install:
   - docker pull $CACHE_IMAGE:latest || true
+  - pwd
+  - ls
   - docker build --cache-from $CACHE_IMAGE:latest --tag radvel .
   - pip install coveralls
 
 script:
-  - pwd
-  - ls
   - docker run -v radvel:/code/radvel radvel
 
 deploy:
