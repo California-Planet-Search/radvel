@@ -5,6 +5,7 @@ services:
 
 before_install:
   - docker build --tag radvel .
+  - pip install coveralls
 
 before_script:
   - export DISPLAY=:99.0
