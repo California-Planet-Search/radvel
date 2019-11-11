@@ -12,7 +12,7 @@ before_script:
   - sleep 2
 
 script:
-  - docker run radvel
+  - docker run radvel -v .:/code/radvel
 
 deploy:
   provider: pypi
@@ -21,3 +21,6 @@ deploy:
     secure: oWyzGLMo0nAJJP3r4wa3HiSm6g5e9xxgsfG8/vtAIYmVUt3MkeXrihrBO+rEBWXpeFjFyN7WDJdQQnMRikDssEBfm63QIpLlZ9dlb/40h1rqVBzdYl5JBbsDGqkO1watb6cJR5hWtd7Mm0OiiZSq2OGdxH8ympc5RxXyNg3yRt2uP8K6s4kXUwHuOaVshx7N1TayEQr/IaBZjk6HoYY8amZUVxuyJO3hOuCm4R+P3qcRiW/dFXwGn8C5dq4ZCXZZJYCzrrubRO7zd6PvsMcxB2T4YnKjoe8lSAR1ZoAKmA4D+0ahDMmfDnCF5CEy8sMV5ePe5feXHJh8cKvbahWt7V5qSEbJYGLfl9i9uQEsnW3biyonDUvZFdFkwn7j4Z6GQ9MGrNsy9wQnSjoaNnzVgzli4z+CxgFRcuJ31Z8Jo8bRWesA5MVfc01LHxzLBit4JmzK+z7vxiNh4hxytQMVkaLEjS/C10RntkSSvYcEcXf+KpXF//0ixTN5/7fA+Ha8+nyNZdM6V+fhSZ3CawK4kj6rmjmmW3IpN3DO9sAJ+4efP6P27bFnvFhJ1m6OlHntpASjkbkPPg/Sb8CyzZU7Jck29P1vwh/+nzdUVArocDbPMW/RFH/eWsbv5MYxyWL7yNha2UTFVuvxMAfXiq58/VBhRkv0Kp2YiLnY6F1ktWI=
   on:
     tags: 
+
+after_success:
+    - coveralls
