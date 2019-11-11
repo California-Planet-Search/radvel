@@ -16,7 +16,7 @@ RUN mkdir /code && \
 WORKDIR /code/radvel
 ADD . /code/radvel
 
-RUN conda install -y --file /code/requirements.txt && \
+RUN conda install -y --file requirements.txt && \
     pip install --no-cache-dir . && \
     python setup.py build_ext -i
 
