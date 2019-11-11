@@ -3,12 +3,13 @@ language: python
 services:
   - docker
 
-before_install:
-  - docker build --tag radvel .
+env:
+  global:
+    CACHE_IMAGE: bjfultn/radvel
 
-before_script:
-  - export DISPLAY=:99.0
-  - sleep 2
+before_install:
+  - docker pull $CACHE_IMAGE:cache || true
+  - docker build --cache-from $CACHE_IMAGE:cache --tag radvel .
 
 script:
   - docker run radvel
@@ -22,10 +23,11 @@ deploy:
     tags: 
 
 after_success:
-    - pip install coveralls
-    # Copy coverage results from docker container
-    - docker cp ingredient-phrase-tagger-container:/code/$(docker exec -it radvel bash -c "ls -a .coverage.*" | tr -d '\r') ./
-    # Use coverage combine to canonicalize the source paths.
-    - coverage combine
-    # Upload coverage information to Coveralls.
-    - coveralls
+  - docker ps
+  - pip install coveralls
+  # Copy coverage results from docker container
+  - docker cp radvel:/code/$(docker exec -it radvel bash -c "ls -a .coverage.*" | tr -d '\r') ./
+  # Use coverage combine to canonicalize the source paths.
+  - coverage combine
+  # Upload coverage information to Coveralls.
+  - coveralls
