@@ -8,8 +8,8 @@ env:
     CACHE_IMAGE: bjfultn/radvel
 
 before_install:
-  - docker pull $CACHE_IMAGE:cache || true
-  - docker build --cache-from $CACHE_IMAGE:cache --tag radvel .
+  - docker pull $CACHE_IMAGE:latest || true
+  - docker build --cache-from $CACHE_IMAGE:latest --tag radvel .
   - pip install coveralls
 
 script:
