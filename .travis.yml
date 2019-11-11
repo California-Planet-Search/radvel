@@ -12,7 +12,7 @@ before_script:
   - sleep 2
 
 script:
-  - docker run radvel -v .:/code/radvel
+  - docker run radvel -v ./:/code/radvel -w /code/radvel
 
 deploy:
   provider: pypi
