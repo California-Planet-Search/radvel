@@ -10,9 +10,10 @@ env:
 before_install:
   - docker pull $CACHE_IMAGE:cache || true
   - docker build --cache-from $CACHE_IMAGE:cache --tag radvel .
+  - pip install coveralls
 
 script:
-  - docker run radvel
+  - docker run --name radvel radvel
   - docker ps
   # Copy coverage results from docker container
   - docker cp radvel:/code/$(docker exec -it radvel bash -c "ls -a .coverage.*" | tr -d '\r') ./
@@ -29,6 +30,5 @@ deploy:
 
 after_success:
   - docker ps
-  - pip install coveralls
   # Upload coverage information to Coveralls.
   - coveralls
