@@ -26,7 +26,7 @@ deploy:
 
 after_success:
   - cd coverage
-  - ls -a coverage
+  - ls -a
   # Use coverage combine to canonicalize the source paths.
   - coverage combine
   # Upload coverage information to Coveralls.
