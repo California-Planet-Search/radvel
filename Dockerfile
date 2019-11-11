@@ -14,9 +14,11 @@ RUN mkdir /code && \
     pip install --no-cache-dir nose coveralls pybind11
 
 WORKDIR /code/radvel
+ADD . /code/radvel
 
-RUN conda install -y --file requirements.txt && \
+RUN conda install -y --file /code/requirements.txt && \
     pip install --no-cache-dir . && \
     python setup.py build_ext -i
 
-CMD nosetests radvel --with-coverage --cover-package=radvel
+CMD nosetests radvel --with-coverage --cover-package=radvel && \
+    cp -v .coverage /coverage/

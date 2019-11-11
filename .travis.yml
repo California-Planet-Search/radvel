@@ -9,13 +9,12 @@ env:
 
 before_install:
   - docker pull $CACHE_IMAGE:latest || true
-  - pwd
-  - ls
   - docker build --cache-from $CACHE_IMAGE:latest --tag radvel .
+  - mkdir coverage
   - pip install coveralls
 
 script:
-  - docker run -v radvel:/code/radvel radvel
+  - docker run -v coverage:/coverage radvel
 
 deploy:
   provider: pypi
@@ -26,6 +25,8 @@ deploy:
     tags: 
 
 after_success:
+  - cd coverage
+  - ls -a coverage
   # Use coverage combine to canonicalize the source paths.
   - coverage combine
   # Upload coverage information to Coveralls.
