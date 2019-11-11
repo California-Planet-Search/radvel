@@ -13,7 +13,6 @@ RUN mkdir /code && \
     conda install -y -c conda-forge celerite && \
     pip install --no-cache-dir nose coveralls pybind11
 
-ADD . /code/radvel
 WORKDIR /code/radvel
 
 RUN conda install -y --file requirements.txt && \
@@ -21,4 +20,3 @@ RUN conda install -y --file requirements.txt && \
     python setup.py build_ext -i
 
 CMD nosetests radvel --with-coverage --cover-package=radvel
-
