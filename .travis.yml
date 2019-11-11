@@ -5,14 +5,13 @@ services:
 
 before_install:
   - docker build --tag radvel .
-  - pip install coveralls
 
 before_script:
   - export DISPLAY=:99.0
   - sleep 2
 
 script:
-  - docker run radvel -v ./:/code/radvel -w /code/radvel
+  - docker run radvel
 
 deploy:
   provider: pypi
@@ -23,4 +22,10 @@ deploy:
     tags: 
 
 after_success:
+    - pip install coveralls
+    # Copy coverage results from docker container
+    - docker cp ingredient-phrase-tagger-container:/code/$(docker exec -it radvel bash -c "ls -a .coverage.*" | tr -d '\r') ./
+    # Use coverage combine to canonicalize the source paths.
+    - coverage combine
+    # Upload coverage information to Coveralls.
     - coveralls
