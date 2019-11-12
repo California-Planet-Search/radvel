@@ -2,6 +2,8 @@
 omit =
     *__init__*
     radvel/utils.py
+    def _domcmc
+    def isnotebook
 
 [run]
 source = radvel
