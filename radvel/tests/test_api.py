@@ -45,6 +45,7 @@ def _standard_run(setupfn):
     args = _args()
     args.setupfn = setupfn
     radvel.driver.fit(args)
+    args.serial = True
     radvel.driver.mcmc(args)
     radvel.driver.derive(args)
 
@@ -78,6 +79,7 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     args = _args()
     args.setupfn = setupfn
     radvel.driver.fit(args)
+    args.serial = False
     radvel.driver.mcmc(args)
     args.type = ['rv']
     args.plotkw = {}
