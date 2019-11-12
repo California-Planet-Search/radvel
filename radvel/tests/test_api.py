@@ -10,7 +10,6 @@ import radvel.prior
 
 warnings.simplefilter('ignore')
 
-
 class _args(object):
     def __init__(self):
         self.outputdir = '/tmp/'
@@ -37,12 +36,38 @@ class _args(object):
         self.proceed = False
         self.proceedname = None
 
-def _standard_run(setupfn):
+class _args2(object):
+    def __init__(self):
+        self.outputdir = '/tmp/'
+        self.decorr = False
+        self.name_in_title = False
+        self.gp = False
+        self.simple = False
+
+        self.nwalkers = 50
+        self.nsteps = 100
+        self.ensembles = 8
+        self.maxGR = 1.10
+        self.burnGR = 1.30
+        self.burnAfactor = 15
+        self.minAfactor = 75
+        self.maxArchange = .01
+        self.minTz = 1000
+        self.minsteps = 100
+        self.minpercent = 5
+        self.thin = 1
+        self.serial = False
+        self.save = True
+        self.savename = 'rawchains.h5'
+        self.proceed = True
+        self.proceedname = 'rawchains.h5'
+
+def _standard_run(setupfn, arguments):
     """
     Run through all of the standard steps
     """
-    
-    args = _args()
+
+    args = arguments
     args.setupfn = setupfn
     radvel.driver.fit(args)
 
@@ -67,13 +92,17 @@ def _standard_run(setupfn):
     args.latex_compiler = 'pdflatex'
     radvel.driver.report(args)
 
-
 def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
     """
-    _standard_run(setupfn)
+    _standard_run(setupfn, _args())
 
+def test_proceed(setupfn='example_planets/epic203771098.py'):
+    """
+    Run through K2-24 example with the proceed argument, pulling from the previous run.
+    """
+    _standard_run(setupfn, _args2())
 
 def test_hd(setupfn='example_planets/HD164922.py'):
     """
@@ -291,6 +320,7 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
 
 if __name__ == '__main__':
     test_k2()
+    test_proceed()
     test_hd()
     test_model_comp()
     test_k2131()
