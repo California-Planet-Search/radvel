@@ -79,11 +79,17 @@ def plots(args):
 You may want to use the '--gp' flag when making these plots.")
                         break
 
-        if ptype == 'corner' or ptype == 'trend':
+        if ptype == 'corner' or ptype == 'auto' or ptype == 'trend':
             assert status.getboolean('mcmc', 'run'), \
-                "Must run MCMC before making corner or trend plots"
+                "Must run MCMC before making corner, auto, or trend plots"
 
             chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+            autocorr = pd.read_csv(status.get('mcmc', 'autocorrfile'))
+
+        if ptype == 'auto':
+            saveto = os.path.join(args.outputdir, conf_base+'_auto.pdf')
+            Auto = mcmc_plots.AutoPlot(autocorr, saveplot=saveto)
+            Auto.plot()
 
         if ptype == 'corner':
             saveto = os.path.join(args.outputdir, conf_base+'_corner.pdf')
@@ -162,17 +168,25 @@ def mcmc(args):
         P, post = radvel.utils.initialize_posterior(config_file,
                                                     decorr=args.decorr)
 
-    msg = "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Max G-R = {}, Min Tz = {} ..."\
-        .format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.maxGR, args.minTz)
-    print(msg)
+    msg1 = (
+            "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Auto Factor = {}, "
+            ).format(conf_base, args.nwalkers, args.nsteps, args.ensembles, args.minAfactor)
+
+    msg2 = (
+            "Max Auto Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."
+            ).format(args.maxArchange, args.maxArchange, args.maxGR, args.minTz)
+
+    print(msg1 + '\n' + msg2)
 
     chains = radvel.mcmc(
-            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, burnGR=args.burnGR,
-            maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent,
-            thin=args.thin, serial=args.serial)
+            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
+            maxArchange=args.maxArchange, burnAfactor=args.burnAfactor, burnGR=args.burnGR, maxGR=args.maxGR,
+            minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
+    minafactor = statevars.minafactor
+    maxarchange = statevars.maxarchange
 
     # Convert chains into synth basis
     synthchains = chains.copy()
@@ -240,23 +254,44 @@ def mcmc(args):
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
     chains.to_csv(csvfn, compression='bz2')
 
+    auto = pd.DataFrame()
+    auto['autosamples'] = statevars.autosamples
+    auto['automin'] = statevars.automin
+    auto['automean'] = statevars.automean
+    auto['automax'] = statevars.automax
+    auto['factor'] = statevars.factor
+    autocorr = os.path.join(args.outputdir, conf_base+'_autocorr.csv')
+    auto.to_csv(autocorr, sep=',')
+
+    final_crit = pd.DataFrame()
+    final_crit['minAfactor'] = [minafactor]
+    final_crit['maxArchange'] = [maxarchange]
+    final_crit['maxGR'] = [maxgr]
+    final_crit['minTz'] = [mintz]
+    fc = os.path.join(args.outputdir, conf_base + '_finalcrit.csv')
+    final_crit.to_csv(fc, sep=',')
+
     savestate = {'run': True,
-                 'postfile': os.path.relpath(postfile),
-                 'chainfile': os.path.relpath(csvfn),
-                 'summaryfile': os.path.relpath(saveto),
-                 'nwalkers': statevars.nwalkers,
-                 'nensembles': args.ensembles,
-                 'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
-                 'nsteps': statevars.ncomplete,
-                 'nburn': statevars.nburn,
-                 'minTz': mintz,
-                 'maxGR': maxgr}
+                'postfile': os.path.relpath(postfile),
+                'chainfile': os.path.relpath(csvfn),
+                'autocorrfile': os.path.relpath(autocorr),
+                'finalcritfile': os.path.relpath(fc),
+                'summaryfile': os.path.relpath(saveto),
+                'nwalkers': statevars.nwalkers,
+                'nensembles': args.ensembles,
+                'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
+                'nsteps': statevars.ncomplete,
+                'nburn': statevars.nburn,
+                'minafactor': minafactor,
+                'maxarchange': maxarchange,
+                'minTz': mintz,
+                'maxGR': maxgr}
     save_status(statfile, 'mcmc', savestate)
 
 
 def ic_compare(args):
     """Compare different models and comparative statistics including
-          AICc and BIC statistics.
+          AIC and BIC statistics.
 
     Args:
         args (ArgumentParser): command line arguments
@@ -330,14 +365,17 @@ def tables(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+    criterion = pd.read_csv(status.get('mcmc', 'finalcritfile'))
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
         derived = True
-    report = radvel.report.RadvelReport(P, post, chains, derived=derived)
+    else: derived = False
+    report = radvel.report.RadvelReport(P, post, chains, criterion, derived=derived)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
-                'params': 'tab_params', 'derived': 'tab_derived'}
+                'params': 'tab_params', 'derived': 'tab_derived',
+                'crit': 'tab_crit'}
     for tabtype in args.type:
         print("Generating LaTeX code for {} table".format(tabtype))
 
@@ -347,12 +385,14 @@ def tables(args):
 
             compstats = eval(status.get('ic_compare', 'ic'))
             report = radvel.report.RadvelReport(
-                P, post, chains, compstats=compstats
+                P, post, chains, criterion, compstats=compstats
             )
             tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
         elif tabtype == 'rv':
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title, max_lines=None)
+        elif tabtype == 'crit':
+            tex = getattr(tabletex, attrdict[tabtype])( name_in_title=args.name_in_title)
         else:
             if tabtype == 'derived':
                 assert status.has_option('derive', 'run'), \
@@ -498,6 +538,7 @@ def report(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
+    criterion = pd.read_csv(status.get('mcmc', 'finalcritfile'))
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
@@ -516,7 +557,7 @@ report.".format(args.comptype,
                 args.comptype))
         compstats = None
 
-    report = radvel.report.RadvelReport(P, post, chains, compstats=compstats,
+    report = radvel.report.RadvelReport(P, post, chains, criterion, compstats=compstats,
                                         derived=derived)
     report.runname = conf_base
 
