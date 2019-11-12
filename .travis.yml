@@ -10,10 +10,10 @@ env:
 before_install:
   - docker pull $CACHE_IMAGE:latest || true
   - docker build --cache-from $CACHE_IMAGE:latest --tag radvel .
-  - mkdir coverage
   - pip install coveralls
 
 script:
+  - mkdir coverage
   - docker run -v coverage:/coverage radvel
 
 deploy:
