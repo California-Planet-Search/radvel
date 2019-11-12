@@ -158,6 +158,11 @@ def mcmc(args):
     statfile = os.path.join(args.outputdir,
                             "{}_radvel.stat".format(conf_base))
 
+    if args.save == True or args.proceed == True:
+        backend_loc = os.path.join(args.outputdir, conf_base+'_rawchain.h5')
+    else:
+        backend_loc = None
+
     status = load_status(statfile)
 
     if status.getboolean('fit', 'run'):
@@ -181,7 +186,8 @@ def mcmc(args):
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
             maxArchange=args.maxArchange, burnAfactor=args.burnAfactor, burnGR=args.burnGR, maxGR=args.maxGR,
-            minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial)
+            minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial,
+            save=args.save, savename=backend_loc, proceed=args.proceed, proceedname=backend_loc)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
@@ -263,19 +269,10 @@ def mcmc(args):
     autocorr = os.path.join(args.outputdir, conf_base+'_autocorr.csv')
     auto.to_csv(autocorr, sep=',')
 
-    final_crit = pd.DataFrame()
-    final_crit['minAfactor'] = [minafactor]
-    final_crit['maxArchange'] = [maxarchange]
-    final_crit['maxGR'] = [maxgr]
-    final_crit['minTz'] = [mintz]
-    fc = os.path.join(args.outputdir, conf_base + '_finalcrit.csv')
-    final_crit.to_csv(fc, sep=',')
-
     savestate = {'run': True,
                 'postfile': os.path.relpath(postfile),
                 'chainfile': os.path.relpath(csvfn),
                 'autocorrfile': os.path.relpath(autocorr),
-                'finalcritfile': os.path.relpath(fc),
                 'summaryfile': os.path.relpath(saveto),
                 'nwalkers': statevars.nwalkers,
                 'nensembles': args.ensembles,
@@ -369,13 +366,16 @@ def tables(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
-    criterion = pd.read_csv(status.get('mcmc', 'finalcritfile'))
+    minafactor = status.get('mcmc', 'minafactor')
+    maxarchange = status.get('mcmc', 'maxarchange')
+    maxgr = status.get('mcmc', 'maxgr')
+    mintz = status.get('mcmc', 'mintz')
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
         derived = True
     else: derived = False
-    report = radvel.report.RadvelReport(P, post, chains, criterion, derived=derived)
+    report = radvel.report.RadvelReport(P, post, chains, minafactor, maxarchange, maxgr, mintz, derived=derived)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
                 'params': 'tab_params', 'derived': 'tab_derived',
@@ -389,7 +389,7 @@ def tables(args):
 
             compstats = eval(status.get('ic_compare', 'ic'))
             report = radvel.report.RadvelReport(
-                P, post, chains, criterion, compstats=compstats
+                P, post, chains, minafactor, maxarchange, maxgr, mintz, compstats=compstats
             )
             tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
@@ -542,7 +542,10 @@ def report(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
-    criterion = pd.read_csv(status.get('mcmc', 'finalcritfile'))
+    minafactor = status.get('mcmc', 'minafactor')
+    maxarchange = status.get('mcmc', 'maxarchange')
+    maxgr = status.get('mcmc', 'maxgr')
+    mintz = status.get('mcmc', 'mintz')
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
@@ -561,7 +564,7 @@ report.".format(args.comptype,
                 args.comptype))
         compstats = None
 
-    report = radvel.report.RadvelReport(P, post, chains, criterion, compstats=compstats,
+    report = radvel.report.RadvelReport(P, post, chains, minafactor, maxarchange, maxgr, mintz, compstats=compstats,
                                         derived=derived)
     report.runname = conf_base
 

@@ -32,6 +32,10 @@ class _args(object):
         self.minpercent = 5
         self.thin = 1
         self.serial = False
+        self.save = True
+        self.savename = 'rawchains.h5'
+        self.proceed = False
+        self.proceedname = None
 
 def _standard_run(setupfn):
     """
@@ -48,10 +52,10 @@ def _standard_run(setupfn):
     args.verbose = True
     radvel.driver.ic_compare(args)
 
-    args.type = ['params', 'priors', 'rv', 'ic_compare', 'derived']
+    args.type = ['params', 'priors', 'rv', 'ic_compare', 'derived', 'crit']
     radvel.driver.tables(args)
 
-    args.type = ['rv', 'corner', 'trend', 'derived']
+    args.type = ['rv', 'corner', 'auto', 'trend', 'derived']
     args.plotkw = {'highlight_last': True, 'show_rms': True}
     radvel.driver.plots(args)
 
