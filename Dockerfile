@@ -22,5 +22,6 @@ RUN conda install -y --file requirements.txt && \
     python setup.py build_ext -i
 
 CMD nosetests radvel --with-coverage --cover-package=radvel && \
+    ls -a ./* && \
     cp -v .coverage /coverage/ && \
     ls -a /coverage/*
