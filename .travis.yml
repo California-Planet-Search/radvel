@@ -14,6 +14,8 @@ before_install:
 
 script:
   - mkdir coverage
+  - ls -a
+  - ls -a ../
   - docker run -v coverage:/coverage radvel
 
 deploy:
