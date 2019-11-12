@@ -5,6 +5,7 @@ ENV TERMINFO=/etc/terminfo
 
 RUN mkdir /code && \
     mkdir /code/radvel && \
+    mkdir /coverage && \
     apt-get --yes update && \
     apt-get install --yes gcc g++ git && \
     conda config --add channels conda-forge && \
