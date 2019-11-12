@@ -2,10 +2,11 @@ FROM conda/miniconda3
 
 ENV TERM=xterm
 ENV TERMINFO=/etc/terminfo
+ENV COVERALLS_REPO_TOKEN=7ZpQ0LQWM2PNl5iu7ZndyFEisQnZow8oT
+
 
 RUN mkdir /code && \
     mkdir /code/radvel && \
-    mkdir /coverage && \
     apt-get --yes update && \
     apt-get install --yes gcc g++ git && \
     conda config --add channels conda-forge && \
@@ -22,6 +23,4 @@ RUN conda install -y --file requirements.txt && \
     python setup.py build_ext -i
 
 CMD nosetests radvel --with-coverage --cover-package=radvel && \
-    ls -a ./* && \
-    cp -v .coverage /coverage/ && \
-    ls -a /coverage/*
+    coveralls
