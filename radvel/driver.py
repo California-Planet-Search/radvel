@@ -174,7 +174,7 @@ def mcmc(args):
 
     msg2 = (
             "Max Auto Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."
-            ).format(args.maxArchange, args.maxArchange, args.maxGR, args.minTz)
+            ).format(args.maxArchange, args.maxGR, args.minTz)
 
     print(msg1 + '\n' + msg2)
 
@@ -314,33 +314,37 @@ def ic_compare(args):
     compareparams = args.type
 
     ipost = copy.deepcopy(post)
-    if hasattr(args, 'fixjitter') and args.fixjitter:
-        for param in ipost.params:
-            if len(param) >= 3 and param[0:3] == 'jit':
-                ipost.params[param].vary = False
 
-    for compareparam in compareparams:
-        assert compareparam in choices, \
-            "Valid parameter choices for 'ic -t' are combinations of: "\
-            + " ".join(choices)
-        paramlist.append(compareparam)
+    if args.simple:
+        statsdictlist += radvel.fitting.model_comp(ipost, params=[], verbose=args.verbose)
+    else:
+        if hasattr(args, 'fixjitter') and args.fixjitter:
+            for param in ipost.params:
+                if len(param) >= 3 and param[0:3] == 'jit':
+                    ipost.params[param].vary = False
+
+        for compareparam in compareparams:
+            assert compareparam in choices, \
+                "Valid parameter choices for 'ic -t' are combinations of: "\
+                + " ".join(choices)
+            paramlist.append(compareparam)
+            if hasattr(args, 'mixed') and not args.mixed:
+                statsdictlist += radvel.fitting.model_comp(ipost, params=[compareparam], verbose=args.verbose)
         if hasattr(args, 'mixed') and not args.mixed:
-            statsdictlist += radvel.fitting.model_comp(ipost, params=[compareparam], verbose=args.verbose)
-    if hasattr(args, 'mixed') and not args.mixed:
-        new_statsdictlist = []
-        for dicti in statsdictlist:
-            anymatch = False
-            for seendict in new_statsdictlist:
-                if collections.Counter(dicti['Free Params'][0]) == \
-                        collections.Counter(seendict['Free Params'][0]):
-                    anymatch = True
-                    continue
-            if not anymatch:
-                new_statsdictlist.append(dicti)
-        statsdictlist = new_statsdictlist
+            new_statsdictlist = []
+            for dicti in statsdictlist:
+                anymatch = False
+                for seendict in new_statsdictlist:
+                    if collections.Counter(dicti['Free Params'][0]) == \
+                            collections.Counter(seendict['Free Params'][0]):
+                        anymatch = True
+                        continue
+                if not anymatch:
+                    new_statsdictlist.append(dicti)
+            statsdictlist = new_statsdictlist
 
-    if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
-        statsdictlist += radvel.fitting.model_comp(ipost, params=paramlist, verbose=args.verbose)
+        if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
+            statsdictlist += radvel.fitting.model_comp(ipost, params=paramlist, verbose=args.verbose)
 
     savestate = {'ic': statsdictlist}
     save_status(statfile, 'ic_compare', savestate)

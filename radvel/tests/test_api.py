@@ -17,6 +17,7 @@ class _args(object):
         self.decorr = False
         self.name_in_title = False
         self.gp = False
+        self.simple = False
 
         self.nwalkers = 50
         self.nsteps = 100
@@ -31,8 +32,6 @@ class _args(object):
         self.minpercent = 5
         self.thin = 1
         self.serial = False
-        self.verbose = True
-        
 
 def _standard_run(setupfn):
     """
@@ -250,9 +249,37 @@ def test_kepler():
     radvel.kepler.profile()
 
 
+def test_model_comp(setupfn='example_planets/HD164922.py'):
+    """
+    Test some additional model_comp lines
+    """
+
+    args = _args()
+    args.setupfn = setupfn
+    radvel.driver.fit(args)
+
+    # also check some additional lines of model_comp
+    args.verbose = True
+    args.type = ['trend']
+    radvel.driver.ic_compare(args)
+
+    args.simple = True
+    args.type = ['e']
+    radvel.driver.ic_compare(args)
+
+    args.simple = False
+    args.type = ['something_else']
+    try:
+        radvel.driver.ic_compare(args)
+        raise Exception("Unexpected result from model_comp.")
+    except AssertionError:  # expected result
+        return
+
+
 if __name__ == '__main__':
     test_k2()
     test_hd()
+    test_model_comp()
     test_k2131()
     test_celerite()
     test_basis()
