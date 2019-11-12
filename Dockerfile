@@ -9,7 +9,7 @@ ENV COVERALLS_REPO_TOKEN=7ZpQ0LQWM2PNl5iu7ZndyFEisQnZow8oT
 RUN mkdir /code && \
     mkdir /code/radvel && \
     apt-get --yes update && \
-    apt-get install --yes gcc && \
+    apt-get install --yes gcc git && \
     apt-get clean && \
     conda config --add channels conda-forge && \
     conda config --set channel_priority strict && \
