@@ -51,7 +51,7 @@ def _standard_run(setupfn):
     args.verbose = True
     radvel.driver.ic_compare(args)
 
-    args.type = ['params', 'priors', 'rv', 'ic_compare', 'derived']
+    args.type = ['params', 'priors', 'rv', 'ic_compare', 'derived', 'crit']
     radvel.driver.tables(args)
 
     args.type = ['rv', 'corner', 'auto', 'trend', 'derived']
