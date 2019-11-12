@@ -7,7 +7,7 @@ env:
   global:
     CACHE_IMAGE: bjfultn/radvel
 
-before_install:
+install:
   - docker pull $CACHE_IMAGE:latest || true
   - docker build --cache-from $CACHE_IMAGE:latest --tag radvel .
 
