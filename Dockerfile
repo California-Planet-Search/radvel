@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 ADD . /code/radvel
 
 
-CMD pip install --no-cache-dir .  && \
+CMD pip install --no-cache-dir --no-deps .  && \
     python setup.py build_ext -i  && \
     nosetests radvel --with-coverage --cover-package=radvel && \
     coveralls
