@@ -17,6 +17,7 @@ class _args(object):
         self.decorr = False
         self.name_in_title = False
         self.gp = False
+        self.simple = False
 
         self.nwalkers = 50
         self.nsteps = 100
@@ -66,7 +67,7 @@ def _standard_run(setupfn):
 def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
-    """    
+    """
     _standard_run(setupfn)
 
 
@@ -109,7 +110,7 @@ def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
     args.setupfn = setupfn
 
     radvel.driver.fit(args)
-    
+
     args.type = ['rv']
     args.gp = True
     args.plotkw = {'plot_likelihoods_separately':True}
@@ -164,7 +165,7 @@ def test_kernels():
     for kernel in kernel_list:
         hnames = kernel_list[kernel] # gets list of hyperparameter name strings
         hyperparams = {k: radvel.Parameter(value=1.) for k in hnames}
-        kernel_call = getattr(radvel.gp, kernel + "Kernel") 
+        kernel_call = getattr(radvel.gp, kernel + "Kernel")
         test_kernel = kernel_call(hyperparams)
 
         x = np.array([1.,2.,3.])
@@ -172,7 +173,7 @@ def test_kernels():
         test_kernel.compute_covmatrix(x.T)
 
         print("Testing {}".format(kernel_call(hyperparams)))
-        
+
         sys.stdout.write("Testing error catching with dummy hyperparameters... \n")
 
         fakeparams1 = {}
@@ -223,7 +224,7 @@ def test_priors():
         radvel.prior.ModifiedJeffreys('per1', 2., 100.0, 1.):  (1./9.)/np.log(99.),
         radvel.prior.SecondaryEclipsePrior(1, 5.0, 10.0):    1./np.sqrt(2.*np.pi),
         radvel.prior.NumericalPrior(
-            ['sesinw1'], 
+            ['sesinw1'],
             np.random.randn(1,5000000)
         ):                                                  scipy.stats.norm(0, 1).pdf(0.),
         radvel.prior.UserDefinedPrior(
@@ -252,9 +253,37 @@ def test_kepler():
     radvel.kepler.profile()
 
 
+def test_model_comp(setupfn='example_planets/HD164922.py'):
+    """
+    Test some additional model_comp lines
+    """
+
+    args = _args()
+    args.setupfn = setupfn
+    radvel.driver.fit(args)
+
+    # also check some additional lines of model_comp
+    args.verbose = True
+    args.type = ['trend']
+    radvel.driver.ic_compare(args)
+
+    args.simple = True
+    args.type = ['e']
+    radvel.driver.ic_compare(args)
+
+    args.simple = False
+    args.type = ['something_else']
+    try:
+        radvel.driver.ic_compare(args)
+        raise Exception("Unexpected result from model_comp.")
+    except AssertionError:  # expected result
+        return
+
+
 if __name__ == '__main__':
     test_k2()
     test_hd()
+    test_model_comp()
     test_k2131()
     test_celerite()
     test_basis()

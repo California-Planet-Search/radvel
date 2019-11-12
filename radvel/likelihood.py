@@ -184,6 +184,7 @@ class CompositeLikelihood(Likelihood):
         self.extra_params = like0.extra_params
         self.suffixes = like0.suffix
         self.uparams = like0.uparams
+        self.hnames = []
 
         for i in range(1, self.nlike):
             like = like_list[i]
@@ -194,6 +195,8 @@ class CompositeLikelihood(Likelihood):
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
             self.suffixes = np.append(self.suffixes, like.suffix)
+            if hasattr(like, 'hnames'):
+                self.hnames.extend(like.hnames)
             try:
                 self.uparams = self.uparams.update(like.uparams)
             except AttributeError:
