@@ -20,6 +20,7 @@ class StateVars(object):
         self.automean = []
         self.automin = []
         self.automax = []
+        self.proceed_started = 0
         pass
 
 statevars = StateVars()
@@ -278,8 +279,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         statevars.ndim = pi.size
 
         if nwalkers < 2*statevars.ndim:
-            print("WARNING: Number of walkers is less than 2 times number \
-                of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
+            print("WARNING: Number of walkers is less than 2 times number of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
             statevars.nwalkers = 2*statevars.ndim
 
         # set up perturbation size
@@ -302,6 +302,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         pscales = np.array(pscales)
 
         statevars.samplers = []
+        statevars.samples = []
         statevars.initial_positions = []
         for e in range(ensembles):
             pi = post.get_vary_params()
@@ -310,7 +311,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             if proceed==False:
                 statevars.initial_positions.append(p0)
             else:
-                statevars.initial_positions.append(statevars.prechains[i][0,:,:])
+                statevars.initial_positions.append(statevars.prechains[i][-1,:,:])
             statevars.samplers.append(emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array,
                                                                 threads=1))
 
@@ -346,11 +347,12 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             t1 = time.time()
             mcmc_input_array = []
             for i, sampler in enumerate(statevars.samplers):
-                for sample in sampler.sample(statevars.initial_positions[i], store=True):
-                    if sampler.iteration==1 or proceed==True:
-                        p1 = statevars.initial_positions[i]
-                    else:
-                        p1 = None
+                if sampler.iteration <= 1 or statevars.proceed_started == 0:
+                    p1 = statevars.initial_positions[i]
+                    statevars.proceed_started = 1
+                else:
+                    p1 = sampler.get_last_sample()
+                for sample in sampler.sample(p1, store=True):
                     mcmc_input = (sampler, p1, (checkinterval - 1))
                     mcmc_input_array.append(mcmc_input)
 
@@ -451,11 +453,11 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             _closescr()
             print(msg)
 
+        preshaped = np.dstack(statevars.chains)
         df = pd.DataFrame(
-            statevars.tchains.reshape(statevars.ndim, statevars.tchains.shape[1]*statevars.tchains.shape[2]).transpose(),
+            preshaped.reshape(preshaped.shape[0], preshaped.shape[1]*preshaped.shape[2]).transpose(),
             columns=post.list_vary_params())
         df['lnprobability'] = np.hstack(statevars.lnprob)
-
         df = df.iloc[::thin]
 
         statevars.factor = [minAfactor] * len(statevars.autosamples)
@@ -520,9 +522,7 @@ def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArch
             Adapted for use in RadVel. Removed "angular" parameter.
         2019/10/24:
             Adapted to calculate and consider autocorrelation times
-
     """
-
 
     pars = pars0.copy() # don't modify input parameters
 
