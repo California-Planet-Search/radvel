@@ -24,9 +24,9 @@ class _args(object):
         self.ensembles = 8
         self.maxGR = 1.10
         self.burnGR = 1.30
-        self.burnAfactor = 15
-        self.minAfactor = 75
-        self.maxArchange = .01
+        self.burnAfactor = 25
+        self.minAfactor = 50
+        self.maxArchange = .07
         self.minTz = 1000
         self.minsteps = 100
         self.minpercent = 5
@@ -45,11 +45,7 @@ def _standard_run(setupfn):
     args = _args()
     args.setupfn = setupfn
     radvel.driver.fit(args)
-
-    args.serial = True
-    args.nensembles = 1
     radvel.driver.mcmc(args)
-    
     radvel.driver.derive(args)
 
     args.type = ['trend', 'jit', 'e', 'nplanets', 'gp']
@@ -82,9 +78,6 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     args = _args()
     args.setupfn = setupfn
     radvel.driver.fit(args)
-
-    args.serial = False
-    args.nensembles = 4
     radvel.driver.mcmc(args)
 
     args.type = ['rv']
@@ -292,9 +285,9 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
 if __name__ == '__main__':
     test_k2()
     test_hd()
-    test_model_comp()
-    test_k2131()
-    test_celerite()
-    test_basis()
-    test_kernels()
-    test_kepler()
+    # test_model_comp()
+    # test_k2131()
+    # test_celerite()
+    # test_basis()
+    # test_kernels()
+    # test_kepler()
