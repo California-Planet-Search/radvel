@@ -185,7 +185,7 @@ def _domcmc(input_tuple):
 
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=50, maxArchange=.07, burnAfactor=25,
-         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=True,
+         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=False,
          savename=None, proceed=False, proceedname=None):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
@@ -233,8 +233,6 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 h5p = h5py.File(savename, 'r')
                 msg = 'Loading chains and run information from previous MCMC'
                 print(msg)
-            if len(h5p.keys()) != (3*ensembles + 6):
-                raise ValueError('number of ensembles must be equal to that from previous run: {}'.format(((len(h5f.keys()) - 6)/3)))
             statevars.prechains = []
             statevars.prelog_probs = []
             statevars.preaccepted = []
@@ -280,6 +278,10 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         # Get an initial array value
         pi = post.get_vary_params()
         statevars.ndim = pi.size
+
+        if proceed:
+            if len(h5p.keys()) != (3 * statevars.ensembles + 6) or h5p['0_chain'].shape[2] != statevars.ndim or h5p['0_chain'].shape[1] != statevars.nwalkers:
+                raise ValueError('nensembles, nwalkers, and the number of parameters must be equal to those from previous run')
 
         if nwalkers < 2*statevars.ndim:
             print("WARNING: Number of walkers is less than 2 times number of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
