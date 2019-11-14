@@ -14,7 +14,6 @@ equation solver. Falling back to the slower NumPy implementation.")
 
 def rv_drive(t, orbel, use_c_kepler_solver=cext):
     """RV Drive
-
     Args:
         t (array of floats): times of observations
         orbel (array of floats): [per, tp, e, om, K].\
@@ -25,7 +24,6 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
             use the Python/NumPy version.
     Returns:
         rv: (array of floats): radial velocity model
-
     """
 
     # unpack array of parameters
@@ -55,14 +53,11 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
 
 def kepler(Marr, eccarr):
     """Solve Kepler's Equation
-
     Args:
         Marr (array): input Mean anomaly
         eccarr (array): eccentricity
-
     Returns:
         array: eccentric anomaly
-
     """
 
     conv = 1.0e-12  # convergence criterion

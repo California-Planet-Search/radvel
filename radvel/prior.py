@@ -410,13 +410,15 @@ class NumericalPrior(Prior):
         x = []
         for param in self.param_list:
             x.append(params[param].value)
-        return np.log(self.pdf_estimate(x))
+        val = np.log(self.pdf_estimate(x))
+        return val[0]
 
     def __repr__(self):
         s = "Numerical prior on {}".format(
             self.param_list
             )
         return s
+
     def __str__(self):
         try:
             tex = model.Parameters(9).tex_labels(param_list=self.param_list)

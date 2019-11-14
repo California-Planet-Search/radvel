@@ -532,17 +532,18 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
     Calculate Msini for a given K, P, stellar mass, and e
 
     Args:
-        K (float): Doppler semi-amplitude [m/s]
-        P (float): Orbital period [days]
-        Mstar (float): Mass of star [Msun]
-        e (float): eccentricity
+        K (float or array: Doppler semi-amplitude [m/s]
+        P (float or array): Orbital period [days]
+        Mstar (float or array): Mass of star [Msun]
+        e (float or array): eccentricity
         Msini_units (Optional[str]): Units of Msini {'earth','jupiter'}
             default: 'earth'
 
     Returns:
-        float: Msini [units = Msini_units]
+        float or array: Msini [units = Msini_units]
 
     """
+
     # convert inputs to array so they work with units
     P = np.array(P)
     Mstar = np.array(Mstar)
@@ -551,23 +552,34 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
     G = c.G.value                # added gravitational constant
     Mjup = c.M_jup.value         # added Jupiter's mass
     Msun = c.M_sun.value         # added sun's mass
+    Mstar = Mstar*Msun
+    Mstar = np.array(Mstar)
 
     P_year = (P * u.d).to(u.year).value
     P = (P * u.d).to(u.second).value
-    Mstar = Mstar*Msun
 
     # First assume that Mp << Mstar
     Msini = K / K_0 * np.sqrt(1.0 - e ** 2.0) * (Mstar/Msun) ** (2.0 / 3.0) * P_year ** (1 / 3.0)
 
     # Use correct calculation if any elements are >10% of the stellar mass
-    if (np.array(((Msini * u.Mjup).to(u.M_sun) / (Mstar/Msun)).value > 0.1)).any():
-        print("Mpsini << Mstar assumption broken, correcting Msini calculation.")
+    if (np.array(((Msini * u.Mjup).to(u.M_sun) / (Mstar/Msun)).value > 0.10)).any():
+        warnings.warn("Mpsini << Mstar assumption broken, correcting Msini calculation.")
 
         a = K*(((2*(np.pi)*G)/P)**(-1/3.))*np.sqrt(1-(e**2))
         Msini = []
-        for i in range(len(P)):
+        if isinstance(P, float):
+            n_elements = 1
+        else:
+            assert type(K) == type(P) == type(Mstar) == type(e), "All input data types must match."
+            assert K.size == P.size == Mstar.size == e.size, "All input arrays must have the same length."
+            n_elements = len(P)
+        for i in range(n_elements):
             def func(x):
-                return x - a[i]*((Mstar[i]+x)**(2/3.))
+                try:
+                    return x - a[i]*((Mstar[i]+x)**(2/3.))
+                except IndexError:
+                    return x - a * ((Mstar + x) ** (2 / 3.))
+
             sol = root(func, Mjup)
             Msini.append(sol.x[0])
 

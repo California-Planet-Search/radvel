@@ -23,12 +23,14 @@ class _args(object):
         self.ensembles = 8
         self.maxGR = 1.10
         self.burnGR = 1.30
+        self.burnAfactor = 15
+        self.minAfactor = 75
+        self.maxArchange = .01
         self.minTz = 1000
         self.minsteps = 100
         self.minpercent = 5
         self.thin = 1
         self.serial = False
-
 
 def _standard_run(setupfn):
     """
@@ -60,7 +62,7 @@ def _standard_run(setupfn):
 def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
-    """    
+    """
     _standard_run(setupfn)
 
 
@@ -103,7 +105,7 @@ def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
     args.setupfn = setupfn
 
     radvel.driver.fit(args)
-    
+
     args.type = ['rv']
     args.gp = True
     args.plotkw = {'plot_likelihoods_separately':True}
@@ -158,7 +160,7 @@ def test_kernels():
     for kernel in kernel_list:
         hnames = kernel_list[kernel] # gets list of hyperparameter name strings
         hyperparams = {k: radvel.Parameter(value=1.) for k in hnames}
-        kernel_call = getattr(radvel.gp, kernel + "Kernel") 
+        kernel_call = getattr(radvel.gp, kernel + "Kernel")
         test_kernel = kernel_call(hyperparams)
 
         x = np.array([1.,2.,3.])
@@ -166,7 +168,7 @@ def test_kernels():
         test_kernel.compute_covmatrix(x.T)
 
         print("Testing {}".format(kernel_call(hyperparams)))
-        
+
         sys.stdout.write("Testing error catching with dummy hyperparameters... \n")
 
         fakeparams1 = {}
@@ -217,7 +219,7 @@ def test_priors():
         radvel.prior.ModifiedJeffreys('per1', 2., 100.0, 1.):  (1./9.)/np.log(99.),
         radvel.prior.SecondaryEclipsePrior(1, 5.0, 10.0):    1./np.sqrt(2.*np.pi),
         radvel.prior.NumericalPrior(
-            ['sesinw1'], 
+            ['sesinw1'],
             np.random.randn(1,5000000)
         ):                                                  scipy.stats.norm(0, 1).pdf(0.),
         radvel.prior.UserDefinedPrior(
@@ -247,4 +249,10 @@ def test_kepler():
 
 
 if __name__ == '__main__':
-    test_priors()
+    test_k2()
+    test_hd()
+    test_k2131()
+    test_celerite()
+    test_basis()
+    test_kernels()
+    test_kepler()

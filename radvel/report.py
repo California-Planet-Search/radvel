@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 import subprocess
 import os
@@ -51,9 +52,10 @@ class RadvelReport(object):
         compstats (dict): dictionary of model comparison results from `radvel ic`
         derived (bool): included table of derived parameters
         chains (DataFrame): output DataFrame from a `radvel.mcmc` run
+        criterion (DataFrame): output DataFrame from a 'radvel.mcmc' run
     """
 
-    def __init__(self, planet, post, chains, compstats=None, derived=False):
+    def __init__(self, planet, post, chains, criterion, compstats=None, derived=False):
         self.planet = planet
         self.post = post
         self.starname = planet.starname
@@ -77,6 +79,7 @@ class RadvelReport(object):
         self.chains = post.params.basis.from_synth(
             self.chains, print_basis
         )
+        self.criterion = criterion
         self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
         self.compstats = compstats
         self.num_planets = self.post.params.num_planets
@@ -102,6 +105,7 @@ class RadvelReport(object):
 
         # Render TeX for tables
         textable = TexTable(self)
+        reportkw['tab_crit'] = textable.tab_crit()
         reportkw['tab_rv'] = textable.tab_rv()
         reportkw['tab_params'] = textable.tab_params()
         reportkw['tab_derived'] = textable.tab_derived()
@@ -180,6 +184,7 @@ class TexTable(RadvelReport):
         self.post = report.post
         self.quantiles = report.quantiles
         self.fitting_basis = report.post.params.basis.name
+        self.criterion = report.criterion
 
     def _row(self, param, unit):
         """
@@ -359,6 +364,32 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
         tmpfile = 'tab_params.tex'
         t = env.get_template(tmpfile)
         out = t.render(**kw)
+        return out
+
+    def tab_crit(self, name_in_title=False):
+        """Table of final convergence criterion values
+        Args:
+            name_in_title (Bool [optional]): if True, include
+                the name of the star in the table title
+        """
+
+        names = list(self.criterion)
+        rows = []
+        for i in range(1,len(names)):
+            value = self.criterion.iloc[0][str(names[i])]
+            rows.append("$%s$ & $%s$" % (names[i], value))
+
+        kw = dict()
+        kw['rows'] = rows
+        if name_in_title:
+            kw['title'] = "{} Final Convergence Criterion".format(self.report.starname)
+        else:
+            kw['title'] = "Final Convergence Criterion"
+
+        tmpfile = 'tab_crit.tex'
+        t = env.get_template(tmpfile)
+        out = t.render(**kw)
+
         return out
 
     def tab_derived(self, name_in_title=False):

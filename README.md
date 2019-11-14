@@ -3,7 +3,7 @@
 
 General Toolkit for Modeling Radial Velocities.
 
-[![Build Status](https://travis-ci.org/California-Planet-Search/radvel.svg?branch=master)](https://travis-ci.org/California-Planet-Search/radvel)
+[![Build Status](https://travis-ci.com/California-Planet-Search/radvel.svg?branch=master)](https://travis-ci.com/California-Planet-Search/radvel)
 [![Coverage Status](https://coveralls.io/repos/github/California-Planet-Search/radvel/badge.svg?branch=master)](https://coveralls.io/github/California-Planet-Search/radvel?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/radvel/badge/?version=latest)](http://radvel.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/radvel.svg)](https://badge.fury.io/py/radvel)
@@ -33,7 +33,7 @@ With RadVel you can
 - *Optimize*
   - leverages the suite of minimizers in [scipy.optimize](https://docs.scipy.org/doc/scipy/reference/optimize.html)
 - *Run MCMC*
-  - leverages [emcee](http://dfm.io/emcee/) package for MCMC exploration of posterior
+  - leverages the [emcee](http://dfm.io/emcee/) package for MCMC exploration of the posterior probability distribution
 - *Visualize*
   - creates quicklook summary plots and statistics
  
