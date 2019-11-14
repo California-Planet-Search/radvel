@@ -22,6 +22,7 @@ class StateVars(object):
         self.automean = []
         self.automin = []
         self.automax = []
+        self.proceed_started = 0
 
     def reset(self):
         self.__init__()
