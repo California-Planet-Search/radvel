@@ -120,16 +120,12 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
 
     statevars.ar = 0
     statevars.ncomplete = statevars.nburn
-    statevars.tchains = np.empty((statevars.ndim,
-                        statevars.samplers[0].get_log_prob(flat=True).shape[0],
-                        statevars.ensembles))
     statevars.lnprob = []
     statevars.autocorrelation = []
     statevars.chains = []
     for i,sampler in enumerate(statevars.samplers):
         statevars.ncomplete += sampler.get_log_prob(flat=True).shape[0]
         statevars.ar += sampler.acceptance_fraction.mean() * 100
-        statevars.tchains[:,:,i] = sampler.flatchain.transpose()
         statevars.chains.append(sampler.get_chain()[:,:,:].T)
         statevars.lnprob.append(sampler.get_log_prob(flat=True))
     statevars.ar /= statevars.ensembles
@@ -149,7 +145,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
             statevars.mintz) = 0, -1.0, np.inf, np.inf, -1.0
     else:
         (statevars.ismixed, afactor, archange, oac, gr, tz) \
-            = convergence_calculate(statevars.tchains, statevars.chains,
+            = convergence_calculate(statevars.chains,
                                     oldautocorrelation=statevars.oac, minAfactor=minAfactor, maxArchange=maxArchange,
                                     maxGR=maxGR, minTz=minTz)
         statevars.mintz = min(tz)
@@ -475,7 +471,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         curses.endwin()
 
 
-def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
+def convergence_calculate(chains, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
     """Calculate Convergence Criterion
 
     Calculates the Gelman-Rubin statistic, autocorrelation time factor,
@@ -487,10 +483,7 @@ def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArch
     a max relative change in autocorrelation time <= .01, and >= 1000 independent draws.
 
     Args:
-        pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
-            parameter values
-        chains (array): A 3 dimensional array of parameter values shaped to calculate
-            autocorrelation time
+        chains (array): A 3 dimensional array of parameter values
         oldautocorrelation (float): previously calculated autocorrelation time
         minAfactor (float): minimum autocorrelation
             time factor to consider well-mixed
@@ -531,7 +524,10 @@ def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArch
             Adapted to calculate and consider autocorrelation times
     """
 
-    pars = pars0.copy() # don't modify input parameters
+    gr_chains = chains.copy()
+    for i in range(0,len(chains)):
+        gr_chains[i] = gr_chains[i].reshape(gr_chains[i].shape[0], gr_chains[i].shape[1]*gr_chains[i].shape[2])
+    pars = np.dstack(gr_chains)
 
     sz = pars.shape
     msg = 'MCMC: GELMAN_RUBIN: ERROR: pars must have 3 dimensions'
