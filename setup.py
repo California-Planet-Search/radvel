@@ -30,7 +30,7 @@ setup(
     version=get_property('__version__', 'radvel'),
     author="BJ Fulton, Erik Petigura, Sarah Blunt, Evan Sinukoff",
     packages=find_packages(),
-    setup_requires=['numpy'],
+    setup_requires=['numpy', 'cython'],
     ext_modules=extensions,
     cmdclass={'build_ext': build_ext},
     data_files=[
