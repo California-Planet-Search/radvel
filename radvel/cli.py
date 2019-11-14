@@ -101,14 +101,14 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
                           help="Minimum percentage of steps before convergence tests are performed [5]. \
 Convergence checks will start after the minsteps threshold or the minpercent threshold has been hit."
                           )
-    psr_mcmc.add_argument('--thin', dest='thin', action='store', default=1, type=int,
-                          help="Save one sample every N steps [default=1, save all samples]"
+    psr_mcmc.add_argument('--thin', dest='thin', action='store', default=10, type=int,
+                          help="Save one sample every N steps [default=10, save every 10th sample]"
                           )
     psr_mcmc.add_argument('--serial', dest='serial', action='store', default=False, type=bool,
                           help='''If True, run MCMC in serial instead of parallel. [False]'''
                           )
-    psr_mcmc.add_argument('--save', dest='save', action='store', default=True, type=bool,
-                          help='If True, MCMC chains will be saved to be continued in a future run'
+    psr_mcmc.add_argument('--save', dest='save', action='store', default=False, type=bool,
+                          help='If True, MCMC chains will be saved to be continued in a future run [False]'
                           )
     psr_mcmc.add_argument('--proceed', dest='proceed', action='store', default=False, type=bool,
                           help='If True, MCMC chains will resume from the previous run'
