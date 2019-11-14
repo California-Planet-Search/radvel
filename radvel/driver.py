@@ -158,6 +158,11 @@ def mcmc(args):
     statfile = os.path.join(args.outputdir,
                             "{}_radvel.stat".format(conf_base))
 
+    if args.save or args.proceed:
+        backend_loc = os.path.join(args.outputdir, conf_base+'_rawchain.h5')
+    else:
+        backend_loc = None
+
     status = load_status(statfile)
 
     if status.getboolean('fit', 'run'):
@@ -174,14 +179,15 @@ def mcmc(args):
 
     msg2 = (
             "Max Auto Relative-Change = {}, Max G-R = {}, Min Tz = {} ..."
-            ).format(args.maxArchange, args.maxArchange, args.maxGR, args.minTz)
+            ).format(args.maxArchange, args.maxGR, args.minTz)
 
     print(msg1 + '\n' + msg2)
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
             maxArchange=args.maxArchange, burnAfactor=args.burnAfactor, burnGR=args.burnGR, maxGR=args.maxGR,
-            minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial)
+            minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial,
+            save=args.save, savename=backend_loc, proceed=args.proceed, proceedname=backend_loc)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
@@ -263,19 +269,10 @@ def mcmc(args):
     autocorr = os.path.join(args.outputdir, conf_base+'_autocorr.csv')
     auto.to_csv(autocorr, sep=',')
 
-    final_crit = pd.DataFrame()
-    final_crit['minAfactor'] = [minafactor]
-    final_crit['maxArchange'] = [maxarchange]
-    final_crit['maxGR'] = [maxgr]
-    final_crit['minTz'] = [mintz]
-    fc = os.path.join(args.outputdir, conf_base + '_finalcrit.csv')
-    final_crit.to_csv(fc, sep=',')
-
     savestate = {'run': True,
                 'postfile': os.path.relpath(postfile),
                 'chainfile': os.path.relpath(csvfn),
                 'autocorrfile': os.path.relpath(autocorr),
-                'finalcritfile': os.path.relpath(fc),
                 'summaryfile': os.path.relpath(saveto),
                 'nwalkers': statevars.nwalkers,
                 'nensembles': args.ensembles,
@@ -287,6 +284,8 @@ def mcmc(args):
                 'minTz': mintz,
                 'maxGR': maxgr}
     save_status(statfile, 'mcmc', savestate)
+
+    statevars.reset()
 
 
 def ic_compare(args):
@@ -314,33 +313,37 @@ def ic_compare(args):
     compareparams = args.type
 
     ipost = copy.deepcopy(post)
-    if hasattr(args, 'fixjitter') and args.fixjitter:
-        for param in ipost.params:
-            if len(param) >= 3 and param[0:3] == 'jit':
-                ipost.params[param].vary = False
 
-    for compareparam in compareparams:
-        assert compareparam in choices, \
-            "Valid parameter choices for 'ic -t' are combinations of: "\
-            + " ".join(choices)
-        paramlist.append(compareparam)
+    if args.simple:
+        statsdictlist += radvel.fitting.model_comp(ipost, params=[], verbose=args.verbose)
+    else:
+        if hasattr(args, 'fixjitter') and args.fixjitter:
+            for param in ipost.params:
+                if len(param) >= 3 and param[0:3] == 'jit':
+                    ipost.params[param].vary = False
+
+        for compareparam in compareparams:
+            assert compareparam in choices, \
+                "Valid parameter choices for 'ic -t' are combinations of: "\
+                + " ".join(choices)
+            paramlist.append(compareparam)
+            if hasattr(args, 'mixed') and not args.mixed:
+                statsdictlist += radvel.fitting.model_comp(ipost, params=[compareparam], verbose=args.verbose)
         if hasattr(args, 'mixed') and not args.mixed:
-            statsdictlist += radvel.fitting.model_comp(ipost, params=[compareparam], verbose=args.verbose)
-    if hasattr(args, 'mixed') and not args.mixed:
-        new_statsdictlist = []
-        for dicti in statsdictlist:
-            anymatch = False
-            for seendict in new_statsdictlist:
-                if collections.Counter(dicti['Free Params'][0]) == \
-                        collections.Counter(seendict['Free Params'][0]):
-                    anymatch = True
-                    continue
-            if not anymatch:
-                new_statsdictlist.append(dicti)
-        statsdictlist = new_statsdictlist
+            new_statsdictlist = []
+            for dicti in statsdictlist:
+                anymatch = False
+                for seendict in new_statsdictlist:
+                    if collections.Counter(dicti['Free Params'][0]) == \
+                            collections.Counter(seendict['Free Params'][0]):
+                        anymatch = True
+                        continue
+                if not anymatch:
+                    new_statsdictlist.append(dicti)
+            statsdictlist = new_statsdictlist
 
-    if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
-        statsdictlist += radvel.fitting.model_comp(ipost, params=paramlist, verbose=args.verbose)
+        if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
+            statsdictlist += radvel.fitting.model_comp(ipost, params=paramlist, verbose=args.verbose)
 
     savestate = {'ic': statsdictlist}
     save_status(statfile, 'ic_compare', savestate)
@@ -365,13 +368,16 @@ def tables(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
-    criterion = pd.read_csv(status.get('mcmc', 'finalcritfile'))
+    minafactor = status.get('mcmc', 'minafactor')
+    maxarchange = status.get('mcmc', 'maxarchange')
+    maxgr = status.get('mcmc', 'maxgr')
+    mintz = status.get('mcmc', 'mintz')
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
         derived = True
     else: derived = False
-    report = radvel.report.RadvelReport(P, post, chains, criterion, derived=derived)
+    report = radvel.report.RadvelReport(P, post, chains, minafactor, maxarchange, maxgr, mintz, derived=derived)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
                 'params': 'tab_params', 'derived': 'tab_derived',
@@ -385,7 +391,7 @@ def tables(args):
 
             compstats = eval(status.get('ic_compare', 'ic'))
             report = radvel.report.RadvelReport(
-                P, post, chains, criterion, compstats=compstats
+                P, post, chains, minafactor, maxarchange, maxgr, mintz, compstats=compstats
             )
             tabletex = radvel.report.TexTable(report)
             tex = tabletex.tab_comparison()
@@ -538,7 +544,10 @@ def report(args):
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
     chains = pd.read_csv(status.get('mcmc', 'chainfile'))
-    criterion = pd.read_csv(status.get('mcmc', 'finalcritfile'))
+    minafactor = status.get('mcmc', 'minafactor')
+    maxarchange = status.get('mcmc', 'maxarchange')
+    maxgr = status.get('mcmc', 'maxgr')
+    mintz = status.get('mcmc', 'mintz')
     if 'derive' in status.sections() and status.getboolean('derive', 'run'):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
@@ -557,7 +566,7 @@ report.".format(args.comptype,
                 args.comptype))
         compstats = None
 
-    report = radvel.report.RadvelReport(P, post, chains, criterion, compstats=compstats,
+    report = radvel.report.RadvelReport(P, post, chains, minafactor, maxarchange, maxgr, mintz, compstats=compstats,
                                         derived=derived)
     report.runname = conf_base
 

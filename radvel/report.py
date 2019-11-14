@@ -55,7 +55,8 @@ class RadvelReport(object):
         criterion (DataFrame): output DataFrame from a 'radvel.mcmc' run
     """
 
-    def __init__(self, planet, post, chains, criterion, compstats=None, derived=False):
+    def __init__(self, planet, post, chains, minafactor, maxarchange, maxgr, mintz, compstats=None,
+                 derived=False):
         self.planet = planet
         self.post = post
         self.starname = planet.starname
@@ -79,7 +80,10 @@ class RadvelReport(object):
         self.chains = post.params.basis.from_synth(
             self.chains, print_basis
         )
-        self.criterion = criterion
+        self.minafactor = minafactor
+        self.maxarchange = maxarchange
+        self.maxgr = maxgr
+        self.mintz = mintz
         self.quantiles = self.chains.quantile([0.159, 0.5, 0.841])
         self.compstats = compstats
         self.num_planets = self.post.params.num_planets
@@ -184,7 +188,10 @@ class TexTable(RadvelReport):
         self.post = report.post
         self.quantiles = report.quantiles
         self.fitting_basis = report.post.params.basis.name
-        self.criterion = report.criterion
+        self.minafactor = report.minafactor
+        self.maxarchange = report.maxarchange
+        self.maxgr = report.maxgr
+        self.mintz = report.mintz
 
     def _row(self, param, unit):
         """
@@ -373,11 +380,11 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
                 the name of the star in the table title
         """
 
-        names = list(self.criterion)
+        names = ['minAfactor', 'maxArchange', 'maxGR', 'minTz']
+        values = [self.minafactor, self.maxarchange, self.maxgr, self.mintz]
         rows = []
-        for i in range(1,len(names)):
-            value = self.criterion.iloc[0][str(names[i])]
-            rows.append("$%s$ & $%s$" % (names[i], value))
+        for i in range(0,len(names)):
+            rows.append(r"%s & $%7.3f$" % (names[i], float(values[i])))
 
         kw = dict()
         kw['rows'] = rows

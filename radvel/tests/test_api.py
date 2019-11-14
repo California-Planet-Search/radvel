@@ -1,6 +1,7 @@
 import sys
 import copy
 import warnings
+import types
 
 import radvel
 import radvel.driver
@@ -11,34 +12,40 @@ import radvel.prior
 warnings.simplefilter('ignore')
 
 
-class _args(object):
-    def __init__(self):
-        self.outputdir = '/tmp/'
-        self.decorr = False
-        self.name_in_title = False
-        self.gp = False
+class _args(types.SimpleNamespace):
+    outputdir = '/tmp/'
+    decorr = False
+    name_in_title = False
+    gp = False
+    simple = False
 
-        self.nwalkers = 50
-        self.nsteps = 100
-        self.ensembles = 8
-        self.maxGR = 1.10
-        self.burnGR = 1.30
-        self.burnAfactor = 15
-        self.minAfactor = 75
-        self.maxArchange = .01
-        self.minTz = 1000
-        self.minsteps = 100
-        self.minpercent = 5
-        self.thin = 1
-        self.serial = False
+    nwalkers = 50
+    nsteps = 100
+    ensembles = 8
+    maxGR = 1.10
+    burnGR = 1.30
+    burnAfactor = 25
+    minAfactor = 50
+    maxArchange = .07
+    minTz = 1000
+    minsteps = 100
+    minpercent = 5
+    thin = 1
+    serial = False
+    save = True
+    savename = 'rawchains.h5'
+    proceed = False
+    proceedname = None
 
-def _standard_run(setupfn):
+
+def _standard_run(setupfn, arguments):
     """
     Run through all of the standard steps
     """
-    
-    args = _args()
+
+    args = arguments
     args.setupfn = setupfn
+
     radvel.driver.fit(args)
     radvel.driver.mcmc(args)
     radvel.driver.derive(args)
@@ -47,10 +54,10 @@ def _standard_run(setupfn):
     args.verbose = True
     radvel.driver.ic_compare(args)
 
-    args.type = ['params', 'priors', 'rv', 'ic_compare', 'derived']
+    args.type = ['params', 'priors', 'rv', 'ic_compare', 'derived', 'crit']
     radvel.driver.tables(args)
 
-    args.type = ['rv', 'corner', 'trend', 'derived']
+    args.type = ['rv', 'corner', 'auto', 'trend', 'derived']
     args.plotkw = {'highlight_last': True, 'show_rms': True}
     radvel.driver.plots(args)
 
@@ -63,7 +70,23 @@ def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
     """
-    _standard_run(setupfn)
+    args = _args()
+    args.setupfn = setupfn
+    _standard_run(setupfn, args)
+
+    # set the proceed flag and continue
+    args.proceed = True
+    radvel.driver.mcmc(args)
+
+    args.ensembles = 1
+    try:
+        radvel.driver.mcmc(args)
+    except ValueError:  # expected error when changing number of ensembles with proceed flag
+        pass
+
+    args.serial = True
+    args.proceed = False
+    radvel.driver.mcmc(args)
 
 
 def test_hd(setupfn='example_planets/HD164922.py'):
@@ -72,7 +95,10 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     """
     args = _args()
     args.setupfn = setupfn
+
     radvel.driver.fit(args)
+    radvel.driver.mcmc(args)
+
     args.type = ['rv']
     args.plotkw = {}
     radvel.driver.plots(args)
@@ -248,11 +274,40 @@ def test_kepler():
     radvel.kepler.profile()
 
 
+def test_model_comp(setupfn='example_planets/HD164922.py'):
+    """
+    Test some additional model_comp lines
+    """
+
+    args = _args()
+    args.setupfn = setupfn
+    radvel.driver.fit(args)
+
+    # also check some additional lines of model_comp
+    args.verbose = True
+    args.type = ['trend']
+    radvel.driver.ic_compare(args)
+
+    args.simple = True
+    args.type = ['e']
+    radvel.driver.ic_compare(args)
+
+    args.simple = False
+    args.type = ['something_else']
+    try:
+        radvel.driver.ic_compare(args)
+        raise Exception("Unexpected result from model_comp.")
+    except AssertionError:  # expected result
+        return
+
+
 if __name__ == '__main__':
     test_k2()
-    test_hd()
-    test_k2131()
-    test_celerite()
-    test_basis()
-    test_kernels()
-    test_kepler()
+    # test_hd()
+    # test_proceed()
+    # test_model_comp()
+    # test_k2131()
+    # test_celerite()
+    # test_basis()
+    # test_kernels()
+    # test_kepler()

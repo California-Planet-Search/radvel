@@ -101,11 +101,17 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
                           help="Minimum percentage of steps before convergence tests are performed [5]. \
 Convergence checks will start after the minsteps threshold or the minpercent threshold has been hit."
                           )
-    psr_mcmc.add_argument('--thin', dest='thin', action='store', default=1, type=int,
-                          help="Save one sample every N steps [default=1, save all samples]"
+    psr_mcmc.add_argument('--thin', dest='thin', action='store', default=10, type=int,
+                          help="Save one sample every N steps [default=10, save every 10th sample]"
                           )
     psr_mcmc.add_argument('--serial', dest='serial', action='store', default=False, type=bool,
                           help='''If True, run MCMC in serial instead of parallel. [False]'''
+                          )
+    psr_mcmc.add_argument('--save', dest='save', action='store', default=False, type=bool,
+                          help='If True, MCMC chains will be saved to be continued in a future run [False]'
+                          )
+    psr_mcmc.add_argument('--proceed', dest='proceed', action='store', default=False, type=bool,
+                          help='If True, MCMC chains will resume from the previous run'
                           )
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
@@ -126,22 +132,25 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
 
     psr_ic.add_argument('-m', '--mixed', dest='mixed', action='store_true',
                         help="flag to compare all models with the fixed parameters mixed and matched rather than"
-                        + " treating each model comparison separately. This is the default."
+                        + " treating each model comparison separately. [default=True]"
                         )
     psr_ic.add_argument('-u', '--un-mixed', dest='mixed', action='store_false',
-                        help="flag to treat each model comparison separately (without mixing them) "
-                        + "rather than comparing all models with the fixed parameters mixed and matched."
+                        help="flag to treat each model comparison separately (without mixing them) rather "
+                        + "than comparing all models with the fixed parameters mixed and matched. [default=False]"
                         )
     psr_ic.add_argument('-f', '--fixjitter', dest='fixjitter', action='store_true',
-                        help="flag to fix the stellar jitters at the nominal model best-fit value"
+                        help="flag to fix the stellar jitters at the nominal model best-fit value [default=False]"
                         )
     psr_ic.add_argument('-n', '--no-fixjitter', dest='fixjitter', action='store_false',
-                        help="flag to let the stellar jitters float during model comparisons (default)"
+                        help="flag to let the stellar jitters float during model comparisons [default=True]"
+                        )
+    psr_ic.add_argument('--simple', dest='simple', action='store_true',
+                        help="calculate goodness of fit statistics for the current model and exit [default=False]"
                         )
     psr_ic.add_argument('-v', '--verbose', dest='verbose', action='store_true',
-                        help="Print some more detail"
+                        help="Print some more detail [default=False]"
                         )
-    psr_ic.set_defaults(func=radvel.driver.ic_compare, fixjitter=False, unmixed=False, mixed=True)
+    psr_ic.set_defaults(func=radvel.driver.ic_compare, fixjitter=False, unmixed=False, mixed=True, verbose=False)
 
     # Tables
     psr_table = subpsr.add_parser('table', parents=[psr_parent],)

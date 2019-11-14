@@ -1,0 +1,7 @@
+.idea
+docs
+dist
+build
+radvel.egg-info
+*.pyc
+*.so
