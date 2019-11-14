@@ -184,7 +184,7 @@ def _domcmc(input_tuple):
     return sampler
 
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=50, maxArchange=.07, burnAfactor=25,
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=40, maxArchange=.03, burnAfactor=25,
          burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=False,
          savename=None, proceed=False, proceedname=None):
     """Run MCMC
@@ -430,7 +430,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 statevars.nburn = statevars.ncomplete
                 statevars.burn_complete = True
 
-            if statevars.mixcount >= 5:
+            if statevars.mixcount >= 2:
                 tf = time.time()
                 tdiff = tf - statevars.t0
                 tdiff,units = utils.time_print(tdiff)
@@ -443,9 +443,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 break
 
         print("\n")
-        if statevars.ismixed and statevars.mixcount < 5:
+        if statevars.ismixed and statevars.mixcount < 2:
             msg = (
-                "MCMC: WARNING: chains did not pass 5 consecutive convergence "
+                "MCMC: WARNING: chains did not pass 2 consecutive convergence "
                 "tests. They may be marginally well=mixed."
             )
             _closescr()
