@@ -30,8 +30,8 @@ minAfactor
 
 The autocorrelation time can be used to evaluate whether or not a chain is sufficiently long to be considered well-mixed. Therefore, if N steps have been
 taken, N/τ ≥ c, where c is what we call the autocorrelation factor. The minimum autocorrelation factor to consider the
-chains converged is represented by the criterion ``minAfactor``. The default value for ``minAfactor`` is 50, however we find
-that lower values may be sufficient, particularly for runs that take a long time; alternate values can be specified
+chains converged is represented by the criterion ``minAfactor``. The default value for ``minAfactor`` is 40, however we find
+that higher values may be useful, particularly for shorter runs; alternate values can be specified
 using the ``minAfactor`` argument when calling the MCMC.
 
 The autocorrelation factor is calculated for each parameter and the minimum of these values
@@ -52,7 +52,7 @@ We calculate the relative change in autocorrelation time for each parameter betw
 of these values is also returned in real time and for the chain to be considered converged, it must fall below the
 criterion ``maxArchange``.
 
-The default value for ``maxArchange`` is .07, where we consider the autocorrelation time to begin leveling off. Rarely should
+The default value for ``maxArchange`` is .03, where we consider the autocorrelation time to be leveling off. Rarely should
 you need to increase the ``maxArchange`` argument when running `radvel mcmc`, but for more conservative criterion, you may
 want to decrease it, particularly for long chains with large autocorrelation times (in such cases, the relative change
-may be small, but τ has not reached its plateau).
+may be smaller, but τ has not reached its plateau).
