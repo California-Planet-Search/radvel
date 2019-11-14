@@ -1,6 +1,7 @@
 import sys
 import copy
 import warnings
+import types
 
 import radvel
 import radvel.driver
@@ -10,57 +11,58 @@ import radvel.prior
 
 warnings.simplefilter('ignore')
 
-class _args(object):
-    def __init__(self):
-        self.outputdir = '/tmp/'
-        self.decorr = False
-        self.name_in_title = False
-        self.gp = False
-        self.simple = False
 
-        self.nwalkers = 50
-        self.nsteps = 100
-        self.ensembles = 8
-        self.maxGR = 1.10
-        self.burnGR = 1.30
-        self.burnAfactor = 25
-        self.minAfactor = 50
-        self.maxArchange = .07
-        self.minTz = 1000
-        self.minsteps = 100
-        self.minpercent = 5
-        self.thin = 1
-        self.serial = False
-        self.save = True
-        self.savename = 'rawchains.h5'
-        self.proceed = False
-        self.proceedname = None
+class _args(types.SimpleNamespace):
+    outputdir = '/tmp/'
+    decorr = False
+    name_in_title = False
+    gp = False
+    simple = False
 
-class _args2(object):
-    def __init__(self):
-        self.outputdir = '/tmp/'
-        self.decorr = False
-        self.name_in_title = False
-        self.gp = False
-        self.simple = False
+    nwalkers = 50
+    nsteps = 100
+    ensembles = 8
+    maxGR = 1.10
+    burnGR = 1.30
+    burnAfactor = 25
+    minAfactor = 50
+    maxArchange = .07
+    minTz = 1000
+    minsteps = 100
+    minpercent = 5
+    thin = 1
+    serial = False
+    save = True
+    savename = 'rawchains.h5'
+    proceed = False
+    proceedname = None
 
-        self.nwalkers = 50
-        self.nsteps = 100
-        self.ensembles = 8
-        self.maxGR = 1.10
-        self.burnGR = 1.30
-        self.burnAfactor = 15
-        self.minAfactor = 75
-        self.maxArchange = .01
-        self.minTz = 1000
-        self.minsteps = 100
-        self.minpercent = 5
-        self.thin = 1
-        self.serial = False
-        self.save = True
-        self.savename = 'rawchains.h5'
-        self.proceed = True
-        self.proceedname = 'rawchains.h5'
+# class _args2(object):
+#     def __init__(self):
+#         self.outputdir = '/tmp/'
+#         self.decorr = False
+#         self.name_in_title = False
+#         self.gp = False
+#         self.simple = False
+#
+#         self.nwalkers = 50
+#         self.nsteps = 100
+#         self.ensembles = 8
+#         self.maxGR = 1.10
+#         self.burnGR = 1.30
+#         self.burnAfactor = 15
+#         self.minAfactor = 75
+#         self.maxArchange = .01
+#         self.minTz = 1000
+#         self.minsteps = 100
+#         self.minpercent = 5
+#         self.thin = 1
+#         self.serial = False
+#         self.save = True
+#         self.savename = 'rawchains.h5'
+#         self.proceed = True
+#         self.proceedname = 'rawchains.h5'
+
 
 def _standard_run(setupfn, arguments):
     """
@@ -69,6 +71,7 @@ def _standard_run(setupfn, arguments):
 
     args = arguments
     args.setupfn = setupfn
+
     radvel.driver.fit(args)
     radvel.driver.mcmc(args)
     radvel.driver.derive(args)
@@ -88,17 +91,25 @@ def _standard_run(setupfn, arguments):
     args.latex_compiler = 'pdflatex'
     radvel.driver.report(args)
 
+
 def test_k2(setupfn='example_planets/epic203771098.py'):
     """
     Run through K2-24 example
     """
-    _standard_run(setupfn, _args())
+    args = _args()
+    args.setupfn = setupfn
+    _standard_run(setupfn, args)
 
-def test_proceed(setupfn='example_planets/epic203771098.py'):
-    """
-    Run through K2-24 example with the proceed argument, pulling from the previous run.
-    """
-    _standard_run(setupfn, _args2())
+    # set the proceed flag and continue
+    args.proceed = True
+    radvel.driver.mcmc(args)
+
+# def test_proceed(setupfn='example_planets/epic203771098.py'):
+#     """
+#     Run through K2-24 example with the proceed argument, pulling from the previous run.
+#     """
+#     _standard_run(setupfn, _args2())
+
 
 def test_hd(setupfn='example_planets/HD164922.py'):
     """
@@ -106,6 +117,12 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     """
     args = _args()
     args.setupfn = setupfn
+
+    radvel.driver.fit(args)
+    radvel.driver.mcmc(args)
+
+    args.serial = True
+    args.ensembles = 1
     radvel.driver.fit(args)
     radvel.driver.mcmc(args)
 
@@ -313,11 +330,11 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
 
 if __name__ == '__main__':
     test_k2()
-    test_proceed()
     test_hd()
-    # test_model_comp()
-    # test_k2131()
-    # test_celerite()
-    # test_basis()
-    # test_kernels()
-    # test_kepler()
+    # test_proceed()
+    test_model_comp()
+    test_k2131()
+    test_celerite()
+    test_basis()
+    test_kernels()
+    test_kepler()

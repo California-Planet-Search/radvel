@@ -1,6 +1,7 @@
 import time
 import curses
 import sys
+import os
 
 import multiprocessing as mp
 
@@ -13,6 +14,7 @@ import h5py
 from radvel import utils
 import radvel
 
+
 class StateVars(object):
     def __init__(self):
         self.oac = 0
@@ -20,9 +22,12 @@ class StateVars(object):
         self.automean = []
         self.automin = []
         self.automax = []
-        pass
+
+    def reset(self):
+        self.__init__()
 
 statevars = StateVars()
+
 
 def isnotebook():
     try:
@@ -151,7 +156,8 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         statevars.minafactor = np.amin(afactor)
         statevars.maxarchange = np.amax(archange)
         statevars.oac = oac
-        if statevars.burn_complete == True:
+
+        if statevars.burn_complete:
             statevars.autosamples.append(len(statevars.chains)*statevars.chains[0].shape[2])
             statevars.automean.append(np.mean(statevars.oac))
             statevars.automin.append(np.amin(statevars.oac))
@@ -162,7 +168,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         else:
             statevars.mixcount = 0
 
-    if isnotebook() == True:
+    if isnotebook():
         _status_message_NB(statevars)
     else:
         _status_message_CLI(statevars)
@@ -215,15 +221,16 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
+
     try:
-        if save==True and savename==None:
+        if save and savename is None:
             raise ValueError('save set to true but no savename provided')
 
-        if save==True:
+        if save:
             h5f = h5py.File(savename, 'a')
 
-        if proceed==True:
-            if proceedname == None:
+        if proceed:
+            if proceedname is None:
                 raise ValueError('proceed set to true but no proceedname provided')
             else:
                 h5p = h5py.File(savename, 'r')
@@ -307,14 +314,14 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             pi = post.get_vary_params()
             p0 = np.vstack([pi]*statevars.nwalkers)
             p0 += [np.random.rand(statevars.ndim)*pscales for i in range(statevars.nwalkers)]
-            if proceed==False:
+            if not proceed:
                 statevars.initial_positions.append(p0)
             else:
                 statevars.initial_positions.append(statevars.prechains[i][0,:,:])
             statevars.samplers.append(emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array,
                                                                 threads=1))
 
-        if proceed == True:
+        if proceed:
             for i, sampler in enumerate(statevars.samplers):
                 sampler.backend.grow(statevars.prechains[i].shape[0], None)
                 sampler.backend.chain = statevars.prechains[i]
@@ -572,7 +579,7 @@ def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArch
 
     afactor = np.divide(chains.shape[0], autocorrelation)
 
-    archange = np.divide(np.abs(np.subtract(autocorrelation, oldautocorrelation)),oldautocorrelation)
+    archange = np.divide(np.abs(np.subtract(autocorrelation, oldautocorrelation)), oldautocorrelation)
 
     # well-mixed criteria
     ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR and np.amin(afactor) > minAfactor and np.amax(archange) < maxArchange

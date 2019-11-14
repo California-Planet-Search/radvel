@@ -158,7 +158,7 @@ def mcmc(args):
     statfile = os.path.join(args.outputdir,
                             "{}_radvel.stat".format(conf_base))
 
-    if args.save == True or args.proceed == True:
+    if args.save or args.proceed:
         backend_loc = os.path.join(args.outputdir, conf_base+'_rawchain.h5')
     else:
         backend_loc = None
@@ -284,6 +284,8 @@ def mcmc(args):
                 'minTz': mintz,
                 'maxGR': maxgr}
     save_status(statfile, 'mcmc', savestate)
+
+    statevars.reset()
 
 
 def ic_compare(args):
