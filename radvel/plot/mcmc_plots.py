@@ -70,6 +70,7 @@ class TrendPlot(object):
 
         print("Trend plot saved to %s" % self.outfile)
 
+
 class AutoPlot(object):
     """
     Class to handle the creation of an autocorrelation time plot
@@ -90,6 +91,8 @@ class AutoPlot(object):
         """
         Make and either save or display the autocorrelation plot
         """
+
+        fig = pl.figure(figsize=(6, 4))
         pl.scatter(self.auto['autosamples'], self.auto['automin'], color = 'blue', label='Minimum Autocorrelation Time')
         pl.scatter(self.auto['autosamples'], self.auto['automean'], color = 'black', label='Mean Autocorrelation Time')
         pl.scatter(self.auto['autosamples'], self.auto['automax'], color = 'red', label='Maximum Autocorrelation Time')
@@ -104,11 +107,14 @@ class AutoPlot(object):
         pl.ylabel('Autocorrelation Time')
         pl.legend()
 
+        fig.tight_layout()
+
         if self.saveplot is not None:
-            pl.savefig(self.saveplot, dpi=150)
+            fig.savefig(self.saveplot, dpi=150)
             print("Auto plot saved to %s" % self.saveplot)
         else:
-            pl.show
+            fig.show()
+
 
 class CornerPlot(object):
     """
