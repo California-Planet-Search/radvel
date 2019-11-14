@@ -78,6 +78,16 @@ def test_k2(setupfn='example_planets/epic203771098.py'):
     args.proceed = True
     radvel.driver.mcmc(args)
 
+    args.ensembles = 1
+    try:
+        radvel.driver.mcmc(args)
+    except ValueError:  # expected error when changing number of ensembles
+        pass
+
+    args.serial = True
+    args.proceed = False
+    radvel.driver.mcmc(args)
+
 
 def test_hd(setupfn='example_planets/HD164922.py'):
     """
@@ -86,11 +96,6 @@ def test_hd(setupfn='example_planets/HD164922.py'):
     args = _args()
     args.setupfn = setupfn
 
-    radvel.driver.fit(args)
-    radvel.driver.mcmc(args)
-
-    args.serial = True
-    args.ensembles = 1
     radvel.driver.fit(args)
     radvel.driver.mcmc(args)
 
@@ -298,11 +303,11 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
 
 if __name__ == '__main__':
     test_k2()
-    test_hd()
+    # test_hd()
     # test_proceed()
-    test_model_comp()
-    test_k2131()
-    test_celerite()
-    test_basis()
-    test_kernels()
-    test_kepler()
+    # test_model_comp()
+    # test_k2131()
+    # test_celerite()
+    # test_basis()
+    # test_kernels()
+    # test_kepler()
