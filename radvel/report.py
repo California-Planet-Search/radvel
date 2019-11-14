@@ -380,11 +380,11 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
                 the name of the star in the table title
         """
 
-        names = ['minafactor', 'maxarchange', 'maxgr', 'mintz']
+        names = ['minAfactor', 'maxArchange', 'maxGR', 'minTz']
         values = [self.minafactor, self.maxarchange, self.maxgr, self.mintz]
         rows = []
         for i in range(0,len(names)):
-            rows.append("$%s$ & $%s$" % (names[i], values[i]))
+            rows.append(r"%s & $%7.3f$" % (names[i], float(values[i])))
 
         kw = dict()
         kw['rows'] = rows
