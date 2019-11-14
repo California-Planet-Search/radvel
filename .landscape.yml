@@ -1,6 +1,0 @@
-max-line-length: 72
-python-targets:
-    - 2.7
-    - 3
-ignore-patterns:
-    - *.ipynb

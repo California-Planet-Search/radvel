@@ -164,15 +164,23 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
 
     elif 'gp' in params:
         newparams = [pi for pi in params if pi != 'gp']
-        if isinstance(post.likelihood, radvel.likelihood.GPLikelihood):
+        if verbose:
             print("Warning: BIC/AIC comparisons with and without GP are only implemented for "
                   + "kernels where the amplitude of the GP is described by the 'gp_amp' "
                   + "hyper parameter")
-            gpparamlist = post.hnames
+        have_gpamp = False
+        for param in post.params.keys():
+            if 'gp_amp' in param:
+                have_gpamp = True
+                break
+            else:
+                continue
+        if have_gpamp:
+            gpparamlist = post.likelihood.hnames
             ipost = copy.deepcopy(post)
             allfixed = False
             for gpparam in gpparamlist:
-                if len(gpparam) >= 6 and post.params[gpparam][0:6] == 'gp_amp':
+                if len(gpparam) >= 6 and gpparam.startswith('gp_amp'):
                     ipost.params[gpparam].value = 0.
                 if post.params[gpparam].vary:
                     allfixed = False
