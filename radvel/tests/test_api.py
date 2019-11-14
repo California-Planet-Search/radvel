@@ -76,6 +76,7 @@ def test_k2(setupfn='example_planets/epic203771098.py'):
 
     # set the proceed flag and continue
     args.proceed = True
+    args.nwalkers = 20
     radvel.driver.mcmc(args)
 
     args.ensembles = 1
