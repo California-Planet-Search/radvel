@@ -58,21 +58,21 @@ double kepler(double M, double e)
 }
 
 // om is in radians
-double rv_drive(double t, double per, double tp, double e, double om, double k)
+double rv_drive(double t, double per, double tp, double e, double cosom, double sinom, double k)
 {
   double PI = 3.141592653589793;
-  double phase, M, E, nu, rv;
+  double phase, M, E, ratio,fac, rv;
   phase = (t - tp) / per;
   M = 2 * PI * ( phase - floor( phase ) );
 
   // Calculate the approximate eccentric anomaly, E1, via the mean anomaly  M.
   E = kepler(M, e);
     
-  // Calculate nu
-  nu = 2.0 * atan(  sqrt( (1.0 + e) / (1.0 - e) ) * tan( E / 2 ) );
-    
   // Calculate the radial velocity
-  rv = k * ( cos( nu + om ) + e * cos( om ) );
+  ratio = sqrt((1 + e)/(1 - e))*tan ( E / 2 );
+  fac = 2/(1 + ratio*ratio);
+  rv = k * (cosom*(fac - 1) - ratio * fac * sinom + e*cosom);
+  //printf("hello");
   return rv;
 }
 
