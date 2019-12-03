@@ -4,9 +4,57 @@ import warnings
 import numpy as np
 from scipy.stats import gaussian_kde
 
+import radvel
 from radvel import model
 from radvel import orbit
 from radvel import utils
+
+import pymc3 as pm
+import theano.tensor as tt
+
+
+commands = {
+    "Jeffreys": radvel.distributions.Jeffreys,
+    "ModifiedJeffreys": radvel.distributions.ModifiedJeffreys,
+    "eccpotential": radvel.distributions.eccpotential,
+    "kpotential": radvel.distributions.kpotential,
+    "secondaryeclipsepotential": radvel.distributions.secondaryeclipsepotential,
+    "numericalpotential": radvel.distributions.numericalpotential,
+    "userpotential": radvel.distributions.userpotential,
+    "informativebaselinepotential": radvel.distributions.informativebaselinepotential,
+    "Gaussian": pm.Normal,
+    "Uniform": pm.Uniform,
+    "Flat": pm.Flat,
+    "HalfFlat": pm.HalfFlat,
+    "Normal": pm.Normal,
+    "TruncatedNormal": pm.TruncatedNormal,
+    "HalfNormal": pm.HalfNormal,
+    "SkewNormal": pm.SkewNormal,
+    "Beta": pm.Beta,
+    "Kumaraswamy": pm.Kumaraswamy,
+    "Exponential": pm.Exponential,
+    "Laplace": pm.Laplace,
+    "StudentT": pm.StudentT,
+    "HalfStudentT": pm.HalfStudentT,
+    "Cauchy": pm.Cauchy,
+    "HalfCauchy": pm.HalfCauchy,
+    "Gamma": pm.Gamma,
+    "InverseGamma": pm.InverseGamma,
+    "Weibull": pm.Weibull,
+    "Lognromal": pm.Lognormal,
+    "ChiSquared": pm.ChiSquared,
+    "Wald": pm.Wald,
+    "Pareto": pm.Pareto,
+    "ExGaussian": pm.ExGaussian,
+    "VonMises": pm.VonMises,
+    "Triangular": pm.Triangular,
+    "Gumbel": pm.Gumbel,
+    "Rice": pm.Rice,
+    "Logistic": pm.Logistic,
+    "LogitNormal": pm.LogitNormal,
+    "Interpolated": pm.Interpolated,
+    "Potential": pm.Potential,
+}
 
 
 class Prior(object):
@@ -30,13 +78,9 @@ class Gaussian(Prior):
         self.sigma = sigma
         self.param = param
 
-    def __call__(self, params):
-        x = params[self.param].value
-        return -0.5 * ((x - self.mu) / self.sigma)**2 - 0.5*np.log((self.sigma**2)*2.*np.pi)
-
     def __repr__(self):
         s = "Gaussian prior on {}, mu={}, sigma={}".format(
-            self.param, self. mu, self.sigma
+            self.param, self.mu, self.sigma
             )
         return s
 
@@ -49,6 +93,9 @@ class Gaussian(Prior):
             s = self.__repr__()
 
         return s
+
+    def __call__(self):
+        return ['Gaussian', self.param, self.mu, self.sigma]
 
 
 class EccentricityPrior(Prior):
@@ -101,31 +148,9 @@ class EccentricityPrior(Prior):
 upper limits must match number of planets."
             self.upperlims = upperlims
 
-    def __call__(self, params):
-        def _getpar(key, num_planet):
-            return params['{}{}'.format(key, num_planet)].value
+    def __call__(self):
 
-        parnames = params.basis.name.split()
-
-        for i, num_planet in enumerate(self.planet_list):
-            if 'e' in parnames:
-                ecc = _getpar('e', num_planet)
-            elif 'secosw' in parnames:
-                secosw = _getpar('secosw', num_planet)
-                sesinw = _getpar('sesinw', num_planet)
-                ecc = secosw**2 + sesinw**2
-            elif 'ecosw' in parnames:
-                ecosw = _getpar('ecosw', num_planet)
-                esinw = _getpar('esinw', num_planet)
-                ecc = np.sqrt(ecosw**2 + esinw**2)
-            elif 'se' in parnames:
-                secc = _getpar('se',num_planet)
-                ecc = secc**2
-
-            if ecc > self.upperlims[i] or ecc < 0.0:
-                return -np.inf
-
-        return -np.sum(np.log(self.upperlims))
+        return ['Potential', 'eccpotential', self.planet_list, self.upperlims]
 
 
 class PositiveKPrior(Prior):
@@ -149,76 +174,9 @@ class PositiveKPrior(Prior):
     def __init__(self, num_planets):
         self.num_planets = num_planets
 
-    def __call__(self, params):
-        def _getpar(key, num_planet):
-            return params['{}{}'.format(key, num_planet)].value
+    def __call__(self):
 
-        for num_planet in range(1, self.num_planets+1):
-            try:
-                k = _getpar('k', num_planet)
-            except KeyError:
-                k = np.exp(_getpar('logk', num_planet))
-
-            if k < 0.0:
-                return -np.inf
-        return 0
-
-
-class HardBounds(Prior):
-    """Prior for hard boundaries
-
-    This prior allows for hard boundaries to be established
-    for a given parameter.
-
-    Args:
-        param (string): parameter label
-        minval (float): minimum allowed value
-        maxval (float): maximum allowed value
-    """
-
-    def __init__(self, param, minval, maxval):
-        self.minval = minval
-        self.maxval = maxval
-        self.param = param
-
-        self.finite = True
-
-        if not np.isfinite(self.minval) or not np.isfinite(self.maxval):
-            warnings.warn("Non-finite boundary given to HardBounds. Your likelihood will not be properly normalized.",
-                          UserWarning)
-            self.finite = False
-
-        if (len(param) == 2 and (param.startswith('k') or param.startswith('e'))) or param.startswith('logk'):
-            warnings.warn("HardBounds set on K or e parameter. PositveKPrior and EccentricityPriors are recommended",
-                          UserWarning)
-
-    def __call__(self, params):
-        x = params[self.param].value
-        if x <= self.minval or x >= self.maxval:
-            return -np.inf
-        else:
-            if self.finite:
-                return -np.log(self.maxval-self.minval)
-            else:
-                return 0
-
-    def __repr__(self):
-        s = "Bounded prior on {}, min={}, max={}".format(
-            self.param, self.minval, self.maxval
-            )
-        return s
-
-    def __str__(self):
-        try:
-            tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
-
-            s = "Bounded prior: ${} < {} < {}$".format(self.minval,
-                                                       tex.replace('$', ''),
-                                                       self.maxval)
-        except KeyError:
-            s = self.__repr__()
-
-        return s
+        return ['Potential', 'kpotential', self.num_planets]
 
 
 class SecondaryEclipsePrior(Prior):
@@ -251,72 +209,8 @@ class SecondaryEclipsePrior(Prior):
         self.ts_err = ts_err
 
     def __call__(self, params):
-        def _getpar(key):
-            return synth_params['{}{}'.format(key, self.planet_num)].value
 
-        synth_params = params.basis.to_synth(params)
-
-        tp = _getpar('tp')
-        per = _getpar('per')
-        ecc = _getpar('e')
-        omega = _getpar('w')
-
-        ts = orbit.timeperi_to_timetrans(tp, per, ecc, omega, secondary=True)
-        ts_phase = utils.t_to_phase(synth_params, ts, self.planet_num)
-
-        pts = utils.t_to_phase(synth_params, self.ts, self.planet_num)
-        epts = self.ts_err / per
-
-        penalty = -0.5 * ((ts_phase - pts) / epts)**2 - 0.5*np.log((epts**2)*2.*np.pi)
-
-        return penalty
-
-
-class Jeffreys(Prior):
-    """Jeffrey's prior
-
-    This prior follows the distribution:
-
-    .. math::
-        p(x) \\propto \\frac{1}{x}
-
-    with upper and lower bounds to prevent singularity at :math:`x=0`.
-
-    Args:
-        param (string): parameter label
-        minval (float): minimum allowed value
-        maxval (float): maximum allowed value
-    """
-
-    def __init__(self, param, minval, maxval):
-        self.minval = minval
-        self.maxval = maxval
-        self.param = param
-
-        self.normalization = 1./np.log(self.maxval/self.minval)
-
-    def __call__(self, params):
-        x = params[self.param].value
-        if x < self.minval or x > self.maxval:
-            return -np.inf
-        else:
-            return np.log(self.normalization) - np.log(x)
-    def __repr__(self):
-        s = "Jeffrey's prior on {}, min={}, max={}".format(
-            self.param, self.minval, self.maxval
-            )
-        return s
-    def __str__(self):
-        try:
-            tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
-
-            s = "Jeffrey's prior: ${} < {} < {}$".format(self.minval,
-                                                       tex.replace('$',''),
-                                                       self.maxval)
-        except KeyError:
-            s = self.__repr__()
-
-        return s
+        return ['Potential', 'secondaryeclipse', self.planet_num, self.ts, self.ts_err]
 
 
 class ModifiedJeffreys(Prior):
@@ -348,16 +242,15 @@ class ModifiedJeffreys(Prior):
         assert self.minval > self.kneeval, "ModifiedJeffreys prior requires minval>kneeval."
 
     def __call__(self, params):
-        x = params[self.param].value
-        if (x > self.maxval) or (x < self.minval):
-            return -np.inf
-        else:
-            return np.log(self.normalization) - np.log(x-self.kneeval)
+
+        return ['ModifiedJeffreys', self.param, self.kneeval, self.minval, self.maxval]
+
     def __repr__(self):
         s = "Modified Jeffrey's prior on {}, knee={}, min={}, max={}".format(
             self.param, self.kneeval, self.minval, self.maxval
             )
         return s
+
     def __str__(self):
         try:
             tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
@@ -369,6 +262,7 @@ class ModifiedJeffreys(Prior):
             s = self.__repr__()
 
         return s
+
 
 class NumericalPrior(Prior):
     """Prior defined by an input array of values
@@ -407,11 +301,8 @@ class NumericalPrior(Prior):
         self.pdf_estimate = gaussian_kde(values, bw_method=bw_method)
 
     def __call__(self, params):
-        x = []
-        for param in self.param_list:
-            x.append(params[param].value)
-        val = np.log(self.pdf_estimate(x))
-        return val[0]
+
+        return ['Potential', 'numericalpotential', self.param_list, self.pdf_estimate]
 
     def __repr__(self):
         s = "Numerical prior on {}".format(
@@ -473,10 +364,8 @@ class UserDefinedPrior(Prior):
         self.tex_rep = tex_rep
 
     def __call__(self, params):
-        x = []
-        for param in self.param_list:
-            x.append(params[param].value)
-        return self.func(x)
+
+        return ['Potential', 'userpotential', self.param_list, self.func]
 
     def __repr__(self):
         s = "User-defined prior on {}".format(
@@ -490,7 +379,7 @@ class UserDefinedPrior(Prior):
 
 
 class InformativeBaselinePrior(Prior):
-    """ Informative baseline prior suggested
+    """ Informative baseline prior acting on the period, suggested
     by A. Vanderburg (see Blunt et al. 2019).
 
     This prior follows the distribution:
@@ -503,32 +392,51 @@ class InformativeBaselinePrior(Prior):
     with upper bound.
 
     Args:
-        param (string): parameter label
+        planet_num (integer): number of planet to apply prior on
         baseline (float): :math:`B` in eq above
         duration (float): :math:`t_{{d}}` in eq above (default: 0.0)
 
     """
 
-    def __init__(self, param, baseline, duration=0.0):
-        self.param = param
+    def __init__(self, planet_num, baseline, duration=0.0):
+        self.planet_num = planet_num
         self.baseline = baseline
         self.duration = duration
 
     def __repr__(self):
-        s = "Informative baseline prior on {}, baseline={}, duration={}".format(
-            self.param, self.baseline, self.duration
+        s = "Informative baseline prior on per{}, baseline={}, duration={}".format(
+            self.planet_num, self.baseline, self.duration
             )
         return s
 
     def __call__(self, params):
 
-        per = params[self.param].value
+        return ['Potential', "informativebaselinepotential", self.planet_num, self.baseline, self.duration]
 
-        if self.param.startswith('logper'):
-            per = np.exp(per)
 
-        if (per-self.duration)<=self.baseline:
-            return 0.
-        else:
-            return np.log((self.baseline+self.duration)/per)
+class PMDistribution(Prior):
+    """Interface for the user to define a prior using
+    any continuous distribution supported by PyMC3.
 
+    Args:
+        name (string): name of the distribution
+        param (string): parameter to place the prior on
+        **kargs: all required arguments for that distribution
+
+    """
+
+    def __init__(self, name, param, **kwargs):
+
+        self.name = name
+        self.param = param
+        self.kwargs = kwargs
+
+    def __call__(self):
+
+        return("PMDistribution", self.param, self.name, self.kwargs)
+
+    def __repr__(self):
+
+        s = "{} prior on {} with arguments {}".format(
+            self.name, self.param, self.kwargs
+        )

@@ -41,28 +41,32 @@ class Likelihood(object):
     def __repr__(self):
         s = ""
         if self.uparams is None:
-            s += "{:<20s}{:>15s}{:>10s}\n".format(
-                'parameter', 'value', 'vary'
+            s += "{:<20s}{:>15s}{:>10s}{:>15s}{:>15s}\n".format(
+                'parameter', 'value', 'vary', 'minbound', 'maxbound'
                 )
             keys = self.params.keys()
             for key in keys:
                 vstr = str(self.params[key].vary)
+                min = self.params[key].minbound
+                max = self.params[key].maxbound
                 if (key.startswith('tc') or key.startswith('tp')) and self.params[key].value > 1e6:
                     par = self.params[key].value - 2450000
                 else:
                     par = self.params[key].value
 
-                s += "{:20s}{:15g} {:>10s}\n".format(
-                    key, par, vstr
+                s += "{:20s}{:15g} {:>10s}{:>15s}{:>15s}\n".format(
+                    key, par, vstr, min, max
                      )
         else:
             s = ""
-            s += "{:<20s}{:>15s}{:>10s}{:>10s}\n".format(
-                'parameter', 'value', '+/-', 'vary'
+            s += "{:<20s}{:>15s}{:>10s}{:>10s}{:>15s}{:>15s}\n".format(
+                'parameter', 'value', '+/-', 'vary', 'minbound', 'maxbound'
                 )
             keys = self.params.keys()
             for key in keys:
                 vstr = str(self.params[key].vary)
+                min = self.params[key].minbound
+                max = self.params[key].maxbound
                 if key in self.uparams.keys():
                     err = self.uparams[key]
                 else:
@@ -73,8 +77,8 @@ class Likelihood(object):
                 else:
                     par = self.params[key].value
 
-                s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
-                    key, par, err, vstr
+                s += "{:20s}{:15g}{:10g}{:>10s}{:>15s}{:>15s}\n".format(
+                    key, par, err, vstr, min, max
                      )
         return s
 

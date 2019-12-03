@@ -1,6 +1,7 @@
 
 import numpy as np
 import radvel.kepler
+import pymc3 as pm
 
 
 def timetrans_to_timeperi(tc, per, ecc, omega):
@@ -46,25 +47,25 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=False):
 
     """
     try:
-        if ecc >= 1:
+        if pm.math.gt(ecc, 1):
             return tp
     except ValueError:
         pass
 
     if secondary:
         f = 3*np.pi/2 - omega                                       # true anomaly during secondary eclipse
-        ee = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
+        ee = 2 * pm.math.arctan(pm.math.tan(f/2) * pm.math.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
 
         # ensure that ee is between 0 and 2*pi (always the eclipse AFTER tp)
         if isinstance(ee, np.float64):
             ee = ee + 2 * np.pi
         else:
-            ee[ee < 0.0] = ee + 2 * np.pi
+            ee[pm.math.gt(0, ee)] = ee + 2 * np.pi
     else:
         f = np.pi/2 - omega                                         # true anomaly during transit
-        ee = 2 * np.arctan(np.tan(f/2) * np.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
+        ee = 2 * pm.math.arctan(pm.math.tan(f/2) * pm.math.sqrt((1-ecc)/(1+ecc)))  # eccentric anomaly
 
-    tc = tp + per/(2*np.pi) * (ee - ecc*np.sin(ee))         # time of conjunction
+    tc = tp + per/(2*np.pi) * (ee - ecc*pm.math.sin(ee))         # time of conjunction
 
     return tc
 
@@ -80,7 +81,7 @@ def true_anomaly(t, tp, per, e):
         e (float): eccentricity
 
     Returns:
-        array: true anomoly at each time
+        array: true anomaly at each time
     """
 
     # f in Murray and Dermott p. 27
