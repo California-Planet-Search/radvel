@@ -1,9 +1,10 @@
 import numpy as np
 from collections import OrderedDict
+import pymc3 as pm
 
-from radvel import kepler
+import exoplanet as xo
+import radvel
 from radvel.basis import Basis
-
 
 texdict = {
     'per': 'P',
@@ -36,23 +37,18 @@ texdict = {
 
 class Parameter(object):
     """Object to store attributes of each orbital parameter
-
     Attributes:
         value (float): value of parameter.
         vary (Bool): True if parameter is allowed to vary in
             MCMC or max likelihood fits, false if fixed
-        minbound (float): minimum value the parameter is allowed to take on
-        maxbound (float): maximum value the parameter is allowed to take on
         mcmcscale (float): step size to be used for MCMC fitting
         linear (bool): if vary=False and linear=True for gamma parameters then they will be calculated analytically
             using the `trick <http://cadence.caltech.edu/~bfulton/share/Marginalizing_the_likelihood.pdf>`_. derived by Timothy Brandt.
     """
 
-    def __init__(self, value=None, vary=True, minbound=None, maxbound=None, mcmcscale=None, linear=False):
+    def __init__(self, value=None, vary=True, mcmcscale=None, linear=False):
         self.value = value
         self.vary = vary
-        self.minbound = minbound
-        self.maxbound = maxbound
         self.mcmcscale = mcmcscale
         self.linear = linear
 
@@ -61,14 +57,12 @@ class Parameter(object):
         if isinstance(other, self.__class__):
             return (self.value == other.value) \
                    and (self.vary == other.vary) \
-                   and (self.minbound == other.minbound) \
-                   and (self.maxbound == other.maxbound) \
                    and (self.mcmcscale == other.mcmcscale)
 
     def __repr__(self):
         s = (
-            "Parameter object: value = {}, vary = {}, minbound = {}, maxbound = {}, mcmc scale = {}"
-        ).format(self.value, self.vary, self.minbound, self.maxbound, self.mcmcscale)
+            "Parameter object: value = {}, vary = {}, mcmc scale = {}"
+        ).format(self.value, self.vary, self.mcmcscale)
         return s
 
     def __float__(self):
@@ -78,10 +72,8 @@ class Parameter(object):
 class Parameters(OrderedDict):
 
     """Object to store the model parameters.
-
     Parameters to describe a radial velocity orbit
     stored as an OrderedDict.
-
     Args:
         num_planets (int): Number of planets in model
         basis (string): parameterization of orbital parameters. See
@@ -90,19 +82,16 @@ class Parameters(OrderedDict):
             numbers in the Parameter object to planet letters.
             Default {1: 'b', 2: 'c', etc.}. The keys of this dictionary must
             all be integers.
-
     Attributes:
         basis (radvel.Basis): Basis object
         planet_parameters (list): orbital parameters contained within the
             specified basis
         num_planets (int): number of planets in the model
-
     Examples:
        >>> import radvel
        # create a Parameters object for a 2-planet system with
        # custom planet number to letter mapping
        >>> params = radvel.Parameters(2, planet_letters={1:'d', 2:'e'})
-
     """
     def __init__(self, num_planets, basis='per tc secosw sesinw logk',
                  planet_letters=None):
@@ -136,13 +125,10 @@ should have only integers as keys."""
 
     def tex_labels(self, param_list=None):
         """Map Parameters keys to pretty TeX code representations.
-
         Args:
             param_list (list [optional]): Manually pass a list of parameter labels
-
         Returns:
             dict: dictionary mapping Parameters keys to TeX code
-
         """
 
         if param_list is None:
@@ -236,22 +222,31 @@ class GeneralRVModel(object):
         vel += self.params['curv'].value * (t - self.time_base)**2
         return vel
 
-def _standard_rv_calc(t,params,planet_num=None):
+def _standard_rv_calc(t, params, planet_num=None):
+
         vel = np.zeros(len(t))
-        params_synth = params.basis.to_synth(params)
+
         if planet_num is None:
             planets = range(1, params.num_planets+1)
         else:
             planets = [planet_num]
 
         for num_planet in planets:
-            per = params_synth['per{}'.format(num_planet)].value
-            tp = params_synth['tp{}'.format(num_planet)].value
-            e = params_synth['e{}'.format(num_planet)].value
-            w = params_synth['w{}'.format(num_planet)].value
-            k = params_synth['k{}'.format(num_planet)].value
-            orbel_synth = np.array([per, tp, e, w, k])
-            vel += kepler.rv_drive(t, orbel_synth)
+            for par in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
+                if str(par)[0:3] == 'per' and str(par)[-1] == num_planet:
+                    per = par
+                if str(par)[0:2] == 'tp' and str(par)[-1] == num_planet:
+                    tp = par
+                if str(par)[0:3] == 'ecc' and str(par)[-1] == num_planet:
+                    e = par
+                if str(par)[0] == 'w' and str(par)[-1] == num_planet:
+                    w = par
+                if str(par)[0] == 'k' and str(par)[-1] == num_planet:
+                    k = par
+
+            orbit = xo.orbits.KeplerianOrbit(period=per, t_periastron=tp, ecc=e, omega=w)
+            vel += orbit.get_radial_velocity(t, K=k)
+
         return vel
 
 class RVModel(GeneralRVModel):
@@ -262,6 +257,6 @@ class RVModel(GeneralRVModel):
     classes. The different RV models, with different
     parameterizations, all inherit from this class.
     """
-    def __init__(self,params, time_base=0):
+    def __init__(self, params, time_base=0):
         super(RVModel,self).__init__(params,_standard_rv_calc,time_base)
         self.num_planets=params.num_planets

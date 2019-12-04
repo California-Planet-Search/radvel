@@ -54,8 +54,8 @@ class ModifiedJeffreys(pm.distributions.continuous.BoundedContinuous):
 def eccpotential(planet_list, upperlims):
 
     for i, num_planet in enumerate(planet_list):
-        for param in radvel.mcmc.model.free_RVs:
-            if str(param)[0] == 'e' and int(str(param)[-1]) == num_planet:
+        for param in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
+            if str(param)[0:3] == 'ecc' and int(str(param)[-1]) == num_planet:
                 value = param
             if tt.gt(value, upperlims[i]) or tt.gt(0, value):
                 return -np.inf
@@ -66,7 +66,7 @@ def eccpotential(planet_list, upperlims):
 def kpotential(num_planets):
 
     for num_planet in range(1, num_planets + 1):
-        for param in radvel.mcmc.model.free_RVs:
+        for param in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
             if str(param)[0] == 'k' and int(str(param)[-1]) == num_planet:
                 value = param
             if tt.gt(0, value):
@@ -77,12 +77,12 @@ def kpotential(num_planets):
 
 def secondaryeclipsepotential(planet_num, ts_self, ts_err):
 
-    for param in radvel.mcmc.model.free_RVs:
-        if str(param)[0] == 't' and int(str(param)[-1]) == planet_num:
+    for param in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
+        if str(param)[0:2] == 'tp' and int(str(param)[-1]) == planet_num:
             tp = param
-        if str(param)[0] == 'p' and int(str(param)[-1]) == planet_num:
+        if str(param)[0:3] == 'per' and int(str(param)[-1]) == planet_num:
             per = param
-        if str(param)[0] == 'e' and int(str(param)[-1]) == planet_num:
+        if str(param)[0:3] == 'ecc' and int(str(param)[-1]) == planet_num:
             ecc = param
         if str(param)[0] == 'w' and int(str(param)[-1]) == planet_num:
             omega = param
@@ -106,7 +106,7 @@ def numericalpotential(param_list, pdf_estimate):
 
     x = []
     for param in param_list:
-        for par in radvel.mcmc.model.free_RVs:
+        for par in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
             if str(par) == param:
                 x.append(par)
 
@@ -119,7 +119,7 @@ def userpotential(param_list, func):
 
     x = []
     for param in param_list:
-        for par in radvel.mcmc.model.free_RVs:
+        for par in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
             if str(par) == param:
                 x.append(par)
 
@@ -128,7 +128,7 @@ def userpotential(param_list, func):
 
 def informativebaselinepotential(planet_num, baseline, duration):
 
-    for param in radvel.mcmc.model.free_RVs:
+    for param in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
         if int(str(param)[-1]) == planet_num:
             per = param
 
