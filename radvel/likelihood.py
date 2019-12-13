@@ -48,7 +48,7 @@ class Likelihood(object):
             for key in keys:
                 vstr = str(self.params[key].vary)
                 if (key.startswith('tc') or key.startswith('tp')) and self.params[key].value > 1e6:
-                    par = self.params[key].value - 2450000
+                    par = self.params[key].value - self.model.time_base
                 else:
                     par = self.params[key].value
 
@@ -69,7 +69,7 @@ class Likelihood(object):
                     err = 0
                 if (key.startswith('tc') or key.startswith('tp')) and \
                         self.params[key].value > 1e6:
-                    par = self.params[key].value - 2450000
+                    par = self.params[key].value - self.model.time_base
                 else:
                     par = self.params[key].value
 
