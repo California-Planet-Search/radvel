@@ -120,16 +120,12 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
 
     statevars.ar = 0
     statevars.ncomplete = statevars.nburn
-    statevars.tchains = np.empty((statevars.ndim,
-                        statevars.samplers[0].get_log_prob(flat=True).shape[0],
-                        statevars.ensembles))
     statevars.lnprob = []
     statevars.autocorrelation = []
     statevars.chains = []
     for i,sampler in enumerate(statevars.samplers):
         statevars.ncomplete += sampler.get_log_prob(flat=True).shape[0]
         statevars.ar += sampler.acceptance_fraction.mean() * 100
-        statevars.tchains[:,:,i] = sampler.flatchain.transpose()
         statevars.chains.append(sampler.get_chain()[:,:,:].T)
         statevars.lnprob.append(sampler.get_log_prob(flat=True))
     statevars.ar /= statevars.ensembles
@@ -149,7 +145,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
             statevars.mintz) = 0, -1.0, np.inf, np.inf, -1.0
     else:
         (statevars.ismixed, afactor, archange, oac, gr, tz) \
-            = convergence_calculate(statevars.tchains, statevars.chains,
+            = convergence_calculate(statevars.chains,
                                     oldautocorrelation=statevars.oac, minAfactor=minAfactor, maxArchange=maxArchange,
                                     maxGR=maxGR, minTz=minTz)
         statevars.mintz = min(tz)
@@ -188,8 +184,8 @@ def _domcmc(input_tuple):
     return sampler
 
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=50, maxArchange=.07, burnAfactor=25,
-         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=True,
+def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=40, maxArchange=.03, burnAfactor=25,
+         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=False,
          savename=None, proceed=False, proceedname=None):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
@@ -237,8 +233,6 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 h5p = h5py.File(savename, 'r')
                 msg = 'Loading chains and run information from previous MCMC'
                 print(msg)
-            if len(h5p.keys()) != (3*ensembles + 6):
-                raise ValueError('number of ensembles must be equal to that from previous run: {}'.format(((len(h5f.keys()) - 6)/3)))
             statevars.prechains = []
             statevars.prelog_probs = []
             statevars.preaccepted = []
@@ -284,6 +278,10 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         # Get an initial array value
         pi = post.get_vary_params()
         statevars.ndim = pi.size
+
+        if proceed:
+            if len(h5p.keys()) != (3 * statevars.ensembles + 6) or h5p['0_chain'].shape[2] != statevars.ndim or h5p['0_chain'].shape[1] != statevars.nwalkers:
+                raise ValueError('nensembles, nwalkers, and the number of parameters must be equal to those from previous run')
 
         if nwalkers < 2*statevars.ndim:
             print("WARNING: Number of walkers is less than 2 times number of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
@@ -432,7 +430,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 statevars.nburn = statevars.ncomplete
                 statevars.burn_complete = True
 
-            if statevars.mixcount >= 5:
+            if statevars.mixcount >= 2:
                 tf = time.time()
                 tdiff = tf - statevars.t0
                 tdiff,units = utils.time_print(tdiff)
@@ -445,9 +443,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 break
 
         print("\n")
-        if statevars.ismixed and statevars.mixcount < 5:
+        if statevars.ismixed and statevars.mixcount < 2:
             msg = (
-                "MCMC: WARNING: chains did not pass 5 consecutive convergence "
+                "MCMC: WARNING: chains did not pass 2 consecutive convergence "
                 "tests. They may be marginally well=mixed."
             )
             _closescr()
@@ -475,7 +473,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         curses.endwin()
 
 
-def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
+def convergence_calculate(chains, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
     """Calculate Convergence Criterion
 
     Calculates the Gelman-Rubin statistic, autocorrelation time factor,
@@ -487,10 +485,7 @@ def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArch
     a max relative change in autocorrelation time <= .01, and >= 1000 independent draws.
 
     Args:
-        pars0 (array): A 3 dimensional array (NPARS,NSTEPS,NCHAINS) of
-            parameter values
-        chains (array): A 3 dimensional array of parameter values shaped to calculate
-            autocorrelation time
+        chains (array): A 3 dimensional array of parameter values
         oldautocorrelation (float): previously calculated autocorrelation time
         minAfactor (float): minimum autocorrelation
             time factor to consider well-mixed
@@ -531,7 +526,10 @@ def convergence_calculate(pars0, chains, oldautocorrelation, minAfactor, maxArch
             Adapted to calculate and consider autocorrelation times
     """
 
-    pars = pars0.copy() # don't modify input parameters
+    gr_chains = chains.copy()
+    for i in range(0,len(chains)):
+        gr_chains[i] = gr_chains[i].reshape(gr_chains[i].shape[0], gr_chains[i].shape[1]*gr_chains[i].shape[2])
+    pars = np.dstack(gr_chains)
 
     sz = pars.shape
     msg = 'MCMC: GELMAN_RUBIN: ERROR: pars must have 3 dimensions'
