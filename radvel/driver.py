@@ -41,6 +41,9 @@ def plots(args):
 
     status = load_status(statfile)
 
+    P, post = radvel.utils.initialize_posterior(config_file,
+                                                decorr=args.decorr)
+
     assert status.getboolean('fit', 'run'), \
         "Must perform max-liklihood fit before plotting"
     post = radvel.posterior.load(status.get('fit', 'postfile'))
@@ -301,6 +304,9 @@ def ic_compare(args):
                             "{}_radvel.stat".format(conf_base))
 
     status = load_status(statfile)
+
+    P, post = radvel.utils.initialize_posterior(config_file,
+                                                decorr=args.decorr)
 
     assert status.getboolean('fit', 'run'), \
         "Must perform max-liklihood fit before running Information Criteria comparisons"
