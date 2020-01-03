@@ -486,7 +486,8 @@ class GPMultipanelPlot(MultipanelPlot):
         subtract_orbit_model (bool, optional): if True, subtract the best-fit
             orbit model from the data and the model when plotting 
             the results. Useful for seeing the structure of correlated
-            noise in the data. Default: False. 
+            noise in the data. Default: False.
+        status (ConfigParser): (optional) result of radvel.driver.load_status on the .stat status file
 
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
@@ -494,7 +495,7 @@ class GPMultipanelPlot(MultipanelPlot):
                  legend=True,
                  phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
                  set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), subtract_gp_mean_model=False,
-                 plot_likelihoods_separately=False, subtract_orbit_model=False):
+                 plot_likelihoods_separately=False, subtract_orbit_model=False, status=None):
 
         super(GPMultipanelPlot, self).__init__(
             post, saveplot=saveplot, epoch=epoch, yscale_auto=yscale_auto,
@@ -508,6 +509,8 @@ class GPMultipanelPlot(MultipanelPlot):
         self.subtract_gp_mean_model = subtract_gp_mean_model
         self.plot_likelihoods_separately = plot_likelihoods_separately
         self.subtract_orbit_model = subtract_orbit_model
+        if status is not None:
+            self.status = status
 
         is_gp = False
         for like in self.like_list:

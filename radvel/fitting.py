@@ -102,11 +102,11 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             print("BIC = %4.2f" % fitpost.likelihood.bic())
             print("AIC = %4.2f" % fitpost.likelihood.aic())
 
-        comparison_parameters = ['Free Params', '$N_{\\rm free}$', '$N_{\\rm data}$',
-                                 'RMS', '$\\ln{\\mathcal{L}}$', 'BIC', 'AICc']
+        comparison_parameters = ['Free Params', r'$N_{\rm free}$', r'$N_{\rm data}$',
+                                 'RMS', r'$\ln{\mathcal{L}}$', 'BIC', 'AICc']
         pdict = collections.OrderedDict.fromkeys(comparison_parameters)
-        pdict['$N_{\\rm data}$'] = (ndata, 'number of measurements')
-        pdict['$N_{\\rm free}$'] = (nfree, 'number of free parameters')
+        pdict[r'$N_{\rm data}$'] = (ndata, 'number of measurements')
+        pdict[r'$N_{\rm free}$'] = (nfree, 'number of free parameters')
         pdict['RMS'] = (
             np.round(np.std(fitpost.likelihood.residuals()), 2),
             'RMS of residuals in m s$^{-1}$'
@@ -115,7 +115,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         # pdict['$\\chi^{2}_{\\nu}$'] = (
         #    np.round(chi_red,2), "jitter fixed"
         # )
-        pdict['$\\ln{\\mathcal{L}}$'] = (
+        pdict[r'$\ln{\mathcal{L}}$'] = (
             np.round(fitpost.logprob(), 2), "natural log of the likelihood"
         )
         pdict['BIC'] = (
