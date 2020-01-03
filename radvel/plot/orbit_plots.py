@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from matplotlib import rcParams, gridspec
 from matplotlib import pyplot as pl
 from matplotlib.ticker import MaxNLocator
@@ -6,6 +7,7 @@ from astropy.time import Time
 
 import radvel
 from radvel import plot
+from radvel.plot import mcmc_plots
 from radvel.utils import t_to_phase, fastbin, sigfig
 
 
@@ -55,12 +57,13 @@ class MultipanelPlot(object):
         highlight_last (bool): make the most recent measurement much larger in all panels
         show_rms (bool): show RMS of the residuals by instrument in the legend
         legend_kwargs (dict): dict of options to pass to legend (plotted in top panel)
+        status (ConfigParser): (optional) result of radvel.driver.load_status on the .stat status file
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
                  phase_nrows=None, phase_ncols=None, uparams=None, telfmts={}, legend=True,
                  phase_limits=[], nobin=False, phasetext_size='large', rv_phase_space=0.08,
                  figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9, highlight_last=False,
-                 show_rms=False, legend_kwargs=dict(loc='best')):
+                 show_rms=False, legend_kwargs=dict(loc='best'), status=None):
 
         self.post = post
         self.saveplot = saveplot
@@ -85,6 +88,9 @@ class MultipanelPlot(object):
         self.show_rms = show_rms
         self.legend_kwargs = legend_kwargs
         rcParams['font.size'] = text_size
+
+        if status is not None:
+            self.status = status
 
         if isinstance(self.post.likelihood, radvel.likelihood.CompositeLikelihood):
             self.like_list = self.post.likelihood.like_list
@@ -326,7 +332,7 @@ class MultipanelPlot(object):
             val = self.post.params["%s%d" % (print_params[l], pnum)].value
             
             if self.uparams is None:
-                _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
+                _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
             else:
                 if hasattr(self.post, 'medparams'):
                     val = self.post.medparams["%s%d" % (print_params[l], pnum)]
@@ -338,12 +344,40 @@ class MultipanelPlot(object):
                 err = self.uparams["%s%d" % (print_params[l], pnum)]
                 if err > 1e-15:
                     val, err, errlow = sigfig(val, err)
-                    _anotext = '$\\mathregular{%s}$ = %s $\\mathregular{\\pm}$ %s %s' \
+                    _anotext = r'$\mathregular{%s}$ = %s $\mathregular{\pm}$ %s %s' \
                                % (labels[l].replace("$", ""), val, err, units[p])
                 else:
-                    _anotext = '$\\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
+                    _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
 
-            anotext += [_anotext] 
+            anotext += [_anotext]
+
+        if hasattr(self.post, 'derived'):
+            chains = pd.read_csv(self.status['derive']['chainfile'])
+            self.post.nplanets = self.num_planets
+            dp = mcmc_plots.DerivedPlot(chains, self.post)
+            labels = dp.labels
+            texlabels = dp.texlabels
+            units = dp.units
+            derived_params = ['mpsini']
+            for l, par in enumerate(derived_params):
+                par_label = par + str(pnum)
+                if par_label in self.post.derived.columns:
+                    val = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.500]
+                    low = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.159]
+                    high = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.841]
+                    err_low = val - low
+                    err_high = high - val
+                    err = np.mean([err_low, err_high])
+                    err = radvel.utils.round_sig(err)
+                    index = np.where(np.array(labels) == par_label)[0][0]
+                    if err > 1e-15:
+                        val, err, errlow = sigfig(val, err)
+                        _anotext = r'$\mathregular{%s}$ = %s $\mathregular{\pm}$ %s %s' \
+                                   % (texlabels[index].replace("$", ""), val, err, units[index])
+                    else:
+                        _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (texlabels[index].replace("$", ""), val, units[index])
+
+                    anotext += [_anotext]
 
         anotext = '\n'.join(anotext)
         plot.add_anchored(
@@ -452,7 +486,8 @@ class GPMultipanelPlot(MultipanelPlot):
         subtract_orbit_model (bool, optional): if True, subtract the best-fit
             orbit model from the data and the model when plotting 
             the results. Useful for seeing the structure of correlated
-            noise in the data. Default: False. 
+            noise in the data. Default: False.
+        status (ConfigParser): (optional) result of radvel.driver.load_status on the .stat status file
 
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
@@ -460,7 +495,7 @@ class GPMultipanelPlot(MultipanelPlot):
                  legend=True,
                  phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
                  set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), subtract_gp_mean_model=False,
-                 plot_likelihoods_separately=False, subtract_orbit_model=False):
+                 plot_likelihoods_separately=False, subtract_orbit_model=False, status=None):
 
         super(GPMultipanelPlot, self).__init__(
             post, saveplot=saveplot, epoch=epoch, yscale_auto=yscale_auto,
@@ -474,6 +509,8 @@ class GPMultipanelPlot(MultipanelPlot):
         self.subtract_gp_mean_model = subtract_gp_mean_model
         self.plot_likelihoods_separately = plot_likelihoods_separately
         self.subtract_orbit_model = subtract_orbit_model
+        if status is not None:
+            self.status = status
 
         is_gp = False
         for like in self.like_list:
