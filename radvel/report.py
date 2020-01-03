@@ -19,13 +19,13 @@ units = {
     'e': '',
     'w': 'radians',
     'k': 'm s$^{-1}$',
-    'logk': '$\\ln{(\\rm m\\ s^{-1})}$',
+    'logk': r'$\ln{(\rm m\ s^{-1})}$',
     'secosw': '',
     'sesinw': '',
     'gamma': 'm s$-1$',
     'jitter': 'm s$-1$',
-    'logjit': '$\\ln{(\\rm m\\ s^{-1})}$',
-    'jit': '$\\rm m\\ s^{-1}$',
+    'logjit': r'$\ln{(\rm m\ s^{-1})}$',
+    'jit': r'$\rm m\ s^{-1}$',
     'dvdt': 'm s$^{-1}$ d$^{-1}$',
     'curv': 'm s$^{-1}$ d$^{-2}$',
     'gp_amp': 'm s$-1$',
@@ -247,14 +247,20 @@ class TexTable(RadvelReport):
         for n in range(1, nloop):
             for p in basis.split():  # loop over variables
                 par = p+str(n)
+
+                # get unit for parameter
                 unit = units.get(p, '')
 
+                # try to remove suffix
                 if unit == '' and par not in units.keys():
                     for s in suffixes:
                         if s in p:
                             unit = units.get(p.replace(s, ''), '')
                             break
-                else:
+
+                # if still can't find units get it by the parameter itself
+                # (derived parameters)
+                if unit == '':
                     unit = units.get(par, '')
 
                 try:
@@ -413,8 +419,7 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
         derived_params = dpl.labels
         derived_basis = ' '.join(set([s[:-1] for s in derived_params]))
         derived_tex = dpl.texlabels
-        derived_units = [s.split('[')[-1][:-1] for s in derived_tex]
-        derived_tex = [s.split('[')[0] for s in derived_tex]
+        derived_units = dpl.units
 
         self.report.latex_dict.update(dict(zip(derived_params, derived_tex)))
         units.update(dict(zip(derived_params, derived_units)))
