@@ -186,6 +186,7 @@ class DerivedPlot(object):
         # Determine which columns to include in corner plot
         self.labels = []
         self.texlabels = []
+        self.units = []
         for i in np.arange(1, P.nplanets + 1, 1):
             letter = planet_letters[i]
 
@@ -211,15 +212,14 @@ class DerivedPlot(object):
                     if np.median(self.chains[label]) > 100:
                         unit = "M$_{\\odot}$"
                         self.chains[label] *= 0.000954265748
-
-                    tl += " [%s]" % unit
                 elif key == 'rhop':
-                    tl += " [g cm$^{-3}$]"
+                    unit = " g cm$^{-3}$"
                 elif key == 'a':
-                    tl += " [AU]"
+                    unit = " AU"
                 else:
-                    tl += " "
+                    unit = " "
 
+                self.units.append(unit)
                 self.labels.append(label)
                 self.texlabels.append(tl)
 
@@ -231,8 +231,13 @@ class DerivedPlot(object):
         f = rcParams['font.size']
         rcParams['font.size'] = 12
 
+        plot_labels = []
+        for t, u in zip(self.texlabels, self.units):
+            label = '{} [{}]'.format(t, u)
+            plot_labels.append(label)
+
         _ = corner.corner(
-            self.chains[self.labels], labels=self.texlabels, label_kwargs={"fontsize": 14}, 
+            self.chains[self.labels], labels=plot_labels, label_kwargs={"fontsize": 14},
             plot_datapoints=False, bins=30, quantiles=[0.16, 0.50, 0.84],
             show_titles=True, title_kwargs={"fontsize": 14}, smooth=True
         )

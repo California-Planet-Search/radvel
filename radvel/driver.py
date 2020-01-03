@@ -53,6 +53,7 @@ def plots(args):
 
         if ptype == 'rv':
             args.plotkw['uparams'] = post.uparams
+            args.plotkw['status'] = status
             saveto = os.path.join(
                 args.outputdir,conf_base+'_rv_multipanel.pdf'
             )
@@ -521,11 +522,24 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         except (AttributeError, KeyError):
             pass
 
-    print("Derived parameters:", outcols)
+    # Get quantiles and update posterior object to median
+    # values returned by MCMC chains
+    quantiles = chains.quantile([0.159, 0.5, 0.841])
+    csvfn = os.path.join(args.outputdir, conf_base+'_derived_quantiles.csv')
+    quantiles.to_csv(csvfn, columns=outcols)
+
+    # saved derived paramters to posterior file
+    postfile = os.path.join(args.outputdir,
+                            '{}_post_obj.pkl'.format(conf_base))
+    post.derived = quantiles[outcols]
+    post.writeto(postfile)
+    savestate['quantfile'] = os.path.relpath(csvfn)
 
     csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.tar.bz2')
     chains.to_csv(csvfn, columns=outcols, compression='bz2')
     savestate['chainfile'] = os.path.relpath(csvfn)
+
+    print("Derived parameters:", outcols)
 
     save_status(statfile, 'derive', savestate)
 
