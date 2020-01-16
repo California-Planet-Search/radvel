@@ -38,7 +38,6 @@ class Posterior(Likelihood):
 
     def logprob(self):
 
-        #THIS WILL COME FROM MODEL
         """Log probability
 
         Log-probability for the likelihood given the list

@@ -6,14 +6,15 @@ import radvel
 
 class Jeffreys(pm.distributions.continuous.BoundedContinuous):
 
-    def __init__(self, lower, upper, **kwargs):
-        self.lower = lower
-        self.upper = upper
-        self.mean = (upper + lower)/2
+    def __init__(self, lower=.1, upper=1, *args, **kwargs):
+
+        self.lower = lower = tt.as_tensor_variable(lower)
+        self.upper = upper = tt.as_tensor_variable(upper)
+        self.mean = (upper + lower) / 2.
         self.median = self.mean
 
         kwargs["testval"] = kwargs.pop("testval", self.mean)
-        super(Jeffreys, self).__init__(**kwargs)
+        super().__init__(lower=lower, upper=upper, *args, **kwargs)
 
     def logp(self, value):
 
@@ -22,76 +23,152 @@ class Jeffreys(pm.distributions.continuous.BoundedContinuous):
 
         normalization = 1. / pm.math.log(upper / lower)
 
-        if tt.gt(lower, value) or tt.gt(value, upper):
-            return -np.inf
-        else:
-            return tt.log(normalization) - tt.log(value)
+        return tt.log(normalization) - tt.log(value)
 
 class ModifiedJeffreys(pm.distributions.continuous.BoundedContinuous):
 
     def __init__(self, kneeval, lower, upper, **kwargs):
-        self.minval = lower
-        self.maxval = upper
-        self.kneeval = kneeval
+
+        assert lower > kneeval, "ModifiedJeffreys prior requires minval>kneeval."
+
+        self.lower = tt.as_tensor_variable(lower)
+        self.upper = tt.as_tensor_variable(upper)
+        self.kneeval = tt.as_tensor_variable(kneeval)
         self.mean = (upper + lower)/2
         self.median = self.mean
 
-        assert self.minval > self.kneeval, "ModifiedJeffreys prior requires minval>kneeval."
-
         kwargs["testval"] = kwargs.pop("testval", self.mean)
-        super(ModifiedJeffreys, self).__init__(**kwargs)
+        super().__init__(kneeval=kneeval, lower=lower, upper=upper, **kwargs)
 
     def logp(self, value):
 
         normalization = 1. / np.log((self.maxval - self.kneeval) / (self.minval - self.kneeval))
 
-        if tt.gt(value, self.maxval) or tt.gt(self.minval, value):
-            return -np.inf
-        else:
-            return np.log(normalization) - np.log(value - self.kneeval)
+        return tt.log(normalization) - tt.log(value - self.kneeval)
 
 
-def eccpotential(planet_list, upperlims):
+def eccpotential(model, planet_list, upperlims):
+    lp = 0
+    ecount = 0
 
-    for i, num_planet in enumerate(planet_list):
-        for param in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
-            if str(param)[0:3] == 'ecc' and int(str(param)[-1]) == num_planet:
-                value = param
-            if tt.gt(value, upperlims[i]) or tt.gt(0, value):
-                return -np.inf
+    if planet_list != None:
+        for i, num_planet in enumerate(planet_list):
+            for par in model.unobserved_RVs:
+                if str(par).startswith('ecc') and str(par).endswith(str(num_planet)):
+                    ecc = par
+                    ecount += 1
 
-    return 0
+            if ecount == 0:
+                ecc = globals()['ecc' + str(num_planet)]
+
+            lp += tt.switch(tt.gt(ecc, 0), 0, -10e10) + tt.switch(tt.gt(ecc, upperlims[i]), -10e10, 0)
+
+    else:
+        for par in (model.unobserved_RVs):
+            if str(par.startswith('ecc')):
+                ecc = par
+                ecount += 1
+
+        if ecount == 0:
+            ecc = globals()['ecc']
+
+        lp += tt.switch(tt.gt(ecc, 0), 0, -10e10)
+        lp += tt.switch(tt.gt(ecc, upperlims), -10e10, 0)
+
+    pm.Potential('eccpotential', lp, model=model)
 
 
-def kpotential(num_planets):
+def kpotential(model, num_planets):
+    lp = 0
+    kcount = 0
 
-    for num_planet in range(1, num_planets + 1):
-        for param in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
-            if str(param)[0] == 'k' and int(str(param)[-1]) == num_planet:
-                value = param
-            if tt.gt(0, value):
-                return -np.inf
+    if num_planets != None:
+        for i in range(1, num_planets + 1):
+            for par in (model.unobserved_RVs):
+                if str(par).startswith('k') and str(par).endswith(str(i)):
+                    k = par
+                    kcount += 1
 
-    return 0
+            if kcount == 0:
+                k = globals()['k' + str(i)]
+
+            lp += tt.switch(tt.gt(k, 0), 0, -10e10)
+
+    else:
+        for par in (model.unobserved_RVs):
+            if str(par).startswith('k'):
+                k = par
+                kcount += 1
+
+        if kcount == 0:
+            k = globals()['k']
+
+        lp += tt.switch(tt.gt(k, 0), 0, -10e10)
+
+    pm.Potential('kpotential', lp, model=model)
 
 
-def secondaryeclipsepotential(planet_num, ts_self, ts_err):
+def secondaryeclipsepotential(model, planet_num, ts_self, ts_err):
 
-    for param in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
-        if str(param)[0:2] == 'tp' and int(str(param)[-1]) == planet_num:
-            tp = param
-        if str(param)[0:3] == 'per' and int(str(param)[-1]) == planet_num:
-            per = param
-        if str(param)[0:3] == 'ecc' and int(str(param)[-1]) == planet_num:
-            ecc = param
-        if str(param)[0] == 'w' and int(str(param)[-1]) == planet_num:
-            omega = param
+    tcount = 0
+    pcount = 0
+    ecount = 0
+    wcount = 0
+
+    if planet_num != None:
+
+        for par in (model.unobserved_RVs):
+            if str(par).startswith('tp') and str(par).endswith(str(planet_num)):
+                tp = par
+                tcount += 1
+            if str(par).startswith('per') and str(par).endswith(str(planet_num)):
+                per = par
+                pcount += 1
+            if str(par).startswith('ecc') and str(par).endswith(str(planet_num)):
+                ecc = par
+                ecount += 1
+            if str(par).startswith('w') and str(par).endswith(str(planet_num)):
+                omega = par
+                wcount += 1
+
+        if ecount == 0:
+            ecc = globals()['ecc' + str(planet_num)]
+        if pcount == 0:
+            per = globals()['per' + str(planet_num)]
+        if wcount == 0:
+            omega = globals()['w' + str(planet_num)]
+        if tcount == 0:
+            tp = globals()['tp' + str(planet_num)]
+
+    else:
+        for par in (model.unobserved_RVs):
+            if str(par).startswith('tp'):
+                tp = par
+                tcount += 1
+            if str(par).startswith('per'):
+                per = par
+                pcount += 1
+            if str(par).startswith('ecc'):
+                ecc = par
+                ecount += 1
+            if str(par).startswith('w'):
+                omega = par
+                wcount += 1
+
+        if ecount == 0:
+            ecc = globals()['ecc']
+        if pcount == 0:
+            per = globals()['per']
+        if wcount == 0:
+            omega = globals()['w']
+        if tcount == 0:
+            tp = globals()['tp']
 
     def t_to_phase(tp, per, t):
-        phase = (((t - tp) / per) - pm.math.floor((t - tp) / per))
+        phase = (((t - tp) / per) - tt.floor((t - tp) / per))
         return phase
 
-    ts = radvel.orbit.timeperi_to_timetrans(tp, per, ecc, omega, secondary=True)
+    ts = radvel.orbit.timeperi_to_timetrans(tp, per, ecc, omega, secondary=True, eval=False)
     ts_phase = t_to_phase(tp, per, ts)
 
     pts = t_to_phase(tp, per, ts_self)
@@ -99,7 +176,7 @@ def secondaryeclipsepotential(planet_num, ts_self, ts_err):
 
     penalty = -0.5 * ((ts_phase - pts) / epts) ** 2 - 0.5 * pm.math.log((epts ** 2) * 2. * np.pi)
 
-    return penalty
+    return tt.as_tensor_variable(penalty)
 
 
 def numericalpotential(param_list, pdf_estimate):
@@ -112,7 +189,7 @@ def numericalpotential(param_list, pdf_estimate):
 
     val = np.log(pdf_estimate(x))
 
-    return val[0]
+    return tt.as_tensor_variable(val[0])
 
 
 def userpotential(param_list, func):
@@ -123,7 +200,7 @@ def userpotential(param_list, func):
             if str(par) == param:
                 x.append(par)
 
-    return func(x)
+    return tt.as_tensor_variable(func(x))
 
 
 def informativebaselinepotential(planet_num, baseline, duration):

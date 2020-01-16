@@ -1,8 +1,7 @@
 import numpy as np
 from collections import OrderedDict
-import pymc3 as pm
 
-import exoplanet as xo
+import theano.tensor as tt
 import radvel
 from radvel.basis import Basis
 
@@ -44,13 +43,17 @@ class Parameter(object):
         mcmcscale (float): step size to be used for MCMC fitting
         linear (bool): if vary=False and linear=True for gamma parameters then they will be calculated analytically
             using the `trick <http://cadence.caltech.edu/~bfulton/share/Marginalizing_the_likelihood.pdf>`_. derived by Timothy Brandt.
+        lower (float): lowest possible value the parameter can take on
+        upper (float): highest possible value the parameter can take on
     """
 
-    def __init__(self, value=None, vary=True, mcmcscale=None, linear=False):
+    def __init__(self, value=None, vary=True, mcmcscale=None, linear=False, lower=None, upper=None):
         self.value = value
         self.vary = vary
         self.mcmcscale = mcmcscale
         self.linear = linear
+        self.lower = lower
+        self.upper = upper
 
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
@@ -222,32 +225,18 @@ class GeneralRVModel(object):
         vel += self.params['curv'].value * (t - self.time_base)**2
         return vel
 
-def _standard_rv_calc(t, params, planet_num=None):
 
-        vel = np.zeros(len(t))
+def _standard_rv_calc(t,e,tp,per,k,w):
 
-        if planet_num is None:
-            planets = range(1, params.num_planets+1)
-        else:
-            planets = [planet_num]
+    per = tt.switch(tt.lt(per, 0), 1e-4, per)
+    e = tt.switch(tt.lt(e, 0), 0, e)
+    e = tt.switch(tt.gt(e, .99), .99, e)
 
-        for num_planet in planets:
-            for par in (radvel.mcmc.model.free_RVs + radvel.mcmc.model.deterministics):
-                if str(par)[0:3] == 'per' and str(par)[-1] == num_planet:
-                    per = par
-                if str(par)[0:2] == 'tp' and str(par)[-1] == num_planet:
-                    tp = par
-                if str(par)[0:3] == 'ecc' and str(par)[-1] == num_planet:
-                    e = par
-                if str(par)[0] == 'w' and str(par)[-1] == num_planet:
-                    w = par
-                if str(par)[0] == 'k' and str(par)[-1] == num_planet:
-                    k = par
+    nu = radvel.orbit.true_anomaly(t, e, tp, per, k, w, eval=False)
+    rv = k * (tt.cos(nu + w) + e * tt.cos(w))
 
-            orbit = xo.orbits.KeplerianOrbit(period=per, t_periastron=tp, ecc=e, omega=w)
-            vel += orbit.get_radial_velocity(t, K=k)
+    return rv
 
-        return vel
 
 class RVModel(GeneralRVModel):
     """
