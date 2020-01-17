@@ -47,26 +47,23 @@ class Parameter(object):
     """
 
     def __init__(self, value=None, vary=True, mcmcscale=None, linear=False):
-        self.value = value
-        self.vary = vary
-        self.mcmcscale = mcmcscale
-        self.linear = linear
+        self.row = [value, vary, mcmcscale, linear]
 
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
         if isinstance(other, self.__class__):
-            return (self.value == other.value) \
-                   and (self.vary == other.vary) \
-                   and (self.mcmcscale == other.mcmcscale)
+            return (self.row[0] == other.row[0]) \
+                   and (self.row[1] == other.row[1]) \
+                   and (self.row[2] == other.row[2])
 
     def __repr__(self):
         s = (
             "Parameter object: value = {}, vary = {}, mcmc scale = {}"
-        ).format(self.value, self.vary, self.mcmcscale)
+        ).format(self.row[0], self.row[1], self.mcmcscale[2])
         return s
 
     def __float__(self):
-        return self.value
+        return self.row[0]
 
 
 class Parameters(OrderedDict):
