@@ -34,9 +34,9 @@ texdict = {
     'gp_Prot': 'P_{\\rm rot}',
 }
 
+
 class Parameter(object):
     """Object to store attributes of each orbital parameter
-
     Attributes:
         value (float): value of parameter.
         vary (Bool): True if parameter is allowed to vary in
@@ -47,23 +47,26 @@ class Parameter(object):
     """
 
     def __init__(self, value=None, vary=True, mcmcscale=None, linear=False):
-        self.row = [value, vary, mcmcscale, linear]
+        self.value = value
+        self.vary = vary
+        self.mcmcscale = mcmcscale
+        self.linear = linear
 
     def _equals(self, other):
         """method to assess the equivalence of two Parameter objects"""
         if isinstance(other, self.__class__):
-            return (self.row[0] == other.row[0]) \
-                   and (self.row[1] == other.row[1]) \
-                   and (self.row[2] == other.row[2])
+            return (self.value == other.value) \
+                   and (self.vary == other.vary) \
+                   and (self.mcmcscale == other.mcmcscale)
 
     def __repr__(self):
         s = (
             "Parameter object: value = {}, vary = {}, mcmc scale = {}"
-        ).format(self.row[0], self.row[1], self.mcmcscale[2])
+        ).format(self.value, self.vary, self.mcmcscale)
         return s
 
     def __float__(self):
-        return self.row[0]
+        return self.value
 
 
 class Parameters(OrderedDict):
@@ -158,6 +161,59 @@ should have only integers as keys."""
                 tex_labels[k] = k
 
         return tex_labels
+
+    def _bparams_to_bvector(self):
+
+        param_list = self.keys()
+
+        vector = np.zeros(((5*self.num_planets + 2), 4))
+
+        for par in param_list:
+            for num_planet in range(1, self.num_planets+1):
+                if par==('per'+str(num_planet)) or par==('logper'+str(num_planet)):
+                    vector[-5 + (5*num_planet)][0] = self[par].value
+                    vector[-5 + (5*num_planet)][1] = self[par].vary
+                    vector[-5 + (5*num_planet)][2] = self[par].mcmcscale
+                    vector[-5 + (5*num_planet)][3] = self[par].linear
+                if par==('tc'+str(num_planet)) or par==('tp'+str(num_planet)):
+                    vector[-4 + (5*num_planet)][0] = self[par].value
+                    vector[-4 + (5*num_planet)][1] = self[par].vary
+                    vector[-4 + (5*num_planet)][2] = self[par].mcmcscale
+                    vector[-4 + (5*num_planet)][3] = self[par].linear
+                if par==('secosw'+str(num_planet))  or par==('ecosw'+str(num_planet)) or par==('e'+str(num_planet)) \
+                        or par==('se'+str(num_planet)):
+                    vector[-3 + (5*num_planet)][0] = self[par].value
+                    vector[-3 + (5*num_planet)][1] = self[par].vary
+                    vector[-3 + (5*num_planet)][2] = self[par].mcmcscale
+                    vector[-3 + (5*num_planet)][3] = self[par].linear
+                if par==('sesinw'+str(num_planet))  or par==('esinw'+str(num_planet)) or par==('w'+str(num_planet)):
+                    vector[-2 + (5*num_planet)][0] = self[par].value
+                    vector[-2 + (5*num_planet)][1] = self[par].vary
+                    vector[-2 + (5*num_planet)][2] = self[par].mcmcscale
+                    vector[-2 + (5*num_planet)][3] = self[par].linear
+                if par==('k'+str(num_planet)) or par==('logk'+str(num_planet)):
+                    vector[(-1 + 5*num_planet)][0] = self[par].value
+                    vector[(-1 + 5*num_planet)][1] = self[par].vary
+                    vector[(-1 + 5*num_planet)][2] = self[par].mcmcscale
+                    vector[(-1 + 5*num_planet)][3] = self[par].linear
+            if par==('dvdt'):
+                vector[-2][0] = self[par].value
+                vector[-2][1] = self[par].vary
+                vector[-2][2] = self[par].mcmcscale
+                vector[-2][3] = self[par].linear
+            if par==('curv'):
+                vector[-1][0] = self[par].value
+                vector[-1][1] = self[par].vary
+                vector[-1][2] = self[par].mcmcscale
+                vector[-1][3] = self[par].linear
+
+        return vector
+
+    def _gparams_to_gvector(self, hnames):
+
+        param_list = self.keys()
+
+
 
     def _sparameter(self, parameter, num_planet):
         return '{0}{1}'.format(parameter, num_planet)
