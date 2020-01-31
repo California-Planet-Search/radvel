@@ -358,6 +358,12 @@ class MultipanelPlot(object):
             labels = dp.labels
             texlabels = dp.texlabels
             units = dp.units
+            if units == "M$_{\\rm Jup}$":
+                conversion_fac = 0.00315
+            elif units == "M$_{\\odot}$":
+                conversion_fac = 0.000954265748
+            else:
+                conversion_fac = 1
             derived_params = ['mpsini']
             for l, par in enumerate(derived_params):
                 par_label = par + str(pnum)
@@ -373,9 +379,9 @@ class MultipanelPlot(object):
                     if err > 1e-15:
                         val, err, errlow = sigfig(val, err)
                         _anotext = r'$\mathregular{%s}$ = %s $\mathregular{\pm}$ %s %s' \
-                                   % (texlabels[index].replace("$", ""), val, err, units[index])
+                                   % (texlabels[index].replace("$", ""), val*conversion_fac, err*conversion_fac, units[index])
                     else:
-                        _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (texlabels[index].replace("$", ""), val, units[index])
+                        _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (texlabels[index].replace("$", ""), val*conversion_fac, units[index])
 
                     anotext += [_anotext]
 
