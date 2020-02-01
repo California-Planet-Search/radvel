@@ -54,9 +54,13 @@ def plots(args):
         if ptype == 'rv':
             args.plotkw['uparams'] = post.uparams
             args.plotkw['status'] = status
-            saveto = os.path.join(
-                args.outputdir,conf_base+'_rv_multipanel.pdf'
-            )
+            if 'saveplot' not in args.plotkw:
+                saveto = os.path.join(
+                    args.outputdir,conf_base+'_rv_multipanel.pdf'
+                )
+            else:
+                saveto = args.plotkw['saveplot']
+                args.plotkw.pop('saveplot')
             P, _ = radvel.utils.initialize_posterior(config_file)
             if hasattr(P, 'bjd0'):
                 args.plotkw['epoch'] = P.bjd0
