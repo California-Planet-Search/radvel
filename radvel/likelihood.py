@@ -30,13 +30,15 @@ class Likelihood(object):
         self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
+        self.extra_params = extra_params
+        self.decorr_params = decorr_params
         for key in extra_params:
             self.params[key] = radvel.model.Parameter(value=np.nan)
         for key in decorr_params:
             self.params[key] = radvel.model.Parameter(value=0.0)
         self.uparams = None
 
-        self.params_order = self.list_vary_params()
+        self.vector = None
 
     def __repr__(self):
         s = ""
@@ -78,6 +80,36 @@ class Likelihood(object):
                      )
         return s
 
+    def vectors(self):
+
+        extra_vector = np.zeros((len(self.extra_params),4))
+        decorr_vector = np.zeros((len(self.decorr_params), 4))
+
+        for i, key in enumerate(self.extra_params):
+            extra_vector[i][0] = self.params[key].value
+            extra_vector[i][0] = self.params[key].vary
+            extra_vector[i][0] = self.params[key].mcmcscale
+            extra_vector[i][0] = self.params[key].linear
+        for i, key in enumerate(self.decorr_params):
+            decorr_vector[i][0] = self.params[key].value
+            decorr_vector[i][0] = self.params[key].vary
+            decorr_vector[i][0] = self.params[key].mcmcscale
+            decorr_vector[i][0] = self.params[key].linear
+
+        try:
+            gp_vector = np.zeros((len(self.hnames), 4))
+            for i,key in enumerate(self.hnames):
+                gp_vector[i][0] = self.params[key].value
+                gp_vector[i][0] = self.params[key].vary
+                gp_vector[i][0] = self.params[key].mcmcscale
+                gp_vector[i][0] = self.params[key].linear
+        except:
+            gp_vector = np.zeros((0,4))
+
+        basis_vector = self.params._bparams_to_bvector
+
+        return np.concatenate(basis_vector, gp_vector, extra_vector, decorr_vector)
+
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
@@ -89,24 +121,14 @@ class Likelihood(object):
 
     def get_vary_params(self):
         params_array = []
-        for key in self.list_vary_params():
-            if self.params[key].vary:
-                params_array += [self.params[key].value]
-        params_array = np.array(params_array)
-        return params_array
+        for index in self.list_vary_params():
+            params_array.append(self.vector[index,0])
+        return np.array(params_array)
 
     def list_vary_params(self):
-        keys = self.list_params()
-
-        return [key for key in keys if self.params[key].vary]
-
-    def list_params(self):
-        try:
-            keys = self.params_order
-        except AttributeError:
-            keys = list(self.params.keys())
-            self.params_order = keys
-        return keys
+        self.vector = self.vectors()
+        indices = np.where(self.vector[:,2] == 1)
+        return indices.tolist()
 
     def residuals(self):
         return self.y - self.model(self.x)

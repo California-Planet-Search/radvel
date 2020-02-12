@@ -209,35 +209,6 @@ should have only integers as keys."""
 
         return vector
 
-    def _gparams_to_gvector(self, hnames):
-
-        vector = np.zeros((len(hnames), 4))
-
-        for i, par in enumerate(hnames):
-            vector[i][0] = self[par].value
-            vector[i][1] = self[par].vary
-            vector[i][2] = self[par].mcmcscale
-            vector[i][3] = self[par].linear
-
-        return vector
-
-
-    def _tparams_to_tvector(self, suffix):
-
-        vector = np.zeros((2,4))
-
-        vector[0][0] = self['gamma' + suffix].value
-        vector[0][1] = self['gamma' + suffix].vary
-        vector[0][2] = self['gamma' + suffix].mcmcscale
-        vector[0][3] = self['gamma' + suffix].linear
-        vector[1][0] = self['jit' + suffix].value
-        vector[1][1] = self['jit' + suffix].vary
-        vector[1][2] = self['jit' + suffix].mcmcscale
-        vector[1][3] = self['jit' + suffix].linear
-
-        return vector
-
-
     def _sparameter(self, parameter, num_planet):
         return '{0}{1}'.format(parameter, num_planet)
 
