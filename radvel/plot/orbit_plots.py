@@ -358,30 +358,33 @@ class MultipanelPlot(object):
             labels = dp.labels
             texlabels = dp.texlabels
             units = dp.units
-            if units == "M$_{\\rm Jup}$":
-                conversion_fac = 0.00315
-            elif units == "M$_{\\odot}$":
-                conversion_fac = 0.000954265748
-            else:
-                conversion_fac = 1
             derived_params = ['mpsini']
             for l, par in enumerate(derived_params):
                 par_label = par + str(pnum)
                 if par_label in self.post.derived.columns:
-                    val = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.500]
-                    low = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.159]
-                    high = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.841]
+                    index = np.where(np.array(labels) == par_label)[0][0]
+
+                    unit = units[index]
+                    if unit == "M$_{\\rm Jup}$":
+                        conversion_fac = 0.00315
+                    elif unit == "M$_{\\odot}$":
+                        conversion_fac = 0.000954265748
+                    else:
+                        conversion_fac = 1
+
+                    val = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.500] * conversion_fac
+                    low = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.159] * conversion_fac
+                    high = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.841] * conversion_fac
                     err_low = val - low
                     err_high = high - val
                     err = np.mean([err_low, err_high])
                     err = radvel.utils.round_sig(err)
-                    index = np.where(np.array(labels) == par_label)[0][0]
                     if err > 1e-15:
                         val, err, errlow = sigfig(val, err)
                         _anotext = r'$\mathregular{%s}$ = %s $\mathregular{\pm}$ %s %s' \
-                                   % (texlabels[index].replace("$", ""), val*conversion_fac, err*conversion_fac, units[index])
+                                   % (texlabels[index].replace("$", ""), val, err, units[index])
                     else:
-                        _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (texlabels[index].replace("$", ""), val*conversion_fac, units[index])
+                        _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (texlabels[index].replace("$", ""), val, units[index])
 
                     anotext += [_anotext]
 
