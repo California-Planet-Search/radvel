@@ -22,8 +22,7 @@ class Likelihood(object):
     """
     Generic Likelihood
     """
-    def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[],
-                 decorr_vectors=[]):
+    def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[], decorr_vectors=[], user_param_names=[]):
         self.model = model
         self.params = model.params
         self.x = np.array(x)  # Variables must be arrays.
@@ -32,6 +31,7 @@ class Likelihood(object):
         self.dvec = [np.array(d) for d in decorr_vectors]
         self.extra_params = extra_params
         self.decorr_params = decorr_params
+        self.user_param_names = user_param_names
         for key in extra_params:
             self.params[key] = radvel.model.Parameter(value=np.nan)
         for key in decorr_params:
@@ -84,51 +84,82 @@ class Likelihood(object):
 
         extra_vector = np.zeros((len(self.extra_params),4))
         decorr_vector = np.zeros((len(self.decorr_params), 4))
+        user_vector = np.zeros((len(self.user_param_names), 4))
 
         for i, key in enumerate(self.extra_params):
             extra_vector[i][0] = self.params[key].value
-            extra_vector[i][0] = self.params[key].vary
-            extra_vector[i][0] = self.params[key].mcmcscale
-            extra_vector[i][0] = self.params[key].linear
+            extra_vector[i][1] = self.params[key].vary
+            extra_vector[i][2] = self.params[key].mcmcscale
+            extra_vector[i][3] = self.params[key].linear
         for i, key in enumerate(self.decorr_params):
             decorr_vector[i][0] = self.params[key].value
-            decorr_vector[i][0] = self.params[key].vary
-            decorr_vector[i][0] = self.params[key].mcmcscale
-            decorr_vector[i][0] = self.params[key].linear
+            decorr_vector[i][1] = self.params[key].vary
+            decorr_vector[i][2] = self.params[key].mcmcscale
+            decorr_vector[i][3] = self.params[key].linear
+        for i, key in enumerate(self.user_param_names):
+            user_vector[i][0] = self.params[key].value
+            user_vector[i][1] = self.params[key].vary
+            user_vector[i][2] = self.params[key].mcmcscale
+            user_vector[i][3] = self.params[key].linear
 
         try:
             gp_vector = np.zeros((len(self.hnames), 4))
             for i,key in enumerate(self.hnames):
                 gp_vector[i][0] = self.params[key].value
-                gp_vector[i][0] = self.params[key].vary
-                gp_vector[i][0] = self.params[key].mcmcscale
-                gp_vector[i][0] = self.params[key].linear
+                gp_vector[i][1] = self.params[key].vary
+                gp_vector[i][2] = self.params[key].mcmcscale
+                gp_vector[i][3] = self.params[key].linear
         except:
             gp_vector = np.zeros((0,4))
 
-        basis_vector = self.params._bparams_to_bvector
+        basis_vector = self.params._bparams_to_bvector()
 
-        return np.concatenate(basis_vector, gp_vector, extra_vector, decorr_vector)
+        return np.array(np.concatenate([basis_vector, gp_vector, extra_vector, decorr_vector, user_vector]))
+
+    def map_value(self, key, index):
+        self.params[key].value = self.vector[index][0]
+
+    def vector_to_param(self):
+        for num_planet in range(1, self.params.num_planets+1):
+            for i, key in enumerate(self.params.planet_parameters):
+                self.map_value(key+str(num_planet), -5+i+(5*num_planet))
+
+        try:
+            for i, key in enumerate(self.hnames):
+                self.map_value(key, 5*self.params.num_planets + i)
+            next_start = (5 * self.params.num_planets) + len(self.hnames)
+        except:
+            next_start = 5*self.params.num_planets
+
+        for i, key in enumerate(self.extra_params):
+            self.map_value(key, next_start+i)
+
+        for i, key in enumerate(self.decorr_params):
+            self.map_value(key, next_start+len(self.extra_params)+i)
+
+        for i, key in enumerate(self.user_param_names):
+            self.map_value(key, next_start+len(self.extra_params)+len(self.decorr_params)+i)
 
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
-        for key in self.list_vary_params():
-            self.params[key].value = param_values_array[i]
+        for index in self.list_vary_params():
+            self.vector[index][0] = param_values_array[i]
             i += 1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
+        self.vector_to_param()
 
     def get_vary_params(self):
         params_array = []
         for index in self.list_vary_params():
-            params_array.append(self.vector[index,0])
+            params_array.append(self.vector[index][0])
         return np.array(params_array)
 
     def list_vary_params(self):
-        self.vector = self.vectors()
-        indices = np.where(self.vector[:,2] == 1)
-        return indices.tolist()
+        self.vector = np.array(self.vectors())
+        indices = np.where(self.vector[:, 1] == 1)
+        return indices[0].tolist()
 
     def residuals(self):
         return self.y - self.model(self.x)

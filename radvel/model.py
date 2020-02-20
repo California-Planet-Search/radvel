@@ -303,6 +303,6 @@ class RVModel(GeneralRVModel):
     classes. The different RV models, with different
     parameterizations, all inherit from this class.
     """
-    def __init__(self,params, time_base=0):
+    def __init__(self, params, time_base=0):
         super(RVModel,self).__init__(params,_standard_rv_calc,time_base)
         self.num_planets=params.num_planets

@@ -23,6 +23,10 @@ class Posterior(Likelihood):
     def __init__(self,likelihood):
         self.likelihood = likelihood
         self.model = self.likelihood.model
+        self.vector = self.likelihood.vector
+        self.extra_params = self.likelihood.extra_params
+        self.decorr_params = self.likelihood.decorr_params
+        self.user_param_names = self.likelihood.user_param_names
         self.params = likelihood.params
         self.uparams = likelihood.uparams
         self.priors = []
