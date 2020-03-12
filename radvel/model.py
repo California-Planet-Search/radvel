@@ -177,7 +177,12 @@ should have only integers as keys."""
         return dict
 
     def dict_to_vector(self):
-        vector = np.zeros((len(self.keys()),4))
+        n = 0
+        if 'dvdt' not in self.keys():
+            n += 1
+        if 'curv' not in self.keys():
+            n += 1
+        vector = np.zeros((len(self.keys())+n,4))
         for key in self.keys():
             vector[self.indices[key]][0] = self[key].value
             vector[self.indices[key]][1] = self[key].vary
@@ -229,13 +234,10 @@ class GeneralRVModel(object):
     """
     def __init__(self,params,forward_model,time_base=0):
         self.params = params
+        self.params.vector = self.params.dict_to_vector()
         self.time_base = time_base
         self._forward_model = forward_model
         assert callable(forward_model)
-        if 'dvdt' not in params.keys():
-            self.params['dvdt'] = Parameter(value=0.)
-        if 'curv' not in params.keys():
-            self.params['curv'] = Parameter(value=0.)
     def __call__(self,t,*args,**kwargs):
         """Compute the radial velocity.
 
