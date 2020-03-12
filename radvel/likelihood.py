@@ -22,23 +22,21 @@ class Likelihood(object):
     """
     Generic Likelihood
     """
-    def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[], decorr_vectors=[], user_param_names=[]):
+    def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[],
+                 decorr_vectors=[]):
         self.model = model
         self.params = model.params
         self.x = np.array(x)  # Variables must be arrays.
         self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
-        self.extra_params = extra_params
-        self.decorr_params = decorr_params
-        self.user_param_names = user_param_names
         for key in extra_params:
             self.params[key] = radvel.model.Parameter(value=np.nan)
         for key in decorr_params:
             self.params[key] = radvel.model.Parameter(value=0.0)
         self.uparams = None
 
-        self.vector = None
+        self.params_order = self.list_vary_params()
 
     def __repr__(self):
         s = ""
@@ -80,86 +78,35 @@ class Likelihood(object):
                      )
         return s
 
-    def vectors(self):
-
-        extra_vector = np.zeros((len(self.extra_params),4))
-        decorr_vector = np.zeros((len(self.decorr_params), 4))
-        user_vector = np.zeros((len(self.user_param_names), 4))
-
-        for i, key in enumerate(self.extra_params):
-            extra_vector[i][0] = self.params[key].value
-            extra_vector[i][1] = self.params[key].vary
-            extra_vector[i][2] = self.params[key].mcmcscale
-            extra_vector[i][3] = self.params[key].linear
-        for i, key in enumerate(self.decorr_params):
-            decorr_vector[i][0] = self.params[key].value
-            decorr_vector[i][1] = self.params[key].vary
-            decorr_vector[i][2] = self.params[key].mcmcscale
-            decorr_vector[i][3] = self.params[key].linear
-        for i, key in enumerate(self.user_param_names):
-            user_vector[i][0] = self.params[key].value
-            user_vector[i][1] = self.params[key].vary
-            user_vector[i][2] = self.params[key].mcmcscale
-            user_vector[i][3] = self.params[key].linear
-
-        try:
-            gp_vector = np.zeros((len(self.hnames), 4))
-            for i,key in enumerate(self.hnames):
-                gp_vector[i][0] = self.params[key].value
-                gp_vector[i][1] = self.params[key].vary
-                gp_vector[i][2] = self.params[key].mcmcscale
-                gp_vector[i][3] = self.params[key].linear
-        except:
-            gp_vector = np.zeros((0,4))
-
-        basis_vector = self.params._bparams_to_bvector()
-
-        return np.array(np.concatenate([basis_vector, gp_vector, extra_vector, decorr_vector, user_vector]))
-
-    def map_value(self, key, index):
-        self.params[key].value = self.vector[index][0]
-
-    def vector_to_param(self):
-        for num_planet in range(1, self.params.num_planets+1):
-            for i, key in enumerate(self.params.planet_parameters):
-                self.map_value(key+str(num_planet), -5+i+(5*num_planet))
-
-        try:
-            for i, key in enumerate(self.hnames):
-                self.map_value(key, 5*self.params.num_planets + i)
-            next_start = (5 * self.params.num_planets) + len(self.hnames)
-        except:
-            next_start = 5*self.params.num_planets
-
-        for i, key in enumerate(self.extra_params):
-            self.map_value(key, next_start+i)
-
-        for i, key in enumerate(self.decorr_params):
-            self.map_value(key, next_start+len(self.extra_params)+i)
-
-        for i, key in enumerate(self.user_param_names):
-            self.map_value(key, next_start+len(self.extra_params)+len(self.decorr_params)+i)
-
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
-        for index in self.list_vary_params():
-            self.vector[index][0] = param_values_array[i]
+        for key in self.list_vary_params():
+            self.params[key].value = param_values_array[i]
             i += 1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
-        self.vector_to_param()
 
     def get_vary_params(self):
         params_array = []
-        for index in self.list_vary_params():
-            params_array.append(self.vector[index][0])
-        return np.array(params_array)
+        for key in self.list_vary_params():
+            if self.params[key].vary:
+                params_array += [self.params[key].value]
+        params_array = np.array(params_array)
+        return params_array
 
     def list_vary_params(self):
-        self.vector = np.array(self.vectors())
-        indices = np.where(self.vector[:, 1] == 1)[0]
-        return indices
+        keys = self.list_params()
+
+        return [key for key in keys if self.params[key].vary]
+
+    def list_params(self):
+        try:
+            keys = self.params_order
+        except AttributeError:
+            keys = list(self.params.keys())
+            self.params_order = keys
+        return keys
 
     def residuals(self):
         return self.y - self.model(self.x)
@@ -178,7 +125,6 @@ class Likelihood(object):
     def bic(self):
         """
         Calculate the Bayesian information criterion
-
         Returns:
             float: BIC
         """
@@ -193,7 +139,6 @@ class Likelihood(object):
         Calculate the Aikike information criterion
         The Small Sample AIC (AICC) is returned because for most RV data sets n < 40 * k
         (see Burnham & Anderson 2002 S2.4).
-
         Returns:
             float: AICC
         """
@@ -216,11 +161,9 @@ class Likelihood(object):
 
 class CompositeLikelihood(Likelihood):
     """Composite Likelihood
-
     A thin wrapper to combine multiple `Likelihood`
     objects. One `Likelihood` applies to a dataset from
     a particular instrument.
-
     Args:
         like_list (list): list of `radvel.likelihood.RVLikelihood` objects
     """
@@ -301,9 +244,7 @@ class CompositeLikelihood(Likelihood):
 
 class RVLikelihood(Likelihood):
     """RV Likelihood
-
     The Likelihood object for a radial velocity dataset
-
     Args:
         model (radvel.model.RVModel): RV model object
         t (array): time array
@@ -311,7 +252,6 @@ class RVLikelihood(Likelihood):
         errvel (array): array of velocity uncertainties
         suffix (string): suffix to identify this Likelihood object
            useful when constructing a `CompositeLikelihood` object.
-
     """
     def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[],
                  decorr_vectors=[], **kwargs):
@@ -338,7 +278,6 @@ class RVLikelihood(Likelihood):
 
     def residuals(self):
         """Residuals
-
         Data minus model
         """
         mod = self.model(self.x)
@@ -370,10 +309,8 @@ class RVLikelihood(Likelihood):
         """
         Return uncertainties with jitter added
         in quadrature.
-
         Returns:
             array: uncertainties
-
         """
         return np.sqrt(self.yerr**2 + self.params[self.jit_param].value**2)
 
@@ -381,7 +318,6 @@ class RVLikelihood(Likelihood):
         """
         Return log-likelihood given the data and model.
         Priors are not applied here.
-
         Returns:
             float: Natural log of likelihood
         """
@@ -399,9 +335,7 @@ class RVLikelihood(Likelihood):
 
 class GPLikelihood(RVLikelihood):
     """GP Likelihood
-
     The Likelihood object for a radial velocity dataset modeled with a GP
-
     Args:
         model (radvel.model.GPModel): GP model object
         t (array): time array
@@ -445,7 +379,6 @@ class GPLikelihood(RVLikelihood):
 
     def _resids(self):
         """Residuals for internal GP calculations
-
         Data minus orbit model. For internal use in GP calculations ONLY.
         """
         res = self.y - self.params[self.gamma_param].value - self.model(self.x)
@@ -453,7 +386,6 @@ class GPLikelihood(RVLikelihood):
 
     def residuals(self):
         """Residuals
-
         Data minus (orbit model + predicted mean of GP noise model). For making GP plots.
         """
         mu_pred, _ = self.predict(self.x)
@@ -463,22 +395,15 @@ class GPLikelihood(RVLikelihood):
     def logprob(self):
         """
         Return GP log-likelihood given the data and model.
-
         log-likelihood is computed using Cholesky decomposition as:
-
         .. math::
-
            lnL = -0.5r^TK^{-1}r - 0.5ln[det(K)] - 0.5N*ln(2pi)
-
         where r = vector of residuals (GPLikelihood._resids),
         K = covariance matrix, and N = number of datapoints.
-
         Priors are not applied here.
         Constant has been omitted.
-
         Returns:
             float: Natural log of likelihood
-
         """
         # update the Kernel object hyperparameter values
         self.update_kernel_params()
@@ -508,7 +433,6 @@ class GPLikelihood(RVLikelihood):
     def predict(self, xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
             Used for making GP plots.
-
             Args:
                 xpred (np.array): numpy array of x values for realizing the GP
             Returns:
@@ -545,16 +469,12 @@ class GPLikelihood(RVLikelihood):
 
 class CeleriteLikelihood(GPLikelihood):
     """Celerite GP Likelihood
-
     The Likelihood object for a radial velocity dataset modeled with a GP
     whose kernel is an approximation to the quasi-periodic kernel.
-
     See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
     (equation 56) for more details.
-
     See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
     file that uses this Likelihood object.
-
     Args:
         model (radvel.model.RVModel): RVModel object
         t (array): time array
@@ -599,7 +519,6 @@ class CeleriteLikelihood(GPLikelihood):
     def predict(self,xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
             Used for making GP plots. Wrapper for `celerite.GP.predict()`.
-
             Args:
                 xpred (np.array): numpy array of x values for realizing the GP
             Returns:
@@ -644,16 +563,13 @@ class CeleriteLikelihood(GPLikelihood):
 def loglike_jitter(residuals, sigma, sigma_jit):
     """
     Log-likelihood incorporating jitter
-
     See equation (1) in Howard et al. 2014. Returns loglikelihood, where
     sigma**2 is replaced by sigma**2 + sigma_jit**2. It penalizes
     excessively large values of jitter
-
     Args:
         residuals (array): array of residuals
         sigma (array): array of measurement errors
         sigma_jit (float): jitter
-
     Returns:
         float: log-likelihood
     """

@@ -254,6 +254,7 @@ class GeneralRVModel(object):
         vel += self.params['curv'].value * (t - self.time_base)**2
         return vel
 
+
 def _standard_rv_calc(t,params,planet_num=None):
         vel = np.zeros(len(t))
         params_synth = params.basis.to_synth(params)
@@ -271,6 +272,7 @@ def _standard_rv_calc(t,params,planet_num=None):
             orbel_synth = np.array([per, tp, e, w, k])
             vel += kepler.rv_drive(t, orbel_synth)
         return vel
+
 
 class RVModel(GeneralRVModel):
     """
