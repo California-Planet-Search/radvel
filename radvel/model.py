@@ -190,6 +190,10 @@ should have only integers as keys."""
             vector[self.indices[key]][3] = self[key].linear
         return vector
 
+    def vector_to_dict(self):
+        for key in self.keys():
+            self[key].value = self.vector[self.indices[key]][0]
+
     def _sparameter(self, parameter, num_planet):
         return '{0}{1}'.format(parameter, num_planet)
 
