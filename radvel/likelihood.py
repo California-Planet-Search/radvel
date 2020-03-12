@@ -158,8 +158,8 @@ class Likelihood(object):
 
     def list_vary_params(self):
         self.vector = np.array(self.vectors())
-        indices = np.where(self.vector[:, 1] == 1)
-        return indices[0].tolist()
+        indices = np.where(self.vector[:, 1] == 1)[0]
+        return indices
 
     def residuals(self):
         return self.y - self.model(self.x)

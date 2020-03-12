@@ -119,6 +119,8 @@ should have only integers as keys."""
         self.basis = basis
         self.num_planets = num_planets
         self.planet_letters = planet_letters
+        self.indices = self.init_index_dict()
+        self.vector = self.dict_to_vector()
 
     def __reduce__(self):
 
@@ -162,51 +164,25 @@ should have only integers as keys."""
 
         return tex_labels
 
-    def _bparams_to_bvector(self):
+    def init_index_dict(self):
+        dict = {}
+        for num_planet in range(1, self.num_planets+1):
+            dict.update({'dvdt':0,'curv':1,'per'+str(num_planet):-3+(5*num_planet),'logper'+str(num_planet):-3+(5*num_planet),
+                         'tc'+str(num_planet):-2+(5*num_planet),'tp'+str(num_planet):-2+(5*num_planet),
+                         'secosw'+str(num_planet):-1+(5*num_planet),'ecosw'+str(num_planet):-1+(5*num_planet),
+                         'e'+str(num_planet):-1+(5*num_planet),'se'+str(num_planet):-1+(5*num_planet),
+                         'sesinw'+str(num_planet):(5*num_planet),'esinw'+str(num_planet):(5*num_planet),
+                         'w'+str(num_planet):(5*num_planet),'k'+str(num_planet):1+(5*num_planet),
+                         'logk'+str(num_planet):1+(5*num_planet)})
+        return dict
 
-        param_list = self.keys()
-
-        vector = np.zeros(((5*self.num_planets + 2), 4))
-
-        for par in param_list:
-            for num_planet in range(1, self.num_planets+1):
-                if par==('per'+str(num_planet)) or par==('logper'+str(num_planet)):
-                    vector[-5 + (5*num_planet)][0] = self[par].value
-                    vector[-5 + (5*num_planet)][1] = self[par].vary
-                    vector[-5 + (5*num_planet)][2] = self[par].mcmcscale
-                    vector[-5 + (5*num_planet)][3] = self[par].linear
-                if par==('tc'+str(num_planet)) or par==('tp'+str(num_planet)):
-                    vector[-4 + (5*num_planet)][0] = self[par].value
-                    vector[-4 + (5*num_planet)][1] = self[par].vary
-                    vector[-4 + (5*num_planet)][2] = self[par].mcmcscale
-                    vector[-4 + (5*num_planet)][3] = self[par].linear
-                if par==('secosw'+str(num_planet))  or par==('ecosw'+str(num_planet)) or par==('e'+str(num_planet)) \
-                        or par==('se'+str(num_planet)):
-                    vector[-3 + (5*num_planet)][0] = self[par].value
-                    vector[-3 + (5*num_planet)][1] = self[par].vary
-                    vector[-3 + (5*num_planet)][2] = self[par].mcmcscale
-                    vector[-3 + (5*num_planet)][3] = self[par].linear
-                if par==('sesinw'+str(num_planet))  or par==('esinw'+str(num_planet)) or par==('w'+str(num_planet)):
-                    vector[-2 + (5*num_planet)][0] = self[par].value
-                    vector[-2 + (5*num_planet)][1] = self[par].vary
-                    vector[-2 + (5*num_planet)][2] = self[par].mcmcscale
-                    vector[-2 + (5*num_planet)][3] = self[par].linear
-                if par==('k'+str(num_planet)) or par==('logk'+str(num_planet)):
-                    vector[(-1 + 5*num_planet)][0] = self[par].value
-                    vector[(-1 + 5*num_planet)][1] = self[par].vary
-                    vector[(-1 + 5*num_planet)][2] = self[par].mcmcscale
-                    vector[(-1 + 5*num_planet)][3] = self[par].linear
-            if par==('dvdt'):
-                vector[-2][0] = self[par].value
-                vector[-2][1] = self[par].vary
-                vector[-2][2] = self[par].mcmcscale
-                vector[-2][3] = self[par].linear
-            if par==('curv'):
-                vector[-1][0] = self[par].value
-                vector[-1][1] = self[par].vary
-                vector[-1][2] = self[par].mcmcscale
-                vector[-1][3] = self[par].linear
-
+    def dict_to_vector(self):
+        vector = np.zeros((len(self.keys()),4))
+        for key in self.keys():
+            vector[self.indices[key]][0] = self[key].value
+            vector[self.indices[key]][1] = self[key].vary
+            vector[self.indices[key]][2] = self[key].mcmcscale
+            vector[self.indices[key]][3] = self[key].linear
         return vector
 
     def _sparameter(self, parameter, num_planet):
@@ -225,6 +201,7 @@ if __name__ == "__main__":
     a = Parameter(value=1.3)
     a.mcmcscale = 100.
     print(a)
+
 
 class GeneralRVModel(object):
     """
