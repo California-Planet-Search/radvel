@@ -191,11 +191,11 @@ def mcmc(args):
 
     print(msg1 + '\n' + msg2)
 
-    chains = radvel.mcmc(
-            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
-            maxArchange=args.maxArchange, burnAfactor=args.burnAfactor, burnGR=args.burnGR, maxGR=args.maxGR,
-            minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial,
-            save=args.save, savename=backend_loc, proceed=args.proceed, proceedname=backend_loc)
+    chains = radvel.mcmc(post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles,
+                         minAfactor=args.minAfactor, maxArchange=args.maxArchange, burnAfactor=args.burnAfactor,
+                         burnGR=args.burnGR, maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps,
+                         minpercent=args.minpercent, thin=args.thin, serial=args.serial, save=args.save,
+                         savename=backend_loc, proceed=args.proceed, proceedname=backend_loc)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
