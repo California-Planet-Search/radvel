@@ -265,7 +265,7 @@ def mcmc(args):
                             '{}_post_obj.pkl'.format(conf_base))
     post.writeto(postfile)
 
-    csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
+    csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.bz2')
     chains.to_csv(csvfn, compression='bz2')
 
     auto = pd.DataFrame()
@@ -540,7 +540,7 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
     post.writeto(postfile)
     savestate['quantfile'] = os.path.relpath(csvfn)
 
-    csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.tar.bz2')
+    csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.bz2')
     chains.to_csv(csvfn, columns=outcols, compression='bz2')
     savestate['chainfile'] = os.path.relpath(csvfn)
 
