@@ -11,7 +11,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 import radvel
 
 env = Environment(loader=PackageLoader('radvel', 'templates'))
-print_basis = 'per tc e w k'
+print_basis = 'per tc tp e w k'
 units = {
     'per': 'days',
     'tp': 'JD',
