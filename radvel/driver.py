@@ -106,9 +106,10 @@ You may want to use the '--gp' flag when making these plots.")
 
         if ptype == 'trend':
             nwalkers = status.getint('mcmc', 'nwalkers')
+            nensembles = status.getint('mcmc', 'nensembles')
 
             saveto = os.path.join(args.outputdir, conf_base+'_trends.pdf')
-            Trend = mcmc_plots.TrendPlot(post, chains, nwalkers, saveto)
+            Trend = mcmc_plots.TrendPlot(post, chains, nwalkers, nensembles, saveto)
             Trend.plot()
 
         if ptype == 'derived':
