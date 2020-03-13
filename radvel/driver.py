@@ -56,7 +56,7 @@ def plots(args):
             args.plotkw['status'] = status
             if 'saveplot' not in args.plotkw:
                 saveto = os.path.join(
-                    args.outputdir,conf_base+'_rv_multipanel.pdf'
+                    args.outputdir, conf_base+'_rv_multipanel.pdf'
                 )
             else:
                 saveto = args.plotkw['saveplot']
@@ -116,10 +116,10 @@ You may want to use the '--gp' flag when making these plots.")
             assert status.has_section('derive'), \
                 "Must run `radvel derive` before plotting derived parameters"
 
-            P,_ = radvel.utils.initialize_posterior(config_file)
+            P, _ = radvel.utils.initialize_posterior(config_file)
             chains = pd.read_csv(status.get('derive', 'chainfile'))
             saveto = os.path.join(
-                args.outputdir,conf_base+'_corner_derived_pars.pdf'
+                args.outputdir, conf_base+'_corner_derived_pars.pdf'
             )
 
             Derived = mcmc_plots.DerivedPlot(chains, P, saveplot=saveto)
@@ -239,7 +239,7 @@ def mcmc(args):
         med = synth_quantile[par][0.5]
         high = synth_quantile[par][0.841] - med
         low = med - synth_quantile[par][0.159]
-        err = np.mean([high,low])
+        err = np.mean([high, low])
         if maxlike == -np.inf and med == -np.inf and np.isnan(low) and np.isnan(high):
             err = 0.0
         else:
@@ -278,19 +278,19 @@ def mcmc(args):
     auto.to_csv(autocorr, sep=',')
 
     savestate = {'run': True,
-                'postfile': os.path.relpath(postfile),
-                'chainfile': os.path.relpath(csvfn),
-                'autocorrfile': os.path.relpath(autocorr),
-                'summaryfile': os.path.relpath(saveto),
-                'nwalkers': statevars.nwalkers,
-                'nensembles': args.ensembles,
-                'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
-                'nsteps': statevars.ncomplete,
-                'nburn': statevars.nburn,
-                'minafactor': minafactor,
-                'maxarchange': maxarchange,
-                'minTz': mintz,
-                'maxGR': maxgr}
+                 'postfile': os.path.relpath(postfile),
+                 'chainfile': os.path.relpath(csvfn),
+                 'autocorrfile': os.path.relpath(autocorr),
+                 'summaryfile': os.path.relpath(saveto),
+                 'nwalkers': statevars.nwalkers,
+                 'nensembles': args.ensembles,
+                 'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
+                 'nsteps': statevars.ncomplete,
+                 'nburn': statevars.nburn,
+                 'minafactor': minafactor,
+                 'maxarchange': maxarchange,
+                 'minTz': mintz,
+                 'maxGR': maxgr}
     save_status(statfile, 'mcmc', savestate)
 
     statevars.reset()
@@ -387,7 +387,8 @@ def tables(args):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
         derived = True
-    else: derived = False
+    else:
+        derived = False
     report = radvel.report.RadvelReport(P, post, chains, minafactor, maxarchange, maxgr, mintz, derived=derived)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
@@ -409,7 +410,7 @@ def tables(args):
         elif tabtype == 'rv':
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title, max_lines=None)
         elif tabtype == 'crit':
-            tex = getattr(tabletex, attrdict[tabtype])( name_in_title=args.name_in_title)
+            tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title)
         else:
             if tabtype == 'derived':
                 assert status.has_option('derive', 'run'), \
@@ -503,7 +504,7 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         _set_param('mpsini', mpsini)
         outcols.append(_get_colname('mpsini'))
 
-        mtotal = mstar + (mpsini*c.M_earth.value)/c.M_sun.value      # get total star plus planet mass
+        mtotal = mstar + (mpsini * c.M_earth.value) / c.M_sun.value      # get total star plus planet mass
         a = radvel.utils.semi_major_axis(per, mtotal)               # changed from mstar to mtotal
         
         _set_param('a', a)
@@ -582,7 +583,7 @@ def report(args):
         compstats = eval(status.get('ic_compare', args.comptype))
     except:
         print("WARNING: Could not find {} model comparison \
-in {}.\nPlease make sure that you have run `radvel ic` (or, e.g., `radvel \
+in {}.\nPlease make sure that you have run `radvel ic -t {}` (or, e.g., `radvel \
 ic -t nplanets e trend jit gp`)\
 \nif you would like to include the model comparison table in the \
 report.".format(args.comptype,
