@@ -56,7 +56,7 @@ def plots(args):
             args.plotkw['status'] = status
             if 'saveplot' not in args.plotkw:
                 saveto = os.path.join(
-                    args.outputdir,conf_base+'_rv_multipanel.pdf'
+                    args.outputdir, conf_base+'_rv_multipanel.pdf'
                 )
             else:
                 saveto = args.plotkw['saveplot']
@@ -106,19 +106,20 @@ You may want to use the '--gp' flag when making these plots.")
 
         if ptype == 'trend':
             nwalkers = status.getint('mcmc', 'nwalkers')
+            nensembles = status.getint('mcmc', 'nensembles')
 
             saveto = os.path.join(args.outputdir, conf_base+'_trends.pdf')
-            Trend = mcmc_plots.TrendPlot(post, chains, nwalkers, saveto)
+            Trend = mcmc_plots.TrendPlot(post, chains, nwalkers, nensembles, saveto)
             Trend.plot()
 
         if ptype == 'derived':
             assert status.has_section('derive'), \
                 "Must run `radvel derive` before plotting derived parameters"
 
-            P,_ = radvel.utils.initialize_posterior(config_file)
+            P, _ = radvel.utils.initialize_posterior(config_file)
             chains = pd.read_csv(status.get('derive', 'chainfile'))
             saveto = os.path.join(
-                args.outputdir,conf_base+'_corner_derived_pars.pdf'
+                args.outputdir, conf_base+'_corner_derived_pars.pdf'
             )
 
             Derived = mcmc_plots.DerivedPlot(chains, P, saveplot=saveto)
@@ -190,11 +191,11 @@ def mcmc(args):
 
     print(msg1 + '\n' + msg2)
 
-    chains = radvel.mcmc(
-            post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
-            maxArchange=args.maxArchange, burnAfactor=args.burnAfactor, burnGR=args.burnGR, maxGR=args.maxGR,
-            minTz=args.minTz, minsteps=args.minsteps, minpercent=args.minpercent, thin=args.thin, serial=args.serial,
-            save=args.save, savename=backend_loc, proceed=args.proceed, proceedname=backend_loc)
+    chains = radvel.mcmc(post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles,
+                         minAfactor=args.minAfactor, maxArchange=args.maxArchange, burnAfactor=args.burnAfactor,
+                         burnGR=args.burnGR, maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps,
+                         minpercent=args.minpercent, thin=args.thin, serial=args.serial, save=args.save,
+                         savename=backend_loc, proceed=args.proceed, proceedname=backend_loc)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
@@ -238,7 +239,7 @@ def mcmc(args):
         med = synth_quantile[par][0.5]
         high = synth_quantile[par][0.841] - med
         low = med - synth_quantile[par][0.159]
-        err = np.mean([high,low])
+        err = np.mean([high, low])
         if maxlike == -np.inf and med == -np.inf and np.isnan(low) and np.isnan(high):
             err = 0.0
         else:
@@ -264,7 +265,7 @@ def mcmc(args):
                             '{}_post_obj.pkl'.format(conf_base))
     post.writeto(postfile)
 
-    csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.tar.bz2')
+    csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.bz2')
     chains.to_csv(csvfn, compression='bz2')
 
     auto = pd.DataFrame()
@@ -277,19 +278,19 @@ def mcmc(args):
     auto.to_csv(autocorr, sep=',')
 
     savestate = {'run': True,
-                'postfile': os.path.relpath(postfile),
-                'chainfile': os.path.relpath(csvfn),
-                'autocorrfile': os.path.relpath(autocorr),
-                'summaryfile': os.path.relpath(saveto),
-                'nwalkers': statevars.nwalkers,
-                'nensembles': args.ensembles,
-                'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
-                'nsteps': statevars.ncomplete,
-                'nburn': statevars.nburn,
-                'minafactor': minafactor,
-                'maxarchange': maxarchange,
-                'minTz': mintz,
-                'maxGR': maxgr}
+                 'postfile': os.path.relpath(postfile),
+                 'chainfile': os.path.relpath(csvfn),
+                 'autocorrfile': os.path.relpath(autocorr),
+                 'summaryfile': os.path.relpath(saveto),
+                 'nwalkers': statevars.nwalkers,
+                 'nensembles': args.ensembles,
+                 'maxsteps': args.nsteps*statevars.nwalkers*args.ensembles,
+                 'nsteps': statevars.ncomplete,
+                 'nburn': statevars.nburn,
+                 'minafactor': minafactor,
+                 'maxarchange': maxarchange,
+                 'minTz': mintz,
+                 'maxGR': maxgr}
     save_status(statfile, 'mcmc', savestate)
 
     statevars.reset()
@@ -386,7 +387,8 @@ def tables(args):
         dchains = pd.read_csv(status.get('derive', 'chainfile'))
         chains = chains.join(dchains, rsuffix='_derived')
         derived = True
-    else: derived = False
+    else:
+        derived = False
     report = radvel.report.RadvelReport(P, post, chains, minafactor, maxarchange, maxgr, mintz, derived=derived)
     tabletex = radvel.report.TexTable(report)
     attrdict = {'priors': 'tab_prior_summary', 'rv': 'tab_rv',
@@ -408,7 +410,7 @@ def tables(args):
         elif tabtype == 'rv':
             tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title, max_lines=None)
         elif tabtype == 'crit':
-            tex = getattr(tabletex, attrdict[tabtype])( name_in_title=args.name_in_title)
+            tex = getattr(tabletex, attrdict[tabtype])(name_in_title=args.name_in_title)
         else:
             if tabtype == 'derived':
                 assert status.has_option('derive', 'run'), \
@@ -502,7 +504,7 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         _set_param('mpsini', mpsini)
         outcols.append(_get_colname('mpsini'))
 
-        mtotal = mstar + (mpsini*c.M_earth.value)/c.M_sun.value      # get total star plus planet mass
+        mtotal = mstar + (mpsini * c.M_earth.value) / c.M_sun.value      # get total star plus planet mass
         a = radvel.utils.semi_major_axis(per, mtotal)               # changed from mstar to mtotal
         
         _set_param('a', a)
@@ -539,7 +541,7 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
     post.writeto(postfile)
     savestate['quantfile'] = os.path.relpath(csvfn)
 
-    csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.tar.bz2')
+    csvfn = os.path.join(args.outputdir, conf_base+'_derived.csv.bz2')
     chains.to_csv(csvfn, columns=outcols, compression='bz2')
     savestate['chainfile'] = os.path.relpath(csvfn)
 
@@ -581,7 +583,7 @@ def report(args):
         compstats = eval(status.get('ic_compare', args.comptype))
     except:
         print("WARNING: Could not find {} model comparison \
-in {}.\nPlease make sure that you have run `radvel ic` (or, e.g., `radvel \
+in {}.\nPlease make sure that you have run `radvel ic -t {}` (or, e.g., `radvel \
 ic -t nplanets e trend jit gp`)\
 \nif you would like to include the model comparison table in the \
 report.".format(args.comptype,
