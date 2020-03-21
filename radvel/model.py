@@ -238,7 +238,7 @@ class GeneralRVModel(object):
     """
     def __init__(self,params,forward_model,time_base=0):
         self.params = params
-        self.params.vector = self.params.dict_to_vector()
+        self.vector = params.vector
         self.time_base = time_base
         self._forward_model = forward_model
         assert callable(forward_model)
@@ -255,26 +255,32 @@ class GeneralRVModel(object):
         Returns:
             vel (array of floats): Radial velocity at each time in `t`
         """
-        vel = self._forward_model(t,self.params,*args,**kwargs)
-        vel += self.params['dvdt'].value * (t - self.time_base)
-        vel += self.params['curv'].value * (t - self.time_base)**2
+        vel = self._forward_model(t,self.vector,*args,**kwargs)
+        vel += self.vector[0][0] * (t - self.time_base)
+        vel += self.vector[1][0] * (t - self.time_base)**2
         return vel
 
 
 def _standard_rv_calc(t,params,planet_num=None):
         vel = np.zeros(len(t))
-        params_synth = params.basis.to_synth(params)
+        params_synth = params.basis.v_to_synth(params)
         if planet_num is None:
             planets = range(1, params.num_planets+1)
         else:
             planets = [planet_num]
 
         for num_planet in planets:
-            per = params_synth['per{}'.format(num_planet)].value
-            tp = params_synth['tp{}'.format(num_planet)].value
-            e = params_synth['e{}'.format(num_planet)].value
-            w = params_synth['w{}'.format(num_planet)].value
-            k = params_synth['k{}'.format(num_planet)].value
+            #index values
+            #per: -3 + (5*num_planet)
+            #tp: -2 + (5*num_planet)
+            #e: -1 + (5*num_planet)
+            #w: 5*num_planet
+            #k: 1 + (5*num_planet)
+            per = params_synth[-3+(5*num_planet)][0]
+            tp = params_synth[-2+(5*num_planet)][0]
+            e = params_synth[-1+(5*num_planet)][0]
+            w = params_synth[5*num_planet][0]
+            k = params_synth[1+(5*num_planet)][0]
             orbel_synth = np.array([per, tp, e, w, k])
             vel += kepler.rv_drive(t, orbel_synth)
         return vel
