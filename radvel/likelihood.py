@@ -26,6 +26,7 @@ class Likelihood(object):
                  decorr_vectors=[]):
         self.model = model
         self.params = model.params
+        self.params.vector = self.params.dict_to_vector(gj=False)
         self.x = np.array(x)  # Variables must be arrays.
         self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
@@ -86,24 +87,19 @@ class Likelihood(object):
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
-        for key in self.list_vary_params():
-            self.params[key].value = param_values_array[i]
+        for index in self.list_vary_params():
+            self.params.vector[index][0] = param_values_array[i]
             i += 1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
 
     def get_vary_params(self):
-        params_array = []
-        for key in self.list_vary_params():
-            if self.params[key].vary:
-                params_array += [self.params[key].value]
-        params_array = np.array(params_array)
-        return params_array
+
+        return self.params.vector[self.list_vary_params()][:,0]
 
     def list_vary_params(self):
-        keys = self.list_params()
 
-        return [key for key in keys if self.params[key].vary]
+        return np.where(self.params.vector[:,1] == True)[0]
 
     def list_params(self):
         try:

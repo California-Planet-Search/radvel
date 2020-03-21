@@ -167,16 +167,24 @@ should have only integers as keys."""
     def init_index_dict(self):
         dict = {}
         for num_planet in range(1, self.num_planets+1):
-            dict.update({'dvdt':0,'curv':1,'per'+str(num_planet):-3+(5*num_planet),'logper'+str(num_planet):-3+(5*num_planet),
+            dict.update({'per'+str(num_planet):-3+(5*num_planet),'logper'+str(num_planet):-3+(5*num_planet),
                          'tc'+str(num_planet):-2+(5*num_planet),'tp'+str(num_planet):-2+(5*num_planet),
                          'secosw'+str(num_planet):-1+(5*num_planet),'ecosw'+str(num_planet):-1+(5*num_planet),
                          'e'+str(num_planet):-1+(5*num_planet),'se'+str(num_planet):-1+(5*num_planet),
                          'sesinw'+str(num_planet):(5*num_planet),'esinw'+str(num_planet):(5*num_planet),
                          'w'+str(num_planet):(5*num_planet),'k'+str(num_planet):1+(5*num_planet),
                          'logk'+str(num_planet):1+(5*num_planet)})
+        i = 1
+        for key in self.keys():
+            if 'gamma' in key:
+                dict.update({key:1+(5*self.num_planets)+i})
+                i += 1
+            elif 'jit' in key:
+                dict.update({key:1+(5*self.num_planets)+i})
+        dict.update({'dvdt':0,'curv':1})
         return dict
 
-    def dict_to_vector(self):
+    def dict_to_vector(self, gj=True):
         n = 0
         if 'dvdt' not in self.keys():
             n += 1
@@ -184,10 +192,17 @@ should have only integers as keys."""
             n += 1
         vector = np.zeros((len(self.keys())+n,4))
         for key in self.keys():
-            vector[self.indices[key]][0] = self[key].value
-            vector[self.indices[key]][1] = self[key].vary
-            vector[self.indices[key]][2] = self[key].mcmcscale
-            vector[self.indices[key]][3] = self[key].linear
+            if gj:
+                vector[self.indices[key]][0] = self[key].value
+                vector[self.indices[key]][1] = self[key].vary
+                vector[self.indices[key]][2] = self[key].mcmcscale
+                vector[self.indices[key]][3] = self[key].linear
+            else:
+                if not key.startswith('gamma') and not key.startswith('jit'):
+                    vector[self.indices[key]][0] = self[key].value
+                    vector[self.indices[key]][1] = self[key].vary
+                    vector[self.indices[key]][2] = self[key].mcmcscale
+                    vector[self.indices[key]][3] = self[key].linear
         return vector
 
     def vector_to_dict(self):
@@ -238,7 +253,6 @@ class GeneralRVModel(object):
     """
     def __init__(self,params,forward_model,time_base=0):
         self.params = params
-        self.vector = params.vector
         self.time_base = time_base
         self._forward_model = forward_model
         assert callable(forward_model)
@@ -255,9 +269,9 @@ class GeneralRVModel(object):
         Returns:
             vel (array of floats): Radial velocity at each time in `t`
         """
-        vel = self._forward_model(t,self.vector,*args,**kwargs)
-        vel += self.vector[0][0] * (t - self.time_base)
-        vel += self.vector[1][0] * (t - self.time_base)**2
+        vel = self._forward_model(t,self.params,*args,**kwargs)
+        vel += self.params.vector[0][0] * (t - self.time_base)
+        vel += self.params.vector[1][0] * (t - self.time_base)**2
         return vel
 
 
