@@ -174,17 +174,10 @@ should have only integers as keys."""
                          'sesinw'+str(num_planet):(5*num_planet),'esinw'+str(num_planet):(5*num_planet),
                          'w'+str(num_planet):(5*num_planet),'k'+str(num_planet):1+(5*num_planet),
                          'logk'+str(num_planet):1+(5*num_planet)})
-        i = 1
-        for key in self.keys():
-            if 'gamma' in key:
-                dict.update({key:1+(5*self.num_planets)+i})
-                i += 1
-            elif 'jit' in key:
-                dict.update({key:1+(5*self.num_planets)+i})
         dict.update({'dvdt':0,'curv':1})
         return dict
 
-    def dict_to_vector(self, gj=True):
+    def dict_to_vector(self):
         n = 0
         if 'dvdt' not in self.keys():
             n += 1
@@ -192,17 +185,10 @@ should have only integers as keys."""
             n += 1
         vector = np.zeros((len(self.keys())+n,4))
         for key in self.keys():
-            if gj:
-                vector[self.indices[key]][0] = self[key].value
-                vector[self.indices[key]][1] = self[key].vary
-                vector[self.indices[key]][2] = self[key].mcmcscale
-                vector[self.indices[key]][3] = self[key].linear
-            else:
-                if not key.startswith('gamma') and not key.startswith('jit'):
-                    vector[self.indices[key]][0] = self[key].value
-                    vector[self.indices[key]][1] = self[key].vary
-                    vector[self.indices[key]][2] = self[key].mcmcscale
-                    vector[self.indices[key]][3] = self[key].linear
+            vector[self.indices[key]][0] = self[key].value
+            vector[self.indices[key]][1] = self[key].vary
+            vector[self.indices[key]][2] = self[key].mcmcscale
+            vector[self.indices[key]][3] = self[key].linear
         return vector
 
     def vector_to_dict(self):

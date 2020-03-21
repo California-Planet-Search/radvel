@@ -26,12 +26,11 @@ class Likelihood(object):
                  decorr_vectors=[]):
         self.model = model
         self.params = model.params
-        self.params.vector = self.params.dict_to_vector(gj=False)
         self.x = np.array(x)  # Variables must be arrays.
         self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
-        n = len(self.params.keys())
+        n = self.params.vector.shape[0]
         for key in extra_params:
             self.params[key] = radvel.model.Parameter(value=np.nan)
             self.params.indices.update({key:n})
@@ -40,7 +39,11 @@ class Likelihood(object):
             self.params[key] = radvel.model.Parameter(value=0.0)
             self.params.indices.update({key:n})
             n += 1
+        zeros = np.zeros((len(extra_params)+len(decorr_params), 4))
+        self.params.vector = np.concatenate((self.params.vector, zeros))
         self.uparams = None
+
+        self.params.vector = self.params.dict_to_vector()
 
         self.params_order = self.list_vary_params()
 
@@ -184,10 +187,10 @@ class CompositeLikelihood(Likelihood):
         self.hnames = []
 
         for i in range(1, self.nlike):
-            like = like_list[i]
+            like: object = like_list[i]
 
             self.x = np.append(self.x, like.x)
-            self.y = np.append(self.y, like.y - like.params[like.gamma_param].value)
+            self.y = np.append(self.y, like.y - like.params.vector[like.params.indices[self.gamma_param]][0])
             self.yerr = np.append(self.yerr, like.yerr)
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
@@ -283,14 +286,14 @@ class RVLikelihood(Likelihood):
         """
         mod = self.model(self.x)
 
-        if self.params[self.gamma_param].linear and not self.params[self.gamma_param].vary:
-            ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params[self.jit_param].value**2)) / \
-                   np.sum(1/(self.yerr**2 + self.params[self.jit_param].value**2))
+        if self.params.vector[self.params.indices[self.gamma_param]][3] and not self.params.vector[self.params.indices[self.gamma_param]][1]:
+            ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params.vector[self.params.indices[self.jit_param]][0]**2)) / \
+                   np.sum(1/(self.yerr**2 + self.params.vector[self.params.indices[self.jit_param]][0]**2))
             if np.isnan(ztil):
                  ztil = 0.0
-            self.params[self.gamma_param].value = ztil
+            self.params.vector[self.params.indices[self.gamma_param]][0] = ztil
 
-        res = self.y - self.params[self.gamma_param].value - mod
+        res = self.y - self.params.vector[self.params.indices[self.gamma_param]][0] - mod
 
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:
@@ -327,7 +330,7 @@ class RVLikelihood(Likelihood):
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
 
-        if self.params[self.gamma_param].linear and not self.params[self.gamma_param].vary:
+        if self.params.vector[self.params.indices[self.gamma_param]][3] and not self.params.vector[self.params.indices[self.gamma_param]][1]:
             sigz = 1/np.sum(1 / (self.yerr**2 + sigma_jit**2))
             loglike += np.log(np.sqrt(2 * np.pi * sigz))
 
@@ -382,7 +385,7 @@ class GPLikelihood(RVLikelihood):
         """Residuals for internal GP calculations
         Data minus orbit model. For internal use in GP calculations ONLY.
         """
-        res = self.y - self.params[self.gamma_param].value - self.model(self.x)
+        res = self.y - self.params.vector[self.params.indices[self.gamma_param]][0] - self.model(self.x)
         return res
 
     def residuals(self):
@@ -390,7 +393,7 @@ class GPLikelihood(RVLikelihood):
         Data minus (orbit model + predicted mean of GP noise model). For making GP plots.
         """
         mu_pred, _ = self.predict(self.x)
-        res = self.y - self.params[self.gamma_param].value - self.model(self.x) - mu_pred
+        res = self.y - self.params.vector[self.params.indices[self.gamma_param]][0] - self.model(self.x) - mu_pred
         return res
 
     def logprob(self):
@@ -537,7 +540,7 @@ class CeleriteLikelihood(GPLikelihood):
 
         # build celerite kernel with current values of hparams
         kernel = celerite.terms.JitterTerm(
-                log_sigma = np.log(self.params[self.jit_param].value)
+                log_sigma = np.log(self.params.vector[self.params.indices[self.jit_param]][0])
                 )
 
         kernel += celerite.terms.RealTerm(

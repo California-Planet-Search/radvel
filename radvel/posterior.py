@@ -21,7 +21,6 @@ class Posterior(Likelihood):
         self.likelihood = likelihood
         self.model = self.likelihood.model
         self.params = likelihood.params
-        self.params.indices = self.params.init_index_dict()
         self.params.vector = self.params.dict_to_vector()
         self.uparams = likelihood.uparams
         self.priors = []
