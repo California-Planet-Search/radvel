@@ -28,6 +28,7 @@ class Posterior(Likelihood):
         self.decorr_params = self.likelihood.decorr_params
         self.user_param_names = self.likelihood.user_param_names
         self.params = likelihood.params
+        self.params.vector = self.params.dict_to_vector()
         self.uparams = likelihood.uparams
         self.priors = []
 
