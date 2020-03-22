@@ -26,6 +26,7 @@ class Likelihood(object):
                  decorr_vectors=[]):
         self.model = model
         self.params = model.params
+        self.params.indices = self.params.init_index_dict()
         self.x = np.array(x)  # Variables must be arrays.
         self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
@@ -33,11 +34,13 @@ class Likelihood(object):
         n = self.params.vector.shape[0]
         for key in extra_params:
             self.params[key] = radvel.model.Parameter(value=np.nan)
-            self.params.indices.update({key:n})
+            if key not in self.params.indices:
+                self.params.indices.update({key:n})
             n += 1
         for key in decorr_params:
             self.params[key] = radvel.model.Parameter(value=0.0)
-            self.params.indices.update({key:n})
+            if key not in self.params.indices:
+                self.params.indices.update({key:n})
             n += 1
         zeros = np.zeros((len(extra_params)+len(decorr_params), 4))
         self.params.vector = np.concatenate((self.params.vector, zeros))
@@ -190,7 +193,7 @@ class CompositeLikelihood(Likelihood):
             like: object = like_list[i]
 
             self.x = np.append(self.x, like.x)
-            self.y = np.append(self.y, like.y - like.params.vector[like.params.indices[self.gamma_param]][0])
+            self.y = np.append(self.y, like.y - like.params.vector[like.params.indices[like.gamma_param]][0])
             self.yerr = np.append(self.yerr, like.yerr)
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)

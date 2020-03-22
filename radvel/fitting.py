@@ -29,7 +29,6 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
     if verbose:
         print("Initial loglikelihood = %f" % post.logprob())
         print("Performing maximum a posteriori fit...")
-
     _ = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method=method,
         options=dict(maxiter=200, maxfev=100000, xtol=1e-8))
