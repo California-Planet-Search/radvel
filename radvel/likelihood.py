@@ -283,20 +283,23 @@ class RVLikelihood(Likelihood):
             decorr_params=self.decorr_params, decorr_vectors=self.decorr_vectors
             )
 
+        self.gamma_index = self.params.indices[self.gamma_param]
+        self.jit_index = self.params.indices[self.jit_param]
+
     def residuals(self):
         """Residuals
         Data minus model
         """
         mod = self.model(self.x)
 
-        if self.params.vector[self.params.indices[self.gamma_param]][3] and not self.params.vector[self.params.indices[self.gamma_param]][1]:
-            ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params.vector[self.params.indices[self.jit_param]][0]**2)) / \
-                   np.sum(1/(self.yerr**2 + self.params.vector[self.params.indices[self.jit_param]][0]**2))
+        if self.params.vector[self.gamma_index][3] and not self.params.vector[self.gamma_index][1]:
+            ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params.vector[self.jit_index][0]**2)) / \
+                   np.sum(1/(self.yerr**2 + self.params.vector[self.jit_index][0]**2))
             if np.isnan(ztil):
                  ztil = 0.0
-            self.params.vector[self.params.indices[self.gamma_param]][0] = ztil
+            self.params.vector[self.gamma_index][0] = ztil
 
-        res = self.y - self.params.vector[self.params.indices[self.gamma_param]][0] - mod
+        res = self.y - self.params.vector[self.gamma_index][0] - mod
 
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:
@@ -304,7 +307,7 @@ class RVLikelihood(Likelihood):
                 pars = []
                 for par in self.decorr_params:
                     if var in par:
-                        pars.append(self.params[par].value)
+                        pars.append(self.params.vector[self.params.indices[par]][0])
                 pars.append(0.0)
                 if np.isfinite(self.decorr_vectors[var]).all():
                     vec = self.decorr_vectors[var] - np.mean(self.decorr_vectors[var])
@@ -319,7 +322,7 @@ class RVLikelihood(Likelihood):
         Returns:
             array: uncertainties
         """
-        return np.sqrt(self.yerr**2 + self.params[self.jit_param].value**2)
+        return np.sqrt(self.yerr**2 + self.params.vector[self.jit_index][0]**2)
 
     def logprob(self):
         """
@@ -329,11 +332,12 @@ class RVLikelihood(Likelihood):
             float: Natural log of likelihood
         """
 
-        sigma_jit = self.params[self.jit_param].value
+        sigma_jit = self.params.vector[self.jit_index][0]
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
 
-        if self.params.vector[self.params.indices[self.gamma_param]][3] and not self.params.vector[self.params.indices[self.gamma_param]][1]:
+        if self.params.vector[self.gamma_index][3] \
+                and not self.params.vector[self.gamma_index][1]:
             sigz = 1/np.sum(1 / (self.yerr**2 + sigma_jit**2))
             loglike += np.log(np.sqrt(2 * np.pi * sigz))
 
@@ -388,7 +392,7 @@ class GPLikelihood(RVLikelihood):
         """Residuals for internal GP calculations
         Data minus orbit model. For internal use in GP calculations ONLY.
         """
-        res = self.y - self.params.vector[self.params.indices[self.gamma_param]][0] - self.model(self.x)
+        res = self.y - self.params.vector[self.gamma_index][0] - self.model(self.x)
         return res
 
     def residuals(self):
@@ -396,7 +400,7 @@ class GPLikelihood(RVLikelihood):
         Data minus (orbit model + predicted mean of GP noise model). For making GP plots.
         """
         mu_pred, _ = self.predict(self.x)
-        res = self.y - self.params.vector[self.params.indices[self.gamma_param]][0] - self.model(self.x) - mu_pred
+        res = self.y - self.params.vector[self.gamma_index][0] - self.model(self.x) - mu_pred
         return res
 
     def logprob(self):
@@ -543,7 +547,7 @@ class CeleriteLikelihood(GPLikelihood):
 
         # build celerite kernel with current values of hparams
         kernel = celerite.terms.JitterTerm(
-                log_sigma = np.log(self.params.vector[self.params.indices[self.jit_param]][0])
+                log_sigma = np.log(self.params.vector[self.jit_index][0])
                 )
 
         kernel += celerite.terms.RealTerm(

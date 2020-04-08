@@ -140,83 +140,83 @@ class Basis(object):
 
         for num_planet in range(self.num_planets):
 
-            #per: 2 + (5*num_planet)
-            #tp: 3 + (5*num_planet)
-            #e: 4 + (5*num_planet)
-            #w: 5 + (5*num_planet)
-            #k: 6 + (5*num_planet)
+            #per: (5*num_planet)
+            #tp: 1 + (5*num_planet)
+            #e: 2 + (5*num_planet)
+            #w: 3 + (5*num_planet)
+            #k: 4 + (5*num_planet)
 
             if basis_name == 'per tp e w k':
                 return vector2
 
             if basis_name == 'per tc e w k':
-                vector2[3+(5*num_planet)][0] = timetrans_to_timeperi(vector[3+(5*num_planet)][0],
+                vector2[1+(5*num_planet)][0] = timetrans_to_timeperi(vector[1+(5*num_planet)][0],
+                                                                     vector[(5*num_planet)][0],
                                                                      vector[2+(5*num_planet)][0],
-                                                                     vector[4+(5*num_planet)][0],
-                                                                     vector[5+(5*num_planet)][0])
-                setvary([3+(5*num_planet)])
+                                                                     vector[3+(5*num_planet)][0])
+                setvary([1+(5*num_planet)])
 
             if basis_name == 'per tc se w k':
-                vector2[4+(5 * num_planet)][0] = vector[4+(5 * num_planet)][0] ** 2
-                vector2[3+(5*num_planet)][0] = timetrans_to_timeperi(vector[3+(5*num_planet)][0],
-                                                                     vector[2+(5*num_planet)][0],
-                                                                     vector2[4+(5*num_planet)][0],
-                                                                     vector[5+(5*num_planet)][0])
-                setvary([4+(5*num_planet), 3+(5*num_planet)])
+                vector2[2+(5 * num_planet)][0] = vector[2+(5 * num_planet)][0] ** 2
+                vector2[1+(5*num_planet)][0] = timetrans_to_timeperi(vector[1+(5*num_planet)][0],
+                                                                     vector[(5*num_planet)][0],
+                                                                     vector2[2+(5*num_planet)][0],
+                                                                     vector[3+(5*num_planet)][0])
+                setvary([2+(5*num_planet), 1+(5*num_planet)])
 
             if basis_name == 'per tc secosw sesinw logk':
-                vector2[6+(5*num_planet)][0] = np.exp(vector[6+5*num_planet][0])
-                vector2[4+(5*num_planet)][0] = vector[4+(5*num_planet)][0]**2 + vector[5+(5*num_planet)][0]**2
-                vector2[5+(5 * num_planet)][0] = np.arctan(vector[5+(5 * num_planet)][0]/vector[4+(5 * num_planet)][0])
-                vector2[3+(5*num_planet)][0] = timetrans_to_timeperi(vector[3+(5*num_planet)][0],
-                                                                     vector[2+(5*num_planet)][0],
-                                                                     vector2[4+(5*num_planet)][0],
-                                                                     vector2[5+(5*num_planet)][0])
-                setvary([6+(5*num_planet),4+(5 * num_planet),5 + (5 * num_planet),3 + (5 * num_planet)])
+                vector2[4+(5*num_planet)][0] = np.exp(vector[4+(5*num_planet)][0])
+                vector2[2+(5*num_planet)][0] = vector[2+(5*num_planet)][0]**2 + vector[3+(5*num_planet)][0]**2
+                vector2[3+(5 * num_planet)][0] = np.arctan(vector[3+(5 * num_planet)][0]/vector[2+(5 * num_planet)][0])
+                vector2[1+(5*num_planet)][0] = timetrans_to_timeperi(vector[1+(5*num_planet)][0],
+                                                                     vector[(5*num_planet)][0],
+                                                                     vector2[2+(5*num_planet)][0],
+                                                                     vector2[3+(5*num_planet)][0])
+                setvary([4+(5*num_planet),2+(5 * num_planet),3+(5 * num_planet),1+(5 * num_planet)])
 
             if basis_name == 'per tc secosw sesinw k':
-                vector2[4 + (5 * num_planet)][0] = vector[4+(5 * num_planet)][0] ** 2 + vector[5+(5 * num_planet)][0] ** 2
-                vector2[5 + (5 * num_planet)][0] = np.arctan2(vector[5+(5 * num_planet)][0], vector[4+(5 * num_planet)][0])
-                vector2[3 + (5 * num_planet)][0] = timetrans_to_timeperi(vector[3 + (5 * num_planet)][0],
-                                                                         vector[2 + (5 * num_planet)][0],
-                                                                         vector2[4+(5 * num_planet)][0],
-                                                                         vector2[5 + (5 * num_planet)][0])
-                setvary([4+(5 * num_planet),5 + (5 * num_planet),3 + (5 * num_planet)])
+                vector2[2 + (5 * num_planet)][0] = vector[2+(5 * num_planet)][0] ** 2 + vector[3+(5 * num_planet)][0] ** 2
+                vector2[3 + (5 * num_planet)][0] = np.arctan2(vector[3+(5 * num_planet)][0], vector[2+(5 * num_planet)][0])
+                vector2[1 + (5 * num_planet)][0] = timetrans_to_timeperi(vector[1+(5 * num_planet)][0],
+                                                                         vector[(5 * num_planet)][0],
+                                                                         vector2[2+(5 * num_planet)][0],
+                                                                         vector2[3+(5 * num_planet)][0])
+                setvary([2+(5 * num_planet),3+(5 * num_planet),1+(5 * num_planet)])
 
             if basis_name == 'logper tc secosw sesinw k':
-                vector2[4+(5 * num_planet)][0] = vector[4+(5 * num_planet)][0] ** 2 + vector[5+(5 * num_planet)][0] ** 2
-                vector2[5+(5 * num_planet)][0] = np.arctan2(vector[5+(5 * num_planet)][0], vector[4+(5 * num_planet)][0])
-                vector2[2+(5 * num_planet)][0] = np.exp(vector[2+(5 * num_planet)][0])
-                vector2[3 + (5 * num_planet)][0] = timetrans_to_timeperi(vector[3 + (5 * num_planet)][0],
-                                                                          vector2[2 + (5 * num_planet)][0],
-                                                                          vector2[4+(5 * num_planet)][0],
-                                                                          vector2[5 + (5 * num_planet)][0])
-                setvary([4+(5 * num_planet),5+(5 * num_planet),2+(5 * num_planet),3 + (5 * num_planet)])
+                vector2[2+(5 * num_planet)][0] = vector[2+(5 * num_planet)][0] ** 2 + vector[3+(5 * num_planet)][0] ** 2
+                vector2[3+(5 * num_planet)][0] = np.arctan2(vector[3+(5 * num_planet)][0], vector[2+(5 * num_planet)][0])
+                vector2[(5 * num_planet)][0] = np.exp(vector[(5 * num_planet)][0])
+                vector2[1 + (5 * num_planet)][0] = timetrans_to_timeperi(vector[1 + (5 * num_planet)][0],
+                                                                          vector2[(5 * num_planet)][0],
+                                                                          vector2[2+(5 * num_planet)][0],
+                                                                          vector2[3 + (5 * num_planet)][0])
+                setvary([2+(5 * num_planet),3+(5 * num_planet),(5 * num_planet),1 + (5 * num_planet)])
 
             if basis_name == 'logper tc secosw sesinw logk':
-                vector2[4+(5 * num_planet)][0] = vector[4+(5 * num_planet)][0] ** 2 + vector[5+(5 * num_planet)][0] ** 2
-                vector2[5+(5 * num_planet)][0] = np.arctan2(vector[5+(5 * num_planet)][0], vector[4+(5 * num_planet)][0])
-                vector2[2 + (5 * num_planet)][0] = np.exp(vector[2 + (5 * num_planet)][0])
-                vector2[6 + (5 * num_planet)][0] = np.exp(vector[6 + (5 * num_planet)][0])
-                vector2[3 + (5 * num_planet)][0] = timetrans_to_timeperi(vector[3 + (5 * num_planet)][0],
-                                                                        vector2[2 + (5 * num_planet)][0],
-                                                                        vector2[4+(5 * num_planet)][0],
-                                                                        vector2[5+(5 * num_planet)][0])
-                setvary([4+(5 * num_planet),5 + (5 * num_planet),2 + (5 * num_planet),6 + (5 * num_planet),3 + (5 * num_planet)])
+                vector2[2+(5 * num_planet)][0] = vector[2+(5 * num_planet)][0] ** 2 + vector[3+(5 * num_planet)][0] ** 2
+                vector2[3+(5 * num_planet)][0] = np.arctan2(vector[3+(5 * num_planet)][0], vector[2+(5 * num_planet)][0])
+                vector2[(5 * num_planet)][0] = np.exp(vector[(5 * num_planet)][0])
+                vector2[4 + (5 * num_planet)][0] = np.exp(vector[4 + (5 * num_planet)][0])
+                vector2[1 + (5 * num_planet)][0] = timetrans_to_timeperi(vector[1 + (5 * num_planet)][0],
+                                                                        vector2[(5 * num_planet)][0],
+                                                                        vector2[2+(5 * num_planet)][0],
+                                                                        vector2[3+(5 * num_planet)][0])
+                setvary([2+(5 * num_planet),3 + (5 * num_planet),(5 * num_planet),4 + (5 * num_planet),1 + (5 * num_planet)])
 
             if basis_name == 'per tc ecosw esinw k':
-                vector2[4 + (5 * num_planet)][0] = np.sqrt(vector[4 + (5 * num_planet)][0] ** 2 + vector[5 + (5 * num_planet)][0] ** 2)
-                vector2[5+(5 * num_planet)][0] = np.arctan2(vector[5+(5 * num_planet)][0], vector[4+(5 * num_planet)][0])
-                vector2[3 + (5 * num_planet)][0] = timetrans_to_timeperi(vector[3 + (5 * num_planet)][0],
-                                                                            vector[2 + (5 * num_planet)][0],
-                                                                            vector2[4+(5 * num_planet)][0],
-                                                                            vector2[5+(5 * num_planet)][0])
-                setvary([5+(5 * num_planet),4+(5 * num_planet),3 + (5 * num_planet)])
+                vector2[2 + (5 * num_planet)][0] = np.sqrt(vector[2 + (5 * num_planet)][0] ** 2 + vector[3 + (5 * num_planet)][0] ** 2)
+                vector2[3+(5 * num_planet)][0] = np.arctan2(vector[3+(5 * num_planet)][0], vector[2+(5 * num_planet)][0])
+                vector2[1 + (5 * num_planet)][0] = timetrans_to_timeperi(vector[1 + (5 * num_planet)][0],
+                                                                            vector[(5 * num_planet)][0],
+                                                                            vector2[2+(5 * num_planet)][0],
+                                                                            vector2[3+(5 * num_planet)][0])
+                setvary([3+(5 * num_planet),2+(5 * num_planet),1 + (5 * num_planet)])
 
             if basis_name == 'logper tp e w logk':
-                vector2[6 + (5 * num_planet)][0] = np.exp(vector[6 + (5 * num_planet)][0])
-                vector2[2 + (5 * num_planet)][0] = np.exp(vector[2 + (5 * num_planet)][0])
-                setvary([6+(5 * num_planet),2+(5 * num_planet)])
+                vector2[4 + (5 * num_planet)][0] = np.exp(vector[4 + (5 * num_planet)][0])
+                vector2[(5 * num_planet)][0] = np.exp(vector[(5 * num_planet)][0])
+                setvary([4+(5 * num_planet),(5 * num_planet)])
 
         return vector2
 
@@ -403,73 +403,73 @@ class Basis(object):
         for num_planet in range(self.num_planets):
 
             if newbasis == 'per tc e w k':
-                vector2[3+(5*num_planet)][0] = timeperi_to_timetrans(vector[3+(5*num_planet)][0],
+                vector2[1+(5*num_planet)][0] = timeperi_to_timetrans(vector[1+(5*num_planet)][0],
+                                                                      vector[(5*num_planet)][0],
                                                                       vector[2+(5*num_planet)][0],
-                                                                      vector[4+(5*num_planet)][0],
-                                                                      vector[5+(5*num_planet)][0])
+                                                                      vector[3+(5*num_planet)][0])
                 setvary([3+(5*num_planet)])
 
             if newbasis == 'per tc se w k':
-                vector2[3 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[3 + (5 * num_planet)][0],
+                vector2[1 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[1 + (5 * num_planet)][0],
+                                                                         vector[(5 * num_planet)][0],
                                                                          vector[2 + (5 * num_planet)][0],
-                                                                         vector[4 + (5 * num_planet)][0],
-                                                                         vector[5 + (5 * num_planet)][0])
-                vector2[4+(5*num_planet)][0] = np.sqrt(vector[4+(5*num_planet)][0])
-                setvary([3 + (5 * num_planet),4+(5*num_planet)])
+                                                                         vector[3 + (5 * num_planet)][0])
+                vector2[2+(5*num_planet)][0] = np.sqrt(vector[2+(5*num_planet)][0])
+                setvary([1 + (5 * num_planet),2+(5*num_planet)])
 
             if newbasis == 'per tc secosw sesinw logk':
-                vector2[3 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[3 + (5 * num_planet)][0],
+                vector2[1 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[1 + (5 * num_planet)][0],
+                                                                         vector[(5 * num_planet)][0],
                                                                          vector[2 + (5 * num_planet)][0],
-                                                                         vector[4 + (5 * num_planet)][0],
-                                                                         vector[5 + (5 * num_planet)][0])
-                vector2[4+(5*num_planet)][0] = np.sqrt(vector[4+(5*num_planet)][0])*np.cos(vector[5+(5*num_planet)][0])
-                vector2[5+(5 * num_planet)][0] = np.sqrt(vector[4+(5 * num_planet)][0]) * np.sin(vector[5 + (5 * num_planet)][0])
-                vector2[6+(5*num_planet)][0] = np.log(vector[6+(5*num_planet)][0])
-                setvary([3 + (5 * num_planet),4+(5*num_planet),5+(5 * num_planet),6+(5*num_planet)])
+                                                                         vector[3 + (5 * num_planet)][0])
+                vector2[2+(5*num_planet)][0] = np.sqrt(vector[2+(5*num_planet)][0])*np.cos(vector[3+(5*num_planet)][0])
+                vector2[3+(5 * num_planet)][0] = np.sqrt(vector[2+(5 * num_planet)][0]) * np.sin(vector[3 + (5 * num_planet)][0])
+                vector2[4+(5*num_planet)][0] = np.log(vector[4+(5*num_planet)][0])
+                setvary([1 + (5 * num_planet),2+(5*num_planet),3+(5 * num_planet),4+(5*num_planet)])
 
             if newbasis == 'per tc secosw sesinw k':
-                vector2[3 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[3 + (5 * num_planet)][0],
+                vector2[1 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[1 + (5 * num_planet)][0],
+                                                                         vector[(5 * num_planet)][0],
                                                                          vector[2 + (5 * num_planet)][0],
-                                                                         vector[4 + (5 * num_planet)][0],
-                                                                         vector[5 + (5 * num_planet)][0])
-                vector2[4 + (5 * num_planet)][0] = np.sqrt(vector[4 + (5 * num_planet)][0]) * np.cos(vector[5 + (5 * num_planet)][0])
-                vector2[5 + (5 * num_planet)][0] = np.sqrt(vector[4 + (5 * num_planet)][0]) * np.sin(vector[5 + (5 * num_planet)][0])
-                setvary([3 + (5 * num_planet), 4+(5 * num_planet), 5 + (5 * num_planet)])
+                                                                         vector[3 + (5 * num_planet)][0])
+                vector2[2 + (5 * num_planet)][0] = np.sqrt(vector[2 + (5 * num_planet)][0]) * np.cos(vector[3 + (5 * num_planet)][0])
+                vector2[3 + (5 * num_planet)][0] = np.sqrt(vector[2 + (5 * num_planet)][0]) * np.sin(vector[3 + (5 * num_planet)][0])
+                setvary([1 + (5 * num_planet), 2+(5 * num_planet), 3 + (5 * num_planet)])
 
             if newbasis == 'logper tc secosw sesinw k':
-                vector2[3 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[3 + (5 * num_planet)][0],
+                vector2[1 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[1 + (5 * num_planet)][0],
+                                                                         vector[(5 * num_planet)][0],
                                                                          vector[2 + (5 * num_planet)][0],
-                                                                         vector[4 + (5 * num_planet)][0],
-                                                                         vector[5 + (5 * num_planet)][0])
-                vector2[4 + (5 * num_planet)][0] = np.sqrt(vector[4 + (5 * num_planet)][0]) * np.cos(vector[5 + (5 * num_planet)][0])
-                vector2[5 + (5 * num_planet)][0] = np.sqrt(vector[4 + (5 * num_planet)][0]) * np.sin(vector[5 + (5 * num_planet)][0])
-                vector2[2+(5*num_planet)][0] = np.log(vector[2+(5*num_planet)][0])
-                setvary([3 + (5 * num_planet), 4+(5 * num_planet),5 + (5 * num_planet),2+(5*num_planet)])
+                                                                         vector[3 + (5 * num_planet)][0])
+                vector2[2 + (5 * num_planet)][0] = np.sqrt(vector[2 + (5 * num_planet)][0]) * np.cos(vector[3 + (5 * num_planet)][0])
+                vector2[3 + (5 * num_planet)][0] = np.sqrt(vector[2 + (5 * num_planet)][0]) * np.sin(vector[3 + (5 * num_planet)][0])
+                vector2[(5*num_planet)][0] = np.log(vector[(5*num_planet)][0])
+                setvary([1 + (5 * num_planet), 2+(5 * num_planet),3 + (5 * num_planet),(5*num_planet)])
 
             if newbasis == 'logper tc secosw sesinw logk':
-                vector2[3 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[3 + (5 * num_planet)][0],
+                vector2[1 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[1 + (5 * num_planet)][0],
+                                                                         vector[(5 * num_planet)][0],
                                                                          vector[2 + (5 * num_planet)][0],
-                                                                         vector[4 + (5 * num_planet)][0],
-                                                                         vector[5 + (5 * num_planet)][0])
-                vector2[4 + (5 * num_planet)][0] = np.sqrt(vector[4 + (5 * num_planet)][0]) * np.cos(vector[5 + (5 * num_planet)][0])
-                vector2[5 + (5 * num_planet)][0] = np.sqrt(vector[4 + (5 * num_planet)][0]) * np.sin(vector[5 + (5 * num_planet)][0])
-                vector2[2 + (5 * num_planet)][0] = np.log(vector[2 + (5 * num_planet)][0])
-                vector2[6+(5*num_planet)][0] = np.log(vector[6+(5*num_planet)][0])
-                setvary([3 + (5 * num_planet), 4+(5 * num_planet), 5 + (5 * num_planet), 2 + (5 * num_planet),6+(5*num_planet)])
+                                                                         vector[3 + (5 * num_planet)][0])
+                vector2[2 + (5 * num_planet)][0] = np.sqrt(vector[2 + (5 * num_planet)][0]) * np.cos(vector[3 + (5 * num_planet)][0])
+                vector2[3 + (5 * num_planet)][0] = np.sqrt(vector[2 + (5 * num_planet)][0]) * np.sin(vector[3 + (5 * num_planet)][0])
+                vector2[(5 * num_planet)][0] = np.log(vector[(5 * num_planet)][0])
+                vector2[4+(5*num_planet)][0] = np.log(vector[4+(5*num_planet)][0])
+                setvary([1 + (5 * num_planet), 2+(5 * num_planet), 53+ (5 * num_planet), (5 * num_planet),4+(5*num_planet)])
 
             if newbasis == 'per tc ecosw esinw k':
-                vector2[3 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[3 + (5 * num_planet)][0],
+                vector2[1 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[1 + (5 * num_planet)][0],
+                                                                         vector[(5 * num_planet)][0],
                                                                          vector[2 + (5 * num_planet)][0],
-                                                                         vector[4 + (5 * num_planet)][0],
-                                                                         vector[5 + (5 * num_planet)][0])
-                vector2[4+(5*num_planet)][0] = vector[4+(5*num_planet)][0]*np.cos(vector[5+(5*num_planet)][0])
-                vector2[5+(5 * num_planet)][0] = vector[4+(5 * num_planet)][0] * np.sin(vector[5 + (5 * num_planet)][0])
-                setvary([3 + (5 * num_planet),4+(5*num_planet),5+(5 * num_planet)])
+                                                                         vector[3 + (5 * num_planet)][0])
+                vector2[2+(5*num_planet)][0] = vector[2+(5*num_planet)][0]*np.cos(vector[3+(5*num_planet)][0])
+                vector2[3+(5 * num_planet)][0] = vector[2+(5 * num_planet)][0] * np.sin(vector[3 + (5 * num_planet)][0])
+                setvary([1 + (5 * num_planet),2+(5*num_planet),3+(5 * num_planet)])
 
             if newbasis == 'logper tp e w logk':
-                vector2[2 + (5 * num_planet)][0] = np.log(vector[2 + (5 * num_planet)][0])
-                vector2[6 + (5 * num_planet)][0] = np.log(vector[6 + (5 * num_planet)][0])
-                setvary([2 + (5 * num_planet),6 + (5 * num_planet)])
+                vector2[(5 * num_planet)][0] = np.log(vector[(5 * num_planet)][0])
+                vector2[4 + (5 * num_planet)][0] = np.log(vector[4 + (5 * num_planet)][0])
+                setvary([(5 * num_planet),4 + (5 * num_planet)])
 
         return vector2
 

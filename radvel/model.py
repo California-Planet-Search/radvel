@@ -120,7 +120,6 @@ should have only integers as keys."""
         self.num_planets = num_planets
         self.planet_letters = planet_letters
         self.indices = self.init_index_dict()
-        self.reverse_indices = {v: k for k, v in self.indices.items()}
         self.vector = self.dict_to_vector()
 
     def __reduce__(self):
@@ -168,14 +167,14 @@ should have only integers as keys."""
     def init_index_dict(self):
         dict = {}
         for num_planet in range(1, self.num_planets+1):
-            dict.update({'per'+str(num_planet):-3+(5*num_planet),'logper'+str(num_planet):-3+(5*num_planet),
-                         'tc'+str(num_planet):-2+(5*num_planet),'tp'+str(num_planet):-2+(5*num_planet),
-                         'secosw'+str(num_planet):-1+(5*num_planet),'ecosw'+str(num_planet):-1+(5*num_planet),
-                         'e'+str(num_planet):-1+(5*num_planet),'se'+str(num_planet):-1+(5*num_planet),
-                         'sesinw'+str(num_planet):(5*num_planet),'esinw'+str(num_planet):(5*num_planet),
-                         'w'+str(num_planet):(5*num_planet),'k'+str(num_planet):1+(5*num_planet),
-                         'logk'+str(num_planet):1+(5*num_planet)})
-        dict.update({'dvdt':0,'curv':1})
+            dict.update({'per'+str(num_planet):-5+(5*num_planet),'logper'+str(num_planet):-5+(5*num_planet),
+                         'tc'+str(num_planet):-4+(5*num_planet),'tp'+str(num_planet):-4+(5*num_planet),
+                         'secosw'+str(num_planet):-3+(5*num_planet),'ecosw'+str(num_planet):-3+(5*num_planet),
+                         'e'+str(num_planet):-3+(5*num_planet),'se'+str(num_planet):-3+(5*num_planet),
+                         'sesinw'+str(num_planet):-2+(5*num_planet),'esinw'+str(num_planet):-2+(5*num_planet),
+                         'w'+str(num_planet):-2+(5*num_planet),'k'+str(num_planet):-1+(5*num_planet),
+                         'logk'+str(num_planet):-1+(5*num_planet)})
+        dict.update({'dvdt':(5*self.num_planets),'curv':1+(5*self.num_planets)})
         n = 0
         for k in self.keys():
             if k.startswith('gamma') or k.startswith('jit'):
@@ -252,7 +251,7 @@ class GeneralRVModel(object):
     """
     def __init__(self,params,forward_model,time_base=0):
         self.params = params
-        self.params.vector = self.params.dict_to_vector()
+        #self.params.vector = self.params.dict_to_vector()
         self.time_base = time_base
         self._forward_model = forward_model
         assert callable(forward_model)
@@ -270,8 +269,8 @@ class GeneralRVModel(object):
             vel (array of floats): Radial velocity at each time in `t`
         """
         vel = self._forward_model(t,self.params,*args,**kwargs)
-        vel += self.params.vector[0][0] * (t - self.time_base)
-        vel += self.params.vector[1][0] * (t - self.time_base)**2
+        vel += self.params.vector[5*self.params.num_planets][0] * (t - self.time_base)
+        vel += self.params.vector[1+(5*self.params.num_planets)][0] * (t - self.time_base)**2
         return vel
 
 
@@ -285,16 +284,16 @@ def _standard_rv_calc(t,params,planet_num=None):
 
         for num_planet in planets:
             #index values
-            #per: -3 + (5*num_planet)
-            #tp: -2 + (5*num_planet)
-            #e: -1 + (5*num_planet)
-            #w: 5*num_planet
-            #k: 1 + (5*num_planet)
-            per = params_synth[-3+(5*num_planet)][0]
-            tp = params_synth[-2+(5*num_planet)][0]
-            e = params_synth[-1+(5*num_planet)][0]
-            w = params_synth[5*num_planet][0]
-            k = params_synth[1+(5*num_planet)][0]
+            #per: -5 + (5*num_planet)
+            #tp: -4 + (5*num_planet)
+            #e: -3 + (5*num_planet)
+            #w: -2 + (5*num_planet)
+            #k: -1 + (5*num_planet)
+            per = params_synth[-5+(5*num_planet)][0]
+            tp = params_synth[-4+(5*num_planet)][0]
+            e = params_synth[-3+(5*num_planet)][0]
+            w = params_synth[-2+(5*num_planet)][0]
+            k = params_synth[-1+(5*num_planet)][0]
             orbel_synth = np.array([per, tp, e, w, k])
             vel += kepler.rv_drive(t, orbel_synth)
         return vel
