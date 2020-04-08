@@ -218,6 +218,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
+    statevars.reset()
 
     try:
         if save and savename is None:
