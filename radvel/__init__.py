@@ -26,7 +26,6 @@ warnings.filterwarnings("ignore")
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'
 
-
 __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
