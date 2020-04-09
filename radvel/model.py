@@ -120,7 +120,8 @@ should have only integers as keys."""
         self.num_planets = num_planets
         self.planet_letters = planet_letters
         self.indices = self.init_index_dict()
-        self.vector = self.dict_to_vector()
+        self.vector =  self.dict_to_vector()
+        self.names = self.vector_names()
 
     def __reduce__(self):
 
@@ -166,6 +167,11 @@ should have only integers as keys."""
 
     def init_index_dict(self):
         dict = {}
+        n = 0
+        for k in self.keys():
+            if k.startswith('gamma') or k.startswith('jit'):
+                dict.update({k:2 + n + (5*self.num_planets)})
+                n += 1
         for num_planet in range(1, self.num_planets+1):
             dict.update({'per'+str(num_planet):-5+(5*num_planet),'logper'+str(num_planet):-5+(5*num_planet),
                          'tc'+str(num_planet):-4+(5*num_planet),'tp'+str(num_planet):-4+(5*num_planet),
@@ -175,11 +181,6 @@ should have only integers as keys."""
                          'w'+str(num_planet):-2+(5*num_planet),'k'+str(num_planet):-1+(5*num_planet),
                          'logk'+str(num_planet):-1+(5*num_planet)})
         dict.update({'dvdt':(5*self.num_planets),'curv':1+(5*self.num_planets)})
-        n = 0
-        for k in self.keys():
-            if k.startswith('gamma') or k.startswith('jit'):
-                dict.update({k:2 + n + (5*self.num_planets)})
-                n += 1
         return dict
 
     def dict_to_vector(self):
@@ -202,6 +203,15 @@ should have only integers as keys."""
             except:
                 pass
         return vector
+
+    def vector_names(self):
+        names = [0] * len(self.keys())
+        for key in self.keys():
+            try:
+                names[self.indices[key]] = key
+            except:
+                pass
+        return names
 
     def vector_to_dict(self):
         for key in self.keys():
@@ -251,7 +261,6 @@ class GeneralRVModel(object):
     """
     def __init__(self,params,forward_model,time_base=0):
         self.params = params
-        #self.params.vector = self.params.dict_to_vector()
         self.time_base = time_base
         self._forward_model = forward_model
         assert callable(forward_model)

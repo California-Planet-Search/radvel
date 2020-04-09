@@ -175,6 +175,9 @@ def mcmc(args):
         print("Loading starting positions from previous MAP fit")
 
         post = radvel.posterior.load(status.get('fit', 'postfile'))
+        post.params.indices = post.params.init_index_dict()
+        post.params.vector = post.params.dict_to_vector()
+        post.params.names = post.params.vector_names()
 
     msg1 = (
             "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Auto Factor = {}, "
@@ -200,8 +203,10 @@ def mcmc(args):
     # Convert chains into synth basis
     synthchains = chains.copy()
     for par in post.params.keys():
-        if not post.params[par].vary:
-            synthchains[par] = post.params[par].value
+        if not post.params.vector[post.params.indices[par]][1]:
+            synthchains[par] = post.params.vector[post.params.indices[par]][0]
+
+
 
     synthchains = post.params.basis.to_synth(synthchains)
     synth_quantile = synthchains.quantile([0.159, 0.5, 0.841])
@@ -212,7 +217,7 @@ def mcmc(args):
 
     for k in chains.keys():
         if k in post.params.keys():
-            post.params[k].value = post_summary[k][0.5]
+            post.params.vector[post.params.indices[k]][0] = post_summary[k][0.5]
 
     print("Performing post-MCMC maximum likelihood fit...")
     post = radvel.fitting.maxlike_fitting(post, verbose=False)
@@ -222,6 +227,7 @@ def mcmc(args):
     final_chisq = np.sum(post.likelihood.residuals()**2 / (post.likelihood.errorbars()**2))
     deg_of_freedom = len(post.likelihood.y) - len(post.likelihood.get_vary_params())
     final_chisq_reduced = final_chisq / deg_of_freedom
+    post.params.vector_to_dict()
     synthparams = post.params.basis.to_synth(post.params)
     post.params.update(synthparams)
 

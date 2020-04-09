@@ -47,6 +47,7 @@ class Likelihood(object):
         self.uparams = None
 
         self.params.vector = self.params.dict_to_vector()
+        self.params.names = self.params.vector_names()
 
         self.params_order = self.list_vary_params()
 
@@ -67,6 +68,18 @@ class Likelihood(object):
                 s += "{:20s}{:15g} {:>10s}\n".format(
                     key, par, vstr
                      )
+            synthbasis = self.params.basis.to_synth(self.params, noVary=True)
+            for key in synthbasis.keys():
+                if key not in keys:
+                    vstr = str(synthbasis[key].vary)
+                    if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
+                        par = synthbasis[key].value - self.model.time_base
+                    else:
+                        par = synthbasis[key].value
+
+                    s += "{:20s}{:15g} {:>10s}\n".format(
+                        key, par, vstr
+                        )
         else:
             s = ""
             s += "{:<20s}{:>15s}{:>10s}{:>10s}\n".format(
@@ -88,11 +101,24 @@ class Likelihood(object):
                 s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
                     key, par, err, vstr
                      )
+                synthbasis = self.params.basis.to_synth(self.params, noVary=True)
+                for key in synthbasis.keys():
+                    if key not in keys:
+                        vstr = str(synthbasis[key].vary)
+                        if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
+                            par = synthbasis[key].value - self.model.time_base
+                        else:
+                            par = synthbasis[key].value
+
+                        s += "{:20s}{:15g} {:>10s}\n".format(
+                            key, par, vstr
+                        )
         return s
 
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
+        print(self.params.vector, self.list_vary_params(), param_values_array)
         for index in self.list_vary_params():
             self.params.vector[index][0] = param_values_array[i]
             i += 1
@@ -106,6 +132,13 @@ class Likelihood(object):
     def list_vary_params(self):
 
         return np.where(self.params.vector[:,1] == True)[0]
+
+    def name_vary_params(self):
+
+        list = []
+        for i in self.list_vary_params():
+            list.append(self.params.names[i])
+        return list
 
     def list_params(self):
         try:

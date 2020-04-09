@@ -193,7 +193,6 @@ class HardBounds(Prior):
                           UserWarning)
 
     def __call__(self, params):
-        print(params.indices)
         x = params.vector[params.indices[self.param]][0]
         if x <= self.minval or x >= self.maxval:
             return -np.inf

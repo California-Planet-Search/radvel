@@ -34,8 +34,6 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
         options=dict(maxiter=200, maxfev=100000, xtol=1e-8))
     post.params.vector_to_dict()
     # setting "noVary" assigns each new parameter a vary attribute of '', for printing purposes
-    #synthparams = post.params.basis.to_synth(post.params, noVary=True)
-    #post.params.update(synthparams)
 
     if verbose:
         print("Final loglikelihood = %f" % post.logprob())
