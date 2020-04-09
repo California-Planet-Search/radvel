@@ -122,7 +122,6 @@ class Likelihood(object):
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
-        #print(self.params.vector, self.list_vary_params(), param_values_array)
         for index in self.list_vary_params():
             self.params.vector[index][0] = param_values_array[i]
             i += 1
