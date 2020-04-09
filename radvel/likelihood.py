@@ -101,24 +101,28 @@ class Likelihood(object):
                 s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
                     key, par, err, vstr
                      )
-                synthbasis = self.params.basis.to_synth(self.params, noVary=True)
-                for key in synthbasis.keys():
-                    if key not in keys:
-                        vstr = str(synthbasis[key].vary)
-                        if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
-                            par = synthbasis[key].value - self.model.time_base
-                        else:
-                            par = synthbasis[key].value
+            synthbasis = self.params.basis.to_synth(self.params, noVary=True)
+            for key in synthbasis.keys():
+                if key not in keys:
+                    vstr = str(synthbasis[key].vary)
+                    if key in self.uparams.keys():
+                        err = self.uparams[key]
+                    else:
+                        err = 0
+                    if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
+                        par = synthbasis[key].value - self.model.time_base
+                    else:
+                        par = synthbasis[key].value
 
-                        s += "{:20s}{:15g} {:>10s}\n".format(
-                            key, par, vstr
-                        )
+                    s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
+                        key, par, err, vstr
+                    )
         return s
 
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
-        print(self.params.vector, self.list_vary_params(), param_values_array)
+        #print(self.params.vector, self.list_vary_params(), param_values_array)
         for index in self.list_vary_params():
             self.params.vector[index][0] = param_values_array[i]
             i += 1

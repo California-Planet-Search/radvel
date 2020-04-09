@@ -206,8 +206,6 @@ def mcmc(args):
         if not post.params.vector[post.params.indices[par]][1]:
             synthchains[par] = post.params.vector[post.params.indices[par]][0]
 
-
-
     synthchains = post.params.basis.to_synth(synthchains)
     synth_quantile = synthchains.quantile([0.159, 0.5, 0.841])
 
@@ -215,7 +213,7 @@ def mcmc(args):
     # values returned by MCMC chains
     post_summary = chains.quantile([0.159, 0.5, 0.841])
 
-    for k in chains.keys():
+    for k in chains.columns:
         if k in post.params.keys():
             post.params.vector[post.params.indices[k]][0] = post_summary[k][0.5]
 
@@ -229,14 +227,13 @@ def mcmc(args):
     final_chisq_reduced = final_chisq / deg_of_freedom
     post.params.vector_to_dict()
     synthparams = post.params.basis.to_synth(post.params)
-    post.params.update(synthparams)
 
     print("Calculating uncertainties...")
     post.uparams = {}
     post.medparams = {}
     post.maxparams = {}
-    for par in post.params.keys():
-        maxlike = post.params[par].value
+    for par in synthparams.keys():
+        maxlike = synthparams[par].value
         med = synth_quantile[par][0.5]
         high = synth_quantile[par][0.841] - med
         low = med - synth_quantile[par][0.159]
