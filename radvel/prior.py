@@ -30,8 +30,8 @@ class Gaussian(Prior):
         self.sigma = sigma
         self.param = param
 
-    def __call__(self, params):
-        x = params.vector[params.indices[self.param]][0]
+    def __call__(self, params, vector):
+        x = vector.vector[vector.indices[self.param]][0]
         return -0.5 * ((x - self.mu) / self.sigma)**2 - 0.5*np.log((self.sigma**2)*2.*np.pi)
 
     def __repr__(self):
@@ -101,9 +101,9 @@ class EccentricityPrior(Prior):
 upper limits must match number of planets."
             self.upperlims = upperlims
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         def _getpar(key, num_planet):
-            return params.vector[params.indices['{}{}'.format(key, num_planet)]][0]
+            return vector.vector[vector.indices['{}{}'.format(key, num_planet)]][0]
 
         parnames = params.basis.name.split()
 
@@ -149,9 +149,9 @@ class PositiveKPrior(Prior):
     def __init__(self, num_planets):
         self.num_planets = num_planets
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         def _getpar(key, num_planet):
-            return params.vector[params.indices['{}{}'.format(key, num_planet)]][0]
+            return vector.vector[vector.indices['{}{}'.format(key, num_planet)]][0]
 
         for num_planet in range(1, self.num_planets+1):
             try:
@@ -192,8 +192,8 @@ class HardBounds(Prior):
             warnings.warn("HardBounds set on K or e parameter. PositveKPrior and EccentricityPriors are recommended",
                           UserWarning)
 
-    def __call__(self, params):
-        x = params.vector[params.indices[self.param]][0]
+    def __call__(self, params, vector):
+        x = vector.vector[vector.indices[self.param]][0]
         if x <= self.minval or x >= self.maxval:
             return -np.inf
         else:
@@ -250,11 +250,11 @@ class SecondaryEclipsePrior(Prior):
         self.ts = ts
         self.ts_err = ts_err
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         def _getpar(key):
-            return synth_params[params.indices['{}{}'.format(key, self.planet_num)]][0]
+            return synth_params[vector.indices['{}{}'.format(key, self.planet_num)]][0]
 
-        synth_params = params.basis.v_to_synth(params)
+        synth_params = params.basis.v_to_synth(vector)
 
         tp = _getpar('tp')
         per = _getpar('per')
@@ -295,8 +295,8 @@ class Jeffreys(Prior):
 
         self.normalization = 1./np.log(self.maxval/self.minval)
 
-    def __call__(self, params):
-        x = params.vector[params.indices[self.param]][0]
+    def __call__(self, params, vector):
+        x = vector.vector[vector.indices[self.param]][0]
         if x < self.minval or x > self.maxval:
             return -np.inf
         else:
@@ -347,8 +347,8 @@ class ModifiedJeffreys(Prior):
 
         assert self.minval > self.kneeval, "ModifiedJeffreys prior requires minval>kneeval."
 
-    def __call__(self, params):
-        x = params.vector[params.indices[self.param]][0]
+    def __call__(self, params, vector):
+        x = vector.vector[vector.indices[self.param]][0]
         if (x > self.maxval) or (x < self.minval):
             return -np.inf
         else:
@@ -406,10 +406,10 @@ class NumericalPrior(Prior):
         self.param_list = param_list
         self.pdf_estimate = gaussian_kde(values, bw_method=bw_method)
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         x = []
         for param in self.param_list:
-            x.append(params.vector[params.indices[param]][0])
+            x.append(vector.vector[vector.indices[param]][0])
         val = np.log(self.pdf_estimate(x))
         return val[0]
 
@@ -472,10 +472,10 @@ class UserDefinedPrior(Prior):
         self.func = func
         self.tex_rep = tex_rep
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         x = []
         for param in self.param_list:
-            x.append(params.vector[params.indices[param]][0])
+            x.append(vector.vector[vector.indices[param]][0])
         return self.func(x)
 
     def __repr__(self):
@@ -520,9 +520,9 @@ class InformativeBaselinePrior(Prior):
             )
         return s
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
 
-        per = params.vector[params.indices[self.param]][0]
+        per = vector.vector[vector.indices[self.param]][0]
 
         if self.param.startswith('logper'):
             per = np.exp(per)

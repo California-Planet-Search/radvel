@@ -32,7 +32,7 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
     _ = scipy.optimize.minimize(
         post.neglogprob_array, post.get_vary_params(), method=method,
         options=dict(maxiter=200, maxfev=100000, xtol=1e-8))
-    post.params.vector_to_dict()
+    post.vector.vector_to_dict()
 
     if verbose:
         print("Final loglikelihood = %f" % post.logprob())

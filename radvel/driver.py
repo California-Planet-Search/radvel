@@ -175,9 +175,8 @@ def mcmc(args):
         print("Loading starting positions from previous MAP fit")
 
         post = radvel.posterior.load(status.get('fit', 'postfile'))
-        post.params.indices = post.params.init_index_dict()
-        post.params.vector = post.params.dict_to_vector()
-        post.params.names = post.params.vector_names()
+        post.likelihood.vector = radvel.Vector(post.params)
+        post.vector = post.likelihood.vector
 
     msg1 = (
             "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Auto Factor = {}, "
@@ -188,6 +187,8 @@ def mcmc(args):
             ).format(args.maxArchange, args.maxGR, args.minTz)
 
     print(msg1 + '\n' + msg2)
+
+    print(post.vector.vector)
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
@@ -203,8 +204,8 @@ def mcmc(args):
     # Convert chains into synth basis
     synthchains = chains.copy()
     for par in post.params.keys():
-        if not post.params.vector[post.params.indices[par]][1]:
-            synthchains[par] = post.params.vector[post.params.indices[par]][0]
+        if not post.vector.vector[post.vector.indices[par]][1]:
+            synthchains[par] = post.vector.vector[post.vector.indices[par]][0]
 
     synthchains = post.params.basis.to_synth(synthchains)
     synth_quantile = synthchains.quantile([0.159, 0.5, 0.841])
@@ -215,17 +216,19 @@ def mcmc(args):
 
     for k in chains.columns:
         if k in post.params.keys():
-            post.params.vector[post.params.indices[k]][0] = post_summary[k][0.5]
+            post.vector.vector[post.vector.indices[k]][0] = post_summary[k][0.5]
 
-    print("Performing post-MCMC maximum likelihood fit...")
-    post = radvel.fitting.maxlike_fitting(post, verbose=False)
+    post.vector.vector_to_dict()
+
+    #print("Performing post-MCMC maximum likelihood fit...")
+    #post = radvel.fitting.maxlike_fitting(post, verbose=False)
 
     final_logprob = post.logprob()
     final_residuals = post.likelihood.residuals().std()
     final_chisq = np.sum(post.likelihood.residuals()**2 / (post.likelihood.errorbars()**2))
     deg_of_freedom = len(post.likelihood.y) - len(post.likelihood.get_vary_params())
     final_chisq_reduced = final_chisq / deg_of_freedom
-    post.params.vector_to_dict()
+    post.vector.vector_to_dict()
     synthparams = post.params.basis.to_synth(post.params)
 
     print("Calculating uncertainties...")

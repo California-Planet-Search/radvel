@@ -218,7 +218,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
-
+    print(post.vector.vector)
     try:
         if save and savename is None:
             raise ValueError('save set to true but no savename provided')
@@ -291,21 +291,23 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
 
         pscales = []
         for par in post.list_vary_params():
-            val = post.params.vector[par][0]
-            if post.params.vector[par][2] == 0:
-                if post.params.basis.name.startswith('per') and par in [-3+(5*n) for n in range(1,post.params.num_planets+1)]:
+            val = post.vector.vector[par][0]
+            if post.vector.vector[par][2] == 0:
+                if post.params.basis.name.startswith('per') and par in [-5+(5*n) for n in range(1,post.params.num_planets+1)]:
                         pscale = np.abs(val * 1e-5*np.log10(val))
-                elif post.params.basis.name.startswith('logper') and par in [-3+(5*n) for n in range(1,post.params.num_planets+1)]:
+                elif post.params.basis.name.startswith('logper') and par in [-5+(5*n) for n in range(1,post.params.num_planets+1)]:
                         pscale = np.abs(1e-5 * val)
-                elif 'tc' in post.params.basis.name and par in [-2+(5*n) for n in range(1,post.params.num_planets+1)]:
+                elif 'tc' in post.params.basis.name and par in [-4+(5*n) for n in range(1,post.params.num_planets+1)]:
                         pscale = 0.1
                 else:
                     pscale = np.abs(0.10 * val)
-                post.params.vector[par][2] = pscale
+                post.vector.vector[par][2] = pscale
             else:
-                pscale = post.params.vector[par][2]
+                pscale = post.vector.vector[par][2]
             pscales.append(pscale)
         pscales = np.array(pscales)
+
+        print(post.vector.vector)
 
         statevars.samplers = []
         statevars.samples = []

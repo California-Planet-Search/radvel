@@ -121,7 +121,7 @@ class Basis(object):
 
     def v_to_synth(self, params_in, **kwargs):
         basis_name = kwargs.setdefault('basis_name', self.name)
-        if isinstance(params_in, radvel.Parameters):
+        if isinstance(params_in, radvel.Vector):
             vector = params_in.vector
         else:
             vector = params_in
@@ -388,7 +388,7 @@ class Basis(object):
         return params_out
 
     def v_from_synth(self, params_in, newbasis):
-        if isinstance(params_in, radvel.Parameters):
+        if isinstance(params_in, radvel.Vector):
             vector = params_in.vector
         else:
             vector = params_in

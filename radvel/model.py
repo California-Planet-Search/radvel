@@ -119,9 +119,6 @@ should have only integers as keys."""
         self.basis = basis
         self.num_planets = num_planets
         self.planet_letters = planet_letters
-        self.indices = self.init_index_dict()
-        self.vector =  self.dict_to_vector()
-        self.names = self.vector_names()
 
     def __reduce__(self):
 
@@ -165,58 +162,6 @@ should have only integers as keys."""
 
         return tex_labels
 
-    def init_index_dict(self):
-        dict = {}
-        n = 0
-        for k in self.keys():
-            if k.startswith('gamma') or k.startswith('jit'):
-                dict.update({k:2 + n + (5*self.num_planets)})
-                n += 1
-        for num_planet in range(1, self.num_planets+1):
-            dict.update({'per'+str(num_planet):-5+(5*num_planet),'logper'+str(num_planet):-5+(5*num_planet),
-                         'tc'+str(num_planet):-4+(5*num_planet),'tp'+str(num_planet):-4+(5*num_planet),
-                         'secosw'+str(num_planet):-3+(5*num_planet),'ecosw'+str(num_planet):-3+(5*num_planet),
-                         'e'+str(num_planet):-3+(5*num_planet),'se'+str(num_planet):-3+(5*num_planet),
-                         'sesinw'+str(num_planet):-2+(5*num_planet),'esinw'+str(num_planet):-2+(5*num_planet),
-                         'w'+str(num_planet):-2+(5*num_planet),'k'+str(num_planet):-1+(5*num_planet),
-                         'logk'+str(num_planet):-1+(5*num_planet)})
-        dict.update({'dvdt':(5*self.num_planets),'curv':1+(5*self.num_planets)})
-        return dict
-
-    def dict_to_vector(self):
-        n = 0
-        g = 0
-        if 'dvdt' not in self.keys():
-            n += 1
-        if 'curv' not in self.keys():
-            n += 1
-        vector = np.zeros((len(self.keys())+n,4))
-        for key in self.keys():
-            try:
-                vector[self.indices[key]][0] = self[key].value
-                vector[self.indices[key]][1] = self[key].vary
-                if self[key].mcmcscale == None:
-                    vector[self.indices[key]][2] = 0
-                else:
-                    vector[self.indices[key]][2] = self[key].mcmcscale
-                vector[self.indices[key]][3] = self[key].linear
-            except:
-                pass
-        return vector
-
-    def vector_names(self):
-        names = [0] * len(self.keys())
-        for key in self.keys():
-            try:
-                names[self.indices[key]] = key
-            except:
-                pass
-        return names
-
-    def vector_to_dict(self):
-        for key in self.keys():
-            self[key].value = self.vector[self.indices[key]][0]
-
     def _sparameter(self, parameter, num_planet):
         return '{0}{1}'.format(parameter, num_planet)
 
@@ -233,6 +178,69 @@ if __name__ == "__main__":
     a = Parameter(value=1.3)
     a.mcmcscale = 100.
     print(a)
+
+
+class Vector(object):
+
+    def __init__(self, params):
+
+        self.params = params
+
+        self.init_index_dict()
+        self.dict_to_vector()
+        self.vector_names()
+
+    def init_index_dict(self):
+        indices = dict()
+        n = 0
+        for k in self.params.keys():
+            if k.startswith('gamma') or k.startswith('jit'):
+                indices.update({k:2 + n + (5*self.params.num_planets)})
+                n += 1
+        for num_planet in range(1, self.params.num_planets+1):
+            indices.update({'per'+str(num_planet):-5+(5*num_planet),'logper'+str(num_planet):-5+(5*num_planet),
+                         'tc'+str(num_planet):-4+(5*num_planet),'tp'+str(num_planet):-4+(5*num_planet),
+                         'secosw'+str(num_planet):-3+(5*num_planet),'ecosw'+str(num_planet):-3+(5*num_planet),
+                         'e'+str(num_planet):-3+(5*num_planet),'se'+str(num_planet):-3+(5*num_planet),
+                         'sesinw'+str(num_planet):-2+(5*num_planet),'esinw'+str(num_planet):-2+(5*num_planet),
+                         'w'+str(num_planet):-2+(5*num_planet),'k'+str(num_planet):-1+(5*num_planet),
+                         'logk'+str(num_planet):-1+(5*num_planet)})
+        indices.update({'dvdt':(5*self.params.num_planets),'curv':1+(5*self.params.num_planets)})
+        self.indices = indices
+
+    def dict_to_vector(self):
+        n = 0
+        g = 0
+        if 'dvdt' not in self.params.keys():
+            n += 1
+        if 'curv' not in self.params.keys():
+            n += 1
+        vector = np.zeros((len(self.params.keys())+n,4))
+        for key in self.params.keys():
+            try:
+                vector[self.indices[key]][0] = self.params[key].value
+                vector[self.indices[key]][1] = self.params[key].vary
+                if self.params[key].mcmcscale == None:
+                    vector[self.indices[key]][2] = 0
+                else:
+                    vector[self.indices[key]][2] = self.params[key].mcmcscale
+                vector[self.indices[key]][3] = self.params[key].linear
+            except:
+                pass
+        self.vector = vector
+
+    def vector_names(self):
+        names = [0] * len(self.params.keys())
+        for key in self.params.keys():
+            try:
+                names[self.indices[key]] = key
+            except:
+                pass
+        self.names = names
+
+    def vector_to_dict(self):
+        for key in self.params.keys():
+            self.params[key].value = self.vector[self.indices[key]][0]
 
 
 class GeneralRVModel(object):
@@ -261,6 +269,7 @@ class GeneralRVModel(object):
     """
     def __init__(self,params,forward_model,time_base=0):
         self.params = params
+        self.vector = Vector(self.params)
         self.time_base = time_base
         self._forward_model = forward_model
         assert callable(forward_model)
@@ -277,15 +286,15 @@ class GeneralRVModel(object):
         Returns:
             vel (array of floats): Radial velocity at each time in `t`
         """
-        vel = self._forward_model(t,self.params,*args,**kwargs)
-        vel += self.params.vector[5*self.params.num_planets][0] * (t - self.time_base)
-        vel += self.params.vector[1+(5*self.params.num_planets)][0] * (t - self.time_base)**2
+        vel = self._forward_model(t,self.params,self.vector,*args,**kwargs)
+        vel += self.vector.vector[5*self.params.num_planets][0] * (t - self.time_base)
+        vel += self.vector.vector[1+(5*self.params.num_planets)][0] * (t - self.time_base)**2
         return vel
 
 
-def _standard_rv_calc(t,params,planet_num=None):
+def _standard_rv_calc(t,params,vector,planet_num=None):
         vel = np.zeros(len(t))
-        params_synth = params.basis.v_to_synth(params)
+        params_synth = params.basis.v_to_synth(vector)
         if planet_num is None:
             planets = range(1, params.num_planets+1)
         else:

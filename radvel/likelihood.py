@@ -25,29 +25,27 @@ class Likelihood(object):
     def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[],
                  decorr_vectors=[]):
         self.model = model
+        self.vector = model.vector
         self.params = model.params
-        self.params.indices = self.params.init_index_dict()
         self.x = np.array(x)  # Variables must be arrays.
         self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
-        n = self.params.vector.shape[0]
+        n = self.vector.vector.shape[0]
         for key in extra_params:
-            self.params[key] = radvel.model.Parameter(value=np.nan)
-            if key not in self.params.indices:
-                self.params.indices.update({key:n})
+            self.params[key] = radvel.model.Parameter(value=0.0)
+            if key not in self.vector.indices:
+                self.vector.indices.update({key:n})
             n += 1
         for key in decorr_params:
             self.params[key] = radvel.model.Parameter(value=0.0)
-            if key not in self.params.indices:
-                self.params.indices.update({key:n})
+            if key not in self.vector.indices:
+                self.vector.indices.update({key:n})
             n += 1
-        zeros = np.zeros((len(extra_params)+len(decorr_params), 4))
-        self.params.vector = np.concatenate((self.params.vector, zeros))
         self.uparams = None
 
-        self.params.vector = self.params.dict_to_vector()
-        self.params.names = self.params.vector_names()
+        self.vector.dict_to_vector()
+        self.vector.vector_names()
 
         self.params_order = self.list_vary_params()
 
@@ -122,25 +120,26 @@ class Likelihood(object):
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
+        #print(param_values_array, self.vector.vector)
         for index in self.list_vary_params():
-            self.params.vector[index][0] = param_values_array[i]
+            self.vector.vector[index][0] = param_values_array[i]
             i += 1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
 
     def get_vary_params(self):
 
-        return self.params.vector[self.list_vary_params()][:,0]
+        return self.vector.vector[self.list_vary_params()][:,0]
 
     def list_vary_params(self):
 
-        return np.where(self.params.vector[:,1] == True)[0]
+        return np.where(self.vector.vector[:,1] == True)[0]
 
     def name_vary_params(self):
 
         list = []
         for i in self.list_vary_params():
-            list.append(self.params.names[i])
+            list.append(self.vector.names[i])
         return list
 
     def list_params(self):
@@ -215,6 +214,7 @@ class CompositeLikelihood(Likelihood):
 
         like0 = like_list[0]
         params = like0.params
+        vector = like0.vector
         self.model = like0.model
         self.x = like0.x
         self.y = like0.y
@@ -229,7 +229,7 @@ class CompositeLikelihood(Likelihood):
             like: object = like_list[i]
 
             self.x = np.append(self.x, like.x)
-            self.y = np.append(self.y, like.y - like.params.vector[like.params.indices[like.gamma_param]][0])
+            self.y = np.append(self.y, like.y - like.vector.vector[like.vector.indices[like.gamma_param]][0])
             self.yerr = np.append(self.yerr, like.yerr)
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
@@ -252,6 +252,7 @@ class CompositeLikelihood(Likelihood):
 
         self.extra_params = list(set(self.extra_params))
         self.params = params
+        self.vector = vector
         self.like_list = like_list
 
     def logprob(self):
@@ -319,8 +320,8 @@ class RVLikelihood(Likelihood):
             decorr_params=self.decorr_params, decorr_vectors=self.decorr_vectors
             )
 
-        self.gamma_index = self.params.indices[self.gamma_param]
-        self.jit_index = self.params.indices[self.jit_param]
+        self.gamma_index = self.vector.indices[self.gamma_param]
+        self.jit_index = self.vector.indices[self.jit_param]
 
     def residuals(self):
         """Residuals
@@ -328,14 +329,14 @@ class RVLikelihood(Likelihood):
         """
         mod = self.model(self.x)
 
-        if self.params.vector[self.gamma_index][3] and not self.params.vector[self.gamma_index][1]:
-            ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params.vector[self.jit_index][0]**2)) / \
-                   np.sum(1/(self.yerr**2 + self.params.vector[self.jit_index][0]**2))
+        if self.vector.vector[self.gamma_index][3] and not self.vector.vector[self.gamma_index][1]:
+            ztil = np.sum((self.y - mod)/(self.yerr**2 + self.vector.vector[self.jit_index][0]**2)) / \
+                   np.sum(1/(self.yerr**2 + self.vector.vector[self.jit_index][0]**2))
             if np.isnan(ztil):
                  ztil = 0.0
-            self.params.vector[self.gamma_index][0] = ztil
+            self.vector.vector[self.gamma_index][0] = ztil
 
-        res = self.y - self.params.vector[self.gamma_index][0] - mod
+        res = self.y - self.vector.vector[self.gamma_index][0] - mod
 
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:
@@ -343,7 +344,7 @@ class RVLikelihood(Likelihood):
                 pars = []
                 for par in self.decorr_params:
                     if var in par:
-                        pars.append(self.params.vector[self.params.indices[par]][0])
+                        pars.append(self.vector.vector[self.indices[par]][0])
                 pars.append(0.0)
                 if np.isfinite(self.decorr_vectors[var]).all():
                     vec = self.decorr_vectors[var] - np.mean(self.decorr_vectors[var])
@@ -358,7 +359,7 @@ class RVLikelihood(Likelihood):
         Returns:
             array: uncertainties
         """
-        return np.sqrt(self.yerr**2 + self.params.vector[self.jit_index][0]**2)
+        return np.sqrt(self.yerr**2 + self.vector.vector[self.jit_index][0]**2)
 
     def logprob(self):
         """
@@ -368,12 +369,12 @@ class RVLikelihood(Likelihood):
             float: Natural log of likelihood
         """
 
-        sigma_jit = self.params.vector[self.jit_index][0]
+        sigma_jit = self.vector.vector[self.jit_index][0]
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
 
-        if self.params.vector[self.gamma_index][3] \
-                and not self.params.vector[self.gamma_index][1]:
+        if self.vector.vector[self.gamma_index][3] \
+                and not self.vector.vector[self.gamma_index][1]:
             sigz = 1/np.sum(1 / (self.yerr**2 + sigma_jit**2))
             loglike += np.log(np.sqrt(2 * np.pi * sigz))
 
@@ -428,7 +429,7 @@ class GPLikelihood(RVLikelihood):
         """Residuals for internal GP calculations
         Data minus orbit model. For internal use in GP calculations ONLY.
         """
-        res = self.y - self.params.vector[self.gamma_index][0] - self.model(self.x)
+        res = self.y - self.vector.vector[self.gamma_index][0] - self.model(self.x)
         return res
 
     def residuals(self):
@@ -436,7 +437,7 @@ class GPLikelihood(RVLikelihood):
         Data minus (orbit model + predicted mean of GP noise model). For making GP plots.
         """
         mu_pred, _ = self.predict(self.x)
-        res = self.y - self.params.vector[self.gamma_index][0] - self.model(self.x) - mu_pred
+        res = self.y - self.vector.vector[self.gamma_index][0] - self.model(self.x) - mu_pred
         return res
 
     def logprob(self):
@@ -583,7 +584,7 @@ class CeleriteLikelihood(GPLikelihood):
 
         # build celerite kernel with current values of hparams
         kernel = celerite.terms.JitterTerm(
-                log_sigma = np.log(self.params.vector[self.jit_index][0])
+                log_sigma = np.log(self.vector.vector[self.jit_index][0])
                 )
 
         kernel += celerite.terms.RealTerm(

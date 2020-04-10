@@ -20,17 +20,16 @@ class Posterior(Likelihood):
     def __init__(self,likelihood):
         self.likelihood = likelihood
         self.model = self.likelihood.model
+        self.vector = self.likelihood.vector
+        self.vector.dict_to_vector()
         self.params = likelihood.params
-        self.params.indices = self.params.init_index_dict()
-        self.params.vector = self.params.dict_to_vector()
-        self.params.names = self.params.vector_names()
         self.uparams = likelihood.uparams
         self.priors = []
 
         self.vparams_order = self.list_vary_params()
 
     def __repr__(self):
-        self.params.vector_to_dict()
+        self.vector.vector_to_dict()
         s = super(Posterior, self).__repr__()
         s += "\nPriors\n"
         s += "------\n"
@@ -47,7 +46,7 @@ class Posterior(Likelihood):
         """
         _logprob=0
         for prior in self.priors:
-            _logprob += prior(self.params)
+            _logprob += prior(self.params, self.vector)
         if np.isfinite(_logprob):
             return _logprob + self.likelihood.logprob()
         return _logprob
