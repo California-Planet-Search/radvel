@@ -1,5 +1,11 @@
 from __future__ import absolute_import
 
+# turn off numpy multithreading
+import os
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['NUMEXPR_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
+
 # pre-import the big packages to avoid some warnings
 import emcee     # producing ABC warning
 import nbsphinx  # producing ABC warning
@@ -17,15 +23,14 @@ from .plot import *
 import warnings
 warnings.filterwarnings("ignore")
 
-
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'
-
 
 __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
 __version__ = '1.4.0'
+
 __spec__ = __name__
 __package__ = __path__[0]
 
