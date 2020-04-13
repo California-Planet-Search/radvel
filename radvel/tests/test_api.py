@@ -226,6 +226,8 @@ def test_priors():
     params['sesinw1'] = radvel.Parameter(0.0)
     params['logk1'] = radvel.Parameter(1.5)
 
+    vector = radvel.Vector(params)
+
     testTex = r'Delta Function Prior on $\sqrt{e}\cos{\omega}_{b}$'
 
     def userdef_prior_func(inp_list):
@@ -261,7 +263,7 @@ def test_priors():
         print(prior.__repr__())
         print(prior.__str__())
         tolerance = .01
-        print(abs(np.exp(prior(params))))
+        print(abs(np.exp(prior(params, vector))))
         print(val)
         assert abs(np.exp(prior(params)) - val) < tolerance, \
             "Prior output does not match expectation"
@@ -303,11 +305,10 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
 
 if __name__ == '__main__':
     test_k2()
-    # test_hd()
-    # test_proceed()
-    # test_model_comp()
-    # test_k2131()
-    # test_celerite()
-    # test_basis()
-    # test_kernels()
-    # test_kepler()
+    test_hd()
+    test_model_comp()
+    test_k2131()
+    test_celerite()
+    test_basis()
+    test_kernels()
+    test_kepler()
