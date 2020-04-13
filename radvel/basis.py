@@ -455,7 +455,7 @@ class Basis(object):
                 vector2[3 + (5 * num_planet)][0] = np.sqrt(vector[2 + (5 * num_planet)][0]) * np.sin(vector[3 + (5 * num_planet)][0])
                 vector2[(5 * num_planet)][0] = np.log(vector[(5 * num_planet)][0])
                 vector2[4+(5*num_planet)][0] = np.log(vector[4+(5*num_planet)][0])
-                setvary([1 + (5 * num_planet), 2+(5 * num_planet), 53+ (5 * num_planet), (5 * num_planet),4+(5*num_planet)])
+                setvary([1 + (5 * num_planet), 2+(5 * num_planet), 3+ (5 * num_planet), (5 * num_planet),4+(5*num_planet)])
 
             if newbasis == 'per tc ecosw esinw k':
                 vector2[1 + (5 * num_planet)][0] = timeperi_to_timetrans(vector[1 + (5 * num_planet)][0],
