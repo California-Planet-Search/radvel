@@ -194,7 +194,7 @@ class Vector(object):
         indices = dict()
         n = 0
         for k in self.params.keys():
-            if k.startswith('gamma') or k.startswith('jit'):
+            if k.startswith('gamma') or k.startswith('jit') or k.startswith('logjit') or k.startswith('gp'):
                 indices.update({k:2 + n + (5*self.params.num_planets)})
                 n += 1
         for num_planet in range(1, self.params.num_planets+1):
@@ -225,7 +225,7 @@ class Vector(object):
                 else:
                     vector[self.indices[key]][2] = self.params[key].mcmcscale
                 vector[self.indices[key]][3] = self.params[key].linear
-            except:
+            except KeyError:
                 pass
         self.vector = vector
 
@@ -234,7 +234,7 @@ class Vector(object):
         for key in self.params.keys():
             try:
                 names[self.indices[key]] = key
-            except:
+            except KeyError:
                 pass
         self.names = names
 
