@@ -265,7 +265,7 @@ def test_priors():
         tolerance = .01
         print(abs(np.exp(prior(params, vector))))
         print(val)
-        assert abs(np.exp(prior(params)) - val) < tolerance, \
+        assert abs(np.exp(prior(params, vector)) - val) < tolerance, \
             "Prior output does not match expectation"
 
 
