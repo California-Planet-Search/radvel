@@ -175,8 +175,6 @@ def mcmc(args):
         print("Loading starting positions from previous MAP fit")
 
         post = radvel.posterior.load(status.get('fit', 'postfile'))
-        post.likelihood.vector = radvel.Vector(post.params)
-        post.vector = post.likelihood.vector
 
     msg1 = (
             "Running MCMC for {}, N_walkers = {}, N_steps = {}, N_ensembles = {}, Min Auto Factor = {}, "
@@ -187,8 +185,6 @@ def mcmc(args):
             ).format(args.maxArchange, args.maxGR, args.minTz)
 
     print(msg1 + '\n' + msg2)
-
-    print(post.vector.vector)
 
     chains = radvel.mcmc(
             post, nwalkers=args.nwalkers, nrun=args.nsteps, ensembles=args.ensembles, minAfactor=args.minAfactor,
@@ -220,8 +216,8 @@ def mcmc(args):
 
     post.vector.vector_to_dict()
 
-    #print("Performing post-MCMC maximum likelihood fit...")
-    #post = radvel.fitting.maxlike_fitting(post, verbose=False)
+    print("Performing post-MCMC maximum likelihood fit...")
+    post = radvel.fitting.maxlike_fitting(post, verbose=False)
 
     final_logprob = post.logprob()
     final_residuals = post.likelihood.residuals().std()

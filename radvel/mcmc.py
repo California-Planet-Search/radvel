@@ -218,7 +218,6 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
-    print(post.vector.vector)
     try:
         if save and savename is None:
             raise ValueError('save set to true but no savename provided')
@@ -306,8 +305,6 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 pscale = post.vector.vector[par][2]
             pscales.append(pscale)
         pscales = np.array(pscales)
-
-        print(post.vector.vector)
 
         statevars.samplers = []
         statevars.samples = []

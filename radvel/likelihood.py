@@ -120,7 +120,6 @@ class Likelihood(object):
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
-        #print(param_values_array, self.vector.vector)
         for index in self.list_vary_params():
             self.vector.vector[index][0] = param_values_array[i]
             i += 1
@@ -249,6 +248,9 @@ class CompositeLikelihood(Likelihood):
                     assert like.params[k]._equals(params[k]), "Name={} {} != {}".format(k, like.params[k], params[k])
                 else:
                     params[k] = like.params[k]
+
+            assert like.vector is vector, \
+                "Likelihoods must hold the same vector"
 
         self.extra_params = list(set(self.extra_params))
         self.params = params
