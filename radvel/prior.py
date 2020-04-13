@@ -256,15 +256,15 @@ class SecondaryEclipsePrior(Prior):
 
         synth_params = params.basis.v_to_synth(vector)
 
-        tp = _getpar('tp')
-        per = _getpar('per')
-        ecc = _getpar('e')
-        omega = _getpar('w')
+        tp = synth_params[-4+(5*self.planet_num)]
+        per = synth_params[-5+(5*self.planet_num)]
+        ecc = synth_params[-3+(5*self.planet_num)]
+        omega = synth_params[-2+(5*self.planet_num)]
 
         ts = orbit.timeperi_to_timetrans(tp, per, ecc, omega, secondary=True)
-        ts_phase = utils.t_to_phase(synth_params, ts, self.planet_num)
+        ts_phase = utils.t_to_phase_vetor(vector, ts, self.planet_num)
 
-        pts = utils.t_to_phase(synth_params, self.ts, self.planet_num)
+        pts = utils.t_to_phase_vector(vector, self.ts, self.planet_num)
         epts = self.ts_err / per
 
         penalty = -0.5 * ((ts_phase - pts) / epts)**2 - 0.5*np.log((epts**2)*2.*np.pi)
