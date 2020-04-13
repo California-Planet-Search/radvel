@@ -218,6 +218,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
+
     statevars.reset()
 
     try:
@@ -292,21 +293,22 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                                  'parameters must be equal to those from previous run.')
 
         # set up perturbation size
+
         pscales = []
         for par in post.list_vary_params():
-            val = post.params[par].value
-            if post.params[par].mcmcscale is None:
-                if par.startswith('per'):
-                    pscale = np.abs(val * 1e-5*np.log10(val))
-                elif par.startswith('logper'):
-                    pscale = np.abs(1e-5 * val)
-                elif par.startswith('tc'):
-                    pscale = 0.1
+            val = post.vector.vector[par][0]
+            if post.vector.vector[par][2] == 0:
+                if post.params.basis.name.startswith('per') and par in [-5+(5*n) for n in range(1,post.params.num_planets+1)]:
+                        pscale = np.abs(val * 1e-5*np.log10(val))
+                elif post.params.basis.name.startswith('logper') and par in [-5+(5*n) for n in range(1,post.params.num_planets+1)]:
+                        pscale = np.abs(1e-5 * val)
+                elif 'tc' in post.params.basis.name and par in [-4+(5*n) for n in range(1,post.params.num_planets+1)]:
+                        pscale = 0.1
                 else:
                     pscale = np.abs(0.10 * val)
-                post.params[par].mcmc_scale = pscale
+                post.vector.vector[par][2] = pscale
             else:
-                pscale = post.params[par].mcmcscale
+                pscale = post.vector.vector[par][2]
             pscales.append(pscale)
         pscales = np.array(pscales)
 
@@ -465,7 +467,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         preshaped = np.dstack(statevars.chains)
         df = pd.DataFrame(
             preshaped.reshape(preshaped.shape[0], preshaped.shape[1]*preshaped.shape[2]).transpose(),
-            columns=post.list_vary_params())
+            columns=post.name_vary_params())
         df['lnprobability'] = np.hstack(statevars.lnprob)
         df = df.iloc[::thin]
 

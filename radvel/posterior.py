@@ -6,15 +6,12 @@ from radvel.gp import CeleriteKernel
 
 class Posterior(Likelihood):
     """Posterior object
-
     Posterior object to be sent to the fitting routines.
     It is essentially the same as the Likelihood object,
     but priors are applied here.
-
     Args:
         likelihood (radvel.likelihood.Likelihood): Likelihood object
         params (radvel.model.Parameters): parameters object
-
     Note:
         Append `radvel.prior.Prior` objects to the Posterior.priors list
         to apply priors in the likelihood calculations.
@@ -23,6 +20,8 @@ class Posterior(Likelihood):
     def __init__(self,likelihood):
         self.likelihood = likelihood
         self.model = self.likelihood.model
+        self.vector = self.likelihood.vector
+        self.vector.dict_to_vector()
         self.params = likelihood.params
         self.uparams = likelihood.uparams
         self.priors = []
@@ -30,6 +29,7 @@ class Posterior(Likelihood):
         self.vparams_order = self.list_vary_params()
 
     def __repr__(self):
+        self.vector.vector_to_dict()
         s = super(Posterior, self).__repr__()
         s += "\nPriors\n"
         s += "------\n"
@@ -39,31 +39,26 @@ class Posterior(Likelihood):
 
     def logprob(self):
         """Log probability
-
         Log-probability for the likelihood given the list
         of priors in `Posterior.priors`.
-
         Returns:
             float: log probability of the likelihood + priors
         """
-        _logprob=0 
+        _logprob=0
         for prior in self.priors:
-            _logprob += prior(self.params)
+            _logprob += prior(self.params, self.vector)
         if np.isfinite(_logprob):
             return _logprob + self.likelihood.logprob()
         return _logprob
 
     def logprob_array(self, param_values_array):
         """Log probability for parameter vector
-
         Same as `self.logprob`, but will take a vector of
         parameter values. Useful as the objective function
         for routines that optimize a vector of parameter values
         instead of the dictionary-like format of the `radvel.model.Parameters` object.
-
         Returns:
             float: log probability of the likelihood + priors
-
         """
         self.likelihood.set_vary_params(param_values_array)
         _logprob = self.logprob()
@@ -76,7 +71,6 @@ class Posterior(Likelihood):
     def writeto(self, filename):
         """
         Save posterior object to pickle file.
-
         Args:
             filename (string): full path to outputfile
         """
@@ -103,7 +97,6 @@ class Posterior(Likelihood):
 def load(filename):
     """
     Load posterior object from pickle file.
-
     Args:
         filename (string): full path to pickle file
     """

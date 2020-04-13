@@ -29,7 +29,8 @@ def _custom_warningfmt(msg, *a, **b):
 __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp']
 
-__version__ = '1.3.8'
+__version__ = '1.4.0'
+
 __spec__ = __name__
 __package__ = __path__[0]
 

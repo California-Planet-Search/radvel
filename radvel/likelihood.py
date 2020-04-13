@@ -25,16 +25,27 @@ class Likelihood(object):
     def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[],
                  decorr_vectors=[]):
         self.model = model
+        self.vector = model.vector
         self.params = model.params
         self.x = np.array(x)  # Variables must be arrays.
         self.y = np.array(y)  # Pandas data structures lead to problems.
         self.yerr = np.array(yerr)
         self.dvec = [np.array(d) for d in decorr_vectors]
+        n = self.vector.vector.shape[0]
         for key in extra_params:
-            self.params[key] = radvel.model.Parameter(value=np.nan)
+            self.params[key] = radvel.model.Parameter(value=0.0)
+            if key not in self.vector.indices:
+                self.vector.indices.update({key:n})
+            n += 1
         for key in decorr_params:
             self.params[key] = radvel.model.Parameter(value=0.0)
+            if key not in self.vector.indices:
+                self.vector.indices.update({key:n})
+            n += 1
         self.uparams = None
+
+        self.vector.dict_to_vector()
+        self.vector.vector_names()
 
         self.params_order = self.list_vary_params()
 
@@ -55,6 +66,18 @@ class Likelihood(object):
                 s += "{:20s}{:15g} {:>10s}\n".format(
                     key, par, vstr
                      )
+            synthbasis = self.params.basis.to_synth(self.params, noVary=True)
+            for key in synthbasis.keys():
+                if key not in keys:
+                    vstr = str(synthbasis[key].vary)
+                    if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
+                        par = synthbasis[key].value - self.model.time_base
+                    else:
+                        par = synthbasis[key].value
+
+                    s += "{:20s}{:15g} {:>10s}\n".format(
+                        key, par, vstr
+                        )
         else:
             s = ""
             s += "{:<20s}{:>15s}{:>10s}{:>10s}\n".format(
@@ -76,29 +99,47 @@ class Likelihood(object):
                 s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
                     key, par, err, vstr
                      )
+            synthbasis = self.params.basis.to_synth(self.params, noVary=True)
+            for key in synthbasis.keys():
+                if key not in keys:
+                    vstr = str(synthbasis[key].vary)
+                    if key in self.uparams.keys():
+                        err = self.uparams[key]
+                    else:
+                        err = 0
+                    if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
+                        par = synthbasis[key].value - self.model.time_base
+                    else:
+                        par = synthbasis[key].value
+
+                    s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
+                        key, par, err, vstr
+                    )
         return s
 
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
-        for key in self.list_vary_params():
-            self.params[key].value = param_values_array[i]
+        for index in self.list_vary_params():
+            self.vector.vector[index][0] = param_values_array[i]
             i += 1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
 
     def get_vary_params(self):
-        params_array = []
-        for key in self.list_vary_params():
-            if self.params[key].vary:
-                params_array += [self.params[key].value]
-        params_array = np.array(params_array)
-        return params_array
+
+        return self.vector.vector[self.list_vary_params()][:,0]
 
     def list_vary_params(self):
-        keys = self.list_params()
 
-        return [key for key in keys if self.params[key].vary]
+        return np.where(self.vector.vector[:,1] == True)[0]
+
+    def name_vary_params(self):
+
+        list = []
+        for i in self.list_vary_params():
+            list.append(self.vector.names[i])
+        return list
 
     def list_params(self):
         try:
@@ -125,7 +166,6 @@ class Likelihood(object):
     def bic(self):
         """
         Calculate the Bayesian information criterion
-
         Returns:
             float: BIC
         """
@@ -140,7 +180,6 @@ class Likelihood(object):
         Calculate the Aikike information criterion
         The Small Sample AIC (AICC) is returned because for most RV data sets n < 40 * k
         (see Burnham & Anderson 2002 S2.4).
-
         Returns:
             float: AICC
         """
@@ -163,11 +202,9 @@ class Likelihood(object):
 
 class CompositeLikelihood(Likelihood):
     """Composite Likelihood
-
     A thin wrapper to combine multiple `Likelihood`
     objects. One `Likelihood` applies to a dataset from
     a particular instrument.
-
     Args:
         like_list (list): list of `radvel.likelihood.RVLikelihood` objects
     """
@@ -176,6 +213,7 @@ class CompositeLikelihood(Likelihood):
 
         like0 = like_list[0]
         params = like0.params
+        vector = like0.vector
         self.model = like0.model
         self.x = like0.x
         self.y = like0.y
@@ -187,10 +225,10 @@ class CompositeLikelihood(Likelihood):
         self.hnames = []
 
         for i in range(1, self.nlike):
-            like = like_list[i]
+            like: object = like_list[i]
 
             self.x = np.append(self.x, like.x)
-            self.y = np.append(self.y, like.y - like.params[like.gamma_param].value)
+            self.y = np.append(self.y, like.y - like.vector.vector[like.vector.indices[like.gamma_param]][0])
             self.yerr = np.append(self.yerr, like.yerr)
             self.telvec = np.append(self.telvec, like.telvec)
             self.extra_params = np.append(self.extra_params, like.extra_params)
@@ -211,8 +249,12 @@ class CompositeLikelihood(Likelihood):
                 else:
                     params[k] = like.params[k]
 
+            assert like.vector is vector, \
+                "Likelihoods must hold the same vector"
+
         self.extra_params = list(set(self.extra_params))
         self.params = params
+        self.vector = vector
         self.like_list = like_list
 
     def logprob(self):
@@ -248,9 +290,7 @@ class CompositeLikelihood(Likelihood):
 
 class RVLikelihood(Likelihood):
     """RV Likelihood
-
     The Likelihood object for a radial velocity dataset
-
     Args:
         model (radvel.model.RVModel): RV model object
         t (array): time array
@@ -258,7 +298,6 @@ class RVLikelihood(Likelihood):
         errvel (array): array of velocity uncertainties
         suffix (string): suffix to identify this Likelihood object
            useful when constructing a `CompositeLikelihood` object.
-
     """
     def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[],
                  decorr_vectors=[], **kwargs):
@@ -283,21 +322,23 @@ class RVLikelihood(Likelihood):
             decorr_params=self.decorr_params, decorr_vectors=self.decorr_vectors
             )
 
+        self.gamma_index = self.vector.indices[self.gamma_param]
+        self.jit_index = self.vector.indices[self.jit_param]
+
     def residuals(self):
         """Residuals
-
         Data minus model
         """
         mod = self.model(self.x)
 
-        if self.params[self.gamma_param].linear and not self.params[self.gamma_param].vary:
-            ztil = np.sum((self.y - mod)/(self.yerr**2 + self.params[self.jit_param].value**2)) / \
-                   np.sum(1/(self.yerr**2 + self.params[self.jit_param].value**2))
+        if self.vector.vector[self.gamma_index][3] and not self.vector.vector[self.gamma_index][1]:
+            ztil = np.sum((self.y - mod)/(self.yerr**2 + self.vector.vector[self.jit_index][0]**2)) / \
+                   np.sum(1/(self.yerr**2 + self.vector.vector[self.jit_index][0]**2))
             if np.isnan(ztil):
                  ztil = 0.0
-            self.params[self.gamma_param].value = ztil
+            self.vector.vector[self.gamma_index][0] = ztil
 
-        res = self.y - self.params[self.gamma_param].value - mod
+        res = self.y - self.vector.vector[self.gamma_index][0] - mod
 
         if len(self.decorr_params) > 0:
             for parname in self.decorr_params:
@@ -305,7 +346,7 @@ class RVLikelihood(Likelihood):
                 pars = []
                 for par in self.decorr_params:
                     if var in par:
-                        pars.append(self.params[par].value)
+                        pars.append(self.vector.vector[self.indices[par]][0])
                 pars.append(0.0)
                 if np.isfinite(self.decorr_vectors[var]).all():
                     vec = self.decorr_vectors[var] - np.mean(self.decorr_vectors[var])
@@ -317,27 +358,25 @@ class RVLikelihood(Likelihood):
         """
         Return uncertainties with jitter added
         in quadrature.
-
         Returns:
             array: uncertainties
-
         """
-        return np.sqrt(self.yerr**2 + self.params[self.jit_param].value**2)
+        return np.sqrt(self.yerr**2 + self.vector.vector[self.jit_index][0]**2)
 
     def logprob(self):
         """
         Return log-likelihood given the data and model.
         Priors are not applied here.
-
         Returns:
             float: Natural log of likelihood
         """
 
-        sigma_jit = self.params[self.jit_param].value
+        sigma_jit = self.vector.vector[self.jit_index][0]
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
 
-        if self.params[self.gamma_param].linear and not self.params[self.gamma_param].vary:
+        if self.vector.vector[self.gamma_index][3] \
+                and not self.vector.vector[self.gamma_index][1]:
             sigz = 1/np.sum(1 / (self.yerr**2 + sigma_jit**2))
             loglike += np.log(np.sqrt(2 * np.pi * sigz))
 
@@ -346,9 +385,7 @@ class RVLikelihood(Likelihood):
 
 class GPLikelihood(RVLikelihood):
     """GP Likelihood
-
     The Likelihood object for a radial velocity dataset modeled with a GP
-
     Args:
         model (radvel.model.GPModel): GP model object
         t (array): time array
@@ -384,48 +421,39 @@ class GPLikelihood(RVLikelihood):
     def update_kernel_params(self):
         """ Update the Kernel object with new values of the hyperparameters
         """
-        for key in self.list_vary_params():
+        for key in self.vector.indices:
             if key in self.hnames:
                 hparams_key = key.split('_')
                 hparams_key = hparams_key[0] + '_' + hparams_key[1]
-                self.kernel.hparams[hparams_key].value = self.params[key].value
+                self.kernel.hparams[hparams_key].value = self.vector.vector[self.vector.indices[key]][0]
 
     def _resids(self):
         """Residuals for internal GP calculations
-
         Data minus orbit model. For internal use in GP calculations ONLY.
         """
-        res = self.y - self.params[self.gamma_param].value - self.model(self.x)
+        res = self.y - self.vector.vector[self.gamma_index][0] - self.model(self.x)
         return res
 
     def residuals(self):
         """Residuals
-
         Data minus (orbit model + predicted mean of GP noise model). For making GP plots.
         """
         mu_pred, _ = self.predict(self.x)
-        res = self.y - self.params[self.gamma_param].value - self.model(self.x) - mu_pred
+        res = self.y - self.vector.vector[self.gamma_index][0] - self.model(self.x) - mu_pred
         return res
 
     def logprob(self):
         """
         Return GP log-likelihood given the data and model.
-
         log-likelihood is computed using Cholesky decomposition as:
-
         .. math::
-
            lnL = -0.5r^TK^{-1}r - 0.5ln[det(K)] - 0.5N*ln(2pi)
-
         where r = vector of residuals (GPLikelihood._resids),
         K = covariance matrix, and N = number of datapoints.
-
         Priors are not applied here.
         Constant has been omitted.
-
         Returns:
             float: Natural log of likelihood
-
         """
         # update the Kernel object hyperparameter values
         self.update_kernel_params()
@@ -455,7 +483,6 @@ class GPLikelihood(RVLikelihood):
     def predict(self, xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
             Used for making GP plots.
-
             Args:
                 xpred (np.array): numpy array of x values for realizing the GP
             Returns:
@@ -492,16 +519,12 @@ class GPLikelihood(RVLikelihood):
 
 class CeleriteLikelihood(GPLikelihood):
     """Celerite GP Likelihood
-
     The Likelihood object for a radial velocity dataset modeled with a GP
     whose kernel is an approximation to the quasi-periodic kernel.
-
     See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
     (equation 56) for more details.
-
     See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
     file that uses this Likelihood object.
-
     Args:
         model (radvel.model.RVModel): RVModel object
         t (array): time array
@@ -546,7 +569,6 @@ class CeleriteLikelihood(GPLikelihood):
     def predict(self,xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
             Used for making GP plots. Wrapper for `celerite.GP.predict()`.
-
             Args:
                 xpred (np.array): numpy array of x values for realizing the GP
             Returns:
@@ -564,7 +586,7 @@ class CeleriteLikelihood(GPLikelihood):
 
         # build celerite kernel with current values of hparams
         kernel = celerite.terms.JitterTerm(
-                log_sigma = np.log(self.params[self.jit_param].value)
+                log_sigma = np.log(self.vector.vector[self.jit_index][0])
                 )
 
         kernel += celerite.terms.RealTerm(
@@ -591,16 +613,13 @@ class CeleriteLikelihood(GPLikelihood):
 def loglike_jitter(residuals, sigma, sigma_jit):
     """
     Log-likelihood incorporating jitter
-
     See equation (1) in Howard et al. 2014. Returns loglikelihood, where
     sigma**2 is replaced by sigma**2 + sigma_jit**2. It penalizes
     excessively large values of jitter
-
     Args:
         residuals (array): array of residuals
         sigma (array): array of measurement errors
         sigma_jit (float): jitter
-
     Returns:
         float: log-likelihood
     """

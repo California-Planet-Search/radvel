@@ -34,9 +34,9 @@ texdict = {
     'gp_Prot': 'P_{\\rm rot}',
 }
 
+
 class Parameter(object):
     """Object to store attributes of each orbital parameter
-
     Attributes:
         value (float): value of parameter.
         vary (Bool): True if parameter is allowed to vary in
@@ -179,6 +179,70 @@ if __name__ == "__main__":
     a.mcmcscale = 100.
     print(a)
 
+
+class Vector(object):
+
+    def __init__(self, params):
+
+        self.params = params
+
+        self.init_index_dict()
+        self.dict_to_vector()
+        self.vector_names()
+
+    def init_index_dict(self):
+        indices = dict()
+        n = 0
+        for k in self.params.keys():
+            if k.startswith('gamma') or k.startswith('jit') or k.startswith('logjit') or k.startswith('gp'):
+                indices.update({k:2 + n + (5*self.params.num_planets)})
+                n += 1
+        for num_planet in range(1, self.params.num_planets+1):
+            indices.update({'per'+str(num_planet):-5+(5*num_planet),'logper'+str(num_planet):-5+(5*num_planet),
+                         'tc'+str(num_planet):-4+(5*num_planet),'tp'+str(num_planet):-4+(5*num_planet),
+                         'secosw'+str(num_planet):-3+(5*num_planet),'ecosw'+str(num_planet):-3+(5*num_planet),
+                         'e'+str(num_planet):-3+(5*num_planet),'se'+str(num_planet):-3+(5*num_planet),
+                         'sesinw'+str(num_planet):-2+(5*num_planet),'esinw'+str(num_planet):-2+(5*num_planet),
+                         'w'+str(num_planet):-2+(5*num_planet),'k'+str(num_planet):-1+(5*num_planet),
+                         'logk'+str(num_planet):-1+(5*num_planet)})
+        indices.update({'dvdt':(5*self.params.num_planets),'curv':1+(5*self.params.num_planets)})
+        self.indices = indices
+
+    def dict_to_vector(self):
+        n = 0
+        g = 0
+        if 'dvdt' not in self.params.keys():
+            n += 1
+        if 'curv' not in self.params.keys():
+            n += 1
+        vector = np.zeros((len(self.params.keys())+n,4))
+        for key in self.params.keys():
+            try:
+                vector[self.indices[key]][0] = self.params[key].value
+                vector[self.indices[key]][1] = self.params[key].vary
+                if self.params[key].mcmcscale == None:
+                    vector[self.indices[key]][2] = 0
+                else:
+                    vector[self.indices[key]][2] = self.params[key].mcmcscale
+                vector[self.indices[key]][3] = self.params[key].linear
+            except KeyError:
+                pass
+        self.vector = vector
+
+    def vector_names(self):
+        names = [0] * len(self.params.keys())
+        for key in self.params.keys():
+            try:
+                names[self.indices[key]] = key
+            except KeyError:
+                pass
+        self.names = names
+
+    def vector_to_dict(self):
+        for key in self.params.keys():
+            self.params[key].value = self.vector[self.indices[key]][0]
+
+
 class GeneralRVModel(object):
     """
     A generalized RV Model
@@ -205,13 +269,10 @@ class GeneralRVModel(object):
     """
     def __init__(self,params,forward_model,time_base=0):
         self.params = params
+        self.vector = Vector(self.params)
         self.time_base = time_base
         self._forward_model = forward_model
         assert callable(forward_model)
-        if 'dvdt' not in params.keys():
-            self.params['dvdt'] = Parameter(value=0.)
-        if 'curv' not in params.keys():
-            self.params['curv'] = Parameter(value=0.)
     def __call__(self,t,*args,**kwargs):
         """Compute the radial velocity.
 
@@ -225,28 +286,36 @@ class GeneralRVModel(object):
         Returns:
             vel (array of floats): Radial velocity at each time in `t`
         """
-        vel = self._forward_model(t,self.params,*args,**kwargs)
-        vel += self.params['dvdt'].value * (t - self.time_base)
-        vel += self.params['curv'].value * (t - self.time_base)**2
+        vel = self._forward_model(t,self.params,self.vector,*args,**kwargs)
+        vel += self.vector.vector[5*self.params.num_planets][0] * (t - self.time_base)
+        vel += self.vector.vector[1+(5*self.params.num_planets)][0] * (t - self.time_base)**2
         return vel
 
-def _standard_rv_calc(t,params,planet_num=None):
+
+def _standard_rv_calc(t,params,vector,planet_num=None):
         vel = np.zeros(len(t))
-        params_synth = params.basis.to_synth(params)
+        params_synth = params.basis.v_to_synth(vector)
         if planet_num is None:
             planets = range(1, params.num_planets+1)
         else:
             planets = [planet_num]
 
         for num_planet in planets:
-            per = params_synth['per{}'.format(num_planet)].value
-            tp = params_synth['tp{}'.format(num_planet)].value
-            e = params_synth['e{}'.format(num_planet)].value
-            w = params_synth['w{}'.format(num_planet)].value
-            k = params_synth['k{}'.format(num_planet)].value
+            #index values
+            #per: -5 + (5*num_planet)
+            #tp: -4 + (5*num_planet)
+            #e: -3 + (5*num_planet)
+            #w: -2 + (5*num_planet)
+            #k: -1 + (5*num_planet)
+            per = params_synth[-5+(5*num_planet)][0]
+            tp = params_synth[-4+(5*num_planet)][0]
+            e = params_synth[-3+(5*num_planet)][0]
+            w = params_synth[-2+(5*num_planet)][0]
+            k = params_synth[-1+(5*num_planet)][0]
             orbel_synth = np.array([per, tp, e, w, k])
             vel += kepler.rv_drive(t, orbel_synth)
         return vel
+
 
 class RVModel(GeneralRVModel):
     """
@@ -256,6 +325,6 @@ class RVModel(GeneralRVModel):
     classes. The different RV models, with different
     parameterizations, all inherit from this class.
     """
-    def __init__(self,params, time_base=0):
+    def __init__(self, params, time_base=0):
         super(RVModel,self).__init__(params,_standard_rv_calc,time_base)
         self.num_planets=params.num_planets

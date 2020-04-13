@@ -162,10 +162,14 @@ def test_basis():
 
     for new_basis in basis_list:
         iparams = radvel.basis._copy_params(anybasis_params)
+        ivector = radvel.Vector(iparams)
         if new_basis != default_basis:
+            new_vector = iparams.basis.v_to_any_basis(ivector, new_basis)
             new_params = iparams.basis.to_any_basis(iparams, new_basis)
+            tmpv = new_vector.copy()
             tmp = radvel.basis._copy_params(new_params)
 
+            old_vector = tmp.basis.v_to_any_basis(tmpv, default_basis)
             old_params = tmp.basis.to_any_basis(tmp, default_basis)
 
             for par in iparams:
@@ -174,6 +178,14 @@ def test_basis():
                 assert (before - after) <= 1e-5,\
                     "Parameters do not match after basis conversion: \
 {}, {} != {}".format(par, before, after)
+
+            for i in range(ivector.vector.shape[0]):
+                before = ivector.vector[i][0]
+                after = old_vector[i][0]
+                assert (before - after) <= 1e-5, \
+                    "Vectors do not match after basis conversion: \
+{} row, {} != {}".format(i, before, after)
+
 
 
 def test_kernels():
@@ -219,12 +231,14 @@ def test_priors():
     Test basic functionality of all Priors
     """
 
-    params = radvel.Parameters(1)
+    params = radvel.Parameters(1, 'per tc secosw sesinw logk')
     params['per1'] = radvel.Parameter(10.0)
     params['tc1'] = radvel.Parameter(0.0)
     params['secosw1'] = radvel.Parameter(0.0)
     params['sesinw1'] = radvel.Parameter(0.0)
     params['logk1'] = radvel.Parameter(1.5)
+
+    vector = radvel.Vector(params)
 
     testTex = r'Delta Function Prior on $\sqrt{e}\cos{\omega}_{b}$'
 
@@ -261,9 +275,9 @@ def test_priors():
         print(prior.__repr__())
         print(prior.__str__())
         tolerance = .01
-        print(abs(np.exp(prior(params))))
+        print(abs(np.exp(prior(params, vector))))
         print(val)
-        assert abs(np.exp(prior(params)) - val) < tolerance, \
+        assert abs(np.exp(prior(params, vector)) - val) < tolerance, \
             "Prior output does not match expectation"
 
 
@@ -302,12 +316,12 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
 
 
 if __name__ == '__main__':
-    test_k2()
-    # test_hd()
-    # test_proceed()
-    # test_model_comp()
-    # test_k2131()
-    # test_celerite()
-    # test_basis()
-    # test_kernels()
-    # test_kepler()
+    #test_k2()
+    #test_hd()
+    #test_model_comp()
+    #test_k2131()
+    #test_celerite()
+    test_basis()
+    #test_kernels()
+    #test_kepler()
+    #test_priors()
