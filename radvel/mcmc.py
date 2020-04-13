@@ -218,6 +218,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
+
+    statevars.reset()
+
     try:
         if save and savename is None:
             raise ValueError('save set to true but no savename provided')
@@ -278,13 +281,16 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         pi = post.get_vary_params()
         statevars.ndim = pi.size
 
-        if proceed:
-            if len(h5p.keys()) != (3 * statevars.ensembles + 6) or h5p['0_chain'].shape[2] != statevars.ndim or h5p['0_chain'].shape[1] != statevars.nwalkers:
-                raise ValueError('nensembles, nwalkers, and the number of parameters must be equal to those from previous run')
+        if nwalkers < 2 * statevars.ndim:
+            print("WARNING: Number of walkers is less than 2 times number of free parameters. " +
+                  "Adjusting number of walkers to {}".format(2 * statevars.ndim))
+            statevars.nwalkers = 2 * statevars.ndim
 
-        if nwalkers < 2*statevars.ndim:
-            print("WARNING: Number of walkers is less than 2 times number of free parameters. Adjusting number of walkers to {}".format(2*statevars.ndim))
-            statevars.nwalkers = 2*statevars.ndim
+        if proceed:
+            if len(h5p.keys()) != (3 * statevars.ensembles + 6) or h5p['0_chain'].shape[2] != statevars.ndim \
+               or h5p['0_chain'].shape[1] != statevars.nwalkers:
+                raise ValueError('nensembles, nwalkers, and the number of ' +
+                                 'parameters must be equal to those from previous run.')
 
         # set up perturbation size
 
@@ -316,9 +322,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             if not proceed:
                 statevars.initial_positions.append(p0)
             else:
-                statevars.initial_positions.append(statevars.prechains[i][-1,:,:])
+                statevars.initial_positions.append(statevars.prechains[i][-1, :, :])
             statevars.samplers.append(emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array,
-                                                                threads=1))
+                                                            threads=1))
 
         if proceed:
             for i, sampler in enumerate(statevars.samplers):
@@ -332,7 +338,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         statevars.totsteps = nrun*statevars.nwalkers*statevars.ensembles
         statevars.mixcount = 0
         statevars.ismixed = 0
-        if proceed == True and statevars.preburned != 0:
+        if proceed and statevars.preburned != 0:
             statevars.burn_complete = True
             statevars.nburn = statevars.preburned
         else:
@@ -376,9 +382,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             statevars.interval = t2 - t1
 
             convergence_check(minAfactor=minAfactor, maxArchange=maxArchange, maxGR=maxGR, minTz=minTz,
-                          minsteps=minsteps, minpercent=minpercent)
+                              minsteps=minsteps, minpercent=minpercent)
 
-            if save==True:
+            if save:
                 for i, sampler in enumerate(statevars.samplers):
                     str_chain = str(i) + '_chain'
                     str_log_prob = str(i) + '_log_prob'
@@ -580,6 +586,7 @@ def convergence_calculate(chains, oldautocorrelation, minAfactor, maxArchange, m
     archange = np.divide(np.abs(np.subtract(autocorrelation, oldautocorrelation)), oldautocorrelation)
 
     # well-mixed criteria
-    ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR and np.amin(afactor) > minAfactor and np.amax(archange) < maxArchange
+    ismixed = min(tz) > minTz and max(gelmanrubin) < maxGR and \
+              np.amin(afactor) > minAfactor and np.amax(archange) < maxArchange
 
     return (ismixed, afactor, archange, autocorrelation, gelmanrubin, tz)

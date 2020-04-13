@@ -10,6 +10,7 @@ BASIS_NAMES = ['per tp e w k',  # The synth basis
                'per tc secosw sesinw k',
                'per tc ecosw esinw k',
                'per tc e w k',
+               'per tc tp e w k',  # print basis for summary report
                'logper tc secosw sesinw k',
                'logper tc secosw sesinw logk',
                'per tc se w k',
@@ -286,6 +287,13 @@ class Basis(object):
                 k = _getpar('k')
                 tp = timetrans_to_timeperi(tc, per, e, w)
 
+            if basis_name == 'per tc tp e w k':
+                per = _getpar('per')
+                tp = _getpar('tp')
+                e = _getpar('e')
+                w = _getpar('w')
+                k = _getpar('k')
+
             if basis_name == 'per tc se w k':
                 # pull out parameters
                 per = _getpar('per')
@@ -544,6 +552,15 @@ class Basis(object):
 
                 if not kwargs.get('keep', True):
                     _delpar('tp')
+
+            if newbasis == 'per tc tp e w k':
+                per = _getpar('per')
+                e = _getpar('e')
+                w = _getpar('w')
+                tp = _getpar('tp')
+
+                _setpar('tc', timeperi_to_timetrans(tp, per, e, w))
+                _setpar('w', w)
 
             if newbasis == 'per tc se w k':
                 per = _getpar('per')

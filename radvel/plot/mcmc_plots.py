@@ -28,11 +28,12 @@ class TrendPlot(object):
         
     """
 
-    def __init__(self, post, chains, nwalkers, outfile=None):
+    def __init__(self, post, chains, nwalkers, nensembles, outfile=None):
 
         self.chains = chains
         self.outfile = outfile
         self.nwalkers = nwalkers
+        self.nensembles = nensembles
 
         self.labels = sorted([k for k in post.params.keys() if post.params[k].vary])
         self.texlabels = [post.params.tex_labels().get(l, l) for l in self.labels]
@@ -45,16 +46,17 @@ class TrendPlot(object):
         with PdfPages(self.outfile) as pdf:
             for param, tex in zip(self.labels, self.texlabels):
                 flatchain = self.chains[param].values
-                wchain = flatchain.reshape((self.nwalkers, -1))
+                wchain = flatchain.reshape((self.nwalkers, self.nensembles, -1))
 
                 _ = pl.figure(figsize=(18, 10))
                 for w in range(self.nwalkers):
-                    pl.plot(
-                        wchain[w, :], '.', rasterized=True, color=self.colors[w],
-                        markersize=3
-                    )
+                    for e in range(self.nensembles):
+                        pl.plot(
+                            wchain[w][e], '.', rasterized=True, color=self.colors[w],
+                            markersize=4
+                        )
 
-                pl.xlim(0, wchain.shape[1])
+                pl.xlim(0, wchain.shape[2])
 
                 pl.xlabel('Step Number')
                 try:
