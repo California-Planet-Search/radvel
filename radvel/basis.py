@@ -167,7 +167,7 @@ class Basis(object):
             if basis_name == 'per tc secosw sesinw logk':
                 vector2[4+(5*num_planet)][0] = np.exp(vector[4+(5*num_planet)][0])
                 vector2[2+(5*num_planet)][0] = vector[2+(5*num_planet)][0]**2 + vector[3+(5*num_planet)][0]**2
-                vector2[3+(5 * num_planet)][0] = np.arctan(vector[3+(5 * num_planet)][0]/vector[2+(5 * num_planet)][0])
+                vector2[3+(5 * num_planet)][0] = np.arctan2(vector[3+(5 * num_planet)][0], vector[2+(5 * num_planet)][0])
                 vector2[1+(5*num_planet)][0] = timetrans_to_timeperi(vector[1+(5*num_planet)][0],
                                                                      vector[(5*num_planet)][0],
                                                                      vector2[2+(5*num_planet)][0],

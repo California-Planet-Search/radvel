@@ -219,7 +219,7 @@ def test_priors():
     Test basic functionality of all Priors
     """
 
-    params = radvel.Parameters(1)
+    params = radvel.Parameters(1, 'per tc secosw sesinw logk')
     params['per1'] = radvel.Parameter(10.0)
     params['tc1'] = radvel.Parameter(0.0)
     params['secosw1'] = radvel.Parameter(0.0)
@@ -304,11 +304,12 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
 
 
 if __name__ == '__main__':
-    test_k2()
-    test_hd()
-    test_model_comp()
-    test_k2131()
-    test_celerite()
-    test_basis()
-    test_kernels()
-    test_kepler()
+    #test_k2()
+    #test_hd()
+    #test_model_comp()
+    #test_k2131()
+    #test_celerite()
+    #test_basis()
+    #test_kernels()
+    #test_kepler()
+    test_priors()
