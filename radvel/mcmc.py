@@ -295,15 +295,20 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         # set up perturbation size
 
         pscales = []
-        for par in post.list_vary_params():
+        names = post.name_vary_params()
+        print(names)
+        print(post.list_vary_params())
+        for i,par in enumerate(post.list_vary_params()):
             val = post.vector.vector[par][0]
             if post.vector.vector[par][2] == 0:
-                if post.params.basis.name.startswith('per') and par in [-5+(5*n) for n in range(1,post.params.num_planets+1)]:
-                        pscale = np.abs(val * 1e-5*np.log10(val))
-                elif post.params.basis.name.startswith('logper') and par in [-5+(5*n) for n in range(1,post.params.num_planets+1)]:
-                        pscale = np.abs(1e-5 * val)
-                elif 'tc' in post.params.basis.name and par in [-4+(5*n) for n in range(1,post.params.num_planets+1)]:
-                        pscale = 0.1
+                if names[i].startswith('per'):
+                    pscale = np.abs(val * 1e-5*np.log10(val))
+                elif names[i].startswith('logper'):
+                    pscale = np.abs(1e-5 * val)
+                elif names[i].startswith('tc'):
+                    pscale = 0.1
+                elif val == 0:
+                    pscale = .00001
                 else:
                     pscale = np.abs(0.10 * val)
                 post.vector.vector[par][2] = pscale
@@ -311,6 +316,8 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 pscale = post.vector.vector[par][2]
             pscales.append(pscale)
         pscales = np.array(pscales)
+
+        print(pscales)
 
         statevars.samplers = []
         statevars.samples = []
