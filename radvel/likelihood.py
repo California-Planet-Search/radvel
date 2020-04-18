@@ -57,27 +57,38 @@ class Likelihood(object):
                 )
             keys = self.params.keys()
             for key in keys:
-                vstr = str(self.params[key].vary)
-                if (key.startswith('tc') or key.startswith('tp')) and self.params[key].value > 1e6:
-                    par = self.params[key].value - self.model.time_base
-                else:
-                    par = self.params[key].value
-
-                s += "{:20s}{:15g} {:>10s}\n".format(
-                    key, par, vstr
-                     )
-            synthbasis = self.params.basis.to_synth(self.params, noVary=True)
-            for key in synthbasis.keys():
-                if key not in keys:
-                    vstr = str(synthbasis[key].vary)
-                    if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
-                        par = synthbasis[key].value - self.model.time_base
+                try:
+                    vstr = str(self.params[key].vary)
+                    if (key.startswith('tc') or key.startswith('tp')) and self.params[key].value > 1e6:
+                        par = self.params[key].value - self.model.time_base
                     else:
-                        par = synthbasis[key].value
+                        par = self.params[key].value
 
                     s += "{:20s}{:15g} {:>10s}\n".format(
                         key, par, vstr
                         )
+                except TypeError:
+                    pass
+
+            try:
+                synthbasis = self.params.basis.to_synth(self.params, noVary=True)
+                for key in synthbasis.keys():
+                    if key not in keys:
+                        try:
+                            vstr = str(synthbasis[key].vary)
+                            if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
+                                par = synthbasis[key].value - self.model.time_base
+                            else:
+                                par = synthbasis[key].value
+
+                            s += "{:20s}{:15g} {:>10s}\n".format(
+                                key, par, vstr
+                                )
+                        except TypeError:
+                            pass
+            except TypeError:
+                pass
+
         else:
             s = ""
             s += "{:<20s}{:>15s}{:>10s}{:>10s}\n".format(
@@ -85,36 +96,47 @@ class Likelihood(object):
                 )
             keys = self.params.keys()
             for key in keys:
-                vstr = str(self.params[key].vary)
-                if key in self.uparams.keys():
-                    err = self.uparams[key]
-                else:
-                    err = 0
-                if (key.startswith('tc') or key.startswith('tp')) and \
-                        self.params[key].value > 1e6:
-                    par = self.params[key].value - self.model.time_base
-                else:
-                    par = self.params[key].value
-
-                s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
-                    key, par, err, vstr
-                     )
-            synthbasis = self.params.basis.to_synth(self.params, noVary=True)
-            for key in synthbasis.keys():
-                if key not in keys:
-                    vstr = str(synthbasis[key].vary)
+                try:
+                    vstr = str(self.params[key].vary)
                     if key in self.uparams.keys():
                         err = self.uparams[key]
                     else:
                         err = 0
-                    if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
-                        par = synthbasis[key].value - self.model.time_base
+                    if (key.startswith('tc') or key.startswith('tp')) and \
+                            self.params[key].value > 1e6:
+                        par = self.params[key].value - self.model.time_base
                     else:
-                        par = synthbasis[key].value
+                        par = self.params[key].value
 
                     s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
                         key, par, err, vstr
-                    )
+                        )
+                except TypeError:
+                    pass
+
+            try:
+                synthbasis = self.params.basis.to_synth(self.params, noVary=True)
+                for key in synthbasis.keys():
+                    if key not in keys:
+                        try:
+                            vstr = str(synthbasis[key].vary)
+                            if key in self.uparams.keys():
+                                err = self.uparams[key]
+                            else:
+                                err = 0
+                            if (key.startswith('tc') or key.startswith('tp')) and synthbasis[key].value > 1e6:
+                                par = synthbasis[key].value - self.model.time_base
+                            else:
+                                par = synthbasis[key].value
+
+                            s += "{:20s}{:15g}{:10g}{:>10s}\n".format(
+                                key, par, err, vstr
+                            )
+                        except TypeError:
+                            pass
+            except TypeError:
+                pass
+
         return s
 
     def set_vary_params(self, param_values_array):
@@ -127,15 +149,12 @@ class Likelihood(object):
             "Length of array must match number of varied parameters"
 
     def get_vary_params(self):
-
         return self.vector.vector[self.list_vary_params()][:,0]
 
     def list_vary_params(self):
-
         return np.where(self.vector.vector[:,1] == True)[0]
 
     def name_vary_params(self):
-
         list = []
         for i in self.list_vary_params():
             list.append(self.vector.names[i])
