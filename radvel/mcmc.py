@@ -296,8 +296,6 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
 
         pscales = []
         names = post.name_vary_params()
-        print(names)
-        print(post.list_vary_params())
         for i,par in enumerate(post.list_vary_params()):
             val = post.vector.vector[par][0]
             if post.vector.vector[par][2] == 0:
@@ -316,8 +314,6 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 pscale = post.vector.vector[par][2]
             pscales.append(pscale)
         pscales = np.array(pscales)
-
-        print(pscales)
 
         statevars.samplers = []
         statevars.samples = []
