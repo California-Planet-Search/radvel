@@ -296,7 +296,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
 
         pscales = []
         names = post.name_vary_params()
-        for i,par in enumerate(post.list_vary_params()):
+        for i,par in enumerate(post.vary_params):
             val = post.vector.vector[par][0]
             if post.vector.vector[par][2] == 0:
                 if names[i].startswith('per'):

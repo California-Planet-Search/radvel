@@ -358,7 +358,7 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
             [ep.append(i) for i in sorted(op)[::-1]]
 
         # Add GP parameters
-        for par in self.report.post.likelihood.list_params():
+        for par in self.report.post.likelihood.vector.names:
             if par.startswith('gp_'):
                 ep.append(par)
 
