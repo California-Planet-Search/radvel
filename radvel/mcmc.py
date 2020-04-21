@@ -127,7 +127,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         statevars.ncomplete += sampler.get_log_prob(flat=True).shape[0]
         statevars.ar += sampler.acceptance_fraction.mean() * 100
         statevars.chains.append(sampler.get_chain()[:,:,:].T)
-        statevars.lnprob.append(sampler.get_log_prob(flat=True))
+        statevars.lnprob.append(sampler.get_log_prob().T)
     statevars.ar /= statevars.ensembles
 
     statevars.pcomplete = statevars.ncomplete/float(statevars.totsteps) * 100
@@ -461,11 +461,12 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             _closescr()
             print(msg)
 
-        preshaped = np.dstack(statevars.chains)
-        df = pd.DataFrame(
-            preshaped.reshape(preshaped.shape[0], preshaped.shape[1]*preshaped.shape[2]).transpose(),
-            columns=post.list_vary_params())
-        df['lnprobability'] = np.hstack(statevars.lnprob)
+        preshaped_chain = np.dstack(statevars.chains)
+        df = pd.DataFrame(preshaped_chain.reshape(preshaped_chain.shape[0],
+                                                  preshaped_chain.shape[1] * preshaped_chain.shape[2]).transpose(),
+                          columns=post.list_vary_params())
+        preshaped_ln = np.hstack(statevars.lnprob)
+        df['lnprobability'] = preshaped_ln.reshape(preshaped_chain.shape[1] * preshaped_chain.shape[2])
         df = df.iloc[::thin]
 
         statevars.factor = [minAfactor] * len(statevars.autosamples)
