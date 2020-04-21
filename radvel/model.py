@@ -210,7 +210,6 @@ class Vector(object):
 
     def dict_to_vector(self):
         n = 0
-        g = 0
         if 'dvdt' not in self.params.keys():
             n += 1
         if 'curv' not in self.params.keys():
@@ -240,7 +239,10 @@ class Vector(object):
 
     def vector_to_dict(self):
         for key in self.params.keys():
-            self.params[key].value = self.vector[self.indices[key]][0]
+            try:
+                self.params[key].value = self.vector[self.indices[key]][0]
+            except KeyError:
+                pass
 
 
 class GeneralRVModel(object):
@@ -287,8 +289,8 @@ class GeneralRVModel(object):
             vel (array of floats): Radial velocity at each time in `t`
         """
         vel = self._forward_model(t,self.params,self.vector,*args,**kwargs)
-        vel += self.vector.vector[5*self.params.num_planets][0] * (t - self.time_base)
-        vel += self.vector.vector[1+(5*self.params.num_planets)][0] * (t - self.time_base)**2
+        vel += self.vector.vector[self.vector.indices['dvdt']][0] * (t - self.time_base)
+        vel += self.vector.vector[self.vector.indices['curv']][0] * (t - self.time_base)**2
         return vel
 
 
