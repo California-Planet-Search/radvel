@@ -47,8 +47,6 @@ class Likelihood(object):
         self.vector.dict_to_vector()
         self.vector.vector_names()
 
-        self.params_order = self.list_vary_params()
-
     def __repr__(self):
         s = ""
         if self.uparams is None:
@@ -142,31 +140,41 @@ class Likelihood(object):
     def set_vary_params(self, param_values_array):
         param_values_array = list(param_values_array)
         i = 0
-        for index in self.list_vary_params():
-            self.vector.vector[index][0] = param_values_array[i]
-            i += 1
-        assert i == len(param_values_array), \
-            "Length of array must match number of varied parameters"
+        try:
+            for index in self.vary_params:
+                self.vector.vector[index][0] = param_values_array[i]
+                i += 1
+            assert i == len(param_values_array), \
+                "Length of array must match number of varied parameters"
+        except AttributeError:
+            self.list_vary_params()
+            for index in self.vary_params:
+                self.vector.vector[index][0] = param_values_array[i]
+                i += 1
+            assert i == len(param_values_array), \
+                "Length of array must match number of varied parameters"
 
     def get_vary_params(self):
-        return self.vector.vector[self.list_vary_params()][:,0]
+        try:
+            return self.vector.vector[self.vary_params][:,0]
+        except AttributeError:
+            self.list_vary_params()
+            return self.vector.vector[self.vary_params][:, 0]
 
     def list_vary_params(self):
-        return np.where(self.vector.vector[:,1] == True)[0]
+        self.vary_params = np.where(self.vector.vector[:,1] == True)[0]
 
     def name_vary_params(self):
         list = []
-        for i in self.list_vary_params():
-            list.append(self.vector.names[i])
-        return list
-
-    def list_params(self):
         try:
-            keys = self.params_order
+            for i in self.vary_params:
+                list.append(self.vector.names[i])
+            return list
         except AttributeError:
-            keys = list(self.params.keys())
-            self.params_order = keys
-        return keys
+            self.list_vary_params()
+            for i in self.vary_params:
+                list.append(self.vector.names[i])
+            return list
 
     def residuals(self):
         return self.y - self.model(self.x)
