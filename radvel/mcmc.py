@@ -464,7 +464,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         preshaped_chain = np.dstack(statevars.chains)
         df = pd.DataFrame(preshaped_chain.reshape(preshaped_chain.shape[0],
                                                   preshaped_chain.shape[1] * preshaped_chain.shape[2]).transpose(),
-                          columns=post.name_vary_params())
+                          columns=post.list_vary_params())
         preshaped_ln = np.hstack(statevars.lnprob)
         df['lnprobability'] = preshaped_ln.reshape(preshaped_chain.shape[1] * preshaped_chain.shape[2])
         df = df.iloc[::thin]
