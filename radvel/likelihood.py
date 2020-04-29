@@ -252,7 +252,7 @@ class CompositeLikelihood(Likelihood):
         self.hnames = []
 
         for i in range(1, self.nlike):
-            like: object = like_list[i]
+            like = like_list[i]
 
             self.x = np.append(self.x, like.x)
             self.y = np.append(self.y, like.y - like.vector.vector[like.vector.indices[like.gamma_param]][0])
