@@ -229,7 +229,7 @@ class Vector(object):
         self.vector = vector
 
     def vector_names(self):
-        names = [0] * len(self.params.keys())
+        names = [0] * (len(self.params.keys()))
         for key in self.params.keys():
             try:
                 names[self.indices[key]] = key
@@ -247,7 +247,7 @@ class Vector(object):
 
 class GeneralRVModel(object):
     """
-    A generalized RV Model
+    A generalized Model
 
     Args:
         params (radvel.Parameters): The parameters upon which the RV model depends.
@@ -276,17 +276,13 @@ class GeneralRVModel(object):
         self._forward_model = forward_model
         assert callable(forward_model)
     def __call__(self,t,*args,**kwargs):
-        """Compute the radial velocity.
-
-        Includes all Keplerians and additional trends.
+        """Compute the signal
 
         Args:
-            t (array of floats): Timestamps to calculate the RV model
-            planet_num (int [optional]): calculate the RV model for a single
-                planet within a multi-planet system
+            t (array of floats): Timestamps to calculate the model
 
         Returns:
-            vel (array of floats): Radial velocity at each time in `t`
+            vel (array of floats): model at each time in `t`
         """
         vel = self._forward_model(t,self.params,self.vector,*args,**kwargs)
         vel += self.vector.vector[self.vector.indices['dvdt']][0] * (t - self.time_base)
