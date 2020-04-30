@@ -33,12 +33,14 @@ class Likelihood(object):
         self.dvec = [np.array(d) for d in decorr_vectors]
         n = self.vector.vector.shape[0]
         for key in extra_params:
-            self.params[key] = radvel.model.Parameter(value=0.0)
+            if key not in self.params.keys():
+                self.params[key] = radvel.model.Parameter(value=0.0)
             if key not in self.vector.indices:
                 self.vector.indices.update({key:n})
             n += 1
         for key in decorr_params:
-            self.params[key] = radvel.model.Parameter(value=0.0)
+            if key not in self.params.keys():
+                self.params[key] = radvel.model.Parameter(value=0.0)
             if key not in self.vector.indices:
                 self.vector.indices.update({key:n})
             n += 1
@@ -373,7 +375,7 @@ class RVLikelihood(Likelihood):
                 pars = []
                 for par in self.decorr_params:
                     if var in par:
-                        pars.append(self.vector.vector[self.indices[par]][0])
+                        pars.append(self.vector.vector[self.vector.indices[par]][0])
                 pars.append(0.0)
                 if np.isfinite(self.decorr_vectors[var]).all():
                     vec = self.decorr_vectors[var] - np.mean(self.decorr_vectors[var])
