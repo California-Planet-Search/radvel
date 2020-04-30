@@ -37,13 +37,13 @@ class Likelihood(object):
                 self.params[key] = radvel.model.Parameter(value=0.0)
             if key not in self.vector.indices:
                 self.vector.indices.update({key:n})
-            n += 1
+                n += 1
         for key in decorr_params:
             if key not in self.params.keys():
                 self.params[key] = radvel.model.Parameter(value=0.0)
             if key not in self.vector.indices:
                 self.vector.indices.update({key:n})
-            n += 1
+                n += 1
         self.uparams = None
 
         self.vector.dict_to_vector()

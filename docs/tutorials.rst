@@ -13,3 +13,5 @@ in the `docs/tutorials` subdirectory of the radvel package.
 
    tutorials/K2-24_Fitting+MCMC.ipynb
    tutorials/GaussianProcess-tutorial.ipynb
+   tutorials/CustomModel-tutorial.ipynb
+
