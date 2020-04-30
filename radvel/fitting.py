@@ -125,31 +125,37 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         )
         num_planets = fitpost.likelihood.model.num_planets
         freepar = []
-        eparams = fitpost.params.basis.get_eparams()
-        circparams = fitpost.params.basis.get_circparams()
+        eparams = fitpost.vector.params.basis.get_eparams()
+        circparams = fitpost.vector.params.basis.get_circparams()
         eparam = eparams[0]
         leparam = len(eparam)
         circparam = circparams[-1]
         lcparam = len(circparam)
-        planet_letters = fitpost.likelihood.params.planet_letters
+        planet_letters = fitpost.likelihood.vector.params.planet_letters
         if planet_letters is None:
             planet_letters = [ALPHABET[i] for i in range(num_planets+1)]
         jitterchecked = False
-        for pari in fitpost.params:
-            if (len(pari) >= lcparam) and (pari[0:lcparam] == circparam) and fitpost.params[pari].vary:
+        for pari in fitpost.vector.names:
+            if (len(pari) >= lcparam) and (pari[0:lcparam] == circparam) \
+                    and fitpost.vector.vector[fitpost.vector.indices[pari]][1]:
                 freepar.append('$K_{'+planet_letters[int(pari[lcparam+0:])]+'}$')
-            if (len(pari) >= leparam) and (pari[0:leparam] == eparam) and fitpost.params[pari].vary:
+            if (len(pari) >= leparam) and (pari[0:leparam] == eparam) \
+                    and fitpost.vector.vector[fitpost.vector.indices[pari]][1]:
                 freepar.append('$e_{'+planet_letters[int(pari[leparam+0:])]+'}$')
-            if (pari == 'dvdt') and fitpost.params[pari].vary:
+            if (pari == 'dvdt') \
+                    and fitpost.vector.vector[fitpost.vector.indices[pari]][1]:
                 freepar.append(r'$\dot{\gamma}$')
-            if (pari == 'curv') and fitpost.params[pari].vary:
+            if (pari == 'curv') \
+                    and fitpost.vector.vector[fitpost.vector.indices[pari]][1]:
                 freepar.append(r'$\ddot{\gamma}$')
-            if (len(pari) >= 3) and (pari[0:3] == 'jit') and fitpost.params[pari].vary \
+            if (len(pari) >= 3) and (pari[0:3] == 'jit') \
+                    and fitpost.vector.vector[fitpost.vector.indices[pari]][1] \
                     and (not jitterchecked):
                 partex = r'{$\sigma$}'
                 freepar.append(partex)
                 jitterchecked = True
-            if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') and fitpost.params[pari].vary:
+            if (len(pari) >= 6) and (pari[0:6] == 'gp_amp') \
+                    and fitpost.vector.vector[fitpost.vector.indices[pari]][1]:
                 freepar.append(r'GP$_{\rm %s}$' % pari[6:].replace('_', ''))
 
         pdict['Free Params'] = (freepar, "The free parameters in this model")
@@ -166,7 +172,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
                   + "kernels where the amplitude of the GP is described by the 'gp_amp' "
                   + "hyper parameter")
         have_gpamp = False
-        for param in post.params.keys():
+        for param in post.vector.names:
             if 'gp_amp' in param:
                 have_gpamp = True
                 break
@@ -178,18 +184,22 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             allfixed = False
             for gpparam in gpparamlist:
                 if len(gpparam) >= 6 and gpparam.startswith('gp_amp'):
-                    ipost.params[gpparam].value = 0.
-                if post.params[gpparam].vary:
+                    ipost.vector.vector[ipost.vector.indices[gpparam]][0] = 0.
+                if ipost.vector.vector[ipost.vector.indices[gpparam]][1]:
                     allfixed = False
-                    ipost.params[gpparam].vary = False
+                    ipost.vector.vector[ipost.vector.indices[gpparam]][0] = False
             if not allfixed:
                 mc_list = model_comp(ipost, newparams, mc_list=mc_list)
+            post.list_vary_params()
+            post.likelihood.list_vary_params()
             mc_list = model_comp(post, newparams, mc_list=mc_list)
             return mc_list
         else:
             if verbose:
                 print("Warning: You requested a GP BIC/AIC comparison")
                 print("   However, your model does not include GPs")
+            post.list_vary_params()
+            post.likelihood.list_vary_params()
             mc_list = model_comp(post, newparams, mc_list=mc_list)
             return mc_list
 
@@ -198,17 +208,22 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         cpost = copy.deepcopy(ipost)
         newparams = [pi for pi in params if pi != 'jit']
         anyjitteron = False
-        for parami in ipost.params:
-            if len(parami) >= 3 and parami[:3] == 'jit' and ipost.params[parami].vary:
-                cpost.params[parami].value = 1e-6
-                cpost.params[parami].vary = False
+        for parami in ipost.vector.names:
+            if len(parami) >= 3 and parami[:3] == 'jit' \
+                    and ipost.vector.vector[ipost.vector.indices[parami]][1]:
+                cpost.vector.vector[cpost.vector.indices[parami]][0] = 1e-6
+                cpost.vector.vector[cpost.vector.indices[parami]][1] = 0
                 anyjitteron = True
         if anyjitteron:
+            cpost.list_vary_params()
+            cpost.likelihood.list_vary_params()
             mc_list = model_comp(cpost, newparams, mc_list=mc_list)
         else:
             if verbose:
                 print("Warning: You requested a jitter BIC/AIC comparison")
                 print("   However, your model has a fixed jitter")
+        ipost.list_vary_params()
+        ipost.likelihood.list_vary_params()
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
@@ -218,25 +233,30 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
         trendparamlist = ['curv', 'dvdt']
         anytrendparam = False
         for cparam in trendparamlist:
-            if ipost.params[cparam].vary:
-                ipost.params[cparam].value = 0.
+            if ipost.vector.vector[ipost.vector.indices[cparam]][1]:
+                ipost.vector.vector[ipost.vector.indices[cparam]][0] = 0
                 cpost = copy.deepcopy(ipost)
+                cpost.list_vary_params()
+                cpost.likelihood.list_vary_params()
                 mc_list = model_comp(cpost, newparams, mc_list=mc_list)
-                ipost.params[cparam].vary = False
+                ipost.vector.vector[ipost.vector.indices[cparam]][1] = 0
                 anytrendparam = True
         if not anytrendparam:
             if verbose:
                 print("Warning: You requested a trend BIC/AIC comparison")
                 print("   However, your model has a fixed dv/dt and curv")
+        ipost.list_vary_params()
+        ipost.likelihood.list_vary_params()
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
     elif 'nplanets' in params:
-        eparams = post.params.basis.get_eparams()
-        circparams = post.params.basis.get_circparams()
+        eparams = post.vector.params.basis.get_eparams()
+        circparams = post.vector.params.basis.get_circparams()
         allparams = eparams+circparams
 
         ipost = copy.deepcopy(post)
+
         newparams = [pi for pi in params if pi != 'nplanets']
         num_planets = post.likelihood.model.num_planets
         pllist = [pl+1 for pl in range(num_planets)]
@@ -248,21 +268,26 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             suffixes = [str(pl) for pl in plgroup]
             plparams.append([[pari+''+sufi for pari in allparams] for sufi in suffixes])
         for plparamset in plparams:
-            if all([any([post.params[pari].vary for pari in pparam]) for pparam in plparamset]):
+            if all([any([post.vector.vector[post.vector.indices[pari]][1] for pari in pparam]) for pparam in plparamset]):
                 cpost = copy.deepcopy(post)
                 for pparam in plparamset:
                     for pari in pparam:
                         if pari[0] == 'k':
-                            cpost.params[pari].value = 0.
+                            cpost.vector.vector[cpost.vector.indices[pari]][0] = 0.
                         if len(pari) >= 4 and pari[0:4] == 'logk':
-                            cpost.params[pari].value = -np.inf
-                        cpost.params[pari].vary = False
+                            cpost.vector.vector[cpost.vector.indices[pari]][0] = -np.inf
+                        cpost.vector.vector[cpost.vector.indices[pari]][1] = 0
+                del cpost.vary_params
+                cpost.list_vary_params()
+                cpost.likelihood.list_vary_params()
                 mc_list = model_comp(cpost, newparams, mc_list=mc_list)
+        ipost.list_vary_params()
+        ipost.likelihood.list_vary_params()
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
     elif 'e' in params:
-        eparams = post.params.basis.get_eparams()
+        eparams = post.vector.params.basis.get_eparams()
 
         ipost = copy.deepcopy(post)
         newparams = [pi for pi in params if pi != 'e']
@@ -277,18 +302,22 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
             plparams.append([[pari+''+sufi for pari in eparams] for sufi in suffixes])
         anyefree = False
         for plparamset in plparams:
-            if all([any([post.params[pari].vary for pari in pparam]) for pparam in plparamset]):
+            if all([any([post.vector.vector[post.vector.indices[pari]][1] for pari in pparam]) for pparam in plparamset]):
                 cpost = copy.deepcopy(post)
                 for pparam in plparamset:
                     for pari in pparam:
-                        cpost.params[pari].value = 0.
-                        cpost.params[pari].vary = False
+                        cpost.vector.vector[cpost.vector.indices[pari]][0] = 0.
+                        cpost.vector.vector[cpost.vector.indices[pari]][1] = 0.
+                cpost.list_vary_params()
+                cpost.likelihood.list_vary_params()
                 mc_list = model_comp(cpost, newparams, mc_list=mc_list)
                 anyefree = True
         if not anyefree:
             if verbose:
                 print("Warning: You requested an eccentricity BIC/AIC comparison")
                 print("   However, your model has fixed e for all planets")
+        ipost.list_vary_params()
+        ipost.likelihood.list_vary_params()
         mc_list = model_comp(ipost, newparams, mc_list=mc_list)
         return mc_list
 
