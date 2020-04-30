@@ -269,9 +269,6 @@ class CompositeLikelihood(Likelihood):
             except AttributeError:
                 self.uparams = None
 
-            assert like.model is like0.model, \
-                "Likelihoods must use the same model"
-
             for k in like.params:
                 if k in params:
                     assert like.params[k]._equals(params[k]), "Name={} {} != {}".format(k, like.params[k], params[k])
