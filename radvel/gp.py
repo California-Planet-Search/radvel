@@ -238,7 +238,7 @@ class QuasiPerKernel(Kernel):
     .. math::
 
         C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 } -
-                 \\frac{ \\sin^2(\\frac{ \\pi|t_i-t_j| }{ \\eta_3^2 } ) }{ 2\\eta_4^2 } )
+                 \\frac{ \\sin^2(\\frac{ \\pi|t_i-t_j| }{ \\eta_3 } ) }{ 2\\eta_4^2 } )
 
     Args:
         hparams (dict of radvel.Parameter): dictionary containing
