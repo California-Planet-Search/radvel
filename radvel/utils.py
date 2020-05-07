@@ -368,6 +368,17 @@ def t_to_phase(params, t, num_planet, cat=False):
         phase = np.concatenate((phase, phase+1))
     return phase
 
+def t_to_phase_vector(vector, t, num_planet, cat=False):
+
+    synth_params = vector.params.basis.v_to_synth(vector)
+
+    P = synth_params[-5+(5*num_planet)][0]
+    tc = synth_params[-4+(5*num_planet)][0]
+    phase = np.mod(t - tc, P)
+    phase /= P
+    if cat:
+        phase = np.concatenate((phase, phase + 1))
+    return phase
 
 @contextmanager
 def working_directory(dir):
