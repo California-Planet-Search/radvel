@@ -101,7 +101,7 @@ def _status_message_CLI(statevars):
     statevars.screen.refresh()
 
 
-def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent):
+def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent, headless):
     """Check for convergence
 
     Check for convergence for a list of emcee samplers
@@ -116,6 +116,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
             will start after the minsteps threshold or the minpercent threshold has been hit.
         minpercent (float): Minimum percentage of total steps before convergence tests are performed. Convergence checks
             will start after the minsteps threshold or the minpercent threshold has been hit.
+        headless (bool): if set to true, the convergence statistics will not be displayed in real time.
     """
 
     statevars.ar = 0
@@ -165,10 +166,11 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         else:
             statevars.mixcount = 0
 
-    if isnotebook():
-        _status_message_NB(statevars)
-    else:
-        _status_message_CLI(statevars)
+    if not headless:
+        if isnotebook():
+            _status_message_NB(statevars)
+        else:
+            _status_message_CLI(statevars)
 
 
 def _domcmc(input_tuple):
@@ -186,7 +188,7 @@ def _domcmc(input_tuple):
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=40, maxArchange=.03, burnAfactor=25,
          burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=False,
-         savename=None, proceed=False, proceedname=None):
+         savename=None, proceed=False, proceedname=None, headless=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -215,6 +217,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         savename (string): location of h5py file where MCMC chains will be saved for future use
         proceed (bool): set to true to continue a previously saved run
         proceedname (string): location of h5py file with previously MCMC run chains
+        headless (bool): if set to true, the convergence statistics will not display in real time
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
@@ -385,7 +388,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             statevars.interval = t2 - t1
 
             convergence_check(minAfactor=minAfactor, maxArchange=maxArchange, maxGR=maxGR, minTz=minTz,
-                              minsteps=minsteps, minpercent=minpercent)
+                              minsteps=minsteps, minpercent=minpercent, headless=headless)
 
             if save:
                 for i, sampler in enumerate(statevars.samplers):

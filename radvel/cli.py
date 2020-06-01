@@ -113,6 +113,9 @@ Convergence checks will start after the minsteps threshold or the minpercent thr
     psr_mcmc.add_argument('--proceed', dest='proceed', action='store_true',
                           help='If True, MCMC chains will resume from the previous run'
                           )
+    psr_mcmc.add_argument('--headless', dest='headless', action='store_true',
+                          help='If True, convergence stats will not display in real time'
+                          )
     psr_mcmc.set_defaults(func=radvel.driver.mcmc)
 
     # Derive physical parameters
