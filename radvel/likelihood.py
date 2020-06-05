@@ -143,18 +143,15 @@ class Likelihood(object):
         param_values_array = list(param_values_array)
         i = 0
         try:
-            for index in self.vary_params:
-                self.vector.vector[index][0] = param_values_array[i]
-                i += 1
-            assert i == len(param_values_array), \
-                "Length of array must match number of varied parameters"
+            if len(self.vary_params) != len(param_values_array):
+                self.list_vary_params()
         except AttributeError:
             self.list_vary_params()
-            for index in self.vary_params:
-                self.vector.vector[index][0] = param_values_array[i]
-                i += 1
-            assert i == len(param_values_array), \
-                "Length of array must match number of varied parameters"
+        for index in self.vary_params:
+            self.vector.vector[index][0] = param_values_array[i]
+            i += 1
+        assert i == len(param_values_array), \
+            "Length of array must match number of varied parameters"
 
     def get_vary_params(self):
         try:

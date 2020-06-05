@@ -36,6 +36,7 @@ class _args(types.SimpleNamespace):
     savename = 'rawchains.h5'
     proceed = False
     proceedname = None
+    headless=False
 
 
 def _standard_run(setupfn, arguments):
