@@ -30,13 +30,13 @@ class Gaussian(Prior):
         self.sigma = sigma
         self.param = param
 
-    def __call__(self, params):
-        x = params[self.param].value
+    def __call__(self, params, vector):
+        x = vector.vector[vector.indices[self.param]][0]
         return -0.5 * ((x - self.mu) / self.sigma)**2 - 0.5*np.log((self.sigma**2)*2.*np.pi)
 
     def __repr__(self):
         s = "Gaussian prior on {}, mu={}, sigma={}".format(
-            self.param, self. mu, self.sigma
+            self.param, self.mu, self.sigma
             )
         return s
 
@@ -44,7 +44,7 @@ class Gaussian(Prior):
         try:
             tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
 
-            s = "Gaussian prior on {}: ${} \\pm {}$ \\\\".format(tex, self. mu, self.sigma)
+            s = "Gaussian prior on {}: ${} \\pm {}$ \\\\".format(tex, self.mu, self.sigma)
         except KeyError:
             s = self.__repr__()
 
@@ -101,9 +101,9 @@ class EccentricityPrior(Prior):
 upper limits must match number of planets."
             self.upperlims = upperlims
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         def _getpar(key, num_planet):
-            return params['{}{}'.format(key, num_planet)].value
+            return vector.vector[vector.indices['{}{}'.format(key, num_planet)]][0]
 
         parnames = params.basis.name.split()
 
@@ -149,9 +149,9 @@ class PositiveKPrior(Prior):
     def __init__(self, num_planets):
         self.num_planets = num_planets
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         def _getpar(key, num_planet):
-            return params['{}{}'.format(key, num_planet)].value
+            return vector.vector[vector.indices['{}{}'.format(key, num_planet)]][0]
 
         for num_planet in range(1, self.num_planets+1):
             try:
@@ -192,8 +192,8 @@ class HardBounds(Prior):
             warnings.warn("HardBounds set on K or e parameter. PositveKPrior and EccentricityPriors are recommended",
                           UserWarning)
 
-    def __call__(self, params):
-        x = params[self.param].value
+    def __call__(self, params, vector):
+        x = vector.vector[vector.indices[self.param]][0]
         if x <= self.minval or x >= self.maxval:
             return -np.inf
         else:
@@ -250,21 +250,21 @@ class SecondaryEclipsePrior(Prior):
         self.ts = ts
         self.ts_err = ts_err
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         def _getpar(key):
-            return synth_params['{}{}'.format(key, self.planet_num)].value
+            return synth_params[vector.indices['{}{}'.format(key, self.planet_num)]][0]
 
-        synth_params = params.basis.to_synth(params)
+        synth_params = vector.params.basis.v_to_synth(vector)
 
-        tp = _getpar('tp')
-        per = _getpar('per')
-        ecc = _getpar('e')
-        omega = _getpar('w')
+        tp = synth_params[-4+(5*self.planet_num)][0]
+        per = synth_params[-5+(5*self.planet_num)][0]
+        ecc = synth_params[-3+(5*self.planet_num)][0]
+        omega = synth_params[-2+(5*self.planet_num)][0]
 
         ts = orbit.timeperi_to_timetrans(tp, per, ecc, omega, secondary=True)
-        ts_phase = utils.t_to_phase(synth_params, ts, self.planet_num)
+        ts_phase = utils.t_to_phase_vector(vector, ts, self.planet_num)
 
-        pts = utils.t_to_phase(synth_params, self.ts, self.planet_num)
+        pts = utils.t_to_phase_vector(vector, self.ts, self.planet_num)
         epts = self.ts_err / per
 
         penalty = -0.5 * ((ts_phase - pts) / epts)**2 - 0.5*np.log((epts**2)*2.*np.pi)
@@ -295,8 +295,8 @@ class Jeffreys(Prior):
 
         self.normalization = 1./np.log(self.maxval/self.minval)
 
-    def __call__(self, params):
-        x = params[self.param].value
+    def __call__(self, params, vector):
+        x = vector.vector[vector.indices[self.param]][0]
         if x < self.minval or x > self.maxval:
             return -np.inf
         else:
@@ -347,8 +347,8 @@ class ModifiedJeffreys(Prior):
 
         assert self.minval > self.kneeval, "ModifiedJeffreys prior requires minval>kneeval."
 
-    def __call__(self, params):
-        x = params[self.param].value
+    def __call__(self, params, vector):
+        x = vector.vector[vector.indices[self.param]][0]
         if (x > self.maxval) or (x < self.minval):
             return -np.inf
         else:
@@ -406,10 +406,10 @@ class NumericalPrior(Prior):
         self.param_list = param_list
         self.pdf_estimate = gaussian_kde(values, bw_method=bw_method)
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         x = []
         for param in self.param_list:
-            x.append(params[param].value)
+            x.append(vector.vector[vector.indices[param]][0])
         val = np.log(self.pdf_estimate(x))
         return val[0]
 
@@ -472,10 +472,10 @@ class UserDefinedPrior(Prior):
         self.func = func
         self.tex_rep = tex_rep
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
         x = []
         for param in self.param_list:
-            x.append(params[param].value)
+            x.append(vector.vector[vector.indices[param]][0])
         return self.func(x)
 
     def __repr__(self):
@@ -498,7 +498,7 @@ class InformativeBaselinePrior(Prior):
     .. math::
         p(x) \\propto 1\\, \\mathrm{{if}}\\, x-t_{{d}} \\lt B
 
-             \\propto (B+t_{{d}})/x\\, \mathrm{{else}}
+             \\propto (B+t_{{d}})/x\\, \\mathrm{{else}}
 
     with upper bound.
 
@@ -520,9 +520,9 @@ class InformativeBaselinePrior(Prior):
             )
         return s
 
-    def __call__(self, params):
+    def __call__(self, params, vector):
 
-        per = params[self.param].value
+        per = vector.vector[vector.indices[self.param]][0]
 
         if self.param.startswith('logper'):
             per = np.exp(per)

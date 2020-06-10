@@ -195,7 +195,7 @@ def mcmc(args):
                          minAfactor=args.minAfactor, maxArchange=args.maxArchange, burnAfactor=args.burnAfactor,
                          burnGR=args.burnGR, maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps,
                          minpercent=args.minpercent, thin=args.thin, serial=args.serial, save=args.save,
-                         savename=backend_loc, proceed=args.proceed, proceedname=backend_loc)
+                         savename=backend_loc, proceed=args.proceed, proceedname=backend_loc, headless=args.headless)
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr
@@ -205,8 +205,8 @@ def mcmc(args):
     # Convert chains into synth basis
     synthchains = chains.copy()
     for par in post.params.keys():
-        if not post.params[par].vary:
-            synthchains[par] = post.params[par].value
+        if not post.vector.vector[post.vector.indices[par]][1]:
+            synthchains[par] = post.vector.vector[post.vector.indices[par]][0]
 
     synthchains = post.params.basis.to_synth(synthchains)
     synth_quantile = synthchains.quantile([0.159, 0.5, 0.841])
@@ -215,9 +215,11 @@ def mcmc(args):
     # values returned by MCMC chains
     post_summary = chains.quantile([0.159, 0.5, 0.841])
 
-    for k in chains.keys():
+    for k in chains.columns:
         if k in post.params.keys():
-            post.params[k].value = post_summary[k][0.5]
+            post.vector.vector[post.vector.indices[k]][0] = post_summary[k][0.5]
+
+    post.vector.vector_to_dict()
 
     print("Performing post-MCMC maximum likelihood fit...")
     post = radvel.fitting.maxlike_fitting(post, verbose=False)
@@ -227,15 +229,15 @@ def mcmc(args):
     final_chisq = np.sum(post.likelihood.residuals()**2 / (post.likelihood.errorbars()**2))
     deg_of_freedom = len(post.likelihood.y) - len(post.likelihood.get_vary_params())
     final_chisq_reduced = final_chisq / deg_of_freedom
+    post.vector.vector_to_dict()
     synthparams = post.params.basis.to_synth(post.params)
-    post.params.update(synthparams)
 
     print("Calculating uncertainties...")
     post.uparams = {}
     post.medparams = {}
     post.maxparams = {}
-    for par in post.params.keys():
-        maxlike = post.params[par].value
+    for par in synthparams.keys():
+        maxlike = synthparams[par].value
         med = synth_quantile[par][0.5]
         high = synth_quantile[par][0.841] - med
         low = med - synth_quantile[par][0.159]

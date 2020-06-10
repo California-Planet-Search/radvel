@@ -101,7 +101,7 @@ def _status_message_CLI(statevars):
     statevars.screen.refresh()
 
 
-def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent):
+def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent, headless):
     """Check for convergence
 
     Check for convergence for a list of emcee samplers
@@ -116,6 +116,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
             will start after the minsteps threshold or the minpercent threshold has been hit.
         minpercent (float): Minimum percentage of total steps before convergence tests are performed. Convergence checks
             will start after the minsteps threshold or the minpercent threshold has been hit.
+        headless (bool): if set to true, the convergence statistics will not be displayed in real time.
     """
 
     statevars.ar = 0
@@ -127,7 +128,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         statevars.ncomplete += sampler.get_log_prob(flat=True).shape[0]
         statevars.ar += sampler.acceptance_fraction.mean() * 100
         statevars.chains.append(sampler.get_chain()[:,:,:].T)
-        statevars.lnprob.append(sampler.get_log_prob(flat=True))
+        statevars.lnprob.append(sampler.get_log_prob().T)
     statevars.ar /= statevars.ensembles
 
     statevars.pcomplete = statevars.ncomplete/float(statevars.totsteps) * 100
@@ -165,10 +166,11 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         else:
             statevars.mixcount = 0
 
-    if isnotebook():
-        _status_message_NB(statevars)
-    else:
-        _status_message_CLI(statevars)
+    if not headless:
+        if isnotebook():
+            _status_message_NB(statevars)
+        else:
+            _status_message_CLI(statevars)
 
 
 def _domcmc(input_tuple):
@@ -186,7 +188,7 @@ def _domcmc(input_tuple):
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=40, maxArchange=.03, burnAfactor=25,
          burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=False,
-         savename=None, proceed=False, proceedname=None):
+         savename=None, proceed=False, proceedname=None, headless=False):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -215,9 +217,12 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         savename (string): location of h5py file where MCMC chains will be saved for future use
         proceed (bool): set to true to continue a previously saved run
         proceedname (string): location of h5py file with previously MCMC run chains
+        headless (bool): if set to true, the convergence statistics will not display in real time
     Returns:
         DataFrame: DataFrame containing the MCMC samples
     """
+
+    statevars.reset()
 
     try:
         if save and savename is None:
@@ -291,21 +296,25 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                                  'parameters must be equal to those from previous run.')
 
         # set up perturbation size
+
         pscales = []
-        for par in post.list_vary_params():
-            val = post.params[par].value
-            if post.params[par].mcmcscale is None:
-                if par.startswith('per'):
+        names = post.name_vary_params()
+        for i,par in enumerate(post.vary_params):
+            val = post.vector.vector[par][0]
+            if post.vector.vector[par][2] == 0:
+                if names[i].startswith('per'):
                     pscale = np.abs(val * 1e-5*np.log10(val))
-                elif par.startswith('logper'):
+                elif names[i].startswith('logper'):
                     pscale = np.abs(1e-5 * val)
-                elif par.startswith('tc'):
+                elif names[i].startswith('tc'):
                     pscale = 0.1
+                elif val == 0:
+                    pscale = .00001
                 else:
                     pscale = np.abs(0.10 * val)
-                post.params[par].mcmc_scale = pscale
+                post.vector.vector[par][2] = pscale
             else:
-                pscale = post.params[par].mcmcscale
+                pscale = post.vector.vector[par][2]
             pscales.append(pscale)
         pscales = np.array(pscales)
 
@@ -379,7 +388,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             statevars.interval = t2 - t1
 
             convergence_check(minAfactor=minAfactor, maxArchange=maxArchange, maxGR=maxGR, minTz=minTz,
-                              minsteps=minsteps, minpercent=minpercent)
+                              minsteps=minsteps, minpercent=minpercent, headless=headless)
 
             if save:
                 for i, sampler in enumerate(statevars.samplers):
@@ -461,11 +470,12 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             _closescr()
             print(msg)
 
-        preshaped = np.dstack(statevars.chains)
+        preshaped_chain = np.dstack(statevars.chains)
         df = pd.DataFrame(
-            preshaped.reshape(preshaped.shape[0], preshaped.shape[1]*preshaped.shape[2]).transpose(),
-            columns=post.list_vary_params())
-        df['lnprobability'] = np.hstack(statevars.lnprob)
+            preshaped_chain.reshape(preshaped_chain.shape[0], preshaped_chain.shape[1]*preshaped_chain.shape[2]).transpose(),
+            columns=post.name_vary_params())
+        preshaped_ln = np.hstack(statevars.lnprob)
+        df['lnprobability'] = preshaped_ln.reshape(preshaped_chain.shape[1]*preshaped_chain.shape[2])
         df = df.iloc[::thin]
 
         statevars.factor = [minAfactor] * len(statevars.autosamples)
