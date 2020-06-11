@@ -12,3 +12,4 @@ ipykernel>=4.10.0
 jinja2>=2.9
 python-dateutil>=2.5.0
 h5py>=2.10.0
+dill
