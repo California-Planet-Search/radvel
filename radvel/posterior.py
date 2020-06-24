@@ -1,6 +1,6 @@
 from .likelihood  import Likelihood
 import numpy as np
-import pickle
+import dill as pickle
 import radvel
 from radvel.gp import CeleriteKernel
 
