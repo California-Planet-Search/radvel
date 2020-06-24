@@ -393,6 +393,7 @@ class Basis(object):
 
         if isinstance(params_out, radvel.model.Parameters):
             params_out.basis = Basis('per tp e w k', self.num_planets)
+            params_out.planet_parameters = params_out.basis.name.split()
         return params_out
 
     def v_from_synth(self, params_in, newbasis):
@@ -727,6 +728,7 @@ class Basis(object):
                 self.params = newbasis.split()
 
         params_out.basis = Basis(newbasis, self.num_planets)
+        params_out.planet_parameters = params_out.basis.name.split()
 
         return params_out
 
