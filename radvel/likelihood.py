@@ -252,6 +252,7 @@ class CompositeLikelihood(Likelihood):
         self.suffixes = like0.suffix
         self.uparams = like0.uparams
         self.hnames = []
+        self.vary_params = like0.vary_params
 
         for i in range(1, self.nlike):
             like = like_list[i]
