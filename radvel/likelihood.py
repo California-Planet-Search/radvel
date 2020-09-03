@@ -48,6 +48,7 @@ class Likelihood(object):
 
         self.vector.dict_to_vector()
         self.vector.vector_names()
+        self.list_vary_params()
 
     def __repr__(self):
         s = ""
@@ -155,6 +156,8 @@ class Likelihood(object):
 
     def get_vary_params(self):
         try:
+            if 0 in self.vector.vector[self.vary_params][:,1]:
+                self.list_vary_params()
             return self.vector.vector[self.vary_params][:,0]
         except AttributeError:
             self.list_vary_params()

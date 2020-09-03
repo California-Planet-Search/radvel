@@ -21,10 +21,11 @@ class Posterior(Likelihood):
         self.likelihood = likelihood
         self.model = self.likelihood.model
         self.vector = self.likelihood.vector
-        self.vector.dict_to_vector()
         self.params = likelihood.params
         self.uparams = likelihood.uparams
         self.priors = []
+        self.vector.dict_to_vector()
+        self.vary_params = self.likelihood.vary_params
 
         self.vparams_order = self.list_vary_params()
 
@@ -92,6 +93,12 @@ class Posterior(Likelihood):
         """Moved to Likelihood.aic"""
 
         raise self.likelihood.aic()
+
+    def list_vary_params(self):
+        """Overwrite vector reading methods"""
+
+        self.likelihood.list_vary_params()
+        self.vary_params = self.likelihood.vary_params
 
 
 def load(filename):
