@@ -275,7 +275,7 @@ class MultipanelPlot(object):
         bin_markersize = bin_fac * rcParams['lines.markersize']
         bin_markeredgewidth = bin_fac * rcParams['lines.markeredgewidth']
 
-        rvmod2 = self.model(self.rvmodt, planet_num=pnum)# - self.slope
+        rvmod2 = self.model(self.rvmodt, planet_num=pnum) - self.slope
         modph = t_to_phase(self.post.params, self.rvmodt, pnum, cat=True) - 1
         rvdat = self.rawresid + self.model(self.rvtimes, planet_num=pnum) - self.slope_low
         phase = t_to_phase(self.post.params, self.rvtimes, pnum, cat=True) - 1
