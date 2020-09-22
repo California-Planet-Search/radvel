@@ -654,12 +654,11 @@ def draw_models_from_chain(mod, chain, t, nsamples=50):
     """
 
     np.random.seed(0)
-    chain_samples = chain.ix[np.random.choice(chain.index, nsamples)]
+    chain_samples = chain.iloc[np.random.choice(chain.index, nsamples)]
     models = []
     for i in chain_samples.index:
-        params = np.array(chain.ix[i, mod.vary_parameters])
+        params = np.array(chain.loc[i, mod.list_vary_params()])
         params = mod.array_to_params(params)
-        models += [mod.model(params, t)]
+        models += [mod(t)]
     models = np.vstack(models)
     return models
-

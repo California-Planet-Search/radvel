@@ -289,7 +289,31 @@ class GeneralRVModel(object):
         vel += self.vector.vector[self.vector.indices['curv']][0] * (t - self.time_base)**2
         return vel
 
+    def array_to_params(self,param_values):
+    
+    	new_params = self.params
+    	
+    	vary_parameters = self.list_vary_params()
+    	
+    	for i in range(len(vary_parameters)):
+    		new_params[vary_parameters[i]] = Parameter(value=param_values[i])
+    		
+    	return new_params
+             
+    def list_vary_params(self):
+        keys = self.list_params()
 
+        return [key for key in keys if self.params[key].vary]
+
+    def list_params(self):
+        try:
+            keys = self.params_order
+        except AttributeError:
+            keys = list(self.params.keys())
+            self.params_order = keys
+        return keys
+
+        
 def _standard_rv_calc(t,params,vector,planet_num=None):
         vel = np.zeros(len(t))
         params_synth = params.basis.v_to_synth(vector)
