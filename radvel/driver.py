@@ -330,6 +330,7 @@ def ic_compare(args):
 
     if args.simple:
         statsdictlist += radvel.fitting.model_comp(ipost, params=[], verbose=args.verbose)
+        compareparam = 'nplanets'
     else:
         if hasattr(args, 'fixjitter') and args.fixjitter:
             for param in ipost.params:
