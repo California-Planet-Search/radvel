@@ -330,7 +330,6 @@ def ic_compare(args):
 
     if args.simple:
         statsdictlist += radvel.fitting.model_comp(ipost, params=[], verbose=args.verbose)
-        compareparam = 'nplanets'
     else:
         if hasattr(args, 'fixjitter') and args.fixjitter:
             for param in ipost.params:
@@ -360,7 +359,7 @@ def ic_compare(args):
         if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
             statsdictlist += radvel.fitting.model_comp(ipost, params=paramlist, verbose=args.verbose)
 
-    savestate = {compareparam: statsdictlist}
+    savestate = {'ic': statsdictlist}
     save_status(statfile, 'ic_compare', savestate)
 
 

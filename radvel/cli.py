@@ -175,7 +175,7 @@ descriptive titles without star name [False]'''
     psr_report = subpsr.add_parser('report', parents=[psr_parent],
                                    description="Merge output tables and plots into LaTeX report"
                                    )
-    psr_report.add_argument('--comptype', dest='comptype', action='store', default='nplanets', type=str,
+    psr_report.add_argument('--comptype', dest='comptype', action='store', default='ic', type=str,
                             help='Type of model comparison table to include. Default: ic')
 
     psr_report.add_argument('--latex-compiler', default='pdflatex', type=str, help='Path to latex compiler')
