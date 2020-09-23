@@ -17,6 +17,7 @@ from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
+from numpy import inf
 from astropy import constants as c
 
 if sys.version_info[0] < 3:
@@ -358,7 +359,7 @@ def ic_compare(args):
         if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
             statsdictlist += radvel.fitting.model_comp(ipost, params=paramlist, verbose=args.verbose)
 
-    savestate = {'ic': statsdictlist}
+    savestate = {compareparam: statsdictlist}
     save_status(statfile, 'ic_compare', savestate)
 
 
@@ -583,7 +584,7 @@ def report(args):
         derived = False
     try:
         compstats = eval(status.get('ic_compare', args.comptype))
-    except:
+    except KeyError:
         print("WARNING: Could not find {} model comparison \
 in {}.\nPlease make sure that you have run `radvel ic -t {}` (or, e.g., `radvel \
 ic -t nplanets e trend jit gp`)\
