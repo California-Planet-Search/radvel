@@ -583,7 +583,7 @@ def report(args):
     else:
         derived = False
     try:
-        compstats = eval(status.get('ic_compare', args.comptype))
+        compstats = eval(status.get('ic_compare', 'ic'))
     except KeyError:
         print("WARNING: Could not find {} model comparison \
 in {}.\nPlease make sure that you have run `radvel ic -t {}` (or, e.g., `radvel \
