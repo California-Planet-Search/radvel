@@ -17,6 +17,7 @@ from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
+from numpy import inf
 from astropy import constants as c
 
 if sys.version_info[0] < 3:
@@ -582,8 +583,8 @@ def report(args):
     else:
         derived = False
     try:
-        compstats = eval(status.get('ic_compare', args.comptype))
-    except:
+        compstats = eval(status.get('ic_compare', 'ic'))
+    except KeyError:
         print("WARNING: Could not find {} model comparison \
 in {}.\nPlease make sure that you have run `radvel ic -t {}` (or, e.g., `radvel \
 ic -t nplanets e trend jit gp`)\
