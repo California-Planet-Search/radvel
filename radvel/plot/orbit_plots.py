@@ -451,8 +451,8 @@ class MultipanelPlot(object):
 
         # phase-folded plots
         if not nophase:
-            gs_phase = gridspec.GridSpec(self.phase_nrows, self.phase_ncols)
-
+            gs_phase = gridspec.GridSpec(max([1,self.phase_nrows]), max([1,self.phase_ncols]))
+            
             if self.phase_ncols == 1:
                 gs_phase.update(left=0.12, right=0.93,
                                 top=divide - self.rv_phase_space * 0.5,
