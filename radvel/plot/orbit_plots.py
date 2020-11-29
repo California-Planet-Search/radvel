@@ -4,6 +4,7 @@ from matplotlib import rcParams, gridspec
 from matplotlib import pyplot as pl
 from matplotlib.ticker import MaxNLocator
 from astropy.time import Time
+import copy
 
 import radvel
 from radvel import plot
@@ -65,7 +66,7 @@ class MultipanelPlot(object):
                  figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9, highlight_last=False,
                  show_rms=False, legend_kwargs=dict(loc='best'), status=None):
 
-        self.post = post
+        self.post = copy.deepcopy(post)
         self.saveplot = saveplot
         self.epoch = epoch
         self.yscale_auto = yscale_auto
