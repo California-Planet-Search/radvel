@@ -103,7 +103,8 @@ class MultipanelPlot(object):
 
         # convert params to synth basis
         synthparams = self.post.params.basis.to_synth(self.post.params)
-        self.post.params.update(synthparams)
+        self.post.params = synthparams
+        self.post.vector.dict_to_vector()
 
         self.model = self.post.likelihood.model
         self.rvtimes = self.post.likelihood.x
