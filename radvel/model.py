@@ -229,7 +229,7 @@ class Vector(object):
         self.vector = vector
 
     def vector_names(self):
-        names = [0] * (len(self.params.keys()))
+        names = [0] * (len(self.params.keys()) + 2)
         for key in self.params.keys():
             try:
                 names[self.indices[key]] = key
