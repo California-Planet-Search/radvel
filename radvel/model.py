@@ -235,7 +235,7 @@ class Vector(object):
                 names[self.indices[key]] = key
             except KeyError:
                 pass
-        self.names = names
+        self.names = [i for i in names if type(i) == str]
 
     def vector_to_dict(self):
         for key in self.params.keys():
