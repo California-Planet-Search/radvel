@@ -235,7 +235,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             if proceedname is None:
                 raise ValueError('proceed set to true but no proceedname provided')
             else:
-                h5p = h5py.File(savename, 'r')
+                h5p = h5py.File(proceedname, 'r')
                 msg = 'Loading chains and run information from previous MCMC'
                 print(msg)
             statevars.prechains = []
@@ -328,7 +328,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             if not proceed:
                 statevars.initial_positions.append(p0)
             else:
-                statevars.initial_positions.append(statevars.prechains[i][-1, :, :])
+                statevars.initial_positions.append(statevars.prechains[e][-1, :, :])
             statevars.samplers.append(emcee.EnsembleSampler(statevars.nwalkers, statevars.ndim, post.logprob_array,
                                                             threads=1))
 
