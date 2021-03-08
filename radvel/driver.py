@@ -24,6 +24,7 @@ if sys.version_info[0] < 3:
     import ConfigParser as configparser
 else:
     import configparser
+    from configparser import NoSectionError
 
 
 def plots(args):
@@ -584,7 +585,7 @@ def report(args):
         derived = False
     try:
         compstats = eval(status.get('ic_compare', 'ic'))
-    except KeyError:
+    except (KeyError, NoSectionError):
         print("WARNING: Could not find {} model comparison \
 in {}.\nPlease make sure that you have run `radvel ic -t {}` (or, e.g., `radvel \
 ic -t nplanets e trend jit gp`)\
