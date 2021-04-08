@@ -18,7 +18,7 @@ import sys
 import matplotlib
 matplotlib.use('agg')
 
-autodoc_mock_imports = ['_tkinter', 'pandas','scipy', 'scipy.optimize',
+autodoc_mock_imports = ['_tkinter', 'pandas','scipy', 'scipy.optimize', 'h5py'
                         'scipy.linalg', 'scipy.stats', 'celerite', 'celerite.solver']
 for mod_name in autodoc_mock_imports:
     sys.modules[mod_name] = mock.Mock()
