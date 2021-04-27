@@ -405,6 +405,125 @@ class RVLikelihood(Likelihood):
 
         return loglike
 
+class FullGPLikelihood(CompositeLikelihood):
+    def __init__(self, like_list, hnames=['gp_per', 'gp_perlength', 'gp_explength'],
+                 amp_list = ['gp_amp_j','gp_amp_k'], kernel_name="QuasiPer", **kwargs):
+
+        # like_list is made up of RVLilkelihood terms. Each contains a gamma/jitter specific to the instrument
+
+        # TODO: params aren't updating-- self.params->self.vector?
+
+        super(FullGPLikelihood, self).__init__(like_list)
+
+        self.hnames = hnames  # list of string names of hyperparameters
+        self.hyperparams = {k: self.params[k] for k in self.hnames}
+        self.N = len(self.x)
+
+        self.inst_indices = np.arange(self.N)
+        self.insts = np.unique(self.telvec)
+        for i in range(len(self.insts)):
+            self.inst_indices[self.telvec == self.insts[i]] = i
+
+        amp_array = np.empty(self.N)
+        for i in range(len(self.insts)):
+            amp_array[self.inst_indices == i] = self.params['gp_amp_{}'.format(self.insts[i])].value
+
+        self.hyperparams['gp_amp'] = radvel.Parameter(value=amp_array)
+
+        self.kernel_call = getattr(gp, kernel_name + "Kernel")
+        self.kernel = self.kernel_call(self.hyperparams)
+
+        self.kernel.compute_distances(self.x, self.x)
+
+    def update_kernel_params(self):
+
+        print( self.vector.vector[self.vector.indices['gp_amp_{}'.format(self.insts[0])]][0])
+
+        for key in self.vector.indices:
+            if key in self.hnames:
+                hparams_key = key.split('_')
+                hparams_key = hparams_key[0] + '_' + hparams_key[1]
+                self.kernel.hparams[hparams_key].value = self.vector.vector[self.vector.indices[key]][0]
+       
+        amp_array = np.empty(self.N)
+        for i in range(len(self.insts)):
+            amp_array[self.inst_indices == i] = self.vector.vector[self.vector.indices['gp_amp_{}'.format(self.insts[i])]][0]
+
+        self.kernel.hparams['gp_amp'].value = amp_array
+
+    def _resids(self):
+
+        gammas = np.empty(self.N)
+        for i in range(len(self.insts)):
+            gammas[self.inst_indices == i] = self.params['gamma_{}'.format(self.insts[i])].value
+
+        res = self.y  - self.model(self.x) - gammas
+        return res
+
+    def residuals(self):
+
+        gammas = np.empty(self.N)
+        for i in range(len(self.insts)):
+            gammas[self.inst_indices == i] = self.params['gamma_{}'.format(self.insts[i])].value
+
+        mu_pred, _ = self.predict(self.x)
+        res = self.y - self.model(self.x) - mu_pred - gammas
+        return res
+
+    def logprob(self):
+        # update the Kernel object hyperparameter values
+        self.update_kernel_params()
+
+        r = self._resids()
+
+        self.kernel.compute_covmatrix(self.errorbars())
+
+        K = self.kernel.covmatrix
+
+        # solve alpha = inverse(K)*r
+        try:
+            alpha = cho_solve(cho_factor(K),r)
+
+            # compute determinant of K
+            (s,d) = np.linalg.slogdet(K)
+
+            # calculate likelihood
+            like = -.5 * (np.dot(r, alpha) + d + self.N*np.log(2.*np.pi))
+
+            return like
+
+        except (np.linalg.linalg.LinAlgError, ValueError):
+            warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
+            return -np.inf
+
+
+    def predict(self, xpred):
+
+        self.update_kernel_params()
+
+        r = np.array([self._resids()]).T
+
+        self.kernel.compute_distances(self.x, self.x)
+        K = self.kernel.compute_covmatrix(self.errorbars())
+
+        self.kernel.compute_distances(xpred, self.x)
+        Ks = self.kernel.compute_covmatrix(0.)
+
+        L = cho_factor(K)
+        alpha = cho_solve(L, r)
+        mu = np.dot(Ks, alpha).flatten()
+
+        self.kernel.compute_distances(xpred, xpred)
+        Kss = self.kernel.compute_covmatrix(0.)
+        B = cho_solve(L, Ks.T)
+        var = np.array(np.diag(Kss - np.dot(Ks, B))).flatten()
+        stdev = np.sqrt(var)
+
+        # set the default distances back to their regular values
+        self.kernel.compute_distances(self.x, self.x)
+
+        return mu, stdev
+
 
 class GPLikelihood(RVLikelihood):
     """GP Likelihood

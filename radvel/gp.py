@@ -260,12 +260,14 @@ class QuasiPerKernel(Kernel):
                 self.hparams['gp_perlength'] = hparams[par]
             if par.startswith('gp_amp'):
                 self.hparams['gp_amp'] = hparams[par]
+            if 'gp_multamp' in hparams.keys():
+                self.hparams['gp_multamp'] = hparams[par]
             if par.startswith('gp_per') and not 'length' in par:
                 self.hparams['gp_per'] = hparams[par]
             if par.startswith('gp_explength'):
                 self.hparams['gp_explength'] = hparams[par]
 
-        assert len(hparams) == 4, \
+        assert len(hparams) == 4 or (len(hparams) == 5 and 'gp_multamp' in hparams.keys()), \
             "QuasiPerKernel requires exactly 4 hyperparameters with names" \
             + " 'gp_perlength*', 'gp_amp*', 'gp_per*', and 'gp_explength*'."
 
