@@ -89,10 +89,10 @@ class EccentricityPrior(Prior):
 
         if type(num_planets) == int:
             self.planet_list = range(1, num_planets+1)
-            npl = len(self.planet_list)
+            npl = num_planets
         else:
             self.planet_list = num_planets
-            npl = num_planets
+            npl = len(self.planet_list)
 
         if type(upperlims) == float:
             self.upperlims = [upperlims] * npl
