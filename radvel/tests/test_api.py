@@ -251,6 +251,7 @@ def test_priors():
 
     prior_tests = {
         radvel.prior.EccentricityPrior(1):                  1/.99,
+        radvel.prior.EccentricityPrior([1]):                1/.99,
         radvel.prior.PositiveKPrior(1):                     1.0,
         radvel.prior.Gaussian('per1', 9.9, 0.1):            scipy.stats.norm(9.9,0.1).pdf(10.),
         radvel.prior.HardBounds('per1', 1.0, 9.0):          0.,
