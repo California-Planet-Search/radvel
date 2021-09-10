@@ -12,3 +12,4 @@ ipykernel
 pybind11
 sphinx_rtd_theme
 mock
+sphinx==2.2.1
