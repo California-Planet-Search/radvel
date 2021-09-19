@@ -1,6 +1,4 @@
 import sys
-import radvel
-import scipy
 from scipy import spatial
 import abc
 import numpy as np
@@ -118,7 +116,7 @@ class SqExpKernel(Kernel):
     def compute_distances(self, x1, x2):
         X1 = np.array([x1]).T
         X2 = np.array([x2]).T
-        self.dist = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
+        self.dist = spatial.distance.cdist(X1, X2, 'sqeuclidean')
 
     def compute_covmatrix(self, errors):
         """ Compute the covariance matrix, and optionally add errors along
@@ -133,7 +131,7 @@ class SqExpKernel(Kernel):
         length = self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
 
-        K = amp**2 * scipy.exp(-self.dist/(length**2))
+        K = amp**2 * np.exp(-self.dist/(length**2))
 
         self.covmatrix = K
         # add errors along the diagonal
@@ -204,7 +202,7 @@ class PerKernel(Kernel):
     def compute_distances(self, x1, x2):
         X1 = np.array([x1]).T
         X2 = np.array([x2]).T
-        self.dist = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
+        self.dist = spatial.distance.cdist(X1, X2, 'euclidean')
 
     def compute_covmatrix(self, errors):
         """ Compute the covariance matrix, and optionally add errors along
@@ -220,7 +218,7 @@ class PerKernel(Kernel):
         amp = self.hparams['gp_amp'].value
         per = self.hparams['gp_per'].value
 
-        K = amp**2 * scipy.exp(-np.sin(np.pi*self.dist/per)**2. / (2.*length**2))
+        K = amp**2 * np.exp(-np.sin(np.pi*self.dist/per)**2. / (2.*length**2))
         self.covmatrix = K
         # add errors along the diagonal
         try:
@@ -297,8 +295,8 @@ class QuasiPerKernel(Kernel):
     def compute_distances(self, x1, x2):
         X1 = np.array([x1]).T
         X2 = np.array([x2]).T
-        self.dist_p = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
-        self.dist_se = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
+        self.dist_p = spatial.distance.cdist(X1, X2, 'euclidean')
+        self.dist_se = spatial.distance.cdist(X1, X2, 'sqeuclidean')
 
     def compute_covmatrix(self, errors):
         """ Compute the covariance matrix, and optionally add errors along
@@ -316,8 +314,8 @@ class QuasiPerKernel(Kernel):
         explength = self.hparams['gp_explength'].value
 
         K = np.array(amp**2
-                     * scipy.exp(-self.dist_se/(explength**2))
-                     * scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.) / (2.*perlength**2)))
+                     * np.exp(-self.dist_se/(explength**2))
+                     * np.exp((-np.sin(np.pi*self.dist_p/per)**2.) / (2.*perlength**2)))
 
         self.covmatrix = K
 
