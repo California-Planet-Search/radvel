@@ -90,7 +90,7 @@ class SqExpKernel(Kernel):
                 self.hparams["gp_amp"] = hparams[par]
 
         assert len(hparams) == 2, (
-            "SqExpKernel requires exactly 2 hyperparameters with names"
+            "{}Kernel requires exactly 2 hyperparameters with names".format(self.name)
             + "'gp_length*' and 'gp_amp*'."
         )
 
@@ -99,18 +99,19 @@ class SqExpKernel(Kernel):
             self.hparams["gp_amp"].value
         except KeyError:
             raise KeyError(
-                "SqExpKernel requires hyperparameters 'gp_length*'" + " and 'gp_amp*'."
+                "{}Kernel requires hyperparameters 'gp_length*'".format(self.name)
+                + " and 'gp_amp*'."
             )
         except AttributeError:
             raise AttributeError(
-                "SqExpKernel requires dictionary of"
+                "{}Kernel requires dictionary of".format(self.name)
                 + " radvel.Parameter objects as input."
             )
 
     def __repr__(self):
         length = self.hparams["gp_length"].value
         amp = self.hparams["gp_amp"].value
-        return "SqExp Kernel with length: {}, amp: {}".format(length, amp)
+        return "{} Kernel with length: {}, amp: {}".format(self.name, length, amp)
 
     def compute_distances(self, x1, x2):
         X1 = np.array([x1]).T
@@ -176,7 +177,7 @@ class PerKernel(Kernel):
                 self.hparams["gp_per"] = hparams[par]
 
         assert len(hparams) == 3, (
-            "PerKernel requires exactly 3 hyperparameters with names 'gp_length*',"
+            "{}Kernel requires exactly 3 hyperparameters with names 'gp_length*',".format(self.name)
             + " 'gp_amp*', and 'gp_per*'."
         )
 
@@ -186,12 +187,12 @@ class PerKernel(Kernel):
             self.hparams["gp_per"].value
         except KeyError:
             raise KeyError(
-                "PerKernel requires hyperparameters 'gp_length*',"
+                "{}Kernel requires hyperparameters 'gp_length*',".format(self.name)
                 + " 'gp_amp*', and 'gp_per*'."
             )
         except AttributeError:
             raise AttributeError(
-                "PerKernel requires dictionary of "
+                "{}Kernel requires dictionary of ".format(self.name)
                 + "radvel.Parameter objects as input."
             )
 
@@ -199,7 +200,7 @@ class PerKernel(Kernel):
         length = self.hparams["gp_length"].value
         amp = self.hparams["gp_amp"].value
         per = self.hparams["gp_per"].value
-        return "Per Kernel with length: {}, amp: {}, per: {}".format(length, amp, per)
+        return "{} Kernel with length: {}, amp: {}, per: {}".format(self.name, length, amp, per)
 
     def compute_distances(self, x1, x2):
         X1 = np.array([x1]).T
@@ -270,7 +271,7 @@ class QuasiPerKernel(Kernel):
                 self.hparams["gp_explength"] = hparams[par]
 
         assert len(hparams) == 4, (
-            "QuasiPerKernel requires exactly 4 hyperparameters with names"
+            "{}Kernel requires exactly 4 hyperparameters with names".format(self.name)
             + " 'gp_perlength*', 'gp_amp*', 'gp_per*', and 'gp_explength*'."
         )
 
@@ -281,13 +282,13 @@ class QuasiPerKernel(Kernel):
             self.hparams["gp_explength"].value
         except KeyError:
             raise KeyError(
-                "QuasiPerKernel requires hyperparameters"
+                "{}Kernel requires hyperparameters".format(self.name)
                 + " 'gp_perlength*', 'gp_amp*', 'gp_per*', "
                 + "and 'gp_explength*'."
             )
         except AttributeError:
             raise AttributeError(
-                "QuasiPerKernel requires dictionary of"
+                "{}Kernel requires dictionary of".format(self.name)
                 + " radvel.Parameter objects as input."
             )
 
@@ -298,8 +299,8 @@ class QuasiPerKernel(Kernel):
         explength = self.hparams["gp_explength"].value
 
         msg = (
-            "QuasiPer Kernel with amp: {}, per length: {}, per: {}, " "exp length: {}"
-        ).format(amp, perlength, per, explength)
+            "{} Kernel with amp: {}, per length: {}, per: {}, " "exp length: {}"
+        ).format(self.name, amp, perlength, per, explength)
         return msg
 
     def compute_distances(self, x1, x2):
@@ -387,8 +388,8 @@ class CeleriteKernel(Kernel):
         assert (
             len(self.hparams) == 4
         ), """
-CeleriteKernel requires exactly 4 hyperparameters with names 'gp_B', 'gp_C', 'gp_L', and 'gp_Prot'.
-        """
+{}Kernel requires exactly 4 hyperparameters with names 'gp_B', 'gp_C', 'gp_L', and 'gp_Prot'.
+        """.format(self.name)
 
         try:
             self.hparams["gp_Prot"].value
@@ -398,12 +399,12 @@ CeleriteKernel requires exactly 4 hyperparameters with names 'gp_B', 'gp_C', 'gp
         except KeyError:
             raise KeyError(
                 """
-CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'.
-                """
+{}Kernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'.
+                """.format(self.name)
             )
         except AttributeError:
             raise AttributeError(
-                "CeleriteKernel requires dictionary of radvel.Parameter objects as input."
+                "{}Kernel requires dictionary of radvel.Parameter objects as input.".format(self.name)
             )
 
     # get arrays of real and complex parameters
@@ -432,8 +433,8 @@ CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'
         L = self.hparams["gp_L"].value
         Prot = self.hparams["gp_Prot"].value
 
-        msg = ("Celerite Kernel with B = {}, C = {}, L = {}, Prot = {}.").format(
-            B, C, L, Prot
+        msg = ("{} Kernel with B = {}, C = {}, L = {}, Prot = {}.").format(
+            self.name, B, C, L, Prot
         )
         return msg
 
