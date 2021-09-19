@@ -21,25 +21,14 @@ else:
 
 
 # celerite is an optional dependency
-def _try_celerite():
-    try:
-        import celerite
-        from celerite.solver import CholeskySolver
-
-        return True
-    except ImportError:
-        warnings.warn(
-            "celerite not installed. GP kernals using celerite will not work. \
-Try installing celerite using 'pip install celerite'",
-            ImportWarning,
-        )
-        return False
-
-
-_has_celerite = _try_celerite()
-if _has_celerite:
-    import celerite
+try:
     from celerite.solver import CholeskySolver
+except ImportError:
+    warnings.warn(
+        "celerite not installed. GP kernals using celerite will not work. \
+Try installing celerite using 'pip install celerite'",
+        ImportWarning,
+    )
 
 
 class Kernel(ABC):
