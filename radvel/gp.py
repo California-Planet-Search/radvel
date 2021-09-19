@@ -262,7 +262,7 @@ class QuasiPerKernel(Kernel):
                 self.hparams["gp_perlength"] = hparams[par]
             if par.startswith("gp_amp"):
                 self.hparams["gp_amp"] = hparams[par]
-            if par.startswith("gp_per") and not "length" in par:
+            if par.startswith("gp_per") and "length" not in par:
                 self.hparams["gp_per"] = hparams[par]
             if par.startswith("gp_explength"):
                 self.hparams["gp_explength"] = hparams[par]
