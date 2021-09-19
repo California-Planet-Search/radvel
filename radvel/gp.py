@@ -23,12 +23,14 @@ else:
 # celerite is an optional dependency
 try:
     from celerite.solver import CholeskySolver
+    HAS_CELERITE = True
 except ImportError:
     warnings.warn(
         "celerite not installed. GP kernals using celerite will not work. \
 Try installing celerite using 'pip install celerite'",
         ImportWarning,
     )
+    HAS_CELERITE = False
 
 
 class Kernel(ABC):

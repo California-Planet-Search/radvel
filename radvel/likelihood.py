@@ -5,8 +5,7 @@ from scipy.linalg import cho_factor, cho_solve
 import warnings
 
 
-_has_celerite = gp._try_celerite()
-if _has_celerite:
+if gp.HAS_CELERITE:
     import celerite
 
 
