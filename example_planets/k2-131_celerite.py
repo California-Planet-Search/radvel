@@ -52,7 +52,7 @@ hnames = {}
 for tel in instnames:
     hnames[tel] = ['gp_B', 'gp_C', 'gp_L', 'gp_Prot']
 
-kernel_name = {'harps-n': "Celerite", 'pfs': "Celerite"}
+kernel_name = {'harps-n': "CeleriteQuasiPer", 'pfs': "CeleriteQuasiPer"}
 
 jit_guesses = {'harps-n': 2.0, 'pfs': 5.0}
 

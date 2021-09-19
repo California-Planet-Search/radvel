@@ -11,7 +11,7 @@ KERNELS = {
     "SqExp": ["gp_length", "gp_amp"],
     "Per": ["gp_per", "gp_length", "gp_amp"],
     "QuasiPer": ["gp_per", "gp_perlength", "gp_explength", "gp_amp"],
-    "Celerite": ["gp_B", "gp_C", "gp_L", "gp_Prot"],
+    "CeleriteQuasiPer": ["gp_B", "gp_C", "gp_L", "gp_Prot"],
 }
 
 if sys.version_info[0] < 3:
@@ -343,7 +343,7 @@ class QuasiPerKernel(Kernel):
         return self.covmatrix
 
 
-class CeleriteKernel(Kernel):
+class CeleriteQuasiPerKernel(Kernel):
     """
     Class that computes and stores a matrix approximating the quasi-periodic
     kernel.
@@ -370,7 +370,7 @@ class CeleriteKernel(Kernel):
 
     @property
     def name(self):
-        return "Celerite"
+        return "CeleriteQuasiPer"
 
     def __init__(self, hparams):
 

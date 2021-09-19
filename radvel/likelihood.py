@@ -558,11 +558,11 @@ class CeleriteLikelihood(GPLikelihood):
            useful when constructing a `CompositeLikelihood` object
     """
 
-    def __init__(self, model, t, vel, errvel, hnames, suffix='', **kwargs):
+    def __init__(self, model, t, vel, errvel, hnames=["gp_B", "gp_C", "gp_L", "gp_Prot"], suffix='', kernel_name="CeleriteQuasiPer", **kwargs):
 
         super(CeleriteLikelihood, self).__init__(
             model, t, vel, errvel, hnames,
-            suffix=suffix, kernel_name='Celerite'
+            suffix=suffix, kernel_name=kernel_name
         )
 
         # Sort inputs in time order. Required for celerite calculations.
