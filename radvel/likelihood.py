@@ -601,6 +601,7 @@ class CeleriteLikelihood(GPLikelihood):
 
         self.update_kernel_params()
 
+        # TODO: Move kernel generation somewhere else
         B = self.kernel.hparams['gp_B'].value
         C = self.kernel.hparams['gp_C'].value
         L = self.kernel.hparams['gp_L'].value

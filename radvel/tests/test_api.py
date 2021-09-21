@@ -2,7 +2,10 @@ import sys
 import copy
 import warnings
 import types
+import pytest
 
+import celerite
+from celerite import terms
 import radvel
 import radvel.driver
 import numpy as np
@@ -10,6 +13,23 @@ import scipy
 import radvel.prior
 
 warnings.simplefilter('ignore')
+
+
+class QPTerm(terms.Term):
+    parameter_names = ("log_B", "log_C", "log_L", "log_Prot")
+
+    def get_real_coefficients(self, params):
+        B, C, L, _ = np.exp(params)
+        return (
+            B * (1.0 + C) / (2.0 + C), 1 / L,
+        )
+
+    def get_complex_coefficients(self, params):
+        B, C, L, Prot = np.exp(params)
+        return (
+            B / (2.0 + C), 0.0,
+            1 / L, 2 * np.pi / Prot,
+        )
 
 
 class _args(types.SimpleNamespace):
@@ -124,7 +144,7 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     radvel.driver.plots(args)
 
 
-def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
+def test_celerite_fit(setupfn='example_planets/k2-131_celerite.py'):
     """
     Check celerite GP fit
     """
@@ -138,6 +158,151 @@ def test_celerite(setupfn='example_planets/k2-131_celerite.py'):
     args.plotkw = {'plot_likelihoods_separately':True}
     radvel.driver.plots(args)
 
+
+def constant_rv(t, params, vector):
+    """'RV' model that returns 0"""
+    return np.zeros_like(t)
+
+
+@pytest.fixture()
+def celerite_data():
+    # https://celerite.readthedocs.io/en/stable/tutorials/first/
+
+    t = np.sort(
+        np.append(
+            np.random.uniform(0, 3.8, 57),
+            np.random.uniform(5.5, 10, 68),
+        )
+    )  # The input coordinates must be sorted
+    yerr = np.random.uniform(0.08, 0.22, len(t))
+    y = (
+        0.2 * (t-5)
+        + np.sin(3*t + 0.1*(t-5)**2)
+        + yerr * np.random.randn(len(t))
+     )
+
+    return t, y, yerr
+
+
+def test_celerite_qp(celerite_data, tol=1e-7):
+    """
+    Check QP kernel gives same cov matrix as celerite
+    """
+    # Define celerite GP
+    hparams = {
+        "gp_B": 1.0,
+        "gp_C": 1e-3,
+        "gp_L": 0.1,
+        "gp_Prot": 0.2,
+    }
+
+    t, y, yerr = celerite_data
+
+    # Compute matrix purely with celerite
+    cker = QPTerm(
+        log_B=np.log(hparams["gp_B"]),
+        log_C=np.log(hparams["gp_C"]),
+        log_L=np.log(hparams["gp_L"]),
+        log_Prot=np.log(hparams["gp_Prot"]),
+    )
+    gp = celerite.GP(cker)
+    gp.compute(t, yerr)
+    cmat = gp.get_matrix()
+
+    # Compute matrix with RadVel
+    rker = radvel.gp.CeleriteQuasiPerKernel(
+        {k: radvel.Parameter(value=v) for k, v in hparams.items()}
+    )
+    rker.compute_distances(t, t)
+    rker.compute_covmatrix(yerr)
+    rmat = rker.get_matrix(errors=yerr)
+
+    assert np.all(np.abs(rmat - cmat) < tol)
+
+    # Radvel likelihood to compare prediction
+    params = radvel.Parameters(0)
+    for pname in hparams:
+        params[pname] = radvel.Parameter(value=hparams[pname])
+    mod = radvel.GeneralRVModel(params, forward_model=constant_rv)
+    mod.params["dvdt"] = radvel.Parameter(value=0.0, vary=False)
+    mod.params["curv"] = radvel.Parameter(value=0.0, vary=False)
+    mod.num_planets = 0
+    like = radvel.CeleriteLikelihood(
+        mod, t, y, yerr, hnames=list(hparams), kernel_name="CeleriteQuasiPer"
+    )
+    # Add constant offset and white noise
+    like.params["gamma"] = radvel.Parameter(value=y.mean())
+    like.params["jit"] = radvel.Parameter(value=0.0)
+    like.vector.dict_to_vector()
+
+    cpred, cvar = gp.predict(
+        y - like.params["gamma"].value, t, return_var=True
+    )
+    cstd = np.sqrt(cvar)
+    rpred, rstd = like.predict(t)
+
+    assert np.all(np.abs(rpred - cpred) < tol)
+    assert np.all(np.abs(rstd - cstd) < tol)
+
+
+def test_celerite_sho(celerite_data, tol=1e-7):
+    """
+    Check SHO kernel gives same cov matrix as celerite
+    """
+    # Define celerite GP
+    hparams = {
+        "gp_S0": 1.0,
+        "gp_Q": 3.0,
+        "gp_w0": 7.0,
+    }
+
+    t, y, yerr = celerite_data
+
+    # Compute matrix purely with celerite
+    cker = terms.SHOTerm(
+        log_S0=np.log(hparams["gp_S0"]),
+        log_Q=np.log(hparams["gp_Q"]),
+        log_omega0=np.log(hparams["gp_w0"])
+    )
+    gp = celerite.GP(cker, mean=np.mean(y))
+    gp.compute(t, yerr)
+    cmat = gp.get_matrix()
+
+    # Compute matrix with RadVel
+    rker = radvel.gp.CeleriteSHOKernel(
+        {k: radvel.Parameter(value=v) for k, v in hparams.items()}
+    )
+    rker.compute_distances(t, t)
+    rker.compute_covmatrix(yerr)
+    rmat = rker.get_matrix(errors=yerr)
+
+    assert np.all(np.abs(rmat - cmat) < tol)
+
+
+    # Radvel likelihood to compare prediction
+    params = radvel.Parameters(0)
+    for pname in hparams:
+        params[pname] = radvel.Parameter(value=hparams[pname])
+    mod = radvel.GeneralRVModel(params, forward_model=constant_rv)
+    mod.params["dvdt"] = radvel.Parameter(value=0.0, vary=False)
+    mod.params["curv"] = radvel.Parameter(value=0.0, vary=False)
+    mod.num_planets = 0
+    like = radvel.CeleriteLikelihood(
+        mod, t, y, yerr, hnames=list(hparams), kernel_name="CeleriteSHO"
+    )
+    # Add constant offset and white noise
+    like.params["gamma"] = radvel.Parameter(value=y.mean())
+    like.params["jit"] = radvel.Parameter(value=0.0)
+    like.vector.dict_to_vector()
+
+    cpred, cvar = gp.predict(
+        y - like.params["gamma"].value, t, return_var=True
+    )
+    cstd = np.sqrt(cvar)
+    rpred, rstd = like.predict(t)
+
+    assert np.all(np.abs(rpred - cpred) < tol)
+    assert np.all(np.abs(rstd - cstd) < tol)
 
 def test_basis():
     """
