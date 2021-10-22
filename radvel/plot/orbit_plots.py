@@ -506,7 +506,7 @@ class GPMultipanelPlot(MultipanelPlot):
                  legend=True,
                  phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
                  set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), subtract_gp_mean_model=False,
-                 plot_likelihoods_separately=False, subtract_orbit_model=False, status=None):
+                 plot_likelihoods_separately=False, subtract_orbit_model=False, status=None, separate_orbit_gp=False):
 
         super(GPMultipanelPlot, self).__init__(
             post, saveplot=saveplot, epoch=epoch, yscale_auto=yscale_auto,
@@ -520,6 +520,7 @@ class GPMultipanelPlot(MultipanelPlot):
         self.subtract_gp_mean_model = subtract_gp_mean_model
         self.plot_likelihoods_separately = plot_likelihoods_separately
         self.subtract_orbit_model = subtract_orbit_model
+        self.separate_orbit_gp = separate_orbit_gp
         if status is not None:
             self.status = status
 
@@ -586,7 +587,12 @@ class GPMultipanelPlot(MultipanelPlot):
             ax.fill_between(xpred, gpmu+gp_orbit_model-stddev, gpmu+gp_orbit_model+stddev, 
                             color=color, alpha=0.5, lw=0
                             )
-            ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.1)
+            if self.separate_orbit_gp:
+                ax.plot(xpred, gpmu, '-', color='orange', rasterized=False, lw=0.2, label='GP')
+                ax.plot(xpred, gp_orbit_model, 'g-', rasterized=False, lw=0.2, label="Orbit")
+                ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.4, label="Orbit+GP")
+            else:
+                ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.4)
 
         else:
             # plot orbit model
