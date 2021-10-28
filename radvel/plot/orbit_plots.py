@@ -132,11 +132,18 @@ class MultipanelPlot(object):
         else:
             longp = max(self.post.likelihood.x) - min(self.post.likelihood.x)
 
-        self.dt = max(self.rvtimes) - min(self.rvtimes)
-        self.rvmodt = np.linspace(
-            min(self.rvtimes) - 0.05 * self.dt, max(self.rvtimes) + 0.05 * self.dt + longp,
-            int(resolution)
-        )
+        if self.set_xlim is not None:
+            self.dt = self.set_xlim[1] - self.set_xlim[0]
+            self.rvmodt = np.linspace(
+                (self.set_xlim[0]+self.epoch) - 0.05 * self.dt, (self.set_xlim[1]+self.epoch) + 0.05 * self.dt + longp,
+                int(resolution)
+            )
+        else:
+            self.dt = max(self.rvtimes) - min(self.rvtimes)
+            self.rvmodt = np.linspace(
+                min(self.rvtimes) - 0.05 * self.dt, max(self.rvtimes) + 0.05 * self.dt + longp,
+                int(resolution)
+            )
         
         self.orbit_model = self.model(self.rvmodt)
         self.rvmod = self.model(self.rvtimes)
@@ -506,7 +513,7 @@ class GPMultipanelPlot(MultipanelPlot):
                  legend=True,
                  phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
                  set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), subtract_gp_mean_model=False,
-                 plot_likelihoods_separately=False, subtract_orbit_model=False, status=None):
+                 plot_likelihoods_separately=False, subtract_orbit_model=False, status=None, separate_orbit_gp=False):
 
         super(GPMultipanelPlot, self).__init__(
             post, saveplot=saveplot, epoch=epoch, yscale_auto=yscale_auto,
@@ -520,6 +527,7 @@ class GPMultipanelPlot(MultipanelPlot):
         self.subtract_gp_mean_model = subtract_gp_mean_model
         self.plot_likelihoods_separately = plot_likelihoods_separately
         self.subtract_orbit_model = subtract_orbit_model
+        self.separate_orbit_gp = separate_orbit_gp
         if status is not None:
             self.status = status
 
@@ -553,7 +561,11 @@ class GPMultipanelPlot(MultipanelPlot):
 
         if isinstance(like, radvel.likelihood.GPLikelihood):
 
-            xpred = np.linspace(np.min(like.x), np.max(like.x), num=int(3e3))
+            if self.set_xlim is not None:
+                xpred = np.linspace(self.set_xlim[0]+self.epoch, self.set_xlim[1]+self.epoch, num=int(3e3))
+            else:
+                xpred = np.linspace(np.min(like.x), np.max(like.x), num=int(3e3))
+
             gpmu, stddev = like.predict(xpred)
             if self.subtract_orbit_model:
                 gp_orbit_model = np.zeros(xpred.shape)
@@ -586,8 +598,12 @@ class GPMultipanelPlot(MultipanelPlot):
             ax.fill_between(xpred, gpmu+gp_orbit_model-stddev, gpmu+gp_orbit_model+stddev, 
                             color=color, alpha=0.5, lw=0
                             )
-            ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.1)
-
+            if self.separate_orbit_gp:
+                ax.plot(xpred, gpmu, '-', color='orange', rasterized=False, lw=0.2, label='GP')
+                ax.plot(xpred, gp_orbit_model, 'g-', rasterized=False, lw=0.2, label="Orbit")
+                ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.4, label="Orbit+GP")
+            else:
+                ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.4)
         else:
             # plot orbit model
             ax.plot(self.mplttimes, self.orbit_model, 'b-', rasterized=False, lw=0.1)
@@ -599,6 +615,7 @@ class GPMultipanelPlot(MultipanelPlot):
         ax.set_ylabel('RV [{ms:}]'.format(**plot.latex), weight='bold')
         ticks = ax.yaxis.get_majorticklocs()
         ax.yaxis.set_ticks(ticks[1:])
+        ax.xaxis.set_ticks([])
 
         return ci
 
@@ -626,7 +643,6 @@ class GPMultipanelPlot(MultipanelPlot):
             self.plttimes, self.rawresid+orbit_model4data, self.rverr,
             self.post.likelihood.telvec, ax, telfmts=self.telfmts
         )
-
         if self.set_xlim is not None:
             ax.set_xlim(self.set_xlim)
         else:

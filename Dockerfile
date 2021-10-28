@@ -9,7 +9,7 @@ ENV COVERALLS_REPO_TOKEN=7ZpQ0LQWM2PNl5iu7ZndyFEisQnZow8oT
 RUN mkdir /code && \
     mkdir /code/radvel && \
     apt-get --yes update && \
-    apt-get install --yes gcc git && \
+    apt-get install --yes gcc git pkg-config libhdf5-100 libhdf5-dev && \
     apt-get clean && \
     conda config --add channels conda-forge && \
     conda config --set channel_priority strict && \
@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 ADD . /code/radvel
 
 
-CMD pip install --no-cache-dir --no-deps .  && \
-    python setup.py build_ext -i  && \
+CMD python setup.py build_ext -i  && \
+    pip install --no-cache-dir --no-deps .  && \
     nosetests radvel --with-coverage --cover-package=radvel && \
     coveralls

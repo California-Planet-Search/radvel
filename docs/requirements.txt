@@ -11,3 +11,4 @@ jupyter_client
 ipykernel
 pybind11
 sphinx_rtd_theme
+mock
