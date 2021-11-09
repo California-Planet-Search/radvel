@@ -110,31 +110,34 @@ Converting 'logjit' to 'jit' for you now.
                 decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
 
         try:
-            hnames = P.hnames[inst]
-            liketype = radvel.likelihood.GPLikelihood
+            hnames = P.hnames
+            indiv_liketype = radvel.likelihood.RVLikelihood
+            comp_liketype = radvel.likelihood.GPLikelihood
             try:
                 kernel_name = P.kernel_name[inst]
                 # if kernel_name == "Celerite":
-                #     liketype = radvel.likelihood.CeleriteLikelihood
-                if kernel_name == "Celerite":
-                     liketype = radvel.likelihood.CeleriteLikelihood
+                #      liketype = radvel.likelihood.CeleriteLikelihood
             except AttributeError:
                 kernel_name = "QuasiPer"
         except AttributeError:
-            liketype = radvel.likelihood.RVLikelihood
+            indiv_liketype = radvel.likelihood.RVLikelihood
             kernel_name = None
             hnames = None
-        likes[inst] = liketype(
+            comp_liketype = radvel.likelihood.CompositeLikelihood
+
+        likes[inst] = indiv_liketype(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
-            P.data.iloc[telgrps[inst]].errvel, hnames=hnames, suffix='_'+inst,
-            kernel_name=kernel_name, decorr_vars=decorr_vars,
-            decorr_vectors=decorr_vectors
+            P.data.iloc[telgrps[inst]].errvel, decorr_vars=decorr_vars, 
+            decorr_vectors=decorr_vectors, suffix='_'+inst,
+            # kernel_name=kernel_name, hnames=hnames,
         )
+
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
 
-    like = radvel.likelihood.CompositeLikelihood(list(likes.values()))
+    like = comp_liketype(list(likes.values()), hnames=hnames, kernel_name=kernel_name)
+    
 
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
