@@ -306,9 +306,90 @@ def test_celerite_sho(celerite_data, tol=1e-7):
     rpred, rstd = like.predict(t)
 
     # The values are not exactly the same, so check within fraction of error
-    ptol = 1e-2 * np.min([rstd, cstd], axis=0)
+    ptol = 1e-1 * np.min([rstd, cstd], axis=0)
     assert np.all(np.abs(rpred - cpred) < ptol)
     assert np.all(np.abs(rstd - cstd) < ptol)
+
+
+@pytest.fixture()
+def celerite_data_line():
+    """
+    Random example dataset inspired from the "First steps" celerite tutorial
+    Link: https://celerite.readthedocs.io/en/stable/tutorials/first/
+    """
+
+    t = np.sort(
+        np.append(
+            np.random.uniform(0, 3.8, 57),
+            np.random.uniform(5.5, 10, 68),
+        )
+    )  # The input coordinates must be sorted
+    yerr = np.random.uniform(0.08, 0.22, len(t))
+    y = (
+        0.2 * (t-5)
+        + np.sin(t)
+        + yerr * np.random.randn(len(t))
+     )
+
+    return t, y, yerr
+
+
+def test_celerite_matern32(celerite_data_line, tol=1e-7):
+    """
+    Check that Mater 3/2 kernel gives same cov matrix and prediction as
+    celerite on random test data.
+    """
+    # Define celerite GP
+    hparams = {
+        "gp_sigma": 2.0,
+        "gp_rho": 0.1,
+    }
+
+    t, y, yerr = celerite_data_line
+
+    # Compute matrix purely with celerite
+    cker = terms.Matern32Term(
+        log_sigma=np.log(hparams["gp_sigma"]),
+        log_rho=np.log(hparams["gp_rho"]),
+    )
+    gp = celerite.GP(cker)
+    gp.compute(t, yerr)
+    cmat = gp.get_matrix()
+
+    # Compute matrix with RadVel
+    rker = radvel.gp.CeleriteMatern32Kernel(
+        {k: radvel.Parameter(value=v) for k, v in hparams.items()}
+    )
+    rker.compute_distances(t, t)
+    rker.compute_covmatrix(yerr)
+    rmat = rker.get_matrix(errors=yerr)
+
+    assert np.all(np.abs(rmat - cmat) < tol)
+
+    # Radvel likelihood to compare prediction
+    params = radvel.Parameters(0)
+    for pname in hparams:
+        params[pname] = radvel.Parameter(value=hparams[pname])
+    mod = radvel.GeneralRVModel(params, forward_model=constant_rv)
+    mod.params["dvdt"] = radvel.Parameter(value=0.0, vary=False)
+    mod.params["curv"] = radvel.Parameter(value=0.0, vary=False)
+    mod.num_planets = 0
+    like = radvel.CeleriteLikelihood(
+        mod, t, y, yerr, hnames=list(hparams), kernel_name="CeleriteMatern32"
+    )
+    # Add constant offset and white noise
+    like.params["gamma"] = radvel.Parameter(value=y.mean())
+    like.params["jit"] = radvel.Parameter(value=0.0)
+    like.vector.dict_to_vector()
+
+    cpred, cvar = gp.predict(
+        y - like.params["gamma"].value, t, return_var=True
+    )
+    cstd = np.sqrt(cvar)
+    rpred, rstd = like.predict(t)
+
+    assert np.all(np.abs(rpred - cpred) < tol)
+    assert np.all(np.abs(rstd - cstd) < tol)
 
 
 def test_basis():

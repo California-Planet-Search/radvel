@@ -603,26 +603,34 @@ class CeleriteLikelihood(GPLikelihood):
 
         # build celerite kernel with current values of hparams
         kernel = celerite.terms.JitterTerm(
-            log_sigma=np.log(self.vector.vector[self.jit_index][0])
+            log_sigma=np.log(self.vector.vector[self.jit_index][0]),
         )
-
-        # Use generic celerite coefficients to write any kernel
-        ar, cr, ac, bc, cc, dc = self.kernel.coefficients
 
         # Some kernels have no real or complex term, so coeffs would be empty
         # This is the case for the SHOTerm
-        if ar.size > 0:
-            kernel += celerite.terms.RealTerm(
-                log_a=np.log(ar),
-                log_c=np.log(cr)
+        if self.kernel.name == "CeleriteMatern32":
+            # Special case for matern because ComplexTerm might crash
+            # Related celerite issue: https://github.com/dfm/celerite/issues/171
+            kernel += celerite.terms.Matern32Term(
+                log_sigma=np.log(self.kernel.hparams["gp_sigma"].value),
+                log_rho=np.log(self.kernel.hparams["gp_rho"].value)
             )
-        if ac.size > 0:
-            kernel += celerite.terms.ComplexTerm(
-                log_a=np.log(ac),
-                log_b=np.log(bc),
-                log_c=np.log(cc),
-                log_d=np.log(dc)
-            )
+        else:
+            # Use generic celerite coefficients to write any kernel
+            ar, cr, ac, bc, cc, dc = self.kernel.coefficients
+
+            if ar.size > 0:
+                kernel += celerite.terms.RealTerm(
+                    log_a=np.log(ar),
+                    log_c=np.log(cr)
+                )
+            if ac.size > 0:
+                kernel += celerite.terms.ComplexTerm(
+                    log_a=np.log(ac),
+                    log_b=np.log(bc),
+                    log_c=np.log(cc),
+                    log_d=np.log(dc),
+                )
 
         gp = celerite.GP(kernel)
         gp.compute(self.x, self.yerr)

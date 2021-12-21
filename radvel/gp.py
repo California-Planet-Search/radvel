@@ -13,6 +13,7 @@ KERNELS = {
     "QuasiPer": ["gp_per", "gp_perlength", "gp_explength", "gp_amp"],
     "CeleriteQuasiPer": ["gp_B", "gp_C", "gp_L", "gp_Prot"],
     "CeleriteSHO": ["gp_S0", "gp_Q", "gp_w0"],
+    "CeleriteMatern32": ["gp_sigma", "gp_rho"],
 }
 
 if sys.version_info[0] < 3:
@@ -587,6 +588,104 @@ class CeleriteQuasiPerKernel(CeleriteKernel):
         return msg
 
 
+class CeleriteMatern32Kernel(CeleriteKernel):
+    """
+    Class that computes and stores a matrix approximating the Matern 3/2
+    kernel.
+
+    See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
+    file that uses this Kernel object.
+
+    See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
+    (equation 30) for more details.
+
+    An arbitrary element, :math:`C_{ij}`, of the matrix is:
+
+    .. math::
+
+        C_{ij} = S_0 \\omega_0 \\exp{\\left(-\\omega_0 |t_i - t_j|\\right)}
+                    \\left[1 + \\omega_0 |t_i-t_j|\\right]
+
+    Args:
+        hparams (dict of radvel.Parameter): dictionary containing
+            radvel.Parameter objects that are GP hyperparameters
+            of this kernel. Must contain exactly four objects, 'gp_sigma*',
+            'gp_rho*', where * is a suffix identifying these hyperparameters
+             with a likelihood object.
+    """
+
+    @property
+    def name(self):
+        return "CeleriteMatern32"
+
+    def __init__(self, hparams, eps=0.01):
+
+        self.hparams = {}
+        for par in hparams:
+            if par.startswith("gp_sigma"):
+                self.hparams["gp_sigma"] = hparams[par]
+            if par.startswith("gp_rho"):
+                self.hparams["gp_rho"] = hparams[par]
+
+        self.eps = eps
+
+        assert (
+            len(self.hparams) == 2
+        ), """
+{}Kernel requires exactly 2 hyperparameters with names 'gp_sigma' and 'sigma_rho'.
+        """.format(
+            self.name
+        )
+
+        try:
+            self.hparams["gp_sigma"].value
+            self.hparams["gp_rho"].value
+        except KeyError:
+            raise KeyError(
+                """
+{}Kernel requires hyperparameters 'gp_sigma*' and 'gp_rho*'
+                """.format(
+                    self.name
+                )
+            )
+        except AttributeError:
+            raise AttributeError(
+                "{}Kernel requires dictionary of radvel.Parameter objects as input.".format(
+                    self.name
+                )
+            )
+
+    # get arrays of real and complex parameters
+    def compute_real_and_complex_hparams(self):
+
+        self.real = np.zeros((1, 4))
+        self.complex = np.zeros((1, 4))
+
+        sigma = self.hparams["gp_sigma"].value
+        rho = self.hparams["gp_rho"].value
+
+        w0 = np.sqrt(3.0) / rho
+        S0 = sigma ** 2 / w0
+
+        # Foreman-Mackey et al. (2017) eq 29, 30
+        self.real[0, 0] = np.nan
+        self.real[0, 2] = np.nan
+        self.complex[0, 0] = w0 * S0
+        self.complex[0, 1] = w0 * w0 * S0 / self.eps
+        self.complex[0, 2] = w0
+        self.complex[0, 3] = self.eps
+
+    def __repr__(self):
+
+        sigma = self.hparams["gp_sigma"].value
+        rho = self.hparams["gp_rho"].value
+
+        msg = ("{} Kernel with sigma = {}, rho = {}.").format(
+            self.name, sigma, rho
+        )
+        return msg
+
+
 class CeleriteSHOKernel(CeleriteKernel):
     """
     Class that computes and stores a matrix approximating a
@@ -615,7 +714,7 @@ class CeleriteSHOKernel(CeleriteKernel):
                     \\begin{array}{ll}
                          \\cosh{(\\eta \\omega_0 -|t_i - t_j|)}
                             + \\frac{1}{2 \\eta Q}
-                              \\sinh{(\\eta \\omega_0 |t_i - t_j|)}, & 0<Q<1/2\\\\
+                              \\sinh{(\\eta \\omega_0 |t_i - t_j|)}, & 0<Q<1/2 \\\\
                          2 (1 + \\omega_0 |t_i - t_j|), & Q=1/2\\\\
                         \\cos{(\\eta \\omega_0 |t_i - t_j|)}
                             + \\frac{1}{2 \\eta Q}
@@ -716,3 +815,5 @@ class CeleriteSHOKernel(CeleriteKernel):
 
         msg = ("{} Kernel with S0 = {}, Q = {}, w0 = {}.").format(self.name, S0, Q, w0)
         return msg
+
+
