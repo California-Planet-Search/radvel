@@ -351,7 +351,7 @@ class QuasiPerKernel(Kernel):
 
 class CeleriteKernel(Kernel):
     """
-    Generic abstract class for celerite kernels
+    Abstract class for celerite kernels with methods to pre-compute values
     """
 
     def compute_distances(self, x1, x2):
@@ -411,11 +411,18 @@ class CeleriteKernel(Kernel):
             errors ** 2,
         )
 
-        self.covmatrix =  self.get_matrix(errors=errors)
+        self.covmatrix = self.get_matrix(errors=errors)
 
         return solver
 
     def get_value(self, tau):
+        """Compute value of the kernel for an array of lag values
+
+        Args:
+            tau (np.array): Lags (ti-tj)
+        Returns:
+            k (np.array): Kernel computed for each tau value, same shape as tau
+        """
         tau = np.asarray(tau)
 
         k = get_kernel_value(
@@ -433,14 +440,17 @@ class CeleriteKernel(Kernel):
         include_diagonal=None,
         include_general=None,
     ):
-        # TODO: Update docstring and credit celerite
         """
         Get the covariance matrix at given independent coordinates
+        Modified version of
+        https://github.com/dfm/celerite/blob/main/celerite/celerite.py#L476
+
         Args:
-            x1 (Optional[array[n1]]): The first set of independent coordinates.
+            x1 (Optional[np.array]): The first set of independent coordinates.
                 If this is omitted, ``x1`` will be assumed to be equal to ``x``
-                from a previous call to :func:`GP.compute`.
-            x2 (Optional[array[n2]]): The second set of independent
+                from a previous call to
+                :func:`CeleriteKernel.compute_distances`.
+            x2 (Optional[np.array]): The second set of independent
                 coordinates. If this is omitted, ``x2`` will be assumed to be
                 ``x1``.
             include_diagonal (Optional[bool]): Should the white noise and
@@ -578,7 +588,6 @@ class CeleriteQuasiPerKernel(CeleriteKernel):
 
 
 class CeleriteSHOKernel(CeleriteKernel):
-    # TODO: Update equations
     """
     Class that computes and stores a matrix approximating a
     simple harmonic oscillator kernel.
@@ -587,13 +596,34 @@ class CeleriteSHOKernel(CeleriteKernel):
     file that uses a celerite kernel object.
 
     See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
-    (equation 56) for more details.
+    (equations 20 and 23) for more details.
+
+    The PSD of the term is
+
+    .. math::
+        S(\\omega) = \\sqrt{\\frac{2}{\\pi}} \\frac{S_0\\,\\omega_0^4}
+        {(\\omega^2-{\\omega_0}^2)^2 + {\\omega_0}^2\\,\\omega^2/Q^2}.
 
     An arbitrary element, :math:`C_{ij}`, of the matrix is:
 
     .. math::
+        \\begin{array}{ll}
+            C_{ij} &=
+                S_0 \\omega_0 Q
+                \\exp{\\left(-\\frac{\\omega_0 -|t_i - t_j|}{2 Q}\\right)} \\\\
+                &\\times \\left\\{
+                    \\begin{array}{ll}
+                         \\cosh{(\\eta \\omega_0 -|t_i - t_j|)}
+                            + \\frac{1}{2 \\eta Q}
+                              \\sinh{(\\eta \\omega_0 |t_i - t_j|)}, & 0<Q<1/2\\\\
+                         2 (1 + \\omega_0 |t_i - t_j|), & Q=1/2\\\\
+                        \\cos{(\\eta \\omega_0 |t_i - t_j|)}
+                            + \\frac{1}{2 \\eta Q}
+                              \\sin{(\\eta \\omega_0 |t_i - t_j|)}, & Q>1/2\\\\
+                    \\end{array}
+                \\right.
+        \\end{array}
 
-        C_{ij} = B/(2+C) * exp( -|t_i - t_j| / L) * (\\cos(\\frac{ 2\\pi|t_i-t_j| }{ P_{rot} }) + (1+C) )
 
     Args:
         hparams (dict of radvel.Parameter): dictionary containing
@@ -605,7 +635,7 @@ class CeleriteSHOKernel(CeleriteKernel):
 
     @property
     def name(self):
-        return "CeleriteQuasiPer"
+        return "CeleriteSHO"
 
     def __init__(self, hparams):
 

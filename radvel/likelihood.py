@@ -588,7 +588,7 @@ class CeleriteLikelihood(GPLikelihood):
             warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
             return -np.inf
 
-    def predict(self,xpred):
+    def predict(self, xpred):
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
             Used for making GP plots. Wrapper for `celerite.GP.predict()`.
             Args:
@@ -601,28 +601,28 @@ class CeleriteLikelihood(GPLikelihood):
 
         self.update_kernel_params()
 
-        # TODO: Move kernel generation somewhere else
-        B = self.kernel.hparams['gp_B'].value
-        C = self.kernel.hparams['gp_C'].value
-        L = self.kernel.hparams['gp_L'].value
-        Prot = self.kernel.hparams['gp_Prot'].value
-
         # build celerite kernel with current values of hparams
         kernel = celerite.terms.JitterTerm(
-                log_sigma = np.log(self.vector.vector[self.jit_index][0])
-                )
-
-        kernel += celerite.terms.RealTerm(
-            log_a=np.log(B*(1+C)/(2+C)),
-            log_c=np.log(1/L)
+            log_sigma=np.log(self.vector.vector[self.jit_index][0])
         )
 
-        kernel += celerite.terms.ComplexTerm(
-            log_a=np.log(B/(2+C)),
-            log_b=-np.inf,
-            log_c=np.log(1/L),
-            log_d=np.log(2*np.pi/Prot)
-        )
+        # Use generic celerite coefficients to write any kernel
+        ar, cr, ac, bc, cc, dc = self.kernel.coefficients
+
+        # Some kernels have no real or complex term, so coeffs would be empty
+        # This is the case for the SHOTerm
+        if ar.size > 0:
+            kernel += celerite.terms.RealTerm(
+                log_a=np.log(ar),
+                log_c=np.log(cr)
+            )
+        if ac.size > 0:
+            kernel += celerite.terms.ComplexTerm(
+                log_a=np.log(ac),
+                log_b=np.log(bc),
+                log_c=np.log(cc),
+                log_d=np.log(dc)
+            )
 
         gp = celerite.GP(kernel)
         gp.compute(self.x, self.yerr)

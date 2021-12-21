@@ -160,13 +160,16 @@ def test_celerite_fit(setupfn='example_planets/k2-131_celerite.py'):
 
 
 def constant_rv(t, params, vector):
-    """'RV' model that returns 0"""
+    """'RV' model that returns 0 for test GP liklihoods """
     return np.zeros_like(t)
 
 
 @pytest.fixture()
 def celerite_data():
-    # https://celerite.readthedocs.io/en/stable/tutorials/first/
+    """
+    Random example dataset inspired from the "First steps" celerite tutorial
+    Link: https://celerite.readthedocs.io/en/stable/tutorials/first/
+    """
 
     t = np.sort(
         np.append(
@@ -186,7 +189,8 @@ def celerite_data():
 
 def test_celerite_qp(celerite_data, tol=1e-7):
     """
-    Check QP kernel gives same cov matrix as celerite
+    Check that QP kernel gives same cov matrix and prediction as celerite on
+    random test data.
     """
     # Define celerite GP
     hparams = {
@@ -247,7 +251,8 @@ def test_celerite_qp(celerite_data, tol=1e-7):
 
 def test_celerite_sho(celerite_data, tol=1e-7):
     """
-    Check SHO kernel gives same cov matrix as celerite
+    Check that SHO kernel gives same cov matrix and prediction as celerite on
+    random test data.
     """
     # Define celerite GP
     hparams = {
@@ -278,7 +283,6 @@ def test_celerite_sho(celerite_data, tol=1e-7):
 
     assert np.all(np.abs(rmat - cmat) < tol)
 
-
     # Radvel likelihood to compare prediction
     params = radvel.Parameters(0)
     for pname in hparams:
@@ -301,8 +305,11 @@ def test_celerite_sho(celerite_data, tol=1e-7):
     cstd = np.sqrt(cvar)
     rpred, rstd = like.predict(t)
 
-    assert np.all(np.abs(rpred - cpred) < tol)
-    assert np.all(np.abs(rstd - cstd) < tol)
+    # The values are not exactly the same, so check within fraction of error
+    ptol = 1e-2 * np.min([rstd, cstd], axis=0)
+    assert np.all(np.abs(rpred - cpred) < ptol)
+    assert np.all(np.abs(rstd - cstd) < ptol)
+
 
 def test_basis():
     """
