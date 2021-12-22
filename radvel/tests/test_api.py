@@ -249,7 +249,9 @@ def test_celerite_qp(celerite_data, tol=1e-7):
     assert np.all(np.abs(rstd - cstd) < tol)
 
 
-def test_celerite_sho(celerite_data, tol=1e-7):
+# Test Q above and below 0.5
+@pytest.mark.parametrize("Q", [3.0, 0.2])
+def test_celerite_sho(celerite_data, Q, tol=1e-7):
     """
     Check that SHO kernel gives same cov matrix and prediction as celerite on
     random test data.
@@ -257,7 +259,7 @@ def test_celerite_sho(celerite_data, tol=1e-7):
     # Define celerite GP
     hparams = {
         "gp_S0": 1.0,
-        "gp_Q": 3.0,
+        "gp_Q": Q,
         "gp_w0": 7.0,
     }
 

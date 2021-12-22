@@ -615,6 +615,12 @@ class CeleriteLikelihood(GPLikelihood):
                 log_sigma=np.log(self.kernel.hparams["gp_sigma"].value),
                 log_rho=np.log(self.kernel.hparams["gp_rho"].value)
             )
+        elif self.kernel.name == "CeleriteSHO":
+            kernel += celerite.terms.SHOTerm(
+                log_S0=np.log(self.kernel.hparams["gp_S0"].value),
+                log_Q=np.log(self.kernel.hparams["gp_Q"].value),
+                log_omega0=np.log(self.kernel.hparams["gp_w0"].value)
+            )
         else:
             # Use generic celerite coefficients to write any kernel
             ar, cr, ac, bc, cc, dc = self.kernel.coefficients

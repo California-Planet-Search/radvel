@@ -375,6 +375,10 @@ class CeleriteKernel(Kernel):
         self.compute_real_and_complex_hparams()
 
         r = [self._get_coeff(self.real[:, i]) for i in range(0, 3, 2)]
+        if not np.isnan(self.real[:, 1]):
+            r[0] = np.append(r[0], self.real[:, 1])
+        if not np.isnan(self.real[:, 3]):
+            r[1] = np.append(r[1], self.real[:, 3])
         c = [self._get_coeff(self.complex[:, i]) for i in range(4)]
 
         return r + c
@@ -397,10 +401,18 @@ class CeleriteKernel(Kernel):
         solver = CholeskySolver()
 
         self.compute_real_and_complex_hparams()
+
+        ar = self._get_coeff(self.real[:, 0])
+        if not np.isnan(self.real[:, 1]):
+            ar = np.append(ar, self.real[:, 1])
+        cr = self._get_coeff(self.real[:, 2])
+        if not np.isnan(self.real[:, 3]):
+            cr = np.append(cr, self.real[:, 3])
+
         solver.compute(
             0.0,
-            self._get_coeff(self.real[:, 0]),
-            self._get_coeff(self.real[:, 2]),
+            ar,
+            cr,
             self._get_coeff(self.complex[:, 0]),
             self._get_coeff(self.complex[:, 1]),
             self._get_coeff(self.complex[:, 2]),
@@ -560,6 +572,7 @@ class CeleriteQuasiPerKernel(CeleriteKernel):
     def compute_real_and_complex_hparams(self):
 
         self.real = np.zeros((1, 4))
+        self.real[:, [1, 3]] = np.nan  # These two are not used unless need array for 0 or 2
         self.complex = np.zeros((1, 4))
 
         B = self.hparams["gp_B"].value
@@ -659,6 +672,7 @@ class CeleriteMatern32Kernel(CeleriteKernel):
     def compute_real_and_complex_hparams(self):
 
         self.real = np.zeros((1, 4))
+        self.real[:, [1, 3]] = np.nan  # These two are not used unless need array for 0 or 2
         self.complex = np.zeros((1, 4))
 
         sigma = self.hparams["gp_sigma"].value
@@ -778,6 +792,7 @@ class CeleriteSHOKernel(CeleriteKernel):
     def compute_real_and_complex_hparams(self):
 
         self.real = np.zeros((1, 4))
+        self.real[:, [1, 3]] = np.nan  # These two are not used unless need array for 0 or 2
         self.complex = np.zeros((1, 4))
 
         S0 = self.hparams["gp_S0"].value
@@ -798,10 +813,10 @@ class CeleriteSHOKernel(CeleriteKernel):
 
         else:
             f = np.sqrt(1.0 - 4.0 * Q ** 2)
-            self.real[0, 0] = (
+            self.real[0, [0, 1]] = (
                 0.5 * S0 * w0 * Q * np.array([1.0 + 1.0 / f, 1.0 - 1.0 / f])
             )
-            self.real[0, 2] = 0.5 * w0 / Q * np.array([1.0 - f, 1.0 + f])
+            self.real[0, [2, 3]] = 0.5 * w0 / Q * np.array([1.0 - f, 1.0 + f])
             self.complex[0, 0] = np.nan
             self.complex[0, 1] = np.nan
             self.complex[0, 2] = np.nan
