@@ -336,7 +336,7 @@ def celerite_data_line():
 
 def test_celerite_matern32(celerite_data_line, tol=1e-7):
     """
-    Check that Mater 3/2 kernel gives same cov matrix and prediction as
+    Check that Matern 3/2 kernel gives same cov matrix and prediction as
     celerite on random test data.
     """
     # Define celerite GP
