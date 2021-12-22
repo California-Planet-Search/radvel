@@ -32,6 +32,11 @@ texdict = {
     'gp_C': 'C',
     'gp_L': 'L',
     'gp_Prot': 'P_{\\rm rot}',
+    'gp_S0': 'S_{0}',
+    'gp_Q': 'Q',
+    'gp_w0': '\\omega_{0}',
+    'gp_sigma': '\\sigma',
+    'gp_rho': '\\rho',
 }
 
 
@@ -146,7 +151,7 @@ should have only integers as keys."""
         for k in param_list:
             n = k[-1]
             p = k[:-1]
-            if n.isdigit() and (not 'gamma' in p and not 'jit' in p):
+            if n.isdigit() and int(n) > 0 and (not 'gamma' in p and not 'jit' in p):
                 tex_labels[k] = self._planet_texlabel(p, n)
             elif k in texdict.keys():
                 tex_labels[k] = "$%s$" % texdict[k]
@@ -251,16 +256,16 @@ class GeneralRVModel(object):
 
     Args:
         params (radvel.Parameters): The parameters upon which the RV model depends.
-        forward_model (callable): 
+        forward_model (callable):
             The function that defines the signal as a function of time and parameters.
             The forward model is called as
-            
+
                 ``forward_model(time, params, *args, **kwargs) -> float``
         time_base (float): time relative to which 'dvdt' and 'curv' terms are computed.
     Examples:
         >>> import radvel
         #  In this example, we'll assume a function called 'my_rv_function' that
-        #  computes RV values has been defined elsewhere. We'll assume that 
+        #  computes RV values has been defined elsewhere. We'll assume that
         #  'my_rv_function' depends on planets' usual RV parameters
         #  contained in radvel.Parameters as well as some additional
         #  parameter, 'my_param'.
@@ -290,16 +295,16 @@ class GeneralRVModel(object):
         return vel
 
     def array_to_params(self,param_values):
-    
+
     	new_params = self.params
-    	
+
     	vary_parameters = self.list_vary_params()
-    	
+
     	for i in range(len(vary_parameters)):
     		new_params[vary_parameters[i]] = Parameter(value=param_values[i])
-    		
+
     	return new_params
-             
+
     def list_vary_params(self):
         keys = self.list_params()
 
@@ -313,7 +318,7 @@ class GeneralRVModel(object):
             self.params_order = keys
         return keys
 
-        
+
 def _standard_rv_calc(t,params,vector,planet_num=None):
         vel = np.zeros(len(t))
         params_synth = params.basis.v_to_synth(vector)
