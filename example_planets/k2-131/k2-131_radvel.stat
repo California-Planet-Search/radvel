@@ -1,0 +1,23 @@
+[fit]
+run = True
+postfile = k2-131/k2-131_post_obj.pkl
+
+[plot]
+rv_plot = k2-131/k2-131_rv_multipanel.pdf
+
+[mcmc]
+run = True
+postfile = k2-131/k2-131_post_obj.pkl
+chainfile = k2-131/k2-131_chains.csv.bz2
+autocorrfile = k2-131/k2-131_autocorr.csv
+summaryfile = k2-131/k2-131_post_summary.csv
+nwalkers = 50
+nensembles = 8
+maxsteps = 4000000
+nsteps = 1100000
+nburn = 200000
+minafactor = 73.4964604387934
+maxarchange = 0.015954198889102288
+mintz = 3004.5595582690326
+maxgr = 1.0094470104029238
+

@@ -317,12 +317,12 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
 
 
 if __name__ == '__main__':
-    #test_k2()
+    test_k2()
     #test_hd()
     #test_model_comp()
     #test_k2131()
     #test_celerite()
-    test_basis()
+    # test_basis()
     #test_kernels()
     #test_kepler()
     #test_priors()

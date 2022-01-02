@@ -10,7 +10,6 @@ KERNELS = {
     "SqExp": ['gp_length', 'gp_amp'],
     "Per": ['gp_per', 'gp_length', 'gp_amp'],
     "QuasiPer": ['gp_per', 'gp_perlength', 'gp_explength', 'gp_amp'],
-    "Celerite": ['gp_B', 'gp_C', 'gp_L', 'gp_Prot']
 }
 
 ABC = abc.ABC
@@ -237,10 +236,12 @@ class QuasiPerKernel(Kernel):
     Args:
         hparams (dict of radvel.Parameter): dictionary containing
             radvel.Parameter objects that are GP hyperparameters
-            of this kernel. Must contain exactly four objects, 'gp_explength*',
-            'gp_amp*', 'gp_per*', and 'gp_perlength*', where * is a suffix
-            identifying these hyperparameters with a likelihood object.
-
+            of this kernel. 
+        amps_array (np.array of str): array with same length as total number
+            of data points. Each entry is the parameter name of the GP amplitude
+            that corresponds to that data point. Ex: if I have three data points,
+            the first two from Keck and the last one from Subaru, this array
+            will look like: ['Keck', 'Keck', 'Subaru']
     """
     @property
     def name(self):
@@ -261,34 +262,30 @@ class QuasiPerKernel(Kernel):
             if par.startswith('gp_explength'):
                 self.hparams['gp_explength'] = hparams[par]
 
-        # assert len(hparams) == 4 or (len(hparams) == 5 and 'gp_multamp' in hparams.keys()), \
-        #     "QuasiPerKernel requires exactly 4 hyperparameters with names" \
-        #     + " 'gp_perlength*', 'gp_amp*', 'gp_per*', and 'gp_explength*'."
-
         try:
             self.hparams['gp_perlength'].value
-            # self.hparams['gp_amp'].value
             self.hparams['gp_per'].value
             self.hparams['gp_explength'].value
-        # except KeyError:
-        #     raise KeyError("QuasiPerKernel requires hyperparameters" \
-        #                    + " 'gp_perlength*', 'gp_amp*', 'gp_per*', " \
-        #                    + "and 'gp_explength*'.")
+        except KeyError:
+            raise KeyError("QuasiPerKernel requires hyperparameters" \
+                           + " 'gp_perlength', ''gp_per', " \
+                           + "and 'gp_explength', plus one 'gp_amp_*' for each" +
+                           "instrument.")
         except AttributeError:
             raise AttributeError("QuasiPerKernel requires dictionary of" \
                                  + " radvel.Parameter objects as input.")
 
-    # def __repr__(self):
-    #     perlength = self.hparams['gp_perlength'].value
-    #     amp = self.hparams['gp_amp'].value
-    #     per = self.hparams['gp_per'].value
-    #     explength = self.hparams['gp_explength'].value
+    def __repr__(self):
+        perlength = self.hparams['gp_perlength'].value
+        amp = [x for x in self.hparams.keys() if x.startswith('gp_amp')]
+        per = self.hparams['gp_per'].value
+        explength = self.hparams['gp_explength'].value
 
-    #     msg = (
-    #         "QuasiPer Kernel with amp: {}, per length: {}, per: {}, "
-    #         "exp length: {}"
-    #     ).format(amp, perlength, per, explength)
-    #     return msg
+        msg = (
+            "QuasiPer Kernel with amps: {}, per length: {}, per: {}, "
+            "exp length: {}"
+        ).format(amp, perlength, per, explength)
+        return msg
 
     def compute_distances(self, x1, x2):
         X1 = np.array([x1]).T
@@ -296,7 +293,7 @@ class QuasiPerKernel(Kernel):
         self.dist_p = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
         self.dist_se = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
 
-    def compute_covmatrix(self, errors):
+    def compute_covmatrix(self, errors, amp_matrix=None):
         """ Compute the covariance matrix, and optionally add errors along
             the diagonal.
 
@@ -305,18 +302,24 @@ class QuasiPerKernel(Kernel):
                     this arg must be set to 0. If covariance matrix is square,
                     this can be a numpy array of observational errors and jitter
                     added in quadrature.
+                amp_matrix: if set, overrides the amplitude matrix that is 
+                    multiplied into the covariance matrix. If None, the 
+                    amplitude matrix is calculated using self.amps_array.
+                    Default None.
         """
         perlength = self.hparams['gp_perlength'].value
-
         amps = np.array([self.hparams[par].value for par in self.amps_array])
         per = self.hparams['gp_per'].value
         explength = self.hparams['gp_explength'].value
 
-        amp_matrix = np.dot(np.transpose([amps]), np.array([amps]))
+        if amp_matrix is None: 
+            amp_matrix = np.dot(np.transpose([amps]), np.array([amps]))
 
         K = amp_matrix * (
-                     scipy.exp(-self.dist_se/(explength**2))
-                     * scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.) / (2.*perlength**2)))
+            scipy.exp(-self.dist_se/(explength**2)) *
+            scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.) / 
+            (2.*perlength**2))
+        )
 
         self.covmatrix = K
 
@@ -324,138 +327,136 @@ class QuasiPerKernel(Kernel):
         try:
             self.covmatrix += (errors**2) * np.identity(K.shape[0])
         except ValueError:  # errors can't be added along diagonal to a non-square array
-            pass
+            assert errors == 0
 
         return self.covmatrix
 
-        # TODO: update all other kernels (only QuasiPer updated rn)
+
+# class CeleriteKernel(Kernel):
+#     """
+#     Class that computes and stores a matrix approximating the quasi-periodic
+#     kernel.
+
+#     See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
+#     file that uses this Kernel object.
+
+#     See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
+#     (equation 56) for more details.
+
+#     An arbitrary element, :math:`C_{ij}`, of the matrix is:
+
+#     .. math::
+
+#         C_{ij} = B/(2+C) * exp( -|t_i - t_j| / L) * (\\cos(\\frac{ 2\\pi|t_i-t_j| }{ P_{rot} }) + (1+C) )
+
+#     Args:
+#         hparams (dict of radvel.Parameter): dictionary containing
+#             radvel.Parameter objects that are GP hyperparameters
+#             of this kernel. Must contain exactly four objects, 'gp_B*',
+#             'gp_C*', 'gp_L*', and 'gp_Prot*', where * is a suffix
+#             identifying these hyperparameters with a likelihood object.
+#     """
+
+#     @property
+#     def name(self):
+#         return "Celerite"
+
+#     def __init__(self, hparams):
+
+#         self.hparams = {}
+#         for par in hparams:
+#             if par.startswith('gp_B'):
+#                 self.hparams['gp_B'] = hparams[par]
+#             if par.startswith('gp_C'):
+#                 self.hparams['gp_C'] = hparams[par]
+#             if par.startswith('gp_L'):
+#                 self.hparams['gp_L'] = hparams[par]
+#             if par.startswith('gp_Prot'):
+#                 self.hparams['gp_Prot'] = hparams[par]
+
+#         assert len(self.hparams) == 4, """
+# CeleriteKernel requires exactly 4 hyperparameters with names 'gp_B', 'gp_C', 'gp_L', and 'gp_Prot'.
+#         """
+
+#         try:
+#             self.hparams['gp_Prot'].value
+#             self.hparams['gp_C'].value
+#             self.hparams['gp_B'].value
+#             self.hparams['gp_L'].value
+#         except KeyError:
+#             raise KeyError("""
+# CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'.
+#                 """)
+#         except AttributeError:
+#             raise AttributeError("CeleriteKernel requires dictionary of radvel.Parameter objects as input.")
+
+#     # get arrays of real and complex parameters
+#     def compute_real_and_complex_hparams(self):
+
+#         self.real = np.zeros((1, 4))
+#         self.complex = np.zeros((1, 4))
+
+#         B = self.hparams['gp_B'].value
+#         C = self.hparams['gp_C'].value
+#         L = self.hparams['gp_L'].value
+#         Prot = self.hparams['gp_Prot'].value
+
+#         # Foreman-Mackey et al. (2017) eq 56
+#         self.real[0,0] = B*(1+C)/(2+C)
+#         self.real[0,2] = 1/L
+#         self.complex[0,0] = B/(2+C)
+#         self.complex[0,1] = 0.
+#         self.complex[0,2] = 1/L
+#         self.complex[0,3] = 2*np.pi/Prot
+
+#     def __repr__(self):
+
+#         B = self.hparams['gp_B'].value
+#         C = self.hparams['gp_C'].value
+#         L = self.hparams['gp_L'].value
+#         Prot = self.hparams['gp_Prot'].value
+
+#         msg = (
+#             "Celerite Kernel with B = {}, C = {}, L = {}, Prot = {}."
+#         ).format(B, C, L, Prot)
+#         return msg
+
+#     def compute_distances(self, x1, x2):
+#         """
+#         The celerite.solver.CholeskySolver object does
+#         not require distances to be precomputed, so
+#         this method has been co-opted to define some
+#         unchanging variables.
+#         """
+#         self.x = x1
+
+#         # blank matrices (corresponding to Cholesky decomp of kernel) needed for celerite solver
+#         self.A = np.empty(0)
+#         self.U = np.empty((0,0))
+#         self.V = self.U
 
 
-class CeleriteKernel(Kernel):
-    """
-    Class that computes and stores a matrix approximating the quasi-periodic
-    kernel.
+#     def compute_covmatrix(self, errors):
+#         """ Compute the Cholesky decomposition of a celerite kernel
 
-    See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
-    file that uses this Kernel object.
+#             Args:
+#                 errors (array of float): observation errors and jitter added
+#                     in quadrature
 
-    See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
-    (equation 56) for more details.
+#             Returns:
+#                 celerite.solver.CholeskySolver: the celerite solver object,
+#                 with Cholesky decomposition computed.
+#         """
+#         # initialize celerite solver object
+#         solver = CholeskySolver()
 
-    An arbitrary element, :math:`C_{ij}`, of the matrix is:
+#         self.compute_real_and_complex_hparams()
+#         solver.compute(
+#             0., self.real[:,0], self.real[:,2],
+#             self.complex[:,0], self.complex[:,1],
+#             self.complex[:,2], self.complex[:,3],
+#             self.A, self.U, self.V,
+#             self.x, errors**2
+#         )
 
-    .. math::
-
-        C_{ij} = B/(2+C) * exp( -|t_i - t_j| / L) * (\\cos(\\frac{ 2\\pi|t_i-t_j| }{ P_{rot} }) + (1+C) )
-
-    Args:
-        hparams (dict of radvel.Parameter): dictionary containing
-            radvel.Parameter objects that are GP hyperparameters
-            of this kernel. Must contain exactly four objects, 'gp_B*',
-            'gp_C*', 'gp_L*', and 'gp_Prot*', where * is a suffix
-            identifying these hyperparameters with a likelihood object.
-    """
-
-    @property
-    def name(self):
-        return "Celerite"
-
-    def __init__(self, hparams):
-
-        self.hparams = {}
-        for par in hparams:
-            if par.startswith('gp_B'):
-                self.hparams['gp_B'] = hparams[par]
-            if par.startswith('gp_C'):
-                self.hparams['gp_C'] = hparams[par]
-            if par.startswith('gp_L'):
-                self.hparams['gp_L'] = hparams[par]
-            if par.startswith('gp_Prot'):
-                self.hparams['gp_Prot'] = hparams[par]
-
-        assert len(self.hparams) == 4, """
-CeleriteKernel requires exactly 4 hyperparameters with names 'gp_B', 'gp_C', 'gp_L', and 'gp_Prot'.
-        """
-
-        try:
-            self.hparams['gp_Prot'].value
-            self.hparams['gp_C'].value
-            self.hparams['gp_B'].value
-            self.hparams['gp_L'].value
-        except KeyError:
-            raise KeyError("""
-CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'.
-                """)
-        except AttributeError:
-            raise AttributeError("CeleriteKernel requires dictionary of radvel.Parameter objects as input.")
-
-    # get arrays of real and complex parameters
-    def compute_real_and_complex_hparams(self):
-
-        self.real = np.zeros((1, 4))
-        self.complex = np.zeros((1, 4))
-
-        B = self.hparams['gp_B'].value
-        C = self.hparams['gp_C'].value
-        L = self.hparams['gp_L'].value
-        Prot = self.hparams['gp_Prot'].value
-
-        # Foreman-Mackey et al. (2017) eq 56
-        self.real[0,0] = B*(1+C)/(2+C)
-        self.real[0,2] = 1/L
-        self.complex[0,0] = B/(2+C)
-        self.complex[0,1] = 0.
-        self.complex[0,2] = 1/L
-        self.complex[0,3] = 2*np.pi/Prot
-
-    def __repr__(self):
-
-        B = self.hparams['gp_B'].value
-        C = self.hparams['gp_C'].value
-        L = self.hparams['gp_L'].value
-        Prot = self.hparams['gp_Prot'].value
-
-        msg = (
-            "Celerite Kernel with B = {}, C = {}, L = {}, Prot = {}."
-        ).format(B, C, L, Prot)
-        return msg
-
-    def compute_distances(self, x1, x2):
-        """
-        The celerite.solver.CholeskySolver object does
-        not require distances to be precomputed, so
-        this method has been co-opted to define some
-        unchanging variables.
-        """
-        self.x = x1
-
-        # blank matrices (corresponding to Cholesky decomp of kernel) needed for celerite solver
-        self.A = np.empty(0)
-        self.U = np.empty((0,0))
-        self.V = self.U
-
-
-    def compute_covmatrix(self, errors):
-        """ Compute the Cholesky decomposition of a celerite kernel
-
-            Args:
-                errors (array of float): observation errors and jitter added
-                    in quadrature
-
-            Returns:
-                celerite.solver.CholeskySolver: the celerite solver object,
-                with Cholesky decomposition computed.
-        """
-        # initialize celerite solver object
-        solver = CholeskySolver()
-
-        self.compute_real_and_complex_hparams()
-        solver.compute(
-            0., self.real[:,0], self.real[:,2],
-            self.complex[:,0], self.complex[:,1],
-            self.complex[:,2], self.complex[:,3],
-            self.A, self.U, self.V,
-            self.x, errors**2
-        )
-
-        return solver
+#         return solver

@@ -484,113 +484,113 @@ class MultipanelPlot(object):
 class GPMultipanelPlot(MultipanelPlot):
     """
     Class to handle the creation of RV multipanel plots for posteriors fitted
-    using Gaussian Processes. 
+    using Gaussian Processes. Plots a separate panel for each RV instrument,
+    with the GP prediction for that instrument and the corresponding data
+    points.
 
-    Takes the same args as MultipanelPlot, with a few additional bells and whistles...
+    Takes the same args as MultipanelPlot, with a few additional bells and 
+    whistles...
     
     Args:
         subtract_gp_mean_model (bool, optional): if True, subtract the Gaussian
             process mean max likelihood model from the data and the
             model when plotting the results. Default: False.
-        plot_likelihoods_separately (bool, optional): if True, plot a separate
-            panel for each Likelihood object. Default: False
         subtract_orbit_model (bool, optional): if True, subtract the best-fit
             orbit model from the data and the model when plotting 
             the results. Useful for seeing the structure of correlated
             noise in the data. Default: False.
-        status (ConfigParser): (optional) result of radvel.driver.load_status on the .stat status file
+        status (ConfigParser): (optional) result of radvel.driver.load_status on 
+            the .stat status file
 
     """
-    def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
-                 phase_nrows=None, phase_ncols=None, uparams=None, rv_phase_space=0.08, telfmts={},
-                 legend=True,
-                 phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
-                 set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), subtract_gp_mean_model=False,
-                 plot_likelihoods_separately=False, subtract_orbit_model=False, status=None):
+    def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, 
+        yscale_sigma=3.0, phase_nrows=None, phase_ncols=None, uparams=None, 
+        rv_phase_space=0.08, telfmts={}, legend=True, phase_limits=[], 
+        nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
+        set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), 
+        subtract_gp_mean_model=False, subtract_orbit_model=False, status=None
+    ):
 
         super(GPMultipanelPlot, self).__init__(
             post, saveplot=saveplot, epoch=epoch, yscale_auto=yscale_auto,
-            yscale_sigma=yscale_sigma, phase_nrows=phase_nrows, phase_ncols=phase_ncols,
-            uparams=uparams, rv_phase_space=rv_phase_space, telfmts=telfmts, legend=legend,
-            phase_limits=phase_limits, nobin=nobin, phasetext_size=phasetext_size, 
-            figwidth=figwidth, fit_linewidth=fit_linewidth, set_xlim=set_xlim, text_size=text_size,
-            legend_kwargs=legend_kwargs
+            yscale_sigma=yscale_sigma, phase_nrows=phase_nrows, 
+            phase_ncols=phase_ncols, uparams=uparams, 
+            rv_phase_space=rv_phase_space, telfmts=telfmts, legend=legend,
+            phase_limits=phase_limits, nobin=nobin, 
+            phasetext_size=phasetext_size, figwidth=figwidth, 
+            fit_linewidth=fit_linewidth, set_xlim=set_xlim, 
+            text_size=text_size, legend_kwargs=legend_kwargs
         )
 
         self.subtract_gp_mean_model = subtract_gp_mean_model
-        self.plot_likelihoods_separately = plot_likelihoods_separately
         self.subtract_orbit_model = subtract_orbit_model
         if status is not None:
             self.status = status
 
         is_gp = False
-        for like in self.like_list:
-            if isinstance(like, radvel.likelihood.GPLikelihood):
-                is_gp = True
-                break
-            else:
-                pass
-        assert is_gp, "This class requires at least one GPLikelihood object in the Posterior."
+        if isinstance(self.post.likelihood, radvel.likelihood.GPLikelihood):
+            is_gp = True
+        assert is_gp, "This class requires a GPLikelihood object in the Posterior."
 
-    def plot_gp_like(self, like, orbit_model4data, ci):
+    def plot_gp_like(self, like, orbit_model4data, ci, suffix):
         """
-        Plot a single Gaussian Process Likleihood object in the current Axes, 
-        including Gaussian Process uncertainty bands.
+        Plot Gaussian Process likelihood object in the current Axes, 
+        including Gaussian Process uncertainty bands. Mathematically,
+        we're plotting the GP prediction and associated uncertainty for a
+        single instrument. 
 
         Args:
             like (radvel.GPLikelihood): radvel.GPLikelihood object. The model
                 plotted will be generated from `like.params`.
-            orbit_model4data (numpy array): 
+            orbit_model4data (np.array of float): TODO
             ci (int): index to use when choosing a color to plot from 
                 radvel.plot.default_colors. This is only used if the
                 Likelihood object being plotted is not in the list of defaults.
                 Increments by 1 if it is used.
+            suffix (str): suffix of instrument GP prediction to plot (e.g. 
+                'HIRES', 'Subaru', or whatever you named your RV points in your 
+                data file)
 
         Returns: current (possibly changed) value of the input `ci`
-
         """
+
         ax = pl.gca()
 
-        if isinstance(like, radvel.likelihood.GPLikelihood):
+        xpred = np.linspace(np.min(like.x), np.max(like.x), num=int(3e3))
 
-            xpred = np.linspace(np.min(like.x), np.max(like.x), num=int(3e3))
-            gpmu, stddev = like.predict(xpred)
-            if self.subtract_orbit_model:
-                gp_orbit_model = np.zeros(xpred.shape)
-            else:
-                gp_orbit_model = self.model(xpred)
-
-            if ((xpred - self.epoch) < -2.4e6).any():
-                pass
-            elif self.epoch == 0:
-                self.epoch = 2450000
-                xpred = xpred - self.epoch
-            else:
-                xpred = xpred - self.epoch
-
-            if self.subtract_gp_mean_model:
-                gpmu = 0.
-            else:
-                gp_mean4data, _ = like.predict(like.x)
-                indx = np.where(self.post.likelihood.telvec == like.suffix)
-                orbit_model4data[indx] += gp_mean4data
-
-            if like.suffix not in self.telfmts and like.suffix in plot.telfmts_default:
-                color = plot.telfmts_default[like.suffix]['color']
-            if like.suffix in self.telfmts:
-                color = self.telfmts[like.suffix]['color']
-            if like.suffix not in self.telfmts and like.suffix not in plot.telfmts_default:
-                color = plot.default_colors[ci]
-                ci += 1
-
-            ax.fill_between(xpred, gpmu+gp_orbit_model-stddev, gpmu+gp_orbit_model+stddev, 
-                            color=color, alpha=0.5, lw=0
-                            )
-            ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.1)
-
+        amp_param_name = 'gp_amp_' + suffix
+        gpmu, stddev = like.predict(xpred, amp_param_name)
+        if self.subtract_orbit_model:
+            gp_orbit_model = np.zeros(xpred.shape)
         else:
-            # plot orbit model
-            ax.plot(self.mplttimes, self.orbit_model, 'b-', rasterized=False, lw=0.1)
+            gp_orbit_model = self.model(xpred)
+
+        if ((xpred - self.epoch) < -2.4e6).any():
+            pass
+        elif self.epoch == 0:
+            self.epoch = 2450000
+            xpred = xpred - self.epoch
+        else:
+            xpred = xpred - self.epoch
+
+        if self.subtract_gp_mean_model:
+            gpmu = 0.
+        else:
+            gp_mean4data, _ = like.predict(like.x, amp_param_name)
+            orbit_model4data += gp_mean4data
+
+        if suffix not in self.telfmts and suffix in plot.telfmts_default:
+            color = plot.telfmts_default[suffix]['color']
+        if suffix in self.telfmts:
+            color = self.telfmts[suffix]['color']
+        if suffix not in self.telfmts and suffix not in plot.telfmts_default:
+            color = plot.default_colors[ci]
+            ci += 1
+
+        ax.fill_between(xpred, gpmu+gp_orbit_model-stddev, gpmu+gp_orbit_model+stddev, 
+                        color=color, alpha=0.5, lw=0
+                        )
+        ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.1)
 
         if not self.yscale_auto: 
             scale = np.std(self.rawresid+self.rvmod)
@@ -602,173 +602,139 @@ class GPMultipanelPlot(MultipanelPlot):
 
         return ci
 
-    def plot_timeseries(self):
-        """
-        Make a plot of the RV data and Gaussian Process + orbit model in the current Axes.
-        """
-
-        ax = pl.gca()
-
-        ax.axhline(0, color='0.5', linestyle='--')
-
-        if self.subtract_orbit_model:
-            orbit_model4data = np.zeros(self.rvmod.shape)
-        else:
-            orbit_model4data = self.rvmod
-
-        ci = 0
-        for like in self.like_list:
-            ci = self.plot_gp_like(like, orbit_model4data, ci)
-
-        # plot data
-        plot.mtelplot(
-            # data = residuals + model
-            self.plttimes, self.rawresid+orbit_model4data, self.rverr,
-            self.post.likelihood.telvec, ax, telfmts=self.telfmts
-        )
-
-        if self.set_xlim is not None:
-            ax.set_xlim(self.set_xlim)
-        else:
-            ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
-        pl.setp(ax.get_xticklabels(), visible=False)
-
-        # legend
-        if self.legend:
-            ax.legend(numpoints=1, **self.legend_kwargs)
-
-        # years on upper axis
-        axyrs = ax.twiny()
-        xl = np.array(list(ax.get_xlim())) + self.epoch
-        decimalyear = Time(xl, format='jd', scale='utc').decimalyear
-        axyrs.plot(decimalyear, decimalyear)
-        axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
-        axyrs.set_xlim(*decimalyear)
-        pl.locator_params(axis='x', nbins=5)
-        axyrs.set_xlabel('Year', fontweight='bold')
-
-
     def plot_multipanel(self, nophase=False):
         """
-        Provision and plot an RV multipanel plot for a Posterior object containing 
-        one or more Gaussian Process Likelihood objects. 
+        Provision and plot an RV multipanel plot for a Posterior object 
+        containing a GPLikelihood object. 
         
         Args:
-            nophase (bool, optional): if True, don't
-                include phase plots. Default: False.
+            nophase (bool, optional): if True, don't include phase plots. 
+                Default: False.
+
         Returns:
             tuple containing:
+
                 - current matplotlib Figure object
                 - list of Axes objects
         """
 
-        if not self.plot_likelihoods_separately:
-            super(GPMultipanelPlot, self).plot_multipanel()
+        if nophase:
+            scalefactor = 1
         else:
+            scalefactor = self.phase_nrows
 
-            if nophase:
-                scalefactor = 1
+        n_likes = len(self.like_list)
+        figheight = (
+            self.ax_rv_height * (n_likes + 0.5) + 
+            self.ax_phase_height * scalefactor
+        )
+
+        # provision figure
+        fig = pl.figure(figsize=(self.figwidth, figheight))
+        
+        fig.subplots_adjust(left=0.12, right=0.95)
+
+        hrs = np.zeros(n_likes+1) + 1.
+        hrs[-1] = 0.5
+        gs_rv = gridspec.GridSpec(n_likes+1, 1, height_ratios=hrs)
+
+        divide = 1 - self.ax_rv_height*len(self.like_list) / figheight
+        gs_rv.update(left=0.12, right=0.93, top=0.93,
+                        bottom=divide+self.rv_phase_space*0.5, hspace=0.0)
+
+        # orbit plot for each likelihood
+        pltletter = ord('a')
+
+        i = 0
+        ci = 0
+        for suffix in self.post.likelihood.suffixes:
+
+            ax = pl.subplot(gs_rv[i, 0])
+            i += 1
+            self.ax_list += [ax]
+            pl.sca(ax)
+
+            ax.axhline(0, color='0.5', linestyle='--')
+
+            if self.subtract_orbit_model:
+                orbit_model4data = np.zeros(self.rvmod.shape)
             else:
-                scalefactor = self.phase_nrows
+                orbit_model4data = self.rvmod
 
-            n_likes = len(self.like_list)
-            figheight = self.ax_rv_height*(n_likes+0.5) + self.ax_phase_height * scalefactor
+            ci = self.plot_gp_like(self.post.likelihood, orbit_model4data, ci, suffix)
 
-            # provision figure
-            fig = pl.figure(figsize=(self.figwidth, figheight))
-            
-            fig.subplots_adjust(left=0.12, right=0.95)
+            # plot data
+            plot.mtelplot(
+                # data = residuals + model
+                self.plttimes[self.post.likelihood.telvec==suffix], 
+                self.rawresid[self.post.likelihood.telvec==suffix] +
+                orbit_model4data[self.post.likelihood.telvec==suffix], 
+                self.rverr[self.post.likelihood.telvec==suffix],
+                self.post.likelihood.telvec[self.post.likelihood.telvec==suffix], 
+                ax, telfmts=self.telfmts
+            )
 
-            hrs = np.zeros(n_likes+1) + 1.
-            hrs[-1] = 0.5
-            gs_rv = gridspec.GridSpec(n_likes+1, 1, height_ratios=hrs)
+            ax.set_xlim(
+                min(self.plttimes)-0.01*self.dt, 
+                max(self.plttimes)+0.01*self.dt
+            )    
+            pl.setp(ax.get_xticklabels(), visible=False)
 
-            divide = 1 - self.ax_rv_height*len(self.like_list) / figheight
-            gs_rv.update(left=0.12, right=0.93, top=0.93,
-                         bottom=divide+self.rv_phase_space*0.5, hspace=0.0)
+            # legend
+            if self.legend:
+                ax.legend(numpoints=1, **self.legend_kwargs)
 
-            # orbit plot for each likelihood
-            pltletter = ord('a')
+            # years on upper axis
+            if i == 1:
+                axyrs = ax.twiny()
+                xl = np.array(list(ax.get_xlim())) + self.epoch
+                decimalyear = Time(xl, format='jd', scale='utc').decimalyear
+                axyrs.plot(decimalyear, decimalyear)
+                axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
+                axyrs.set_xlim(*decimalyear)
+                axyrs.set_xlabel('Year', fontweight='bold')    
 
-            i = 0
-            ci = 0
-            for like in self.like_list:
+            plot.labelfig(pltletter)
+            pltletter += 1  
 
-                ax = pl.subplot(gs_rv[i, 0])
-                i += 1
-                self.ax_list += [ax]
-                pl.sca(ax)
+        # residuals
+        ax_resid = pl.subplot(gs_rv[-1, 0])
+        self.ax_list += [ax_resid]
 
-                ax.axhline(0, color='0.5', linestyle='--')
+        pl.sca(ax_resid)
+        self.plot_residuals()
+        plot.labelfig(pltletter)
+        pltletter += 1
 
-                if self.subtract_orbit_model:
-                    orbit_model4data = np.zeros(self.rvmod.shape)
-                else:
-                    orbit_model4data = self.rvmod
+        # phase-folded plots
+        if not nophase:
+            gs_phase = gridspec.GridSpec(self.phase_nrows, self.phase_ncols)
 
-                self.plot_gp_like(like, orbit_model4data, ci)
-
-                # plot data
-                plot.mtelplot(
-                    # data = residuals + model
-                    self.plttimes, self.rawresid+orbit_model4data, self.rverr,
-                    self.post.likelihood.telvec, ax, telfmts=self.telfmts
+            if self.phase_ncols == 1:
+                gs_phase.update(
+                    left=0.12, right=0.93,
+                    top=divide - self.rv_phase_space * 0.5,
+                    bottom=0.07, hspace=0.003
+                )
+            else:
+                gs_phase.update(
+                    left=0.12, right=0.93,
+                    top=divide - self.rv_phase_space * 0.5,
+                    bottom=0.07, hspace=0.25, wspace=0.25
                 )
 
-                ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)    
-                pl.setp(ax.get_xticklabels(), visible=False)
+            for i in range(self.num_planets):
+                i_row = int(i / self.phase_ncols)
+                i_col = int(i - i_row * self.phase_ncols)
+                ax_phase = pl.subplot(gs_phase[i_row, i_col])
+                self.ax_list += [ax_phase]
 
-                # legend
-                if self.legend and i == 1:
-                    ax.legend(numpoints=1, **self.legend_kwargs)
+                pl.sca(ax_phase)
+                self.plot_phasefold(pltletter, i+1)
+                pltletter += 1
 
-                # years on upper axis
-                if i == 1:
-                    axyrs = ax.twiny()
-                    xl = np.array(list(ax.get_xlim())) + self.epoch
-                    decimalyear = Time(xl, format='jd', scale='utc').decimalyear
-                    axyrs.plot(decimalyear, decimalyear)
-                    axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
-                    axyrs.set_xlim(*decimalyear)
-                    axyrs.set_xlabel('Year', fontweight='bold')    
+        if self.saveplot is not None:
+            pl.savefig(self.saveplot, dpi=150)
+            print("RV multi-panel plot saved to %s" % self.saveplot)
 
-                plot.labelfig(pltletter)
-                pltletter += 1  
-
-            # residuals
-            ax_resid = pl.subplot(gs_rv[-1, 0])
-            self.ax_list += [ax_resid]
-
-            pl.sca(ax_resid)
-            self.plot_residuals()
-            plot.labelfig(pltletter)
-            pltletter += 1
-
-            # phase-folded plots
-            if not nophase:
-                gs_phase = gridspec.GridSpec(self.phase_nrows, self.phase_ncols)
-
-                if self.phase_ncols == 1:
-                    gs_phase.update(left=0.12, right=0.93,
-                                    top=divide - self.rv_phase_space * 0.5,
-                                    bottom=0.07, hspace=0.003)
-                else:
-                    gs_phase.update(left=0.12, right=0.93,
-                                    top=divide - self.rv_phase_space * 0.5,
-                                    bottom=0.07, hspace=0.25, wspace=0.25)
-
-                for i in range(self.num_planets):
-                    i_row = int(i / self.phase_ncols)
-                    i_col = int(i - i_row * self.phase_ncols)
-                    ax_phase = pl.subplot(gs_phase[i_row, i_col])
-                    self.ax_list += [ax_phase]
-
-                    pl.sca(ax_phase)
-                    self.plot_phasefold(pltletter, i+1)
-                    pltletter += 1
-
-            if self.saveplot is not None:
-                pl.savefig(self.saveplot, dpi=150)
-                print("RV multi-panel plot saved to %s" % self.saveplot)
-
-            return fig, self.ax_list
+        return fig, self.ax_list
