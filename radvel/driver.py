@@ -6,6 +6,7 @@ the `cli.py` command line interface.
 from __future__ import print_function
 
 import radvel
+from radvel.likelihood import GPLikelihood
 from radvel.plot import orbit_plots, mcmc_plots
 from radvel.mcmc import statevars
 
@@ -67,7 +68,7 @@ def plots(args):
             if hasattr(P, 'bjd0'):
                 args.plotkw['epoch'] = P.bjd0
 
-            if args.gp:
+            if args.gp or isinstance(post.likelihood, GPLikelihood):
                 GPPlot = orbit_plots.GPMultipanelPlot(
                     post, saveplot=saveto, **args.plotkw
                 )
