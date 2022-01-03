@@ -9,7 +9,7 @@ warnings.simplefilter('once')
 KERNELS = {
     # "SqExp": ['gp_length', 'gp_amp'],
     # "Per": ['gp_per', 'gp_length', 'gp_amp'],
-    "QuasiPer": ['gp_per', 'gp_perlength', 'gp_explength', 'gp_amp'],
+    "QuasiPer": ['gp_per', 'gp_perlength', 'gp_explength'],
 }
 
 ABC = abc.ABC
@@ -269,7 +269,7 @@ class QuasiPerKernel(Kernel):
         except KeyError:
             raise KeyError("QuasiPerKernel requires hyperparameters" \
                            + " 'gp_perlength', ''gp_per', " \
-                           + "and 'gp_explength', plus one 'gp_amp_*' for each" +
+                           + "and 'gp_explength', plus one 'gp_amp_*' for each " +
                            "instrument.")
         except AttributeError:
             raise AttributeError("QuasiPerKernel requires dictionary of" \

@@ -197,31 +197,32 @@ def test_kernels():
     kernel_list = radvel.gp.KERNELS
 
     for kernel in kernel_list:
-        hnames = kernel_list[kernel] # gets list of hyperparameter name strings
+        amps_array = ['gp_amp_HIRES'] * 3
+        hnames = kernel_list[kernel] + ['gp_amp_HIRES'] # gets list of hyperparameter name strings
         hyperparams = {k: radvel.Parameter(value=1.) for k in hnames}
         kernel_call = getattr(radvel.gp, kernel + "Kernel")
-        test_kernel = kernel_call(hyperparams)
+        test_kernel = kernel_call(hyperparams, amps_array=amps_array)
 
         x = np.array([1.,2.,3.])
         test_kernel.compute_distances(x,x)
         test_kernel.compute_covmatrix(x.T)
 
-        print("Testing {}".format(kernel_call(hyperparams)))
+        print("Testing {}".format(kernel_call(hyperparams, amps_array=amps_array)))
 
         sys.stdout.write("Testing error catching with dummy hyperparameters... \n")
 
         fakeparams1 = {}
         fakeparams1['dummy'] = radvel.Parameter(value=1.0)
         try:
-            kernel_call(fakeparams1)
+            kernel_call(fakeparams1, amps_array=amps_array)
             raise Exception('Test #1 failed for {}'.format(kernel))
-        except AssertionError:
+        except KeyError:
             sys.stdout.write("passed #1\n")
 
         fakeparams2 = copy.deepcopy(hyperparams)
         fakeparams2[hnames[0]] = 1.
         try:
-            kernel_call(fakeparams2)
+            kernel_call(fakeparams2, amps_array=amps_array)
             raise Exception('Test #2 failed for {}'.format(kernel))
         except AttributeError:
             sys.stdout.write("passed #2\n")
@@ -318,12 +319,12 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
 
 
 if __name__ == '__main__':
-    test_k2()
+    # test_k2()
     #test_hd()
     #test_model_comp()
     #test_k2131()
     #test_celerite()
     # test_basis()
-    #test_kernels()
+    test_kernels()
     #test_kepler()
     #test_priors()
