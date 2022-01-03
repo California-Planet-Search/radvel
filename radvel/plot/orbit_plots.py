@@ -531,7 +531,6 @@ class GPMultipanelPlot(MultipanelPlot):
 
         self.subtract_gp_mean_model = subtract_gp_mean_model
         self.subtract_orbit_model = subtract_orbit_model
-        self.separate_orbit_gp = separate_orbit_gp
         if status is not None:
             self.status = status
 
