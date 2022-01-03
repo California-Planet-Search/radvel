@@ -130,7 +130,6 @@ Converting 'logjit' to 'jit' for you now.
             P.data.iloc[telgrps[inst]].mnvel,
             P.data.iloc[telgrps[inst]].errvel, decorr_vars=decorr_vars, 
             decorr_vectors=decorr_vectors, suffix='_'+inst,
-            # kernel_name=kernel_name, hnames=hnames,
         )
 
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]

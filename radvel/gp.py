@@ -7,8 +7,8 @@ warnings.simplefilter('once')
 
 # implemented kernels & examples of their associated hyperparameters
 KERNELS = {
-    "SqExp": ['gp_length', 'gp_amp'],
-    "Per": ['gp_per', 'gp_length', 'gp_amp'],
+    # "SqExp": ['gp_length', 'gp_amp'],
+    # "Per": ['gp_per', 'gp_length', 'gp_amp'],
     "QuasiPer": ['gp_per', 'gp_perlength', 'gp_explength', 'gp_amp'],
 }
 

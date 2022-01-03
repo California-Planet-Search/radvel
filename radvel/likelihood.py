@@ -234,7 +234,7 @@ class CompositeLikelihood(Likelihood):
     Args:
         like_list (list): list of `radvel.likelihood.RVLikelihood` objects
     """
-    def __init__(self, like_list):
+    def __init__(self, like_list, **kwargs):
         self.nlike = len(like_list)
 
         like0 = like_list[0]
