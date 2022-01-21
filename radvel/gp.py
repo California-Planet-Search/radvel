@@ -223,6 +223,115 @@ class Kernel(ABC):
 
 #         return self.covmatrix
 
+class QuasiDoublePerKernel(Kernel):
+    """
+    Class that computes and stores a quasi double periodic kernel matrix.
+    An arbitrary element, :math:`C_{ij}`, of the matrix is:
+
+    .. math::
+
+       TODO
+
+    Args:
+        hparams (dict of radvel.Parameter): dictionary containing
+            radvel.Parameter objects that are GP hyperparameters
+            of this kernel. 
+        amps_array (np.array of str): array with same length as total number
+            of data points. Each entry is the parameter name of the GP amplitude
+            that corresponds to that data point. Ex: if I have three data points,
+            the first two from Keck and the last one from Subaru, this array
+            will look like: ['Keck', 'Keck', 'Subaru']
+    """
+    @property
+    def name(self):
+        return "QuasiDoublePer"
+
+    def __init__(self, hparams, amps_array):
+
+        self.amps_array = amps_array
+        self.covmatrix = None
+        self.hparams = {}
+        for par in hparams:
+            if par.startswith('gp_perlength_a'):
+                self.hparams['gp_perlength_a'] = hparams[par]
+            if par.startswith('gp_perlength_b'):
+                self.hparams['gp_perlength_b'] = hparams[par]
+            if par.startswith('gp_amp'):
+                self.hparams[par] = hparams[par]
+            if par.startswith('gp_per_avg'):
+                self.hparams['gp_per_avg'] = hparams[par]
+            if par.startswith('gp_per_diff'):
+                self.hparams['gp_per_diff'] = hparams[par]
+            if par.startswith('gp_rel_amp'):
+                self.hparams['gp_rel_amp'] = hparams[par]
+            if par.startswith('gp_explength'):
+                self.hparams['gp_explength'] = hparams[par]
+
+        # try:
+        #     self.hparams['gp_perlength'].value
+        #     self.hparams['gp_per'].value
+        #     self.hparams['gp_explength'].value
+        # except KeyError:
+        #     raise KeyError("QuasiPerKernel requires hyperparameters" \
+        #                    + " 'gp_perlength', ''gp_per', " \
+        #                    + "and 'gp_explength', plus one 'gp_amp_*' for each " +
+        #                    "instrument.")
+        # except AttributeError:
+        #     raise AttributeError("QuasiPerKernel requires dictionary of" \
+        #                          + " radvel.Parameter objects as input.")
+
+    def __repr__(self):
+        pass
+
+    def compute_distances(self, x1, x2):
+        X1 = np.array([x1]).T
+        X2 = np.array([x2]).T
+        self.dist_p = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
+        self.dist_se = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
+
+    def compute_covmatrix(self, errors, amp_matrix=None):
+        """ Compute the covariance matrix, and optionally add errors along
+            the diagonal.
+
+            Args:
+                errors (float or numpy array): If covariance matrix is non-square,
+                    this arg must be set to 0. If covariance matrix is square,
+                    this can be a numpy array of observational errors and jitter
+                    added in quadrature.
+                amp_matrix: if set, overrides the amplitude matrix that is 
+                    multiplied into the covariance matrix. If None, the 
+                    amplitude matrix is calculated using self.amps_array.
+                    Default None.
+        """
+        perlength1 = self.hparams['gp_perlength_a'].value
+        perlength2 = self.hparams['gp_perlength_b'].value
+        amps = np.array([self.hparams[par].value for par in self.amps_array])
+        per1 = self.hparams['gp_per_avg'].value + 0.5 * self.hparams['gp_per_diff'].value
+        per2 = self.hparams['gp_per_avg'].value - 0.5 * self.hparams['gp_per_diff'].value
+        rel_amp = self.hparams['gp_rel_amp'].value
+        explength = self.hparams['gp_explength'].value
+
+        if amp_matrix is None: 
+            amp_matrix = np.dot(np.transpose([amps]), np.array([amps]))
+
+        K = amp_matrix * (
+            scipy.exp(-self.dist_se/(explength**2)) * (
+                scipy.exp((-np.sin(np.pi*self.dist_p/per1)**2.) / (2.*perlength1**2)) +
+                rel_amp * scipy.exp((-np.sin(np.pi*self.dist_p/per2)**2.) / (2.*perlength2**2))
+            )
+        )
+
+        self.covmatrix = K
+
+        # add errors along the diagonal
+        try:
+            self.covmatrix += (errors**2) * np.identity(K.shape[0])
+        except ValueError:  # errors can't be added along diagonal to a non-square array
+            assert errors == 0
+
+        return self.covmatrix
+
+
 class QuasiPerKernel(Kernel):
     """
     Class that computes and stores a quasi periodic kernel matrix.
