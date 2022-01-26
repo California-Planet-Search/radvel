@@ -238,21 +238,21 @@ class MultipanelPlot(object):
 
     def plot_residuals(self):
         """
-        Make a plot of residuals and RV trend in the current Axes.
+        Make a plot of residuals in the current Axes.
         """
         
         ax = pl.gca()
 
-        ax.plot(self.mplttimes, self.slope, 'b-', lw=self.fit_linewidth)
+        ax.plot(self.mplttimes, self.slope-self.slope, 'b-', lw=self.fit_linewidth)
 
-        plot.mtelplot(self.plttimes, self.resid, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts)
+        plot.mtelplot(self.plttimes, self.rawresid, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts)
         if not self.yscale_auto: 
-            scale = np.std(self.resid)
+            scale = np.std(self.rawresid)
             ax.set_ylim(-self.yscale_sigma * scale, self.yscale_sigma * scale)
 
         if self.highlight_last:
             ind = np.argmax(self.plttimes)
-            pl.plot(self.plttimes[ind], self.resid[ind], **plot.highlight_format)
+            pl.plot(self.plttimes[ind], self.rawresid[ind], **plot.highlight_format)
 
         if self.set_xlim is not None:
             ax.set_xlim(self.set_xlim)
