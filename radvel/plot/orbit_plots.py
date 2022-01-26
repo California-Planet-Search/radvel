@@ -73,8 +73,12 @@ class MultipanelPlot(object):
         self.yscale_sigma = yscale_sigma
         if phase_ncols is None:
             self.phase_ncols = 1
+        else:
+        	self.phase_ncols = phase_ncols
         if phase_nrows is None:
             self.phase_nrows = self.post.likelihood.model.num_planets
+        else:
+        	self.phase_nrows = phase_nrows
         self.uparams = uparams
         self.rv_phase_space = rv_phase_space
         self.telfmts = telfmts
