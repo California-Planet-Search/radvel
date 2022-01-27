@@ -692,7 +692,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 scalefactor = self.phase_nrows
 
             n_likes = len(self.like_list)
-            figheight = self.ax_rv_height*(n_likes//phase_ncols+1.5) + self.ax_phase_height * scalefactor
+            figheight = self.ax_rv_height*(n_likes//self.phase_ncols+1.5) + self.ax_phase_height * scalefactor
 
             # provision figure
             fig = pl.figure(figsize=(self.figwidth, figheight))
