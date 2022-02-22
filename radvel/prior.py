@@ -8,6 +8,10 @@ from radvel import model
 from radvel import orbit
 from radvel import utils
 
+# unused but needed because it allows pickling of KDE 
+# https://github.com/scikit-learn/scikit-learn/issues/9467
+import dill
+
 
 class Prior(object):
     def __repr__(self):
