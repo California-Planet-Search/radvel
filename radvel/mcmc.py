@@ -79,26 +79,29 @@ def _status_message_NB(statevars):
 
 def _status_message_CLI(statevars):
 
-    statevars.screen = curses.initscr()
+    try:
+        statevars.screen = curses.initscr()
 
-    statevars.screen.clear()
+        statevars.screen.clear()
 
-    barline = _progress_bar(statevars.ncomplete, statevars.totsteps)
+        barline = _progress_bar(statevars.ncomplete, statevars.totsteps)
 
-    msg1 = (
-            barline + " {:d}/{:d} ({:3.1f}%) steps complete; "
-    ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete)
+        msg1 = (
+                barline + " {:d}/{:d} ({:3.1f}%) steps complete; "
+        ).format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete)
 
-    msg2 = (
-        "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
-        "Min Auto Factor = {:3.0f}; \nMax Auto Relative-Change = {:5.3}; "
-        "Min Tz = {:.1f}; Max G-R = {:5.3f}\n"
-    ).format(statevars.rate, statevars.ar, statevars.minafactor, statevars.maxarchange,
-             statevars.mintz, statevars.maxgr)
+        msg2 = (
+            "Running {:.2f} steps/s; Mean acceptance rate = {:3.1f}%; "
+            "Min Auto Factor = {:3.0f}; \nMax Auto Relative-Change = {:5.3}; "
+            "Min Tz = {:.1f}; Max G-R = {:5.3f}\n"
+        ).format(statevars.rate, statevars.ar, statevars.minafactor, statevars.maxarchange,
+                statevars.mintz, statevars.maxgr)
 
-    statevars.screen.addstr(0, 0, msg1+ '\n' + msg2)
+        statevars.screen.addstr(0, 0, msg1+ '\n' + msg2)
 
-    statevars.screen.refresh()
+        statevars.screen.refresh()
+    except curses.error:
+        pass
 
 
 def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent, headless):
@@ -188,7 +191,7 @@ def _domcmc(input_tuple):
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=40, maxArchange=.03, burnAfactor=25,
          burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=False,
-         savename=None, proceed=False, proceedname=None, headless=False):
+         savename=None, proceed=False, proceedname=None, headless=False, init_pscale=0.010):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -301,6 +304,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         names = post.name_vary_params()
         for i,par in enumerate(post.vary_params):
             val = post.vector.vector[par][0]
+
             if post.vector.vector[par][2] == 0:
                 if names[i].startswith('per'):
                     pscale = np.abs(val * 1e-5*np.log10(val))
@@ -311,7 +315,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                 elif val == 0:
                     pscale = .00001
                 else:
-                    pscale = np.abs(0.10 * val)
+                    pscale = np.abs(init_pscale * val)
                 post.vector.vector[par][2] = pscale
             else:
                 pscale = post.vector.vector[par][2]
