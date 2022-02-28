@@ -2,6 +2,7 @@ import scipy
 import abc
 import numpy as np
 import warnings
+import tinygp
 
 warnings.simplefilter('once')
 
@@ -58,514 +59,80 @@ class Kernel(ABC):
         pass
 
 
-# class SqExpKernel(Kernel):
-#     """
-#     Class that computes and stores a squared exponential kernel matrix.
-#     An arbitrary element, :math:`C_{ij}`, of the matrix is:
-
-#     .. math::
-
-#         C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 } )
-
-#     Args:
-#         hparams (dict of radvel.Parameter): dictionary containing
-#             radvel.Parameter objects that are GP hyperparameters
-#             of this kernel. Must contain exactly two objects, 'gp_length*'
-#             and 'gp_amp*', where * is a suffix identifying
-#             these hyperparameters with a likelihood object.
-
-#     """
-
-#     @property
-#     def name(self):
-#         return "SqExp"
-
-#     def __init__(self, hparams):
-#         self.covmatrix = None
-#         self.hparams = {}
-#         for par in hparams:
-#             if par.startswith('gp_length'):
-#                 self.hparams['gp_length'] = hparams[par]
-#             if par.startswith('gp_amp'):
-#                 self.hparams['gp_amp'] = hparams[par]
-
-#         assert len(hparams) == 2, \
-#             "SqExpKernel requires exactly 2 hyperparameters with names" \
-#             + "'gp_length*' and 'gp_amp*'."
-
-#         try:
-#             self.hparams['gp_length'].value
-#             self.hparams['gp_amp'].value
-#         except KeyError:
-#             raise KeyError("SqExpKernel requires hyperparameters 'gp_length*'" \
-#                            + " and 'gp_amp*'.")
-#         except AttributeError:
-#             raise AttributeError("SqExpKernel requires dictionary of" \
-#                                  + " radvel.Parameter objects as input.")
-
-#     def __repr__(self):
-#         length = self.hparams['gp_length'].value
-#         amp = self.hparams['gp_amp'].value
-#         return "SqExp Kernel with length: {}, amp: {}".format(length, amp)
-
-#     def compute_distances(self, x1, x2):
-#         X1 = np.array([x1]).T
-#         X2 = np.array([x2]).T
-#         self.dist = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
-
-#     def compute_covmatrix(self, errors):
-#         """ Compute the covariance matrix, and optionally add errors along
-#             the diagonal.
-
-#             Args:
-#                 errors (float or numpy array): If covariance matrix is non-square,
-#                     this arg must be set to 0. If covariance matrix is square,
-#                     this can be a numpy array of observational errors and jitter
-#                     added in quadrature.
-#         """
-#         length = self.hparams['gp_length'].value
-#         amp = self.hparams['gp_amp'].value
-
-#         K = amp**2 * scipy.exp(-self.dist/(length**2))
-
-#         self.covmatrix = K
-#         # add errors along the diagonal
-#         try:
-#             self.covmatrix += (errors**2) * np.identity(K.shape[0])
-#         except ValueError: # errors can't be added along diagonal to a non-square array
-#             pass
-
-#         return self.covmatrix
-
-
-# class PerKernel(Kernel):
-#     """
-#     Class that computes and stores a periodic kernel matrix.
-#     An arbitrary element, :math:`C_{ij}`, of the matrix is:
-
-#     .. math::
-
-#         C_{ij} = \\eta_1^2 * exp( \\frac{ -\\sin^2(\\frac{ \\pi|t_i-t_j| }{ \\eta_3^2 } ) }{ 2\\eta_2^2 } )
-
-#     Args:
-#         hparams (dict of radvel.Parameter): dictionary containing
-#             radvel.Parameter objects that are GP hyperparameters
-#             of this kernel. Must contain exactly three objects, 'gp_length*',
-#             'gp_amp*', and 'gp_per*', where * is a suffix identifying
-#             these hyperparameters with a likelihood object.
-
-#     """
-
-#     @property
-#     def name(self):
-#         return "Per"
-
-#     def __init__(self, hparams):
-#         self.covmatrix = None
-#         self.hparams = {}
-#         for par in hparams:
-#             if par.startswith('gp_length'):
-#                 self.hparams['gp_length'] = hparams[par]
-#             if par.startswith('gp_amp'):
-#                 self.hparams['gp_amp'] = hparams[par]
-#             if par.startswith('gp_per'):
-#                 self.hparams['gp_per'] = hparams[par]
-
-#         assert len(hparams) == 3, \
-#             "PerKernel requires exactly 3 hyperparameters with names 'gp_length*'," \
-#             + " 'gp_amp*', and 'gp_per*'."
-
-#         try:
-#             self.hparams['gp_length'].value
-#             self.hparams['gp_amp'].value
-#             self.hparams['gp_per'].value
-#         except KeyError:
-#             raise KeyError("PerKernel requires hyperparameters 'gp_length*'," \
-#                            + " 'gp_amp*', and 'gp_per*'.")
-#         except AttributeError:
-#             raise AttributeError("PerKernel requires dictionary of " \
-#                                  + "radvel.Parameter objects as input.")
-
-#     def __repr__(self):
-#         length = self.hparams['gp_length'].value
-#         amp = self.hparams['gp_amp'].value
-#         per = self.hparams['gp_per'].value
-#         return "Per Kernel with length: {}, amp: {}, per: {}".format(
-#             length, amp, per
-#         )
-
-#     def compute_distances(self, x1, x2):
-#         X1 = np.array([x1]).T
-#         X2 = np.array([x2]).T
-#         self.dist = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
-
-#     def compute_covmatrix(self, errors):
-#         """ Compute the covariance matrix, and optionally add errors along
-#             the diagonal.
-
-#             Args:
-#                 errors (float or numpy array): If covariance matrix is non-square,
-#                     this arg must be set to 0. If covariance matrix is square,
-#                     this can be a numpy array of observational errors and jitter
-#                     added in quadrature.
-#         """
-#         length= self.hparams['gp_length'].value
-#         amp = self.hparams['gp_amp'].value
-#         per = self.hparams['gp_per'].value
-
-#         K = amp**2 * scipy.exp(-np.sin(np.pi*self.dist/per)**2. / (2.*length**2))
-#         self.covmatrix = K
-#         # add errors along the diagonal
-#         try:
-#             self.covmatrix += (errors**2) * np.identity(K.shape[0])
-#         except ValueError:  # errors can't be added along diagonal to a non-square array
-#             pass
-
-#         return self.covmatrix
-
-class QuasiDoublePerKernel(Kernel):
-    """
-    Class that computes and stores a quasi double periodic kernel matrix.
-    An arbitrary element, :math:`C_{ij}`, of the matrix is:
-
-    .. math::
-
-       TODO
-
-    Args:
-        hparams (dict of radvel.Parameter): dictionary containing
-            radvel.Parameter objects that are GP hyperparameters
-            of this kernel. 
-        amps_array (np.array of str): array with same length as total number
-            of data points. Each entry is the parameter name of the GP amplitude
-            that corresponds to that data point. Ex: if I have three data points,
-            the first two from Keck and the last one from Subaru, this array
-            will look like: ['Keck', 'Keck', 'Subaru']
-    """
-    @property
-    def name(self):
-        return "QuasiDoublePer"
-
-    def __init__(self, hparams, amps_array):
-
-        self.amps_array = amps_array
-        self.covmatrix = None
-        self.hparams = {}
-        for par in hparams:
-            if par.startswith('gp_perlength_a'):
-                self.hparams['gp_perlength_a'] = hparams[par]
-            if par.startswith('gp_perlength_b'):
-                self.hparams['gp_perlength_b'] = hparams[par]
-            if par.startswith('gp_amp'):
-                self.hparams[par] = hparams[par]
-            if par.startswith('gp_per_avg'):
-                self.hparams['gp_per_avg'] = hparams[par]
-            if par.startswith('gp_per_diff'):
-                self.hparams['gp_per_diff'] = hparams[par]
-            if par.startswith('gp_rel_amp'):
-                self.hparams['gp_rel_amp'] = hparams[par]
-            if par.startswith('gp_explength'):
-                self.hparams['gp_explength'] = hparams[par]
-
-        # try:
-        #     self.hparams['gp_perlength'].value
-        #     self.hparams['gp_per'].value
-        #     self.hparams['gp_explength'].value
-        # except KeyError:
-        #     raise KeyError("QuasiPerKernel requires hyperparameters" \
-        #                    + " 'gp_perlength', ''gp_per', " \
-        #                    + "and 'gp_explength', plus one 'gp_amp_*' for each " +
-        #                    "instrument.")
-        # except AttributeError:
-        #     raise AttributeError("QuasiPerKernel requires dictionary of" \
-        #                          + " radvel.Parameter objects as input.")
-
-    def __repr__(self):
-        pass
-
-    def compute_distances(self, x1, x2):
-        X1 = np.array([x1]).T
-        X2 = np.array([x2]).T
-        self.dist_p = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
-        self.dist_se = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
-
-    def compute_covmatrix(self, errors, amp_matrix=None):
-        """ Compute the covariance matrix, and optionally add errors along
-            the diagonal.
-
-            Args:
-                errors (float or numpy array): If covariance matrix is non-square,
-                    this arg must be set to 0. If covariance matrix is square,
-                    this can be a numpy array of observational errors and jitter
-                    added in quadrature.
-                amp_matrix: if set, overrides the amplitude matrix that is 
-                    multiplied into the covariance matrix. If None, the 
-                    amplitude matrix is calculated using self.amps_array.
-                    Default None.
-        """
-        perlength1 = self.hparams['gp_perlength_a'].value
-        perlength2 = self.hparams['gp_perlength_b'].value
-        amps = np.array([self.hparams[par].value for par in self.amps_array])
-        per1 = self.hparams['gp_per_avg'].value + 0.5 * self.hparams['gp_per_diff'].value
-        per2 = self.hparams['gp_per_avg'].value - 0.5 * self.hparams['gp_per_diff'].value
-        rel_amp = self.hparams['gp_rel_amp'].value
-        explength = self.hparams['gp_explength'].value
-
-        if amp_matrix is None: 
-            amp_matrix = np.dot(np.transpose([amps]), np.array([amps]))
-
-        K = amp_matrix * (
-            scipy.exp(-self.dist_se/(explength**2)) * (
-                scipy.exp((-np.sin(np.pi*self.dist_p/per1)**2.) / (2.*perlength1**2)) +
-                rel_amp * scipy.exp((-np.sin(np.pi*self.dist_p/per2)**2.) / (2.*perlength2**2))
-            )
-        )
-
-        self.covmatrix = K
-
-        # add errors along the diagonal
-        try:
-            self.covmatrix += (errors**2) * np.identity(K.shape[0])
-        except ValueError:  # errors can't be added along diagonal to a non-square array
-            assert errors == 0
-
-        return self.covmatrix
-
-
-class QuasiPerKernel(Kernel):
-    """
-    Class that computes and stores a quasi periodic kernel matrix.
-    An arbitrary element, :math:`C_{ij}`, of the matrix is:
-
-    .. math::
-
-        C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 } -
-                 \\frac{ \\sin^2(\\frac{ \\pi|t_i-t_j| }{ \\eta_3 } ) }{ 2\\eta_4^2 } )
-
-    Args:
-        hparams (dict of radvel.Parameter): dictionary containing
-            radvel.Parameter objects that are GP hyperparameters
-            of this kernel. 
-        amps_array (np.array of str): array with same length as total number
-            of data points. Each entry is the parameter name of the GP amplitude
-            that corresponds to that data point. Ex: if I have three data points,
-            the first two from Keck and the last one from Subaru, this array
-            will look like: ['Keck', 'Keck', 'Subaru']
-    """
-    @property
-    def name(self):
-        return "QuasiPer"
-
-    def __init__(self, hparams, amps_array):
-
-        self.amps_array = amps_array
-        self.covmatrix = None
-        self.hparams = {}
-        for par in hparams:
-            if par.startswith('gp_perlength'):
-                self.hparams['gp_perlength'] = hparams[par]
-            if par.startswith('gp_amp'):
-                self.hparams[par] = hparams[par]
-            if par.startswith('gp_per') and not 'length' in par:
-                self.hparams['gp_per'] = hparams[par]
-            if par.startswith('gp_explength'):
-                self.hparams['gp_explength'] = hparams[par]
-
-        try:
-            self.hparams['gp_perlength'].value
-            self.hparams['gp_per'].value
-            self.hparams['gp_explength'].value
-        except KeyError:
-            raise KeyError("QuasiPerKernel requires hyperparameters" \
-                           + " 'gp_perlength', ''gp_per', " \
-                           + "and 'gp_explength', plus one 'gp_amp_*' for each " +
-                           "instrument.")
-        except AttributeError:
-            raise AttributeError("QuasiPerKernel requires dictionary of" \
-                                 + " radvel.Parameter objects as input.")
-
-    def __repr__(self):
-        perlength = self.hparams['gp_perlength'].value
-        amp = [x for x in self.hparams.keys() if x.startswith('gp_amp')]
-        per = self.hparams['gp_per'].value
-        explength = self.hparams['gp_explength'].value
-
-        msg = (
-            "QuasiPer Kernel with amps: {}, per length: {}, per: {}, "
-            "exp length: {}"
-        ).format(amp, perlength, per, explength)
-        return msg
-
-    def compute_distances(self, x1, x2):
-        X1 = np.array([x1]).T
-        X2 = np.array([x2]).T
-        self.dist_p = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
-        self.dist_se = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
-
-    def compute_covmatrix(self, errors, amp_matrix=None):
-        """ Compute the covariance matrix, and optionally add errors along
-            the diagonal.
-
-            Args:
-                errors (float or numpy array): If covariance matrix is non-square,
-                    this arg must be set to 0. If covariance matrix is square,
-                    this can be a numpy array of observational errors and jitter
-                    added in quadrature.
-                amp_matrix: if set, overrides the amplitude matrix that is 
-                    multiplied into the covariance matrix. If None, the 
-                    amplitude matrix is calculated using self.amps_array.
-                    Default None.
-        """
-        perlength = self.hparams['gp_perlength'].value
-        amps = np.array([self.hparams[par].value for par in self.amps_array])
-        per = self.hparams['gp_per'].value
-        explength = self.hparams['gp_explength'].value
-
-        if amp_matrix is None: 
-            amp_matrix = np.dot(np.transpose([amps]), np.array([amps]))
-
-        K = amp_matrix * (
-            scipy.exp(-self.dist_se/(explength**2)) *
-            scipy.exp((-np.sin(np.pi*self.dist_p/per)**2.) / 
-            (2.*perlength**2))
-        )
-
-        self.covmatrix = K
-
-        # add errors along the diagonal
-        try:
-            self.covmatrix += (errors**2) * np.identity(K.shape[0])
-        except ValueError:  # errors can't be added along diagonal to a non-square array
-            assert errors == 0
-
-        return self.covmatrix
-
-
-# class CeleriteKernel(Kernel):
-#     """
-#     Class that computes and stores a matrix approximating the quasi-periodic
-#     kernel.
-
-#     See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
-#     file that uses this Kernel object.
-
-#     See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
-#     (equation 56) for more details.
-
-#     An arbitrary element, :math:`C_{ij}`, of the matrix is:
-
-#     .. math::
-
-#         C_{ij} = B/(2+C) * exp( -|t_i - t_j| / L) * (\\cos(\\frac{ 2\\pi|t_i-t_j| }{ P_{rot} }) + (1+C) )
-
-#     Args:
-#         hparams (dict of radvel.Parameter): dictionary containing
-#             radvel.Parameter objects that are GP hyperparameters
-#             of this kernel. Must contain exactly four objects, 'gp_B*',
-#             'gp_C*', 'gp_L*', and 'gp_Prot*', where * is a suffix
-#             identifying these hyperparameters with a likelihood object.
-#     """
-
-#     @property
-#     def name(self):
-#         return "Celerite"
-
-#     def __init__(self, hparams):
-
-#         self.hparams = {}
-#         for par in hparams:
-#             if par.startswith('gp_B'):
-#                 self.hparams['gp_B'] = hparams[par]
-#             if par.startswith('gp_C'):
-#                 self.hparams['gp_C'] = hparams[par]
-#             if par.startswith('gp_L'):
-#                 self.hparams['gp_L'] = hparams[par]
-#             if par.startswith('gp_Prot'):
-#                 self.hparams['gp_Prot'] = hparams[par]
-
-#         assert len(self.hparams) == 4, """
-# CeleriteKernel requires exactly 4 hyperparameters with names 'gp_B', 'gp_C', 'gp_L', and 'gp_Prot'.
-#         """
-
-#         try:
-#             self.hparams['gp_Prot'].value
-#             self.hparams['gp_C'].value
-#             self.hparams['gp_B'].value
-#             self.hparams['gp_L'].value
-#         except KeyError:
-#             raise KeyError("""
-# CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'.
-#                 """)
-#         except AttributeError:
-#             raise AttributeError("CeleriteKernel requires dictionary of radvel.Parameter objects as input.")
-
-#     # get arrays of real and complex parameters
-#     def compute_real_and_complex_hparams(self):
-
-#         self.real = np.zeros((1, 4))
-#         self.complex = np.zeros((1, 4))
-
-#         B = self.hparams['gp_B'].value
-#         C = self.hparams['gp_C'].value
-#         L = self.hparams['gp_L'].value
-#         Prot = self.hparams['gp_Prot'].value
-
-#         # Foreman-Mackey et al. (2017) eq 56
-#         self.real[0,0] = B*(1+C)/(2+C)
-#         self.real[0,2] = 1/L
-#         self.complex[0,0] = B/(2+C)
-#         self.complex[0,1] = 0.
-#         self.complex[0,2] = 1/L
-#         self.complex[0,3] = 2*np.pi/Prot
-
-#     def __repr__(self):
-
-#         B = self.hparams['gp_B'].value
-#         C = self.hparams['gp_C'].value
-#         L = self.hparams['gp_L'].value
-#         Prot = self.hparams['gp_Prot'].value
-
-#         msg = (
-#             "Celerite Kernel with B = {}, C = {}, L = {}, Prot = {}."
-#         ).format(B, C, L, Prot)
-#         return msg
-
-#     def compute_distances(self, x1, x2):
-#         """
-#         The celerite.solver.CholeskySolver object does
-#         not require distances to be precomputed, so
-#         this method has been co-opted to define some
-#         unchanging variables.
-#         """
-#         self.x = x1
-
-#         # blank matrices (corresponding to Cholesky decomp of kernel) needed for celerite solver
-#         self.A = np.empty(0)
-#         self.U = np.empty((0,0))
-#         self.V = self.U
-
-
-#     def compute_covmatrix(self, errors):
-#         """ Compute the Cholesky decomposition of a celerite kernel
-
-#             Args:
-#                 errors (array of float): observation errors and jitter added
-#                     in quadrature
-
-#             Returns:
-#                 celerite.solver.CholeskySolver: the celerite solver object,
-#                 with Cholesky decomposition computed.
-#         """
-#         # initialize celerite solver object
-#         solver = CholeskySolver()
-
-#         self.compute_real_and_complex_hparams()
-#         solver.compute(
-#             0., self.real[:,0], self.real[:,2],
-#             self.complex[:,0], self.complex[:,1],
-#             self.complex[:,2], self.complex[:,3],
-#             self.A, self.U, self.V,
-#             self.x, errors**2
-#         )
-
-#         return solver
+class TwoPerTiny(tinygp.kernels.Kernel):
+    def __init__(
+        self, hparams_dict, inst_indices, inst_X1=None, inst_x2=None
+    ):
+        #  hparams_dict: key(param name) -> Parameter object
+
+        # self.perA = hparams_dict['perA']
+        # self.perB = hparams_dict['per2']
+        # self.perlenA = hparams_dict['perlen1']
+        # self.perlenB = hparams_dict['perlen2'] #TODO: check that these automatically update when parameters array is updated
+
+        self.amps_groupA = [hparams_dict[par] for par in hparams_dict.keys() if par.startswith('amp_groupA_')] # list of param objects [amp_groupA_sub, amp_groupA_keck,amp_groupA_neid]
+        self.amps_groupB = [hparams_dict[par] for par in hparams_dict.keys() if par.startswith('amp_groupB_')] 
+
+        self.inst_X1 = inst_X1 # str (either None or suffix)
+        self.inst_X2 = inst_x2 # str
+        self.inst_arr = inst_indices # {'keck':[0,1,2,7], 'sub':[3,4], 'neid':[5,6]
+
+
+    def evaluate(self, X1, X2):
+
+        amp1_groupA = jnp.empty(len(X1))
+        amp2_groupA = jnp.empty(len(X2))
+        amp1_groupB = jnp.empty(len(X1))
+        amp2_groupB = jnp.empty(len(X2))
+
+
+        if self.inst_X1 is None:
+
+            # set amplitude array for first periodic component
+            for instname in self.inst_arr.keys(): # ['keck', 'sub','neid']
+                amp1_groupA[self.inst_arr[instname]] = self.hparams_dict[
+                    'amp_groupA_{}'.format(instname)
+                ].value
+
+            # set amplitude array for second periodic component
+            for instname in self.inst_arr.keys(): # ['keck', 'sub','neid']
+                amp1_groupB[self.inst_arr[instname]] = self.hparams_dict[
+                    'amp_groupB_{}'.format(instname)
+                ].value
+        else:
+            # amp arrays all for single instrument
+            amp1_groupA = self.hparams_dict['amp_groupA_{}'.format(self.inst_X1)].value
+            amp1_groupB = self.hparams_dict['amp_groupB_{}'.format(self.inst_X1)].value
+
+
+        if self.inst_X2 is None:
+
+            # set amplitude array for first periodic component
+            for instname in self.inst_arr.keys(): # ['keck', 'sub','neid']
+                amp2_groupA[self.inst_arr[instname]] = self.hparams_dict[
+                    'amp_groupA_{}'.format(instname)
+                ].value
+
+            # set amplitude array for second periodic component
+            for instname in self.inst_arr.keys(): # ['keck', 'sub','neid']
+                amp2_groupB[self.inst_arr[instname]] = self.hparams_dict[
+                    'amp_groupB_{}'.format(instname)
+                ].value
+        else:
+            # amp arrays all for single instrument
+            amp2_groupA = self.hparams_dict['amp_groupA_{}'.format(self.inst_X1)].value
+            amp2_groupB = self.hparams_dict['amp_groupB_{}'.format(self.inst_X1)].value
+
+
+        tau = jnp.abs(X1 - X2)
+
+        perA_term = jnp.sin(jnp.pi * tau / self.hparams_dict['perA'])**2
+        perB_term = jnp.sin(jnp.pi * tau / self.hparams_dict['perB'])**2
+
+        perA_kernel = jnp.exp( -perA_term / (self.hparams_dict['perlenA']**2))
+        perB_kernel = jnp.exp( -perB_term / (self.hparams_dict['perlenB']**2))
+
+        total_kernel = (amp1_groupA * amp2_groupA *  perA_kernel) + (amp1_groupB * amp2_groupB * perB_kernel)
+
+        return total_kernel
+

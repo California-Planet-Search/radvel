@@ -3,7 +3,7 @@ import radvel.model
 from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
 import warnings
-
+import tinygp
 
 _has_celerite = gp._try_celerite()
 if _has_celerite:
@@ -413,37 +413,38 @@ class GPLikelihood(CompositeLikelihood):
         like_list: list of `radvel.likelihood.RVLikelihood` objects
         hnames (list of str): names of all parameters to be passed to the gp.Kernel
             class to compute covariance matrices.
-        kernel_name (str): one of gp.KERNELS.keys()
+        kernel_name: TODO
+
+    TODO: w/help from DFM!
 
     """
-    def __init__(self, like_list, hnames=None, kernel_name="QuasiPer", **kwargs):
+    def __init__(self, like_list, kernel_name='QuasiPer', hnames=None, **kwargs):
 
         super(GPLikelihood, self).__init__(like_list)
-
-        self.hnames = hnames  # list of string names of hyperparameters
-        self.hyperparams = {k: self.params[k] for k in self.hnames}
-        self.N = len(self.x)
 
         self.inst_indices = np.arange(self.N)
         self.insts = np.unique(self.telvec)
         for i in range(len(self.insts)):
             self.inst_indices[self.telvec == self.insts[i]] = i
 
-        amp_array = np.empty(self.N, dtype=object)
-        for i in range(len(self.insts)):
-            amp_array[self.inst_indices == i] = 'gp_amp_{}'.format(self.insts[i])
+        self.kernel_call = getattr(tinygp.kernels, kernel_name)
+        self.kernel = self.kernel_call(self.params, self.inst_indices)
 
-        self.kernel_call = getattr(gp, kernel_name + "Kernel")
-        self.kernel = self.kernel_call(self.hyperparams, amp_array)
+    def build_gp(self):
 
-        self.kernel.compute_distances(self.x, self.x)
+       #  TODO: check if params are getting automatically updated
 
-    def update_kernel_params(self):
+        kernel = self.kernel_call(self.params, self.inst_indices)
+        gp_object = tinygp.GaussianProcess(kernel, diag=jitter)
 
-        for key in self.vector.indices:
-            if key in self.hnames:
-                hparams_key = key
-                self.kernel.hparams[hparams_key].value = self.vector.vector[self.vector.indices[key]][0]
+        return gp_object
+
+        # for key in self.vector.indices:
+        #     if key in self.hnames:
+        #         hparams_key = key
+        #         self.kernel.hparams[hparams_key].value = self.vector.vector[self.vector.indices[key]][0]
+
+
 
     def _resids(self):
 
@@ -453,6 +454,7 @@ class GPLikelihood(CompositeLikelihood):
             gammas[self.inst_indices == i] = self.vector.vector[self.vector.indices[gamma_key]][0]
 
         res = self.y  - self.model(self.x) - gammas
+
         return res
 
     def residuals(self):
@@ -463,47 +465,29 @@ class GPLikelihood(CompositeLikelihood):
             gammas[self.inst_indices == i] = self.vector.vector[self.vector.indices[gamma_key]][0]
 
         mu_pred, _ = self.predict(self.x)
-        res = self.y - self.model(self.x) - mu_pred - gammas
+        res = self.y - self.model(self.x)  - gammas - mu_pred
         return res
 
     def logprob(self):
-        # update the Kernel object hyperparameter values
-        self.update_kernel_params()
 
+        # rebuild the gp object with updated hyperparameter values
+        tinygp_object = self.build_gp()
+
+        # calculation Keplerian residuals
         r = self._resids()
 
-        self.kernel.compute_covmatrix(self.errorbars())
-
-        K = self.kernel.covmatrix
-
-        # solve alpha = inverse(K)*r
-        try:
-            alpha = cho_solve(cho_factor(K),r)
-
-            # compute determinant of K
-            (s,d) = np.linalg.slogdet(K)
-
-            # calculate likelihood
-            like = -.5 * (np.dot(r, alpha) + d + self.N*np.log(2.*np.pi))
-            return like
-
-        except (np.linalg.linalg.LinAlgError, ValueError):
-            warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
-            return -np.inf
+        # log likelihood is updated GP conditioned on Keplerian residuals
+        return tinygp_object.condition(r)
 
 
-    def predict(self, xpred, amp_param_name=None):
+    def predict(self, xpred, inst_name):
         """
         Compute a GP prediction at new times given the current parameter values
         stored in this GPLikelihood object.
 
         Args:
             xpred (np.array of float): times at which to compute prediction
-            amp_param_name (str): if set, the name of the GP amplitude parameter
-                that we'll use to make the prediction (i.e. we'll use the GP to 
-                predict the RV value measured by this instrument at all `xpred`).
-                If None, then xpred must be equal to the timestamps of all
-                input data points (i.e. self.x). Default None. 
+            inst_name: TODO
 
         Returns:
             tuple of:
@@ -511,148 +495,16 @@ class GPLikelihood(CompositeLikelihood):
                 - GP standard deviation of prediction at each input time
         """
 
-        self.update_kernel_params()
+
+        # rebuild the gp object with updated hyperparameter values
+        tinygp_object = self.build_gp()
 
         r = np.array([self._resids()]).T
 
-        self.kernel.compute_distances(self.x, self.x)
-        K = self.kernel.compute_covmatrix(self.errorbars())
-
-        self.kernel.compute_distances(xpred, self.x)
-
-        # set the GP amplitude for every predicted location to be
-        #   that of the instrument we're making the prediction for
-        if amp_param_name is not None:
-            xpred_amps = (
-                np.ones(len(xpred)) * 
-                self.kernel.hparams[amp_param_name].value
-            )
-            data_amps = np.array([
-                self.kernel.hparams[par].value for par in self.kernel.amps_array
-            ])
-            amp_matrix = (
-                xpred_amps.reshape(len(xpred),1) @ 
-                data_amps.reshape(1,self.N)
-            )
-        else:
-            amp_matrix=None
-
-        Ks = self.kernel.compute_covmatrix(0., amp_matrix=amp_matrix)
-
-        L = cho_factor(K)
-        alpha = cho_solve(L, r)
-        mu = np.dot(Ks, alpha).flatten()
-
-        self.kernel.compute_distances(xpred, xpred)
-
-        # set the GP amplitude for every covariance matrix point to be 
-        #   that of the instrument we're making the prediction for
-        if amp_param_name is not None:
-            amp_matrix = [self.kernel.hparams[amp_param_name].value**2]
-        else:
-            amp_matrix=None
-
-        Kss = self.kernel.compute_covmatrix(0., amp_matrix=amp_matrix)
-        B = cho_solve(L, Ks.T)
-        var = np.array(np.diag(Kss - np.dot(Ks, B))).flatten()
+        mu, var = tinygp_object.predict(r, xpred)
         stdev = np.sqrt(var)
 
-        # set the default distances back to their regular values
-        self.kernel.compute_distances(self.x, self.x)
-
         return mu, stdev
-
-# class CeleriteLikelihood(GPLikelihood):
-#     """Celerite GP Likelihood
-#     The Likelihood object for a radial velocity dataset modeled with a GP
-#     whose kernel is an approximation to the quasi-periodic kernel.
-#     See celerite.readthedocs.io and Foreman-Mackey et al. 2017. AJ, 154, 220
-#     (equation 56) for more details.
-#     See `radvel/example_planets/k2-131_celerite.py` for an example of a setup
-#     file that uses this Likelihood object.
-#     Args:
-#         model (radvel.model.RVModel): RVModel object
-#         t (array): time array
-#         vel (array): array of velocities
-#         errvel (array): array of velocity uncertainties
-#         hnames (list of string): keys corresponding to radvel.Parameter
-#            objects in model.params that are GP hyperparameters
-#         suffix (string): suffix to identify this Likelihood object;
-#            useful when constructing a `CompositeLikelihood` object
-#     """
-
-#     def __init__(self, model, t, vel, errvel, hnames, suffix='', **kwargs):
-
-#         super(CeleriteLikelihood, self).__init__(
-#             model, t, vel, errvel, hnames,
-#             suffix=suffix, kernel_name='Celerite'
-#         )
-
-#         # Sort inputs in time order. Required for celerite calculations.
-#         order = np.argsort(self.x)
-#         self.x = self.x[order]
-#         self.y = self.y[order]
-#         self.yerr = self.yerr[order]
-#         self.N = len(self.x)
-
-#     def logprob(self):
-
-#         self.update_kernel_params()
-
-#         try:
-#             solver = self.kernel.compute_covmatrix(self.errorbars())
-
-#             # calculate log likelihood
-#             lnlike = -0.5 * (solver.dot_solve(self._resids()) + solver.log_determinant() + self.N*np.log(2.*np.pi))
-
-#             return lnlike
-
-#         except celerite.solver.LinAlgError:
-#             warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
-#             return -np.inf
-
-#     def predict(self,xpred):
-#         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
-#             Used for making GP plots. Wrapper for `celerite.GP.predict()`.
-#             Args:
-#                 xpred (np.array): numpy array of x values for realizing the GP
-#             Returns:
-#                 tuple: tuple containing:
-#                     np.array: numpy array of predictive means \n
-#                     np.array: numpy array of predictive standard deviations
-#         """
-
-#         self.update_kernel_params()
-
-#         B = self.kernel.hparams['gp_B'].value
-#         C = self.kernel.hparams['gp_C'].value
-#         L = self.kernel.hparams['gp_L'].value
-#         Prot = self.kernel.hparams['gp_Prot'].value
-
-#         # build celerite kernel with current values of hparams
-#         kernel = celerite.terms.JitterTerm(
-#                 log_sigma = np.log(self.vector.vector[self.jit_index][0])
-#                 )
-
-#         kernel += celerite.terms.RealTerm(
-#             log_a=np.log(B*(1+C)/(2+C)),
-#             log_c=np.log(1/L)
-#         )
-
-#         kernel += celerite.terms.ComplexTerm(
-#             log_a=np.log(B/(2+C)),
-#             log_b=-np.inf,
-#             log_c=np.log(1/L),
-#             log_d=np.log(2*np.pi/Prot)
-#         )
-
-#         gp = celerite.GP(kernel)
-#         gp.compute(self.x, self.yerr)
-#         mu, var = gp.predict(self._resids(), xpred, return_var=True)
-
-#         stdev = np.sqrt(var)
-
-#         return mu, stdev
 
 def loglike_jitter(residuals, sigma, sigma_jit):
     """

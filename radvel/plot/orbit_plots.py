@@ -563,10 +563,9 @@ class GPMultipanelPlot(MultipanelPlot):
 
         ax = pl.gca()
 
-        xpred = np.linspace(np.min(like.x), np.max(like.x), num=int(3e3))
+        xpred = np.linspace(np.min(like.x), np.max(like.x), num=int(1e4))
 
-        amp_param_name = 'gp_amp_' + suffix
-        gpmu, stddev = like.predict(xpred, amp_param_name)
+        gpmu, stddev = like.predict(xpred, suffix)
         if self.subtract_orbit_model:
             gp_orbit_model = np.zeros(xpred.shape)
         else:
@@ -583,7 +582,7 @@ class GPMultipanelPlot(MultipanelPlot):
         if self.subtract_gp_mean_model:
             gpmu = 0.
         else:
-            gp_mean4data, _ = like.predict(like.x, amp_param_name)
+            gp_mean4data, _ = like.predict(like.x, suffix)
             orbit_model4data += gp_mean4data
 
         if suffix not in self.telfmts and suffix in plot.telfmts_default:
@@ -655,6 +654,8 @@ class GPMultipanelPlot(MultipanelPlot):
 
         i = 0
         ci = 0
+        if type(self.post.likelihood.suffixes) == str:
+            self.post.likelihood.suffixes = np.array([self.post.likelihood.suffixes])
         for suffix in self.post.likelihood.suffixes:
 
             ax = pl.subplot(gs_rv[i, 0])
@@ -685,7 +686,10 @@ class GPMultipanelPlot(MultipanelPlot):
             ax.set_xlim(
                 min(self.plttimes)-0.01*self.dt, 
                 max(self.plttimes)+0.01*self.dt
-            )    
+            )  
+            
+
+
             pl.setp(ax.get_xticklabels(), visible=False)
 
             # legend
