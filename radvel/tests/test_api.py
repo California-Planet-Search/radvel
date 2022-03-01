@@ -192,6 +192,8 @@ def test_basis():
 def test_kernels():
     """
     Test basic functionality of all standard GP kernels
+
+    TODO: update
     """
 
     kernel_list = radvel.gp.KERNELS

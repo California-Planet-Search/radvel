@@ -109,23 +109,7 @@ Converting 'logjit' to 'jit' for you now.
             for d in decorr_vars:
                 decorr_vectors[d] = P.data.iloc[telgrps[inst]][d].values
 
-        try:
-            hnames = P.hnames
-            indiv_liketype = radvel.likelihood.RVLikelihood
-            comp_liketype = radvel.likelihood.GPLikelihood
-            try:
-                kernel_name = P.kernel_name[inst]
-                # if kernel_name == "Celerite":
-                #      liketype = radvel.likelihood.CeleriteLikelihood
-            except AttributeError:
-                kernel_name = "QuasiPer"
-        except AttributeError:
-            indiv_liketype = radvel.likelihood.RVLikelihood
-            kernel_name = None
-            hnames = None
-            comp_liketype = radvel.likelihood.CompositeLikelihood
-
-        likes[inst] = indiv_liketype(
+        likes[inst] = radvel.likelihood.RVLikelihood(
             mod, P.data.iloc[telgrps[inst]].time,
             P.data.iloc[telgrps[inst]].mnvel,
             P.data.iloc[telgrps[inst]].errvel, decorr_vars=decorr_vars, 
@@ -134,10 +118,15 @@ Converting 'logjit' to 'jit' for you now.
 
         likes[inst].params['gamma_'+inst] = iparams['gamma_'+inst]
         likes[inst].params['jit_'+inst] = iparams['jit_'+inst]
-
-    like = comp_liketype(list(likes.values()), hnames=hnames, kernel_name=kernel_name)
     
+    try:
+        kernel_name = P.kernel_name
+        comp_liketype = radvel.likelihood.GPLikelihood
+    except AttributeError:
+        comp_liketype = radvel.likelihood.CompositeLikelihood
 
+    like = comp_liketype(list(likes.values()), kernel_name=kernel_name)
+    
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
     post.priors = P.priors

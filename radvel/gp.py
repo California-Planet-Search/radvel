@@ -1,8 +1,8 @@
-import scipy
 import abc
 import numpy as np
 import warnings
 import tinygp
+from jax import numpy as jnp
 
 warnings.simplefilter('once')
 
@@ -59,78 +59,41 @@ class Kernel(ABC):
         pass
 
 
-class TwoPerTiny(tinygp.kernels.Kernel):
+class TwoPer(tinygp.kernels.Kernel):
     def __init__(
-        self, hparams_dict, inst_indices, inst_X1=None, inst_x2=None
+        self, hparams_dict, insts, inst_X1=None, inst_x2=None
     ):
         #  hparams_dict: key(param name) -> Parameter object
 
-        # self.perA = hparams_dict['perA']
-        # self.perB = hparams_dict['per2']
-        # self.perlenA = hparams_dict['perlen1']
-        # self.perlenB = hparams_dict['perlen2'] #TODO: check that these automatically update when parameters array is updated
-
-        self.amps_groupA = [hparams_dict[par] for par in hparams_dict.keys() if par.startswith('amp_groupA_')] # list of param objects [amp_groupA_sub, amp_groupA_keck,amp_groupA_neid]
-        self.amps_groupB = [hparams_dict[par] for par in hparams_dict.keys() if par.startswith('amp_groupB_')] 
+        self.hparams_dict = hparams_dict
 
         self.inst_X1 = inst_X1 # str (either None or suffix)
         self.inst_X2 = inst_x2 # str
-        self.inst_arr = inst_indices # {'keck':[0,1,2,7], 'sub':[3,4], 'neid':[5,6]
+        self.insts = insts # ['Keck', 'NEID', 'KPF']
 
 
     def evaluate(self, X1, X2):
 
-        amp1_groupA = jnp.empty(len(X1))
-        amp2_groupA = jnp.empty(len(X2))
-        amp1_groupB = jnp.empty(len(X1))
-        amp2_groupB = jnp.empty(len(X2))
 
+        ampparams_groupA = jnp.array([self.hparams_dict[par].value for par in self.hparams_dict.keys() if par.startswith('gp_amp_groupA_')]) # list of param objects [amp_groupA_sub, amp_groupA_keck,amp_groupA_neid]
+        ampparams_groupB = jnp.array([self.hparams_dict[par].value for par in self.hparams_dict.keys() if par.startswith('gp_amp_groupB_')])
 
-        if self.inst_X1 is None:
+        amp1_groupA = ampparams_groupA[X1[1]]
+        amp1_groupB = ampparams_groupB[X1[1]]
 
-            # set amplitude array for first periodic component
-            for instname in self.inst_arr.keys(): # ['keck', 'sub','neid']
-                amp1_groupA[self.inst_arr[instname]] = self.hparams_dict[
-                    'amp_groupA_{}'.format(instname)
-                ].value
+        amp2_groupA = ampparams_groupA[X2[1]]
+        amp2_groupB = ampparams_groupB[X2[1]]
 
-            # set amplitude array for second periodic component
-            for instname in self.inst_arr.keys(): # ['keck', 'sub','neid']
-                amp1_groupB[self.inst_arr[instname]] = self.hparams_dict[
-                    'amp_groupB_{}'.format(instname)
-                ].value
-        else:
-            # amp arrays all for single instrument
-            amp1_groupA = self.hparams_dict['amp_groupA_{}'.format(self.inst_X1)].value
-            amp1_groupB = self.hparams_dict['amp_groupB_{}'.format(self.inst_X1)].value
+        tau = jnp.abs(X1[0] - X2[0])
 
+        perA = self.hparams_dict['gp_per_avg'].value + 0.5 * self.hparams_dict['gp_per_diff'].value
+        perB = self.hparams_dict['gp_per_avg'].value - 0.5 * self.hparams_dict['gp_per_diff'].value
 
-        if self.inst_X2 is None:
+        perA_term = jnp.sin(jnp.pi * tau / perA)**2
+        perB_term = jnp.sin(jnp.pi * tau / perB)**2
 
-            # set amplitude array for first periodic component
-            for instname in self.inst_arr.keys(): # ['keck', 'sub','neid']
-                amp2_groupA[self.inst_arr[instname]] = self.hparams_dict[
-                    'amp_groupA_{}'.format(instname)
-                ].value
-
-            # set amplitude array for second periodic component
-            for instname in self.inst_arr.keys(): # ['keck', 'sub','neid']
-                amp2_groupB[self.inst_arr[instname]] = self.hparams_dict[
-                    'amp_groupB_{}'.format(instname)
-                ].value
-        else:
-            # amp arrays all for single instrument
-            amp2_groupA = self.hparams_dict['amp_groupA_{}'.format(self.inst_X1)].value
-            amp2_groupB = self.hparams_dict['amp_groupB_{}'.format(self.inst_X1)].value
-
-
-        tau = jnp.abs(X1 - X2)
-
-        perA_term = jnp.sin(jnp.pi * tau / self.hparams_dict['perA'])**2
-        perB_term = jnp.sin(jnp.pi * tau / self.hparams_dict['perB'])**2
-
-        perA_kernel = jnp.exp( -perA_term / (self.hparams_dict['perlenA']**2))
-        perB_kernel = jnp.exp( -perB_term / (self.hparams_dict['perlenB']**2))
+        perA_kernel = jnp.exp( -perA_term / (self.hparams_dict['gp_perlenA'].value**2))
+        perB_kernel = jnp.exp( -perB_term / (self.hparams_dict['gp_perlenB'].value**2))
 
         total_kernel = (amp1_groupA * amp2_groupA *  perA_kernel) + (amp1_groupB * amp2_groupB * perB_kernel)
 

@@ -4,6 +4,7 @@ from radvel import gp
 from scipy.linalg import cho_factor, cho_solve
 import warnings
 import tinygp
+from jax import numpy as jnp
 
 _has_celerite = gp._try_celerite()
 if _has_celerite:
@@ -418,31 +419,42 @@ class GPLikelihood(CompositeLikelihood):
     TODO: w/help from DFM!
 
     """
-    def __init__(self, like_list, kernel_name='QuasiPer', hnames=None, **kwargs):
+    def __init__(self, like_list, kernel_name='QuasiPer', **kwargs):
 
         super(GPLikelihood, self).__init__(like_list)
 
-        self.inst_indices = np.arange(self.N)
+        self.N = len(self.x)
         self.insts = np.unique(self.telvec)
-        for i in range(len(self.insts)):
-            self.inst_indices[self.telvec == self.insts[i]] = i
+        self.index_tel_array = np.empty(self.N, dtype=int)
+        for i, tel in enumerate(self.insts):
+            self.index_tel_array[self.telvec == tel] = i
 
-        self.kernel_call = getattr(tinygp.kernels, kernel_name)
-        self.kernel = self.kernel_call(self.params, self.inst_indices)
+        self.inst_indices = {}
+        for inst in self.insts:
+            self.inst_indices[inst] = np.argwhere(self.telvec == inst).flatten()
+
+        self.kernel_call = getattr(gp, kernel_name)
+        self.kernel = self.kernel_call(self.params, self.insts)
 
     def build_gp(self):
 
        #  TODO: check if params are getting automatically updated
 
-        kernel = self.kernel_call(self.params, self.inst_indices)
-        gp_object = tinygp.GaussianProcess(kernel, diag=jitter)
+        kernel = self.kernel_call(self.params, self.insts)
+
+        for key in self.vector.indices:
+            try:
+                self.kernel.hparams_dict[key].value = self.vector.vector[self.vector.indices[key]][0]
+            except KeyError:
+                pass
+
+            # index_tel_array needs to be like [0,0,0,1,2,2] where 
+        X = (jnp.array(self.x), jnp.array(self.index_tel_array))
+        gp_object = tinygp.GaussianProcess(kernel, X, diag=self.errorbars()**2)
 
         return gp_object
 
-        # for key in self.vector.indices:
-        #     if key in self.hnames:
-        #         hparams_key = key
-        #         self.kernel.hparams[hparams_key].value = self.vector.vector[self.vector.indices[key]][0]
+
 
 
 
