@@ -594,9 +594,11 @@ class GPMultipanelPlot(MultipanelPlot):
             color = plot.default_colors[ci]
             ci += 1
 
-        ax.fill_between(xpred, gpmu+gp_orbit_model-stddev, gpmu+gp_orbit_model+stddev, 
-                        color=color, alpha=0.5, lw=0
-                        )
+        if not self.subtract_gp_mean_model:
+            ax.fill_between(
+                xpred, gpmu+gp_orbit_model-stddev, gpmu+gp_orbit_model+stddev, 
+                color=color, alpha=0.5, lw=0
+            )
         ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.1)
 
         if not self.yscale_auto: 

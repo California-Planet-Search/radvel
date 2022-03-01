@@ -65,7 +65,7 @@ params['gp_explength'] = radvel.Parameter(value=gp_explength_mean)
 params['gp_per'] = radvel.Parameter(value=gp_per_mean)
 params['gp_perlength'] = radvel.Parameter(value=gp_perlength_mean)
 
-kernel_name = "QuasiPer"
+kernel_name = "SqExp"
 
 jit_guesses = {'harps-n':2.0, 'pfs':5.3}
 
@@ -80,14 +80,16 @@ for tel in instnames:
     initialize_instparams(tel)
 
 # Add in priors (Dai et al. 2017 Section 7.2.1)
-priors = [radvel.prior.Gaussian('per1', Porb, Porb_unc),
-          radvel.prior.Gaussian('tc1', Tc, Tc_unc),
-          radvel.prior.Jeffreys('k1', 0.01, 10.), # min and max for Jeffrey's priors estimated by Sarah
-          radvel.prior.Jeffreys('gp_amp_pfs', 0.01, 100.),
-          radvel.prior.Jeffreys('gp_amp_harps-n', 0.01, 100.),
-          radvel.prior.Jeffreys('jit_pfs', 0.01, 10.),
-          radvel.prior.Jeffreys('jit_harps-n', 0.01,10.),
-          radvel.prior.Gaussian('gp_explength', gp_explength_mean, gp_explength_unc),
-          radvel.prior.Gaussian('gp_per', gp_per_mean, gp_per_unc),
-          radvel.prior.Gaussian('gp_perlength', gp_perlength_mean, gp_perlength_unc)]
+priors = [
+    radvel.prior.Gaussian('per1', Porb, Porb_unc),
+    radvel.prior.Gaussian('tc1', Tc, Tc_unc),
+    radvel.prior.Jeffreys('k1', 0.01, 10.), # min and max for Jeffrey's priors estimated by Sarah
+    radvel.prior.Jeffreys('gp_amp_pfs', 0.01, 100.),
+    radvel.prior.Jeffreys('gp_amp_harps-n', 0.01, 100.),
+    radvel.prior.Jeffreys('jit_pfs', 0.01, 10.),
+    radvel.prior.Jeffreys('jit_harps-n', 0.01,10.),
+    radvel.prior.Gaussian('gp_explength', gp_explength_mean, gp_explength_unc),
+  radvel.prior.Gaussian('gp_per', gp_per_mean, gp_per_unc),
+  radvel.prior.Gaussian('gp_perlength', gp_perlength_mean, gp_perlength_unc)
+]
 
