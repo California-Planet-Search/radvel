@@ -599,7 +599,7 @@ class GPMultipanelPlot(MultipanelPlot):
         ax.plot(xpred, gpmu+gp_orbit_model, 'b-', rasterized=False, lw=0.1)
 
         if not self.yscale_auto: 
-            scale = np.std(self.rawresid+self.rvmod)
+            scale = np.std(orbit_model4data)
             ax.set_ylim(-self.yscale_sigma * scale, self.yscale_sigma * scale)
 
         ax.set_ylabel('RV [{ms:}]'.format(**plot.latex), weight='bold')
@@ -688,8 +688,6 @@ class GPMultipanelPlot(MultipanelPlot):
                 max(self.plttimes)+0.01*self.dt
             )  
             
-
-
             pl.setp(ax.get_xticklabels(), visible=False)
 
             # legend
@@ -701,7 +699,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 axyrs = ax.twiny()
                 xl = np.array(list(ax.get_xlim())) + self.epoch
                 decimalyear = Time(xl, format='jd', scale='utc').decimalyear
-                axyrs.plot(decimalyear, decimalyear)
+                # axyrs.plot(decimalyear, decimalyear)
                 axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
                 axyrs.set_xlim(*decimalyear)
                 axyrs.set_xlabel('Year', fontweight='bold')    

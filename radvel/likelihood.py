@@ -437,8 +437,9 @@ class GPLikelihood(CompositeLikelihood):
         self.kernel = self.kernel_call(self.params, self.insts)
 
     def build_gp(self):
-
-       #  TODO: check if params are getting automatically updated
+        """
+        TODO: document
+        """
 
         kernel = self.kernel_call(self.params, self.insts)
 
@@ -449,13 +450,13 @@ class GPLikelihood(CompositeLikelihood):
                 pass
 
             # index_tel_array needs to be like [0,0,0,1,2,2] where 
-        X = (jnp.array(self.x), jnp.array(self.index_tel_array))
+
+        tel_inputs = jnp.array(self.index_tel_array)
+
+        X = (jnp.array(self.x), tel_inputs)
         gp_object = tinygp.GaussianProcess(kernel, X, diag=self.errorbars()**2)
 
         return gp_object
-
-
-
 
 
     def _resids(self):
@@ -471,12 +472,17 @@ class GPLikelihood(CompositeLikelihood):
 
     def residuals(self):
 
+        tinygp_object = self.build_gp()
+
+        r = jnp.array(self._resids())
+        mu_pred = tinygp_object.predict(r)
+        mu_pred = np.array(mu_pred)
+
         gammas = np.empty(self.N)
         for i in range(len(self.insts)):
             gamma_key = 'gamma_{}'.format(self.insts[i])
             gammas[self.inst_indices == i] = self.vector.vector[self.vector.indices[gamma_key]][0]
 
-        mu_pred, _ = self.predict(self.x)
         res = self.y - self.model(self.x)  - gammas - mu_pred
         return res
 
@@ -511,9 +517,14 @@ class GPLikelihood(CompositeLikelihood):
         # rebuild the gp object with updated hyperparameter values
         tinygp_object = self.build_gp()
 
-        r = np.array([self._resids()]).T
+        r = jnp.array(self._resids())
 
-        mu, var = tinygp_object.predict(r, xpred)
+        tel_inputs = jnp.ones(len(xpred), dtype=int) * int(np.where(self.insts == inst_name)[0])
+
+        X = (jnp.array(xpred), tel_inputs)
+        
+        mu, var = tinygp_object.predict(r, X, return_var = True)
+        mu = np.array(mu)
         stdev = np.sqrt(var)
 
         return mu, stdev
