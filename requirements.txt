@@ -13,3 +13,4 @@ jinja2>=2.9
 python-dateutil>=2.5.0
 h5py==2.10.0
 dill
+tinygp

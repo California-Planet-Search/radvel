@@ -218,7 +218,6 @@ class MultipanelPlot(object):
         axyrs = ax.twiny()
         xl = np.array(list(ax.get_xlim())) + self.epoch
         decimalyear = Time(xl, format='jd', scale='utc').decimalyear
-#        axyrs.plot(decimalyear, decimalyear)
         axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
         axyrs.set_xlim(*decimalyear)
         axyrs.set_xlabel('Year', fontweight='bold')
@@ -500,7 +499,7 @@ class GPMultipanelPlot(MultipanelPlot):
     
     Args:
         subtract_gp_mean_model (bool, optional): if True, subtract the Gaussian
-            process mean max likelihood model from the data and the
+            process MAP mean function from the data and the
             model when plotting the results. Default: False.
         subtract_orbit_model (bool, optional): if True, subtract the best-fit
             orbit model from the data and the model when plotting 
@@ -549,7 +548,9 @@ class GPMultipanelPlot(MultipanelPlot):
         Args:
             like (radvel.GPLikelihood): radvel.GPLikelihood object. The model
                 plotted will be generated from `like.params`.
-            orbit_model4data (np.array of float): TODO
+            orbit_model4data (np.array of float): the non-GP contribution of the
+                RV model prediction. This array should have the same length as 
+                the data array.
             ci (int): index to use when choosing a color to plot from 
                 radvel.plot.default_colors. This is only used if the
                 Likelihood object being plotted is not in the list of defaults.
@@ -699,7 +700,6 @@ class GPMultipanelPlot(MultipanelPlot):
                 axyrs = ax.twiny()
                 xl = np.array(list(ax.get_xlim())) + self.epoch
                 decimalyear = Time(xl, format='jd', scale='utc').decimalyear
-                # axyrs.plot(decimalyear, decimalyear)
                 axyrs.get_xaxis().get_major_formatter().set_useOffset(False)
                 axyrs.set_xlim(*decimalyear)
                 axyrs.set_xlabel('Year', fontweight='bold')    

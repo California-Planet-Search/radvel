@@ -408,16 +408,17 @@ class RVLikelihood(Likelihood):
 
 class GPLikelihood(CompositeLikelihood):
     """
-    The likelihood object for a Gaussian Process. Built off of CompositeLikelihood
+    The likelihood object for a Gaussian Process. Inherits from 
+    CompositeLikelihood.
 
     Args:
-        like_list: list of `radvel.likelihood.RVLikelihood` objects
-        hnames (list of str): names of all parameters to be passed to the gp.Kernel
-            class to compute covariance matrices.
-        kernel_name: TODO
+        like_list: list of `radvel.likelihood.RVLikelihood` objects, one for
+            each instrument (possibly a list of length 1)
+        kernel_name (str): class name of kernel to use (one of 
+            radvel.gp.KERNELS.keys())
 
-    TODO: w/help from DFM!
-
+    Note: the GP implementation in RadVel borrows code written by Dan 
+    Foreman-Mackey! Thanks Dan!
     """
     def __init__(self, like_list, kernel_name='QuasiPer', **kwargs):
 
@@ -438,18 +439,19 @@ class GPLikelihood(CompositeLikelihood):
 
     def build_gp(self):
         """
-        TODO: document
+        Build a tinygp.GaussianProcess object using (potentially updated)
+        hyperparameter values. We'll use this to do computations.
         """
 
         kernel = self.kernel_call(self.params, self.insts)
 
         for key in self.vector.indices:
             try:
-                self.kernel.hparams_dict[key].value = self.vector.vector[self.vector.indices[key]][0]
+                self.kernel.hparams_dict[key].value = self.vector.vector[
+                    self.vector.indices[key]
+                ][0]
             except KeyError:
                 pass
-
-            # index_tel_array needs to be like [0,0,0,1,2,2] where 
 
         tel_inputs = jnp.array(self.index_tel_array)
 
@@ -464,7 +466,9 @@ class GPLikelihood(CompositeLikelihood):
         gammas = np.empty(self.N)
         for i in range(len(self.insts)):
             gamma_key = 'gamma_{}'.format(self.insts[i])
-            gammas[self.inst_indices == i] = self.vector.vector[self.vector.indices[gamma_key]][0]
+            gammas[self.inst_indices == i] = self.vector.vector[
+                self.vector.indices[gamma_key]
+            ][0]
 
         res = self.y  - self.model(self.x) - gammas
 
@@ -481,7 +485,9 @@ class GPLikelihood(CompositeLikelihood):
         gammas = np.empty(self.N)
         for i in range(len(self.insts)):
             gamma_key = 'gamma_{}'.format(self.insts[i])
-            gammas[self.inst_indices == i] = self.vector.vector[self.vector.indices[gamma_key]][0]
+            gammas[self.inst_indices == i] = self.vector.vector[
+                self.vector.indices[gamma_key]
+            ][0]
 
         res = self.y - self.model(self.x)  - gammas - mu_pred
         return res
@@ -505,7 +511,7 @@ class GPLikelihood(CompositeLikelihood):
 
         Args:
             xpred (np.array of float): times at which to compute prediction
-            inst_name: TODO
+            inst_name (str): suffix of instrument to calculate prediction for
 
         Returns:
             tuple of:
@@ -519,7 +525,10 @@ class GPLikelihood(CompositeLikelihood):
 
         r = jnp.array(self._resids())
 
-        tel_inputs = jnp.ones(len(xpred), dtype=int) * int(np.where(self.insts == inst_name)[0])
+        tel_inputs = (
+            jnp.ones(len(xpred), dtype=int) * 
+            int(np.where(self.insts == inst_name)[0])
+        )
 
         X = (jnp.array(xpred), tel_inputs)
         
