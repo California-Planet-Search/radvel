@@ -121,11 +121,9 @@ Converting 'logjit' to 'jit' for you now.
     
     try:
         kernel_name = P.kernel_name
-        comp_liketype = radvel.likelihood.GPLikelihood
+        like = radvel.likelihood.GPLikelihood(list(likes.values()), kernel_name=kernel_name)
     except AttributeError:
-        comp_liketype = radvel.likelihood.CompositeLikelihood
-
-    like = comp_liketype(list(likes.values()), kernel_name=kernel_name)
+        like = radvel.likelihood.CompositeLikelihood(list(likes.values()))
     
     # Initialize Posterior object
     post = radvel.posterior.Posterior(like)
