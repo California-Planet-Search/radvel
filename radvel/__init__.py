@@ -1,5 +1,9 @@
 from __future__ import absolute_import
 
+# enable double precision in JAX
+from jax.config import config
+config.update("jax_enable_x64", True)
+
 # turn off numpy multithreading
 import os
 os.environ['MKL_NUM_THREADS'] = '1'

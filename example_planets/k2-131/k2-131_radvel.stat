@@ -1,0 +1,7 @@
+[fit]
+run = True
+postfile = k2-131/k2-131_post_obj.pkl
+
+[plot]
+rv_plot = k2-131/k2-131_rv_multipanel.pdf
+

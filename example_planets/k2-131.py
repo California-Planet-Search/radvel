@@ -30,8 +30,8 @@ fitting_basis = 'per tc secosw sesinw k'
 # Numbers for priors used in Dai et al. (2017)
 gp_explength_mean = 9.5*np.sqrt(2.) # sqrt(2)*tau in Dai et al. (2017) [days]
 gp_explength_unc = 1.0*np.sqrt(2.)
-gp_perlength_mean = np.sqrt(1./(2*3.32)) # sqrt(1/2*gamma) in Dai et al. (2017)
-gp_perlength_unc = 0.04
+gp_perlength_mean = np.sqrt(1./3.32) # sqrt(1/gamma) in Dai et al. (2017)
+gp_perlength_unc = np.abs(np.sqrt(1./(3.32 + .58)) - np.sqrt(1./(3.32 - .58)))
 """
 NOTE: this prior isn't equivalent to the one Dai et al. (2017) use. However,
 our formulation of the quasi-periodic kernel explicitly keeps the covariance
@@ -65,27 +65,7 @@ params['gp_explength'] = radvel.Parameter(value=gp_explength_mean)
 params['gp_per'] = radvel.Parameter(value=gp_per_mean)
 params['gp_perlength'] = radvel.Parameter(value=gp_perlength_mean)
 
-
-"""
-Define a list, 'hnames', specifying the names
-of the GP hyperparameters. Use the strings in 'instnames' to tell radvel
-which data set you're talking about.
-"""
-hnames = [
-    'gp_amp_harps-n', # GP variability amplitude for HARPS
-    'gp_per', # GP variability period
-    'gp_explength', # GP non-periodic characteristic length
-    'gp_perlength', # GP periodic characteristic length
-    'gp_amp_pfs', # GP variability amplitude for PFS
-]
-
-kernel_name = {'harps-n':"QuasiPer",
-               'pfs':"QuasiPer"}
-"""
-NOTE: If all kernels are quasi-periodic, you don't need to include the
-'kernel_name' lines. I included it to show you how to use different kernel
-types in different likelihoods.
-"""
+kernel_name = "QuasiPer"
 
 jit_guesses = {'harps-n':2.0, 'pfs':5.3}
 
@@ -93,9 +73,8 @@ def initialize_instparams(tel_suffix):
 
     indices = telgrps[tel_suffix]
 
-    params['gamma_'+tel_suffix] = radvel.Parameter(value=np.mean(vel[indices]))
+    params['gamma_'+tel_suffix] = radvel.Parameter(value=np.mean(vel[indices]), vary=False)
     params['jit_'+tel_suffix] = radvel.Parameter(value=jit_guesses[tel_suffix])
-
 
 for tel in instnames:
     initialize_instparams(tel)

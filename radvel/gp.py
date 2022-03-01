@@ -18,7 +18,7 @@ class SqExp(tinygp.kernels.Kernel):
     """
     Squared-exponential kernel. An arbitrary element, :math:`C_{ij}`, of the 
     matrix is:
-    
+
     .. math::
         C_{ij} = \\eta_1^2 * exp( \\frac{ -|t_i - t_j|^2 }{ \\eta_2^2 } )
 
@@ -46,7 +46,7 @@ class SqExp(tinygp.kernels.Kernel):
 
         exp_kernel = jnp.exp(
             -tau**2 / 
-            self.hparams_dict['gp_explen'].value**2
+            self.hparams_dict['gp_explength'].value**2
         )
 
         total_kernel = amp1 * amp2 * exp_kernel
@@ -86,15 +86,16 @@ class QuasiPer(tinygp.kernels.Kernel):
         per_term = jnp.sin(jnp.pi * tau / self.hparams_dict['gp_per'].value)**2
         per_kernel = jnp.exp( 
             -per_term / 
-            (self.hparams_dict['gp_perlen'].value**2)
+            (self.hparams_dict['gp_perlength'].value**2)
         )
 
         exp_kernel = jnp.exp(
-            -tau**2 / 
-            self.hparams_dict['gp_explen'].value**2
+            -(tau / self.hparams_dict['gp_explength'].value)**2
         )
 
         total_kernel = amp1 * amp2 * exp_kernel * per_kernel
+
+        # import pdb; pdb.set_trace()
         return total_kernel
 
 class TwoPer(tinygp.kernels.Kernel):

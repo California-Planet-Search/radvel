@@ -1,14 +1,9 @@
 import numpy as np
 import radvel.model
 from radvel import gp
-from scipy.linalg import cho_factor, cho_solve
 import warnings
 import tinygp
 from jax import numpy as jnp
-
-_has_celerite = gp._try_celerite()
-if _has_celerite:
-    import celerite
 
 
 def custom_formatwarning(msg, *args, **kwargs):
@@ -466,11 +461,11 @@ class GPLikelihood(CompositeLikelihood):
         gammas = np.empty(self.N)
         for i in range(len(self.insts)):
             gamma_key = 'gamma_{}'.format(self.insts[i])
-            gammas[self.inst_indices == i] = self.vector.vector[
+            gammas[self.inst_indices[self.insts[i]]] = self.vector.vector[
                 self.vector.indices[gamma_key]
             ][0]
 
-        res = self.y  - self.model(self.x) - gammas
+        res = self.y  - (self.model(self.x) + gammas)
 
         return res
 
@@ -485,11 +480,11 @@ class GPLikelihood(CompositeLikelihood):
         gammas = np.empty(self.N)
         for i in range(len(self.insts)):
             gamma_key = 'gamma_{}'.format(self.insts[i])
-            gammas[self.inst_indices == i] = self.vector.vector[
-                self.vector.indices[gamma_key]
+            gammas[self.inst_indices[self.insts[i]]] = self.vector.vector[
+                self.vector.indices[gamma_key] # TODO: bugfix here?? done-- see if it works
             ][0]
 
-        res = self.y - self.model(self.x)  - gammas - mu_pred
+        res = self.y - (self.model(self.x) + mu_pred + gammas ) # TODO: is this right??
         return res
 
     def logprob(self):
