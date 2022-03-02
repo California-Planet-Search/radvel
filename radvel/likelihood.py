@@ -420,17 +420,16 @@ class GPLikelihood(CompositeLikelihood):
         super(GPLikelihood, self).__init__(like_list)
 
         self.N = len(self.x)
-        self.insts = np.unique(self.telvec)
-        self.index_tel_array = np.empty(self.N, dtype=int)
-        for i, tel in enumerate(self.insts):
-            self.index_tel_array[self.telvec == tel] = i
-
+        self.suffixes = [l.suffix for l in self.like_list]
+        self.index_tel_array = np.empty(self.N, dtype=int)            
         self.inst_indices = {}
-        for inst in self.insts:
+
+        for i, inst in enumerate(self.suffixes):
             self.inst_indices[inst] = np.argwhere(self.telvec == inst).flatten()
+            self.index_tel_array[self.telvec == inst] = i
 
         self.kernel_call = getattr(gp, kernel_name)
-        self.kernel = self.kernel_call(self.params, self.insts)
+        self.kernel = self.kernel_call(self.params, self.suffixes)
 
     def build_gp(self):
         """
@@ -438,7 +437,7 @@ class GPLikelihood(CompositeLikelihood):
         hyperparameter values. We'll use this to do computations.
         """
 
-        kernel = self.kernel_call(self.params, self.insts)
+        kernel = self.kernel_call(self.params, self.suffixes)
 
         for key in self.vector.indices:
             try:
@@ -457,11 +456,14 @@ class GPLikelihood(CompositeLikelihood):
 
 
     def _resids(self):
+        """
+        Used in GP calculation
+        """
 
         gammas = np.empty(self.N)
-        for i in range(len(self.insts)):
-            gamma_key = 'gamma_{}'.format(self.insts[i])
-            gammas[self.inst_indices[self.insts[i]]] = self.vector.vector[
+        for i in range(len(self.suffixes)):
+            gamma_key = 'gamma_{}'.format(self.suffixes[i])
+            gammas[self.inst_indices[self.suffixes[i]]] = self.vector.vector[
                 self.vector.indices[gamma_key]
             ][0]
 
@@ -470,6 +472,9 @@ class GPLikelihood(CompositeLikelihood):
         return res
 
     def residuals(self):
+        """
+        For use in plotting only
+        """
 
         tinygp_object = self.build_gp()
 
@@ -478,13 +483,14 @@ class GPLikelihood(CompositeLikelihood):
         mu_pred = np.array(mu_pred)
 
         gammas = np.empty(self.N)
-        for i in range(len(self.insts)):
-            gamma_key = 'gamma_{}'.format(self.insts[i])
-            gammas[self.inst_indices[self.insts[i]]] = self.vector.vector[
-                self.vector.indices[gamma_key] # TODO: bugfix here?? done-- see if it works
+        for i in range(len(self.suffixes)):
+            gamma_key = 'gamma_{}'.format(self.suffixes[i])
+            gammas[self.inst_indices[self.suffixes[i]]] = self.vector.vector[
+                self.vector.indices[gamma_key]
             ][0]
 
-        res = self.y - (self.model(self.x) + mu_pred + gammas ) # TODO: is this right??
+
+        res = self.y - (self.model(self.x) + mu_pred + gammas)
         return res
 
     def logprob(self):
@@ -522,7 +528,7 @@ class GPLikelihood(CompositeLikelihood):
 
         tel_inputs = (
             jnp.ones(len(xpred), dtype=int) * 
-            int(np.where(self.insts == inst_name)[0])
+            int(np.where([np.array(self.suffixes) == inst_name])[0][0])
         )
 
         X = (jnp.array(xpred), tel_inputs)

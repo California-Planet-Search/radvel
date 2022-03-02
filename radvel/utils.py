@@ -100,6 +100,7 @@ Converting 'logjit' to 'jit' for you now.
     # initialize Likelihood objects for each instrument
     telgrps = P.data.groupby('tel').groups
     likes = {}
+
     for inst in P.instnames:
         assert inst in P.data.groupby('tel').groups.keys(), \
             "No data found for instrument '{}'.\nInstruments found in this dataset: {}".format(inst,
