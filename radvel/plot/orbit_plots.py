@@ -513,7 +513,7 @@ class GPMultipanelPlot(MultipanelPlot):
         yscale_sigma=3.0, phase_nrows=None, phase_ncols=None, uparams=None, 
         rv_phase_space=0.08, telfmts={}, legend=True, phase_limits=[], 
         nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
-        set_xlim=(9530,9532), text_size=9, legend_kwargs=dict(loc='best'), 
+        set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), 
         subtract_gp_mean_model=False, subtract_orbit_model=False, status=None
     ):
 
