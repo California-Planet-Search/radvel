@@ -686,10 +686,13 @@ class GPMultipanelPlot(MultipanelPlot):
                 ax, telfmts=self.telfmts
             )
 
-            ax.set_xlim(
-                min(self.plttimes)-0.01*self.dt, 
-                max(self.plttimes)+0.01*self.dt
-            )  
+            if self.set_xlim is None:
+                ax.set_xlim(
+                    min(self.plttimes)-0.01*self.dt, 
+                    max(self.plttimes)+0.01*self.dt
+                )  
+            else:
+                ax.set_xlim(self.set_xlim)
             
             pl.setp(ax.get_xticklabels(), visible=False)
 
