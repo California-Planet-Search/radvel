@@ -75,7 +75,7 @@ class QuasiPer(tinygp.kernels.Kernel):
         # build lists of amplitude values [gp_amp_j, gp_amp_k]
         ampparams = jnp.array([
             self.hparams_dict[par].value for par in self.hparams_dict.keys() if 
-            par.startswith('gp_amp_')
+            par.startswith('gp_amp_') and not 'group' in par
         ])
 
         amp1 = ampparams[X1[1]]
@@ -95,7 +95,6 @@ class QuasiPer(tinygp.kernels.Kernel):
 
         total_kernel = amp1 * amp2 * exp_kernel * per_kernel
 
-        # import pdb; pdb.set_trace()
         return total_kernel
 
 class TwoPer(tinygp.kernels.Kernel):
@@ -114,34 +113,37 @@ class TwoPer(tinygp.kernels.Kernel):
         self.hparams_dict = hparams_dict
         self.insts = insts
 
+        self.ampparam_names = ([
+            par for par in self.hparams_dict.keys() if 
+            par.startswith('gp_amp_') and not 'group' in par
+        ])
+
     def evaluate(self, X1, X2):
 
         # build lists of amplitude values 
-        #   [amp_groupA_HIRES, amp_groupA_k_NEID, amp_groupA_k_KPF]
-        ampparams_groupA = jnp.array([
-            self.hparams_dict[par].value for par in self.hparams_dict.keys() if 
-            par.startswith('gp_amp_groupA_')
-        ])
-        ampparams_groupB = jnp.array([
-            self.hparams_dict[par].value for par in self.hparams_dict.keys() if 
-            par.startswith('gp_amp_groupB_')
+        #   [gp_amp_HIRES, gp_amp_NEID, gp_amp_KPF]
+        ampparams = jnp.array([
+            self.hparams_dict[par].value for par in self.ampparam_names
         ])
 
-        amp1_groupA = ampparams_groupA[X1[1]]
-        amp1_groupB = ampparams_groupB[X1[1]]
+        amp_groupA = self.hparams_dict['gp_amp_groupA'].value
+        amp_groupB = self.hparams_dict['gp_amp_groupB'].value
 
-        amp2_groupA = ampparams_groupA[X2[1]]
-        amp2_groupB = ampparams_groupB[X2[1]]
+        amp1_groupA = ampparams[X1[1]] * amp_groupA
+        amp1_groupB = ampparams[X1[1]] * amp_groupB
+
+        amp2_groupA = ampparams[X2[1]] * amp_groupA
+        amp2_groupB = ampparams[X2[1]] * amp_groupB
 
         tau = jnp.abs(X1[0] - X2[0])
 
         perA = (
             self.hparams_dict['gp_per_avg'].value + 
-            0.5 * self.hparams_dict['gp_per_diff'].value
+            0.5 * self.hparams_dict['gp_per_diff'].value # 2.86
         )
         perB = (
             self.hparams_dict['gp_per_avg'].value - 
-            0.5 * self.hparams_dict['gp_per_diff'].value
+            0.5 * self.hparams_dict['gp_per_diff'].value # 2.92
         )
 
         perA_term = jnp.sin(jnp.pi * tau / perA)**2
@@ -155,10 +157,13 @@ class TwoPer(tinygp.kernels.Kernel):
             -perB_term / 
             (self.hparams_dict['gp_perlenB'].value**2)
         )
+        exp_kernel = jnp.exp(
+            -(tau / self.hparams_dict['gp_explength'].value)**2
+        )
 
         total_kernel = (
             (amp1_groupA * amp2_groupA *  perA_kernel) + 
-            (amp1_groupB * amp2_groupB * perB_kernel)
+            (amp1_groupB * amp2_groupB * perB_kernel * exp_kernel)
         )
 
         return total_kernel
