@@ -162,8 +162,8 @@ class TwoPer(tinygp.kernels.Kernel):
         )
 
         total_kernel = (
-            (amp1_groupA * amp2_groupA *  perA_kernel) + 
-            (amp1_groupB * amp2_groupB * perB_kernel * exp_kernel)
+            (amp1_groupA * amp2_groupA *  perA_kernel * exp_kernel) + 
+            (amp1_groupB * amp2_groupB * perB_kernel)
         )
 
         return total_kernel
