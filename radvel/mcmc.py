@@ -101,7 +101,7 @@ def _status_message_CLI(statevars):
 
         statevars.screen.refresh()
     except curses.error:
-        pass
+        print('Curses Error, but {:d}/{:d} ({:3.1f}%) steps complete'.format(statevars.ncomplete, statevars.totsteps, statevars.pcomplete))
 
 
 def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent, headless):
@@ -184,6 +184,7 @@ def _domcmc(input_tuple):
     sampler = input_tuple[0]
     ipos = input_tuple[1]
     check_interval = input_tuple[2]
+
     sampler.run_mcmc(ipos, check_interval)
 
     return sampler
