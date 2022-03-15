@@ -502,7 +502,8 @@ class GPLikelihood(CompositeLikelihood):
         r = self._resids()
 
         # log likelihood is updated GP conditioned on Keplerian residuals
-        return tinygp_object.condition(r)
+        cond = tinygp_object.condition(r)
+        return cond.log_probability
 
 
     def predict(self, xpred, inst_name):

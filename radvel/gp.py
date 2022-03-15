@@ -139,11 +139,11 @@ class TwoPer(tinygp.kernels.Kernel):
 
         perA = (
             self.hparams_dict['gp_per_avg'].value + 
-            0.5 * self.hparams_dict['gp_per_diff'].value # 2.86 (equatorial)
+            0.5 * self.hparams_dict['gp_per_diff'].value # 2.92 (polar)
         )
         perB = (
             self.hparams_dict['gp_per_avg'].value - 
-            0.5 * self.hparams_dict['gp_per_diff'].value # 2.92 (polar)
+            0.5 * self.hparams_dict['gp_per_diff'].value # 2.86 (equatorial)
         )
 
         perA_term = jnp.sin(jnp.pi * tau / perA)**2
@@ -157,12 +157,12 @@ class TwoPer(tinygp.kernels.Kernel):
             -perB_term / 
             (self.hparams_dict['gp_perlenB'].value**2)
         )
-        exp_kernel = jnp.exp(
-            -(tau / self.hparams_dict['gp_explength'].value)**2
-        )
+        # exp_kernel = jnp.exp(
+        #     -(tau / self.hparams_dict['gp_explength'].value)**2
+        # )
 
         total_kernel = (
-            (amp1_groupA * amp2_groupA *  perA_kernel * exp_kernel) + 
+            (amp1_groupA * amp2_groupA *  perA_kernel) + # * exp_kernel) + 
             (amp1_groupB * amp2_groupB * perB_kernel)
         )
 
