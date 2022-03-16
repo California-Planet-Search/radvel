@@ -185,10 +185,11 @@ def _domcmc(input_tuple):
     ipos = input_tuple[1]
     check_interval = input_tuple[2]
 
+    print(check_interval)
     sampler.run_mcmc(ipos, check_interval)
+    print('CHECKIN!!')
 
     return sampler
-
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=40, maxArchange=.03, burnAfactor=25,
          burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=False,

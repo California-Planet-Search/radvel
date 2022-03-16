@@ -84,6 +84,9 @@ E.g. --plotkw "{'yscale_auto': True}"' ''')
     psr_mcmc.add_argument('--maxGR', dest='maxGR', action='store', default=1.01, type=float,
                           help="Maximum G-R statistic for chains to be deemed well-mixed and halt the MCMC run [1.01]"
                           )
+    psr_mcmc.add_argument('--checkinterval', dest='checkinterval', action='store', default=50, type=int,
+                          help="Number of MCMC steps to run before printing a status update"
+                          )
     psr_mcmc.add_argument('--burnGR', dest='burnGR', action='store', default=1.03, type=float,
                           help="Maximum G-R statistic to stop burn-in period [1.03]. Burn-in ends once burnGr or burnAfactor are reached."
                           )
