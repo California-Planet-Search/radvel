@@ -185,9 +185,7 @@ def _domcmc(input_tuple):
     ipos = input_tuple[1]
     check_interval = input_tuple[2]
 
-    print(check_interval)
     sampler.run_mcmc(ipos, check_interval)
-    print('CHECKIN!!')
 
     return sampler
 
