@@ -4,6 +4,7 @@ import sys
 import os
 
 import multiprocessing as mp
+from multiprocessing import get_context
 
 import pandas as pd
 import numpy as np
@@ -385,9 +386,10 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     statevars.samplers.append(result)
             else:
                 pool = mp.Pool(statevars.ensembles)
-                statevars.samplers = pool.map(_domcmc, mcmc_input_array)
-                pool.close()  # terminates worker processes once all work is done
-                pool.join()   # waits for all processes to finish before proceeding
+                with get_context("spawn").Pool() as pool:
+                    statevars.samplers = pool.map(_domcmc, mcmc_input_array)
+                    pool.close()  # terminates worker processes once all work is done
+                    pool.join()   # waits for all processes to finish before proceeding
 
             t2 = time.time()
             statevars.interval = t2 - t1
