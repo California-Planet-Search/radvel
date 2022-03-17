@@ -3,6 +3,8 @@ import curses
 import sys
 import os
 
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
 import multiprocessing as mp
 from multiprocessing import get_context
 
@@ -385,7 +387,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     result = _domcmc(mcmc_input_array[i])
                     statevars.samplers.append(result)
             else:
-                # pool = mp.Pool(statevars.ensembles)
+                pool = mp.Pool(statevars.ensembles)
                 with get_context("spawn").Pool(statevars.ensembles) as pool:
                     statevars.samplers = pool.map(_domcmc, mcmc_input_array)
                     pool.close()  # terminates worker processes once all work is done
