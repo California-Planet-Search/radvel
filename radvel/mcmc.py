@@ -385,8 +385,8 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     result = _domcmc(mcmc_input_array[i])
                     statevars.samplers.append(result)
             else:
-                pool = mp.Pool(statevars.ensembles)
-                with get_context("spawn").Pool() as pool:
+                # pool = mp.Pool(statevars.ensembles)
+                with get_context("spawn").Pool(statevars.ensembles) as pool:
                     statevars.samplers = pool.map(_domcmc, mcmc_input_array)
                     pool.close()  # terminates worker processes once all work is done
                     pool.join()   # waits for all processes to finish before proceeding
