@@ -372,7 +372,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     statevars.proceed_started = 1
                 else:
                     p1 = sampler.get_last_sample()
-                for sample in sampler.sample(p1, store=True):
+
+                for _ in sampler.sample(p1, store=True):
+                    
                     mcmc_input = (sampler, p1, (checkinterval - 1))
                     mcmc_input_array.append(mcmc_input)
 
