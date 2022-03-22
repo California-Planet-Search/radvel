@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 import radvel.driver
 
 
+
 def main():
     psr = ArgumentParser(
         description="RadVel: The Radial Velocity Toolkit", prog='RadVel'

@@ -3,10 +3,12 @@ import curses
 import sys
 import os
 
-os.environ['OPENBLAS_NUM_THREADS'] = '1'
+# os.environ['OPENBLAS_NUM_THREADS'] = '1'
+# os.environ["XLA_FLAGS"] = ("--xla_cpu_multi_thread_eigen=false "
+#                            "intra_op_parallelism_threads=1 "
+#                            "inter_op_parallelism_threads=1")
 
 import multiprocessing as mp
-from multiprocessing import get_context
 
 import pandas as pd
 import numpy as np
@@ -16,6 +18,8 @@ import h5py
 
 from radvel import utils
 import radvel
+
+from multiprocessing import get_context
 
 
 class StateVars(object):
@@ -384,10 +388,9 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
             if serial:
                 statevars.samplers = []
                 for i in range(ensembles):
-                    result = _domcmc(mcmc_input_array[i])
-                    statevars.samplers.append(result)
+                    statevars.samplers.append(_domcmc(mcmc_input_array[i]))
             else:
-                pool = mp.Pool(statevars.ensembles)
+                # pool = mp.Pool(statevars.ensembles, maxtasksperchild=1)
                 with get_context("spawn").Pool(statevars.ensembles) as pool:
                     statevars.samplers = pool.map(_domcmc, mcmc_input_array)
                     pool.close()  # terminates worker processes once all work is done
