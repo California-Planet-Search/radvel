@@ -429,8 +429,8 @@ class GPLikelihood(CompositeLikelihood):
             self.inst_indices[inst] = np.argwhere(self.telvec == inst).flatten()
             self.index_tel_array[self.telvec == inst] = i
 
-        kernel_call = getattr(gp, kernel_name)
-        kernel = kernel_call(self.params, self.suffixes)
+        self.kernel_call = getattr(gp, kernel_name)
+        kernel = self.kernel_call(self.params, self.suffixes)
 
         self.X = (jnp.array(self.x), jnp.array(self.index_tel_array))
 
@@ -450,7 +450,6 @@ class GPLikelihood(CompositeLikelihood):
             except KeyError:
                 pass
     
-
     def _resids(self):
         """
         Used in GP calculation
@@ -484,10 +483,14 @@ class GPLikelihood(CompositeLikelihood):
         For use in plotting only
         """
 
+        kernel = self.kernel_call(self.params, self.suffixes)
+        self.gp_object = tinygp.GaussianProcess(kernel, self.X, diag=self.errorbars()**2)
         self.update_hparams()
 
         r = jnp.array(self._resids())
-        mu_pred = np.array(self.gp_object.predict(r))
+        mu_pred = self.gp_object.predict(r)
+
+        mu_pred = np.array(mu_pred)
 
         gammas = np.empty(self.N)
         for i in range(len(self.suffixes)):
@@ -518,8 +521,9 @@ class GPLikelihood(CompositeLikelihood):
 
 
         # rebuild the gp object with updated hyperparameter values
+        kernel = self.kernel_call(self.params, self.suffixes)
+        self.gp_object = tinygp.GaussianProcess(kernel, self.X, diag=self.errorbars()**2)
         self.update_hparams()
-
         r = jnp.array(self._resids())
 
         tel_inputs = (
@@ -529,8 +533,8 @@ class GPLikelihood(CompositeLikelihood):
 
         X = (jnp.array(xpred), tel_inputs)
 
-        mu, var = self.gp_object.predict(r, X, return_var = True)
-        mu = np.array(mu)
+        mu_pred, var = self.gp_object.predict(r, X, return_var=True)
+        mu = np.array(mu_pred)
         stdev = np.sqrt(var)
 
         return mu, stdev
