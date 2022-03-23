@@ -429,32 +429,27 @@ class GPLikelihood(CompositeLikelihood):
             self.inst_indices[inst] = np.argwhere(self.telvec == inst).flatten()
             self.index_tel_array[self.telvec == inst] = i
 
-        self.kernel_call = getattr(gp, kernel_name)
-        self.kernel = self.kernel_call(self.params, self.suffixes)
+        kernel_call = getattr(gp, kernel_name)
+        kernel = kernel_call(self.params, self.suffixes)
 
-        tel_inputs = jnp.array(self.index_tel_array)
-        self.X = (jnp.array(self.x), tel_inputs)
+        self.X = (jnp.array(self.x), jnp.array(self.index_tel_array))
 
-        self.gp_object = tinygp.GaussianProcess(self.kernel, self.X, diag=self.errorbars()**2)
+        self.gp_object = tinygp.GaussianProcess(kernel, self.X, diag=self.errorbars()**2)
 
     def update_hparams(self):
         """
-        TODO: update documentation here
+        Update the hyperparameter dictionary in self.gp_object with the 
+        current values of fitting parameters.
         """
-
-        self.kernel = self.kernel_call(self.params, self.suffixes)
 
         for key in self.vector.indices:
             try:
-                self.kernel.hparams_dict[key].value = self.vector.vector[
+                self.gp_object.kernel.hparams_dict[key].value = self.vector.vector[
                     self.vector.indices[key]
                 ][0]
             except KeyError:
                 pass
-        
-        self.gp_object.kernel = self.kernel
-        self.gp_object.diag = self.errorbars()**2
-
+    
 
     def _resids(self):
         """
@@ -471,6 +466,19 @@ class GPLikelihood(CompositeLikelihood):
 
         return res
 
+    def logprob(self):
+
+        # rebuild the gp object with updated hyperparameter values
+        self.update_hparams()
+
+        # calculate Keplerian residuals
+        r = self._resids()
+
+        # log likelihood is updated GP conditioned on Keplerian residuals
+        lnlike, _ = self.gp_object.condition(r, self.X, diag=self.errorbars()**2)
+
+        return lnlike
+
     def residuals(self):
         """
         For use in plotting only
@@ -478,10 +486,8 @@ class GPLikelihood(CompositeLikelihood):
 
         self.update_hparams()
 
-
         r = jnp.array(self._resids())
-        mu_pred = tinygp.GaussianProcess(self.kernel, self.X, diag=self.errorbars()**2).predict(r)
-        mu_pred = np.array(mu_pred)
+        mu_pred = np.array(self.gp_object.predict(r))
 
         gammas = np.empty(self.N)
         for i in range(len(self.suffixes)):
@@ -493,19 +499,6 @@ class GPLikelihood(CompositeLikelihood):
 
         res = self.y - (self.model(self.x) + mu_pred + gammas)
         return res
-
-    def logprob(self):
-
-        # rebuild the gp object with updated hyperparameter values
-        self.update_hparams()
-
-        # calculate Keplerian residuals
-        r = self._resids()
-
-        # log likelihood is updated GP conditioned on Keplerian residuals
-        lnlike = np.array([self.gp_object.condition(r).log_probability])[0]
-
-        return lnlike
 
 
     def predict(self, xpred, inst_name):
@@ -536,8 +529,7 @@ class GPLikelihood(CompositeLikelihood):
 
         X = (jnp.array(xpred), tel_inputs)
 
-        gp_object = tinygp.GaussianProcess(self.kernel, self.X, diag=self.errorbars()**2)
-        mu, var = gp_object.predict(r, X, return_var = True)
+        mu, var = self.gp_object.predict(r, X, return_var = True)
         mu = np.array(mu)
         stdev = np.sqrt(var)
 
