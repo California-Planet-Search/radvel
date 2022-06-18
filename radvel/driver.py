@@ -570,6 +570,7 @@ def report(args):
                             "{}_radvel.stat".format(conf_base))
 
     status = load_status(statfile)
+    status['ic_compare']['ic'] = status['ic_compare']['ic'].replace('-inf', '-np.inf')
 
     P, post = radvel.utils.initialize_posterior(config_file)
     post = radvel.posterior.load(status.get('fit', 'postfile'))
