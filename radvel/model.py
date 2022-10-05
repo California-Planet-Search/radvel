@@ -18,6 +18,7 @@ texdict = {
     'w': '\\omega',
     'tp': 'T\\rm{peri}',
     'k': 'K',
+    'mpsini': 'M\\sin{i}',
     'gamma_': '\\gamma_{\\rm ',
     'logjit_': '\\ln{\\sigma_{\\rm jit}}_{\\rm ',
     'jit_': '\\sigma_{\\rm ',
