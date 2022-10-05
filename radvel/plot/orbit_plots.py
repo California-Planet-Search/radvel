@@ -28,6 +28,8 @@ class MultipanelPlot(object):
             folded plots. Default is nplanets.
         phase_ncols (int, optional): number of columns in the phase
             folded plots. Default is 1.
+        param_keys_and_units (dict, optional): parameter names and units to plot, must
+           contain 'per', 'k', and 'e' keys.
         uparams (dict, optional): parameter uncertainties, must
            contain 'per', 'k', and 'e' keys.
         telfmts (dict, optional): dictionary of dictionaries mapping
@@ -61,7 +63,7 @@ class MultipanelPlot(object):
         status (ConfigParser): (optional) result of radvel.driver.load_status on the .stat status file
     """
     def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
-                 phase_nrows=None, phase_ncols=None, uparams=None, telfmts={}, legend=True,
+                 phase_nrows=None, phase_ncols=None, param_keys_and_units = None, uparams=None, telfmts={}, legend=True,
                  phase_limits=[], nobin=False, phasetext_size='large', rv_phase_space=0.08,
                  figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9, highlight_last=False,
                  show_rms=False, legend_kwargs=dict(loc='best'), status=None):
@@ -75,6 +77,7 @@ class MultipanelPlot(object):
             self.phase_ncols = 1
         if phase_nrows is None:
             self.phase_nrows = self.post.likelihood.model.num_planets
+        self.param_keys_and_units = param_keys_and_units
         self.uparams = uparams
         self.rv_phase_space = rv_phase_space
         self.telfmts = telfmts
@@ -333,8 +336,12 @@ class MultipanelPlot(object):
         ax.set_ylabel('RV [{ms:}]'.format(**plot.latex), weight='bold')
         ax.set_xlabel('Phase', weight='bold')
 
-        print_params = ['per', 'k', 'e']
-        units = {'per': 'days', 'k': plot.latex['ms'], 'e': ''}
+        if self.param_keys_and_units is None:
+        	print_params = ['per', 'k', 'e']
+        	units = {'per': 'days', 'k': plot.latex['ms'], 'e': ''}
+        else:
+        	print_params = list(self.param_keys_and_units.keys())
+        	units = self.param_keys_and_units # keep dict format to match case above
 
         anotext = []
         for l, p in enumerate(print_params):
@@ -361,18 +368,19 @@ class MultipanelPlot(object):
             anotext += [_anotext]
 
         if hasattr(self.post, 'derived'):
-            chains = pd.read_csv(self.status['derive']['chainfile'])
-            self.post.nplanets = self.num_planets
+            chains = pd.read_csv(self.status['derive']['chainfile']) # requires STATUS file normally run by CLI
             dp = mcmc_plots.DerivedPlot(chains, self.post)
             labels = dp.labels
             texlabels = dp.texlabels
             units = dp.units
+            read_from_chains=True
+            read_from_chains=False
+            self.post.nplanets = self.num_planets            	
             derived_params = ['mpsini']
             for l, par in enumerate(derived_params):
                 par_label = par + str(pnum)
                 if par_label in self.post.derived.columns:
                     index = np.where(np.array(labels) == par_label)[0][0]
-
                     unit = units[index]
                     if unit == "M$_{\\rm Jup}$":
                         conversion_fac = 0.00315
@@ -380,7 +388,6 @@ class MultipanelPlot(object):
                         conversion_fac = 0.000954265748
                     else:
                         conversion_fac = 1
-
                     val = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.500] * conversion_fac
                     low = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.159] * conversion_fac
                     high = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.841] * conversion_fac
@@ -400,7 +407,7 @@ class MultipanelPlot(object):
         anotext = '\n'.join(anotext)
         plot.add_anchored(
             anotext, loc=1, frameon=True, prop=dict(size=self.phasetext_size, weight='bold'),
-            bbox=dict(ec='none', fc='w', alpha=0.8)
+            bbox=dict(ec='None', fc='w', alpha=0.8)
         )
 
     def plot_multipanel(self, nophase=False, letter_labels=True):
@@ -482,7 +489,7 @@ class MultipanelPlot(object):
                 pltletter += 1
 
         if self.saveplot is not None:
-            pl.savefig(self.saveplot, dpi=150)
+            pl.savefig(self.saveplot, dpi=200, bbox_inches='tight')
             print("RV multi-panel plot saved to %s" % self.saveplot)
 
         return fig, self.ax_list
@@ -784,7 +791,7 @@ class GPMultipanelPlot(MultipanelPlot):
                     pltletter += 1
 
             if self.saveplot is not None:
-                pl.savefig(self.saveplot, dpi=150)
+                pl.savefig(self.saveplot, dpi=200, bbox_inches="tight")
                 print("RV multi-panel plot saved to %s" % self.saveplot)
 
             return fig, self.ax_list
