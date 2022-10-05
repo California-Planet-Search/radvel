@@ -330,9 +330,7 @@ class MultipanelPlot(object):
             scale = np.std(rvdatcat)
             ax.set_ylim(-self.yscale_sigma*scale, self.yscale_sigma*scale)
         
-        keys = [p+str(pnum) for p in ['per', 'k', 'e']]
 
-        labels = [self.post.params.tex_labels().get(k, k) for k in keys]
         if pnum < self.num_planets:
             ticks = ax.yaxis.get_majorticklocs()
             ax.yaxis.set_ticks(ticks[1:-1])
@@ -343,10 +341,14 @@ class MultipanelPlot(object):
         if self.param_keys_and_units is None:
         	print_params = ['per', 'k', 'e']
         	units = {'per': 'days', 'k': plot.latex['ms'], 'e': ''}
+                keys = [p+str(pnum) for p in ['per', 'k', 'e']]
+                labels = [self.post.params.tex_labels().get(k, k) for k in keys]
         else:
         	print_params = list(self.param_keys_and_units.keys())
         	units = self.param_keys_and_units # keep dict format to match case above
-
+                keys = [p+str(pnum) for p in print_params]
+                from radvel.model import texdict
+                labels = [textdict[k]+str(pnum) for k in print_params]
         anotext = []
         for l, p in enumerate(print_params):
             try:
