@@ -349,8 +349,16 @@ class MultipanelPlot(object):
 
         anotext = []
         for l, p in enumerate(print_params):
-            val = self.post.params["%s%d" % (print_params[l], pnum)].value
-            
+            try:
+                val = self.post.params["%s%d" % (print_params[l], pnum)].value
+            except:
+                if hasattr(self.post, 'medparams'):
+                    val = self.post.medparams["%s%d" % (print_params[l], pnum)]
+                else:
+                    print("WARNING: medparams attribute not found in " +
+                          "posterior object will annotate with " +
+                          "max-likelihood values and reported uncertainties " +
+                          "may not be appropriate.")            
             if self.uparams is None:
                 _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (labels[l].replace("$", ""), val, units[p])
             else:
