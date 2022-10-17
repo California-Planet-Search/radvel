@@ -189,7 +189,7 @@ class DerivedPlot(object):
         self.labels = []
         self.texlabels = []
         self.units = []
-        for i in np.arange(1, P.nplanets + 1, 1):
+        for i in np.arange(1, P.num_planets + 1, 1):
             letter = planet_letters[i]
 
             for key in 'mpsini rhop a'.split():
