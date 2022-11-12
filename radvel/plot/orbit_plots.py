@@ -486,6 +486,7 @@ class MultipanelPlot(object):
                 pltletter += 1
 
         if self.saveplot is not None:
+            pl.tight_layout()
             pl.savefig(self.saveplot, dpi=150)
             print("RV multi-panel plot saved to %s" % self.saveplot)
 
