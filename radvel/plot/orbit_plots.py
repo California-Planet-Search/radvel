@@ -24,7 +24,7 @@ class MultipanelPlot(object):
              scaling (default: False)
         yscale_sigma (float, optional): Scale y-axis limits for all panels to be +/-
              yscale_sigma*(RMS of data plotted) if yscale_auto==False
-        phase_nrows (int, optional): number of columns in the phase
+        phase_nrows (int, optional): number of rows in the phase
             folded plots. Default is nplanets.
         phase_ncols (int, optional): number of columns in the phase
             folded plots. Default is 1.
@@ -76,7 +76,7 @@ class MultipanelPlot(object):
         else:
         	self.phase_ncols = phase_ncols
         if phase_nrows is None:
-            self.phase_nrows = self.post.likelihood.model.num_planets
+            self.phase_nrows = int(np.ceil(self.post.likelihood.model.num_planets / self.phase_ncols))
         else:
         	self.phase_nrows = phase_nrows
         self.uparams = uparams
@@ -484,9 +484,8 @@ class MultipanelPlot(object):
                 pl.sca(ax_phase)
                 self.plot_phasefold(pltletter, i+1)
                 pltletter += 1
-
+        fig.tight_layout()
         if self.saveplot is not None:
-            pl.tight_layout()
             pl.savefig(self.saveplot, dpi=150)
             print("RV multi-panel plot saved to %s" % self.saveplot)
 
