@@ -349,7 +349,7 @@ class MultipanelPlot(object):
             units = self.param_keys_and_units # keep dict format to match case above
             keys = [p+str(pnum) for p in print_params]
             from radvel.model import texdict
-            labels = [texdict[k]+str(pnum) for k in print_params]
+            labels = [self.post.params.tex_labels().get(k, k) for k in keys]
         anotext = []
         for l, p in enumerate(print_params):
             try:
