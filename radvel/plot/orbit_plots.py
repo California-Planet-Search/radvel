@@ -24,7 +24,7 @@ class MultipanelPlot(object):
              scaling (default: False)
         yscale_sigma (float, optional): Scale y-axis limits for all panels to be +/-
              yscale_sigma*(RMS of data plotted) if yscale_auto==False
-        phase_nrows (int, optional): number of columns in the phase
+        phase_nrows (int, optional): number of rows in the phase
             folded plots. Default is nplanets.
         phase_ncols (int, optional): number of columns in the phase
             folded plots. Default is 1.
@@ -78,7 +78,7 @@ class MultipanelPlot(object):
         else:
             self.phase_ncols = phase_ncols
         if phase_nrows is None:
-            self.phase_nrows = self.post.likelihood.model.num_planets
+            self.phase_nrows = int(np.ceil(self.post.likelihood.model.num_planets / self.phase_ncols))
         else:
             self.phase_nrows = phase_nrows
         self.param_keys_and_units = param_keys_and_units
@@ -121,7 +121,7 @@ class MultipanelPlot(object):
 
         self.rawresid = self.post.likelihood.residuals()
 
-        self.resid = (
+        self.rvtrend = (
             self.rawresid + self.post.params['dvdt'].value*(self.rvtimes-self.model.time_base)
             + self.post.params['curv'].value*(self.rvtimes-self.model.time_base)**2
         )
@@ -239,9 +239,10 @@ class MultipanelPlot(object):
         ticks = ax.yaxis.get_majorticklocs()
         ax.yaxis.set_ticks(ticks[1:])
 
+
     def plot_residuals(self):
         """
-        Make a plot of residuals and RV trend in the current Axes.
+        Make a plot of residuals in the current Axes.
         """
         
         ax = pl.gca()
@@ -423,8 +424,37 @@ class MultipanelPlot(object):
             anotext, loc=1, frameon=True, prop=dict(size=self.phasetext_size, weight='bold'),
             bbox=dict(ec='None', fc='w', alpha=0.8)
         )
+        
+    def plot_trend(self):
+        """
+        Make a plot of the RV trend and curvature and best fit
+        """ 
+        ax = pl.gca()
+        
+        # plot orbit model
+        ax.plot(self.mplttimes, self.slope, 'b-', rasterized=False, lw=self.fit_linewidth)
+        
+        # plot rv trend
+        plot.mtelplot(
+            # data = residuals + model
+            self.plttimes, self.rvtrend, self.rverr,
+            self.post.likelihood.telvec, ax, telfmts=self.telfmts)
 
-    def plot_multipanel(self, nophase=False, letter_labels=True):
+        if self.highlight_last:
+            ind = np.argmax(self.plttimes)
+            pl.plot(self.plttimes[ind], self.rawresid[ind], **plot.highlight_format)
+
+        if self.set_xlim is not None:
+            ax.set_xlim(self.set_xlim)
+        else:
+            ax.set_xlim(min(self.plttimes)-0.01*self.dt, max(self.plttimes)+0.01*self.dt)
+        ticks = ax.yaxis.get_majorticklocs()
+        ax.yaxis.set_ticks([ticks[0], 0.0, ticks[-1]])
+        ax.set_xlabel('JD - {:d}'.format(int(np.round(self.epoch))), weight='bold')
+        ax.set_ylabel('RV [{ms:}]'.format(**plot.latex), weight='bold')
+        ax.yaxis.set_major_locator(MaxNLocator(5, prune='both'))
+    
+    def plot_multipanel(self, nophase=False, notrend=True, letter_labels=True):
         """
         Provision and plot an RV multipanel plot
 
@@ -445,8 +475,16 @@ class MultipanelPlot(object):
             scalefactor = 1
         else:
             scalefactor = self.phase_nrows
+            
+        if notrend:
+            addheight = 0.
+        else:
+            if self.num_planets%self.phase_ncols==0:
+                addheight = self.ax_phase_height + self.rv_phase_space
+            else:
+                addheight = 0.
 
-        figheight = self.ax_rv_height + self.ax_phase_height * scalefactor
+        figheight = self.ax_rv_height + self.ax_phase_height * scalefactor + addheight
 
         # provision figure
         fig = pl.figure(figsize=(self.figwidth, figheight))
@@ -483,10 +521,10 @@ class MultipanelPlot(object):
         if not nophase:
             gs_phase = gridspec.GridSpec(max([1,self.phase_nrows]), max([1,self.phase_ncols]))
             
-            if self.phase_ncols == 1:
+            if self.num_planets % self.phase_ncols==0:
                 gs_phase.update(left=0.12, right=0.93,
                                 top=divide - self.rv_phase_space * 0.5,
-                                bottom=0.07, hspace=0.003)
+                                bottom=addheight/figheight + self.rv_phase_space * 0.5, hspace=0.25, wspace=0.25)
             else:
                 gs_phase.update(left=0.12, right=0.93,
                                 top=divide - self.rv_phase_space * 0.5,
@@ -501,7 +539,30 @@ class MultipanelPlot(object):
                 pl.sca(ax_phase)
                 self.plot_phasefold(pltletter, i+1)
                 pltletter += 1
-
+        
+        # plot trend
+        if not notrend:
+            gs_trend = gridspec.GridSpec(1,1)
+            if self.num_planets % self.phase_ncols==0:
+                left_bound, right_bound=0.12, 0.93
+                top_bound=addheight/figheight
+                bottom_bound=0.07
+            else:
+                left_bound, right_bound = 0.56, 0.93
+                top_bound=self.ax_phase_height/figheight - self.rv_phase_space*0.5
+                bottom_bound=0.07
+            gs_trend.update(left=left_bound, right=right_bound, top=top_bound, bottom=bottom_bound, hspace=0.)
+            ax_trend = pl.subplot(gs_trend[0])
+            self.ax_list +=[ax_trend]
+            
+            pl.sca(ax_trend)
+            self.plot_trend()
+            if letter_labels:
+                plot.labelfig(pltletter)
+                pltletter +=1
+        
+        # final formatting
+        fig.tight_layout()
         if self.saveplot is not None:
             pl.savefig(self.saveplot, dpi=200, bbox_inches='tight')
             print("RV multi-panel plot saved to %s" % self.saveplot)
@@ -709,7 +770,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 scalefactor = self.phase_nrows
 
             n_likes = len(self.like_list)
-            figheight = self.ax_rv_height*(n_likes+0.5) + self.ax_phase_height * scalefactor
+            figheight = self.ax_rv_height*(n_likes//self.phase_ncols+1.5) + self.ax_phase_height * scalefactor
 
             # provision figure
             fig = pl.figure(figsize=(self.figwidth, figheight))
@@ -788,7 +849,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 if self.phase_ncols == 1:
                     gs_phase.update(left=0.12, right=0.93,
                                     top=divide - self.rv_phase_space * 0.5,
-                                    bottom=0.07, hspace=0.003)
+                                    bottom=0.07, hspace=0.25)
                 else:
                     gs_phase.update(left=0.12, right=0.93,
                                     top=divide - self.rv_phase_space * 0.5,
@@ -803,7 +864,27 @@ class GPMultipanelPlot(MultipanelPlot):
                     pl.sca(ax_phase)
                     self.plot_phasefold(pltletter, i+1)
                     pltletter += 1
-
+                    
+            # RV trend plot
+            if not notrend:
+                gs_trend = gridspec.GridSpec(1,1)
+                if self.num_planets % self.phase_ncols==0:
+                    left_bound, right_bound=0.12, 0.93-0.5
+                    top_bound=addheight/figheight - self.rv_phase_space*0.5
+                    bottom_bound=0.07
+                else:
+                    left_bound, right_bound = 0.12+0.5, 0.93
+                    top_bound=self.ax_phase_height/figheight - self.rv_phase_space*0.5
+                    bottom_bound=0.07
+                gs_trend.update(left=left_bound, right=right_bound, top=top_bound, bottom=bottom_bound, hspace=0.)
+                ax_trend = pl.subplot(gs_trend[0])
+                self.ax_list +=[ax_trend]
+            
+                pl.sca(ax_trend)
+                self.plot_trend()
+                if letter_labels:
+                    plot.labelfig(pltletter)
+                    pltletter +=1
             if self.saveplot is not None:
                 pl.savefig(self.saveplot, dpi=200, bbox_inches="tight")
                 print("RV multi-panel plot saved to %s" % self.saveplot)
