@@ -443,12 +443,10 @@ class GPLikelihood(CompositeLikelihood):
         """
 
         for key in self.vector.indices:
-            try:
+            if key.startswith('gp'):
                 self.gp_object.kernel.hparams_dict[key].value = self.vector.vector[
                     self.vector.indices[key]
                 ][0]
-            except KeyError:
-                pass
     
     def _resids(self):
         """
@@ -527,8 +525,7 @@ class GPLikelihood(CompositeLikelihood):
         r = jnp.array(self._resids())
 
         tel_inputs = (
-            jnp.ones(len(xpred), dtype=int) * 
-            int(np.where([np.array(self.suffixes) == inst_name])[0][0])
+            jnp.ones(len(xpred), dtype=int) * self.suffixes.index(inst_name)
         )
 
         X = (jnp.array(xpred), tel_inputs)

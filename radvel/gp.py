@@ -75,7 +75,7 @@ class QuasiPer(tinygp.kernels.Kernel):
         # build lists of amplitude values [gp_amp_j, gp_amp_k]
         ampparams = jnp.array([
             self.hparams_dict[par].value for par in self.hparams_dict.keys() if 
-            par.startswith('gp_amp_') and not 'group' in par
+            par.startswith('gp_amp_')
         ])
 
         amp1 = ampparams[X1[1]]
@@ -97,74 +97,60 @@ class QuasiPer(tinygp.kernels.Kernel):
 
         return total_kernel
 
-class TwoPer(tinygp.kernels.Kernel):
-    """
-    Double periodic kernel. Blunt et al (in prep, est 2022).
+# class FourPer(tinygp.kernels.Kernel):
+#     """
+#     Four-period kernel. Blunt et al (in prep).
 
-    Args:
-        hparams_dict (dict of radvel.Parameter objects): same as 
-            Likelihood.params, passed into this object by radvel.Likelihood object
-        insts (list of str): list of all instruments, e.g. ['HIRES', 'NEID', 'KPF']
-    """
-    def __init__(
-        self, hparams_dict, insts
-    ):
+#     Args:
+#         hparams_dict (dict of radvel.Parameter objects): same as 
+#             Likelihood.params, passed into this object by radvel.Likelihood object
+#         insts (list of str): list of all instruments, e.g. ['HIRES', 'NEID', 'KPF']
+#     """
+#     def __init__(
+#         self, hparams_dict, insts
+#     ):
 
-        self.hparams_dict = hparams_dict
-        self.insts = insts
+#         self.hparams_dict = hparams_dict
+#         self.insts = insts
 
-        self.ampparam_names = ([
-            par for par in self.hparams_dict.keys() if 
-            par.startswith('gp_amp_') and not 'group' in par
-        ])
+#         self.ampparam_names = ([
+#             par for par in self.hparams_dict.keys() if 
+#             par.startswith('gp_amp_') and not 'group' in par
+#         ])
 
-    def evaluate(self, X1, X2):
+#     def evaluate(self, X1, X2):
 
-        # build lists of amplitude values 
-        #   [gp_amp_HIRES, gp_amp_NEID, gp_amp_KPF]
-        ampparams = jnp.array([
-            self.hparams_dict[par].value for par in self.ampparam_names
-        ])
+#         # build lists of amplitude values 
+#         #   [gp_amp_HIRES, gp_amp_NEID, gp_amp_KPF]
+#         ampparams = jnp.array([
+#             self.hparams_dict[par].value for par in self.ampparam_names
+#         ])
 
-        amp_groupA = self.hparams_dict['gp_amp_groupA'].value
-        amp_groupB = self.hparams_dict['gp_amp_groupB'].value
+#         tau = jnp.abs(X1[0] - X2[0])
 
-        amp1_groupA = ampparams[X1[1]] * amp_groupA
-        amp1_groupB = ampparams[X1[1]] * amp_groupB
+#         for spotgroup_name in ['A', 'B', 'C', 'D']:
 
-        amp2_groupA = ampparams[X2[1]] * amp_groupA
-        amp2_groupB = ampparams[X2[1]] * amp_groupB
+#             amp = self.hparams_dict['gp_amp_group{}'.format(spotgroup_name)].value
 
-        tau = jnp.abs(X1[0] - X2[0])
 
-        perA = (
-            self.hparams_dict['gp_per_avg'].value + 
-            0.5 * self.hparams_dict['gp_per_diff'].value # 2.92 (polar)
-        )
-        perB = (
-            self.hparams_dict['gp_per_avg'].value - 
-            0.5 * self.hparams_dict['gp_per_diff'].value # 2.86 (equatorial)
-        )
+#             amp1_group = ampparams[X1[1]] * amp
+#             amp2_group = ampparams[X2[1]] * amp
 
-        perA_term = jnp.sin(jnp.pi * tau / perA)**2
-        perB_term = jnp.sin(jnp.pi * tau / perB)**2
+#             per = (
+#                 self.hparams_dict['gp_per_group{}'.format(spotgroup_name)].value
+#             )
 
-        perA_kernel = jnp.exp(
-            -perA_term / 
-            (self.hparams_dict['gp_perlenA'].value**2)
-        )
-        perB_kernel = jnp.exp( 
-            -perB_term / 
-            (self.hparams_dict['gp_perlenB'].value**2)
-        )
-        # exp_kernel = jnp.exp(
-        #     -(tau / self.hparams_dict['gp_explength'].value)**2
-        # )
+#             per_term = jnp.sin(jnp.pi * tau / per)**2
 
-        total_kernel = (
-            (amp1_groupA * amp2_groupA *  perA_kernel) + # * exp_kernel) + 
-            (amp1_groupB * amp2_groupB * perB_kernel)
-        )
+#             per_kernel = jnp.exp(
+#                 -per_term / 
+#                 (self.hparams_dict['gp_perlen{}'.format(spotgroup_name)].value**2)
+#             )
 
-        return total_kernel
+#             if spotgroup_name == 'A': 
+#                 total_kernel = amp1_group * amp2_group *  per_kernel
+#             else:
+#                 total_kernel += amp1_group * amp2_group *  per_kernel
+
+#         return total_kernel
 
