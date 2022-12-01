@@ -3,13 +3,14 @@ import radvel.model
 from radvel import gp
 import warnings
 import tinygp
-from jax import numpy as jnp
+import jax
 
+# enable double precision in jax
+jax.config.update("jax_enable_x64", True)
 
 def custom_formatwarning(msg, *args, **kwargs):
     # ignore everything except the message
     return str(msg) + '\n'
-
 
 warnings.formatwarning = custom_formatwarning
 
@@ -432,7 +433,7 @@ class GPLikelihood(CompositeLikelihood):
         self.kernel_call = getattr(gp, kernel_name)
         kernel = self.kernel_call(self.params, self.suffixes)
 
-        self.X = (jnp.array(self.x), jnp.array(self.index_tel_array))
+        self.X = (jax.numpy.array(self.x), jax.numpy.array(self.index_tel_array))
 
         self.gp_object = tinygp.GaussianProcess(kernel, self.X, diag=self.errorbars()**2)
 
@@ -485,7 +486,7 @@ class GPLikelihood(CompositeLikelihood):
         self.gp_object = tinygp.GaussianProcess(kernel, self.X, diag=self.errorbars()**2)
         self.update_hparams()
 
-        r = jnp.array(self._resids())
+        r = jax.numpy.array(self._resids())
         mu_pred = self.gp_object.predict(r)
 
         mu_pred = np.array(mu_pred)
@@ -522,13 +523,13 @@ class GPLikelihood(CompositeLikelihood):
         kernel = self.kernel_call(self.params, self.suffixes)
         self.gp_object = tinygp.GaussianProcess(kernel, self.X, diag=self.errorbars()**2)
         self.update_hparams()
-        r = jnp.array(self._resids())
+        r = jax.numpy.array(self._resids())
 
         tel_inputs = (
-            jnp.ones(len(xpred), dtype=int) * self.suffixes.index(inst_name)
+            jax.numpy.ones(len(xpred), dtype=int) * self.suffixes.index(inst_name)
         )
 
-        X = (jnp.array(xpred), tel_inputs)
+        X = (jax.numpy.array(xpred), tel_inputs)
 
         mu_pred, var = self.gp_object.predict(r, X, return_var=True)
         mu = np.array(mu_pred)

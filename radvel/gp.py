@@ -1,6 +1,9 @@
 import warnings
 import tinygp
-from jax import numpy as jnp
+import jax
+
+# enable double precision in jax
+jax.config.update("jax_enable_x64", True)
 
 warnings.simplefilter('once')
 
@@ -34,7 +37,7 @@ class SqExp(tinygp.kernels.Kernel):
     def evaluate(self, X1, X2):
 
         # build lists of amplitude values [gp_amp_j, gp_amp_k]
-        ampparams = jnp.array([
+        ampparams = jax.numpy.array([
             self.hparams_dict[par].value for par in self.hparams_dict.keys() if 
             par.startswith('gp_amp_')
         ])
@@ -42,9 +45,9 @@ class SqExp(tinygp.kernels.Kernel):
         amp1 = ampparams[X1[1]]
         amp2 = ampparams[X2[1]]
 
-        tau = jnp.abs(X1[0] - X2[0])
+        tau = jax.numpy.abs(X1[0] - X2[0])
 
-        exp_kernel = jnp.exp(
+        exp_kernel = jax.numpy.exp(
             -tau**2 / 
             self.hparams_dict['gp_explength'].value**2
         )
@@ -73,7 +76,7 @@ class QuasiPer(tinygp.kernels.Kernel):
     def evaluate(self, X1, X2):
 
         # build lists of amplitude values [gp_amp_j, gp_amp_k]
-        ampparams = jnp.array([
+        ampparams = jax.numpy.array([
             self.hparams_dict[par].value for par in self.hparams_dict.keys() if 
             par.startswith('gp_amp_')
         ])
@@ -81,15 +84,15 @@ class QuasiPer(tinygp.kernels.Kernel):
         amp1 = ampparams[X1[1]]
         amp2 = ampparams[X2[1]]
 
-        tau = jnp.abs(X1[0] - X2[0])
+        tau = jax.numpy.abs(X1[0] - X2[0])
 
-        per_term = jnp.sin(jnp.pi * tau / self.hparams_dict['gp_per'].value)**2
-        per_kernel = jnp.exp( 
+        per_term = jax.numpy.sin(jax.numpy.pi * tau / self.hparams_dict['gp_per'].value)**2
+        per_kernel = jax.numpy.exp( 
             -per_term / 
             (self.hparams_dict['gp_perlength'].value**2)
         )
 
-        exp_kernel = jnp.exp(
+        exp_kernel = jax.numpy.exp(
             -(tau / self.hparams_dict['gp_explength'].value)**2
         )
 
@@ -122,11 +125,11 @@ class QuasiPer(tinygp.kernels.Kernel):
 
 #         # build lists of amplitude values 
 #         #   [gp_amp_HIRES, gp_amp_NEID, gp_amp_KPF]
-#         ampparams = jnp.array([
+#         ampparams = jax.numpy.array([
 #             self.hparams_dict[par].value for par in self.ampparam_names
 #         ])
 
-#         tau = jnp.abs(X1[0] - X2[0])
+#         tau = jax.numpy.abs(X1[0] - X2[0])
 
 #         for spotgroup_name in ['A', 'B', 'C', 'D']:
 
@@ -140,9 +143,9 @@ class QuasiPer(tinygp.kernels.Kernel):
 #                 self.hparams_dict['gp_per_group{}'.format(spotgroup_name)].value
 #             )
 
-#             per_term = jnp.sin(jnp.pi * tau / per)**2
+#             per_term = jax.numpy.sin(jax.numpy.pi * tau / per)**2
 
-#             per_kernel = jnp.exp(
+#             per_kernel = jax.numpy.exp(
 #                 -per_term / 
 #                 (self.hparams_dict['gp_perlen{}'.format(spotgroup_name)].value**2)
 #             )
