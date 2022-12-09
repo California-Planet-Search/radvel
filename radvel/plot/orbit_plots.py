@@ -74,11 +74,11 @@ class MultipanelPlot(object):
         if phase_ncols is None:
             self.phase_ncols = 1
         else:
-        	self.phase_ncols = phase_ncols
+            self.phase_ncols = phase_ncols
         if phase_nrows is None:
-            self.phase_nrows = self.post.likelihood.model.num_planets
+            self.phase_nrows = int(np.ceil(self.post.likelihood.model.num_planets / self.phase_ncols))
         else:
-        	self.phase_nrows = phase_nrows
+            self.phase_nrows = phase_nrows
         self.uparams = uparams
         self.rv_phase_space = rv_phase_space
         self.telfmts = telfmts
@@ -485,6 +485,7 @@ class MultipanelPlot(object):
                 self.plot_phasefold(pltletter, i+1)
                 pltletter += 1
 
+        fig.tight_layout()
         if self.saveplot is not None:
             pl.savefig(self.saveplot, dpi=150)
             print("RV multi-panel plot saved to %s" % self.saveplot)
