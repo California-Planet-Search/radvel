@@ -6,8 +6,6 @@ import re
 class build_ext(_build_ext):
     def finalize_options(self):
         _build_ext.finalize_options(self)
-        # Prevent numpy from thinking it is still in its setup process:
-        __builtins__.__NUMPY_SETUP__ = False
         import numpy
         self.include_dirs.append(numpy.get_include())
 
@@ -22,7 +20,7 @@ extensions = [Extension("radvel._kepler", ["src/_kepler.pyx"],)]
 
 reqs = []
 for line in open('requirements.txt', 'r').readlines():
-    if not line.startswith('celerite') and not line.startswith('h5py'):
+    if not line.startswith('celerite'):
         reqs.append(line)
 
 setup(
