@@ -1,4 +1,4 @@
-FROM conda/miniconda3
+FROM continuumio/miniconda3
 
 ENV TERM=xterm
 ENV TERMINFO=/etc/terminfo
@@ -9,7 +9,7 @@ ENV COVERALLS_REPO_TOKEN=7ZpQ0LQWM2PNl5iu7ZndyFEisQnZow8oT
 RUN mkdir /code && \
     mkdir /code/radvel && \
     apt-get --yes update && \
-    apt-get install --yes gcc git pkg-config libhdf5-100 libhdf5-dev && \
+    apt-get install --yes gcc git pkg-config libhdf5-hl-100 libhdf5-dev && \
     apt-get clean && \
     conda config --add channels conda-forge && \
     conda config --set channel_priority strict && \
