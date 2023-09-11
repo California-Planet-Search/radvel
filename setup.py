@@ -1,16 +1,7 @@
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext as _build_ext
 import re
-
-
-class build_ext(_build_ext):
-    def finalize_options(self):
-        _build_ext.finalize_options(self)
-        # Prevent numpy from thinking it is still in its setup process:
-        # __builtins__.__NUMPY_SETUP__ = False
-        import numpy
-        self.include_dirs.append(numpy.get_include())
-
+import numpy
 
 def get_property(prop, project):
     result = re.search(r'{}\s*=\s*[\'"]([^\'"]*)[\'"]'.format(prop),
@@ -18,7 +9,11 @@ def get_property(prop, project):
     return result.group(1)
 
 
-extensions = [Extension("radvel._kepler", ["src/_kepler.pyx"],)]
+extensions = [
+    Extension(
+        "radvel._kepler", ["src/_kepler.pyx"],
+        include_dirs=[numpy.get_include()])    
+]
 
 reqs = []
 for line in open('requirements.txt', 'r').readlines():
@@ -32,7 +27,6 @@ setup(
     packages=find_packages(),
     setup_requires=['numpy', 'cython'],
     ext_modules=extensions,
-    cmdclass={'build_ext': build_ext},
     data_files=[
         (
             'radvel_example_data', 
