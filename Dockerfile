@@ -10,12 +10,14 @@ RUN mkdir /code && \
     mkdir /code/radvel && \
     apt-get --yes update && \
     apt-get install --yes gcc git pkg-config libhdf5-hl-100 libhdf5-dev && \
-    apt-get clean && \
-    conda config --add channels conda-forge && \
-    conda config --set channel_priority strict && \
-    conda update -n base -c defaults conda && \
-    conda install --yes nomkl numpy pybind11 coveralls nose && \
-    conda install --yes -c conda-forge celerite && \
+    apt-get clean
+
+# RUN conda config --add channels conda-forge && \
+#     conda config --set channel_priority strict && \
+#     conda update -n base -c defaults conda
+
+RUN conda install --yes nomkl numpy pybind11 coveralls nose
+RUN conda install --yes -c conda-forge celerite && \
     conda clean -afy
 
 WORKDIR /code/radvel
