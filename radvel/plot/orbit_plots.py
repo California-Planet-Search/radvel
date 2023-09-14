@@ -73,8 +73,12 @@ class MultipanelPlot(object):
         self.yscale_sigma = yscale_sigma
         if phase_ncols is None:
             self.phase_ncols = 1
+        else:
+        	self.phase_ncols = phase_ncols
         if phase_nrows is None:
             self.phase_nrows = self.post.likelihood.model.num_planets
+        else:
+        	self.phase_nrows = phase_nrows
         self.uparams = uparams
         self.rv_phase_space = rv_phase_space
         self.telfmts = telfmts
@@ -234,21 +238,21 @@ class MultipanelPlot(object):
 
     def plot_residuals(self):
         """
-        Make a plot of residuals and RV trend in the current Axes.
+        Make a plot of residuals in the current Axes.
         """
         
         ax = pl.gca()
 
-        ax.plot(self.mplttimes, self.slope, 'b-', lw=self.fit_linewidth)
+        ax.plot(self.mplttimes, self.slope-self.slope, 'b-', lw=self.fit_linewidth)
 
-        plot.mtelplot(self.plttimes, self.resid, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts)
+        plot.mtelplot(self.plttimes, self.rawresid, self.rverr, self.post.likelihood.telvec, ax, telfmts=self.telfmts)
         if not self.yscale_auto: 
-            scale = np.std(self.resid)
+            scale = np.std(self.rawresid)
             ax.set_ylim(-self.yscale_sigma * scale, self.yscale_sigma * scale)
 
         if self.highlight_last:
             ind = np.argmax(self.plttimes)
-            pl.plot(self.plttimes[ind], self.resid[ind], **plot.highlight_format)
+            pl.plot(self.plttimes[ind], self.rawresid[ind], **plot.highlight_format)
 
         if self.set_xlim is not None:
             ax.set_xlim(self.set_xlim)
@@ -688,7 +692,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 scalefactor = self.phase_nrows
 
             n_likes = len(self.like_list)
-            figheight = self.ax_rv_height*(n_likes+0.5) + self.ax_phase_height * scalefactor
+            figheight = self.ax_rv_height*(n_likes//self.phase_ncols+1.5) + self.ax_phase_height * scalefactor
 
             # provision figure
             fig = pl.figure(figsize=(self.figwidth, figheight))
