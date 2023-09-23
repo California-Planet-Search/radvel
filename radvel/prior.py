@@ -2,7 +2,7 @@
 import warnings
 
 import numpy as np
-from scipy.stats import gaussian_kde
+from scipy.stats import gaussian_kde, norm
 
 from radvel import model
 from radvel import orbit
@@ -33,6 +33,9 @@ class Gaussian(Prior):
     def __call__(self, params, vector):
         x = vector.vector[vector.indices[self.param]][0]
         return -0.5 * ((x - self.mu) / self.sigma)**2 - 0.5*np.log((self.sigma**2)*2.*np.pi)
+
+    def transform(self, u):
+        return norm.ppf(u, loc=self.mu, scale=self.sigma)
 
     def __repr__(self):
         s = "Gaussian prior on {}, mu={}, sigma={}".format(
@@ -127,7 +130,12 @@ upper limits must match number of planets."
 
         return -np.sum(np.log(self.upperlims))
 
+    def transform(self, u):
+        # TODO: Truncated version of eccentricity's main prior if any, error if other bound unspecified
+        raise NotImplementedError("Prior transform not yet available for EccentricityPrior")
 
+
+# TODO: Truncated version of eccentricity?
 class PositiveKPrior(Prior):
     """K must be positive
 
@@ -162,6 +170,10 @@ class PositiveKPrior(Prior):
             if k < 0.0:
                 return -np.inf
         return 0
+
+    def transform(self, u):
+        # TODO: Truncated version of K's main prior if any, error if other bound unspecified
+        raise NotImplementedError("Prior transform not yet available for EccentricityPrior")
 
 
 class HardBounds(Prior):
@@ -202,6 +214,11 @@ class HardBounds(Prior):
             else:
                 return 0
 
+    def transform(self, u):
+        if not self.finite:
+            raise ValueError("Prior transform for HardBounds requires finite boundaries")
+        return self.minval + u * (self.maxval - self.minval)
+
     def __repr__(self):
         s = "Bounded prior on {}, min={}, max={}".format(
             self.param, self.minval, self.maxval
@@ -221,6 +238,7 @@ class HardBounds(Prior):
         return s
 
 
+# TODO: Add prior transform
 class SecondaryEclipsePrior(Prior):
     """Secondary eclipse prior
 
@@ -301,6 +319,10 @@ class Jeffreys(Prior):
             return -np.inf
         else:
             return np.log(self.normalization) - np.log(x)
+
+    def transform(self, u):
+        return self.minval * np.exp(u * np.log(self.maxval / self.minval))
+
     def __repr__(self):
         s = "Jeffrey's prior on {}, min={}, max={}".format(
             self.param, self.minval, self.maxval
@@ -352,7 +374,15 @@ class ModifiedJeffreys(Prior):
         if (x > self.maxval) or (x < self.minval):
             return -np.inf
         else:
+            # NOTE: turn = -kneeval in juliet
+            return np.log(1.)  - np.log(x-self.turn) - np.log(np.log((self.hi-self.turn)/(-self.turn)))
+            return np.log(1./np.log((self.hi-self.turn)/(self.minval-self.turn))) - np.log(x-self.turn)
             return np.log(self.normalization) - np.log(x-self.kneeval)
+
+    def transform(self, u):
+        # TODO: Implement this. Juliet has minval=0 so need to work out the equation
+        raise NotImplementedError("Not yet implemented")
+
     def __repr__(self):
         s = "Modified Jeffrey's prior on {}, knee={}, min={}, max={}".format(
             self.param, self.kneeval, self.minval, self.maxval
@@ -413,6 +443,9 @@ class NumericalPrior(Prior):
         val = np.log(self.pdf_estimate(x))
         return val[0]
 
+    def transform(self, u):
+        raise NotImplementedError("Prior transform not available for NumericalPrior")
+
     def __repr__(self):
         s = "Numerical prior on {}".format(
             self.param_list
@@ -467,9 +500,10 @@ class UserDefinedPrior(Prior):
         entire parameter space must give a probability of 1.
     """
 
-    def __init__(self, param_list, func, tex_rep):
+    def __init__(self, param_list, func, tex_rep, transform_func=None):
         self.param_list = param_list
         self.func = func
+        self.transform_func = transform_func
         self.tex_rep = tex_rep
 
     def __call__(self, params, vector):
@@ -477,6 +511,12 @@ class UserDefinedPrior(Prior):
         for param in self.param_list:
             x.append(vector.vector[vector.indices[param]][0])
         return self.func(x)
+
+    def transform(self, u):
+        if self.transform_func is None:
+            # TODO: Not sure if right error
+            raise AttributeError("transform_func attribute not specified (set to None by default).")
+        return self.transform_func(u)
 
     def __repr__(self):
         s = "User-defined prior on {}".format(
@@ -532,3 +572,6 @@ class InformativeBaselinePrior(Prior):
         else:
             return np.log((self.baseline+self.duration)/per)
 
+    def transform(self, u):
+        # TODO: Implement for this distribution
+        raise NotImplementedError("Prior transform not yet implemented InformativeBaselinePrior")
