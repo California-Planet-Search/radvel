@@ -2,6 +2,7 @@ import sys
 import copy
 import warnings
 import types
+import pytest
 
 import radvel
 import radvel.driver
@@ -227,11 +228,8 @@ def test_kernels():
             sys.stdout.write("passed #2\n")
 
 
-def test_priors():
-    """
-    Test basic functionality of all Priors
-    """
-
+@pytest.fixture
+def params_and_vector_for_priors():
     params = radvel.Parameters(1, 'per tc secosw sesinw logk')
     params['per1'] = radvel.Parameter(10.0)
     params['tc1'] = radvel.Parameter(0.0)
@@ -240,6 +238,15 @@ def test_priors():
     params['logk1'] = radvel.Parameter(1.5)
 
     vector = radvel.Vector(params)
+
+    return params, vector
+
+def test_priors(params_and_vector_for_priors):
+    """
+    Test basic functionality of all Priors
+    """
+
+    params, vector = params_and_vector_for_priors
 
     testTex = r'Delta Function Prior on $\sqrt{e}\cos{\omega}_{b}$'
 
@@ -281,6 +288,55 @@ def test_priors():
         print(val)
         assert abs(np.exp(prior(params, vector)) - val) < tolerance, \
             "Prior output does not match expectation"
+
+
+def test_prior_transforms(params_and_vector_for_priors):
+
+    params, vector = params_and_vector_for_priors
+
+    rng = np.random.default_rng(3245)
+    u = rng.uniform(size=100)
+
+    prior_dict = {
+        radvel.prior.Gaussian("per1", 9.9, 0.1): scipy.stats.norm.ppf(u, 9.9, 0.1),
+        radvel.prior.HardBounds("per1", 1.0, 9.0): scipy.stats.uniform.ppf(u, 1.0, 9.0 - 1.0),
+        radvel.prior.Jeffreys("per1", 0.1, 100.0): scipy.stats.loguniform.ppf(u, 0.1, 100.0),
+        radvel.prior.ModifiedJeffreys(
+            "per1", 0.0, 100.0, -0.1
+        ): scipy.stats.loguniform.ppf(u, 0.0+0.1, 100.0+0.1, loc=-0.1),
+        radvel.prior.UserDefinedPrior(
+            ["per1"],
+            lambda x: scipy.stats.lognorm.pdf(x, 1e-1, 1e1),
+            "lognorm",
+            transform_func=lambda x: scipy.stats.lognorm.ppf(x, 1e-1, 1e1),
+        ): scipy.stats.lognorm.ppf(u, 1e-1, 1e1),
+
+    }
+
+    for prior, expected_val in prior_dict.items():
+        np.testing.assert_allclose(
+            prior.transform(u),
+            expected_val,
+            err_msg=f"Prior transform failed for {prior}")
+
+    with pytest.raises(TypeError):
+        radvel.prior.UserDefinedPrior(
+            ["per1"],
+            lambda x: scipy.stats.lognorm.pdf(x, 1e-1, 1e1),
+            "lognorm",
+        ).transform(u)
+
+    # Make sure other priors raise error for transform
+    no_transform_priors = [
+        radvel.prior.EccentricityPrior(1),
+        radvel.prior.PositiveKPrior(1),
+        radvel.prior.SecondaryEclipsePrior(1, 5.0, 10.0),
+        radvel.prior.NumericalPrior(['sesinw1'], np.random.randn(1,5000000)),
+        radvel.prior.InformativeBaselinePrior('per1', 5.0, duration=1.0),
+    ]
+    for prior in no_transform_priors:
+        with pytest.raises(NotImplementedError):
+            prior.transform(u)
 
 
 def test_kepler():
