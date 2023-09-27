@@ -376,14 +376,10 @@ class ModifiedJeffreys(Prior):
         if (x > self.maxval) or (x < self.minval):
             return -np.inf
         else:
-            # NOTE: turn = -kneeval in juliet
-            return np.log(1.)  - np.log(x-self.turn) - np.log(np.log((self.hi-self.turn)/(-self.turn)))
-            return np.log(1./np.log((self.hi-self.turn)/(self.minval-self.turn))) - np.log(x-self.turn)
             return np.log(self.normalization) - np.log(x-self.kneeval)
 
     def transform(self, u):
-        # TODO: Implement this. Juliet has minval=0 so need to work out the equation
-        raise NotImplementedError("Not yet implemented")
+        return self.kneeval + (self.minval - self.kneeval) * np.exp(u / self.normalization)
 
     def __repr__(self):
         s = "Modified Jeffrey's prior on {}, knee={}, min={}, max={}".format(
