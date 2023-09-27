@@ -135,7 +135,6 @@ upper limits must match number of planets."
         raise NotImplementedError("Prior transform not yet available for EccentricityPrior")
 
 
-# TODO: Truncated version of eccentricity?
 class PositiveKPrior(Prior):
     """K must be positive
 
@@ -238,7 +237,6 @@ class HardBounds(Prior):
         return s
 
 
-# TODO: Add prior transform
 class SecondaryEclipsePrior(Prior):
     """Secondary eclipse prior
 
@@ -288,6 +286,10 @@ class SecondaryEclipsePrior(Prior):
         penalty = -0.5 * ((ts_phase - pts) / epts)**2 - 0.5*np.log((epts**2)*2.*np.pi)
 
         return penalty
+
+    def transform(self, u):
+        # TODO: Add prior transform
+        raise NotImplementedError("Prior transform not yet available for SecondaryEclipsePrior")
 
 
 class Jeffreys(Prior):
