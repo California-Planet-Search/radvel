@@ -132,6 +132,7 @@ upper limits must match number of planets."
 
     def transform(self, u):
         # TODO: Truncated version of eccentricity's main prior if any, error if other bound unspecified
+        # TODO: 'ModelOK' equivalent for this as hack
         raise NotImplementedError("Prior transform not yet available for EccentricityPrior")
 
 
@@ -172,6 +173,7 @@ class PositiveKPrior(Prior):
 
     def transform(self, u):
         # TODO: Truncated version of K's main prior if any, error if other bound unspecified
+        # ModelOK equivalent for this as hack?
         raise NotImplementedError("Prior transform not yet available for EccentricityPrior")
 
 
@@ -442,6 +444,8 @@ class NumericalPrior(Prior):
         return val[0]
 
     def transform(self, u):
+        # TODO: See link below as possible way to implement this
+        # https://stackoverflow.com/questions/47417986/using-scipy-gaussian-kernel-density-estimation-to-calculate-cdf-inverse
         raise NotImplementedError("Prior transform not available for NumericalPrior")
 
     def __repr__(self):
