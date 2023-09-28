@@ -339,6 +339,50 @@ def test_prior_transforms(params_and_vector_for_priors):
             prior.transform(u)
 
 
+def test_prior_transform_order(params_and_vector_for_priors):
+    params = params_and_vector_for_priors[0]
+
+    # params['per1'] = radvel.Parameter(10.0)
+    # params['tc1'] = radvel.Parameter(0.0)
+    # params['secosw1'] = radvel.Parameter(0.0)
+    # params['sesinw1'] = radvel.Parameter(0.0)
+    # params['logk1'] = radvel.Parameter(1.5)
+
+    t = np.linspace(0, 10, num=100)
+    vel = np.ones_like(t)
+    errvel = np.ones_like(t) * 0.1
+    mod = radvel.RVModel(params)
+    mod.params['dvdt'] = radvel.Parameter(value=-0.02)
+    mod.params['curv'] = radvel.Parameter(value=0.01)
+    like = radvel.likelihood.RVLikelihood(mod, t, vel, errvel)
+    like.params['gamma'] = radvel.Parameter(value=0.1, vary=False)
+    like.params['jit'] = radvel.Parameter(value=1.0)
+    like.params['secosw1'].vary = False
+    like.params['sesinw1'].vary = False
+    like.params['per1'].vary = False
+    like.params['tc1'].vary = False
+
+    post = radvel.posterior.Posterior(like)
+    post.priors += [radvel.prior.Gaussian( 'dvdt', 0, 1.0)]
+    post.priors += [radvel.prior.HardBounds( 'curv', 0.0, 1.0)]
+    post.priors += [radvel.prior.ModifiedJeffreys( 'jit', 0, 10.0, -0.1)]
+    post.priors += [radvel.prior.Gaussian( 'logk1', np.log(5), 5)]
+
+    print(post.name_vary_params())
+
+    rng = np.random.default_rng(3245)
+    u = rng.uniform(size=(len(post.vary_params), 100))
+    p = post.prior_transform(u)
+
+    prior_param_names = [prior.param for prior in post.priors]
+
+    assert prior_param_names != post.name_vary_params(), "Parameters and priors should have different order for this test"
+
+    for prior in post.priors:
+        param_name = prior.param
+        param_ind = post.name_vary_params().index(param_name)
+        np.testing.assert_allclose(prior.transform(u[param_ind]), p[param_ind], err_msg="Prior transform failed for {}".format(prior))
+
 def test_kepler():
     """
     Profile and test C-based Kepler solver
