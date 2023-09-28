@@ -54,6 +54,9 @@ class Posterior(Likelihood):
     def get_prior_pnames(self):
         return [p.param for p in self.priors]
 
+    def get_prior_dict(self):
+        return {p.param: p for p in self.priors}
+
     def check_proper_priors(self):
         params_with_prior = self.get_prior_pnames()
         vary_params = self.name_vary_params()
@@ -72,12 +75,15 @@ class Posterior(Likelihood):
 
     def prior_transform(self, u):
         x = np.array(u)
-        # NOTE: This assumes that each parameter has only one prior
-        pnames = self.name_vary_params()
-        for prior in self.priors:
-            ind = pnames.index(prior.param)
-            x[ind] = prior.transform(u[ind])
+        # NOTE: This assumes that each parameter has only one prior.
+        # check_proper_priors() or an assertion somewhere in prior_transform() would fix this for small performance hit
+        # Order 20-50 microsecond cost... Probably worth running at least some check systematically, if no NS wrapper?
+        vary_param_names = self.name_vary_params()
+        prior_dict = self.get_prior_dict()
+        for ind, pname in enumerate(vary_param_names):
+            x[ind] = prior_dict[pname].transform(u[ind])
         return x
+
 
     def logprob_array(self, param_values_array):
         """Log probability for parameter vector
