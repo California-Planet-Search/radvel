@@ -72,7 +72,6 @@ class Posterior(Likelihood):
             if pname not in vary_params:
                 raise ValueError("Prior specified for fixed parameter {}".format(pname))
 
-
     def prior_transform(self, u):
         x = np.array(u)
         # NOTE: This assumes that each parameter has only one prior.
@@ -83,7 +82,6 @@ class Posterior(Likelihood):
         for ind, pname in enumerate(vary_param_names):
             x[ind] = prior_dict[pname].transform(u[ind])
         return x
-
 
     def logprob_array(self, param_values_array):
         """Log probability for parameter vector
