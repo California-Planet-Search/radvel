@@ -292,8 +292,6 @@ def test_priors(params_and_vector_for_priors):
 
 def test_prior_transforms(params_and_vector_for_priors):
 
-    params, vector = params_and_vector_for_priors
-
     rng = np.random.default_rng(3245)
     u = rng.uniform(size=100)
 
@@ -339,15 +337,9 @@ def test_prior_transforms(params_and_vector_for_priors):
             prior.transform(u)
 
 
-def test_prior_transform_order(params_and_vector_for_priors):
+@pytest.fixture
+def likelihood_for_pt(params_and_vector_for_priors):
     params = params_and_vector_for_priors[0]
-
-    # params['per1'] = radvel.Parameter(10.0)
-    # params['tc1'] = radvel.Parameter(0.0)
-    # params['secosw1'] = radvel.Parameter(0.0)
-    # params['sesinw1'] = radvel.Parameter(0.0)
-    # params['logk1'] = radvel.Parameter(1.5)
-
     t = np.linspace(0, 10, num=100)
     vel = np.ones_like(t)
     errvel = np.ones_like(t) * 0.1
@@ -361,14 +353,45 @@ def test_prior_transform_order(params_and_vector_for_priors):
     like.params['sesinw1'].vary = False
     like.params['per1'].vary = False
     like.params['tc1'].vary = False
+    return like
 
-    post = radvel.posterior.Posterior(like)
+
+def test_prior_transform_all_params(likelihood_for_pt):
+
+    # This should work
+    post = radvel.posterior.Posterior(likelihood_for_pt)
     post.priors += [radvel.prior.Gaussian( 'dvdt', 0, 1.0)]
     post.priors += [radvel.prior.HardBounds( 'curv', 0.0, 1.0)]
     post.priors += [radvel.prior.ModifiedJeffreys( 'jit', 0, 10.0, -0.1)]
     post.priors += [radvel.prior.Gaussian( 'logk1', np.log(5), 5)]
 
-    print(post.name_vary_params())
+    post.check_proper_priors()
+
+    post = radvel.posterior.Posterior(likelihood_for_pt)
+    post.priors += [radvel.prior.Gaussian( 'dvdt', 0, 1.0)]
+    post.priors += [radvel.prior.HardBounds( 'curv', 0.0, 1.0)]
+    post.priors += [radvel.prior.ModifiedJeffreys( 'jit', 0, 10.0, -0.1)]
+    with pytest.raises(ValueError, match="No prior"):
+        post.check_proper_priors()
+
+    post = radvel.posterior.Posterior(likelihood_for_pt)
+    post.priors += [radvel.prior.Gaussian( 'dvdt', 0, 1.0)]
+    post.priors += [radvel.prior.HardBounds( 'curv', 0.0, 1.0)]
+    post.priors += [radvel.prior.ModifiedJeffreys( 'jit', 0, 10.0, -0.1)]
+    post.priors += [radvel.prior.Gaussian( 'logk1', np.log(5), 5)]
+    post.priors += [radvel.prior.Gaussian( 'logk1', 8, 5)]
+    with pytest.raises(ValueError, match="Multiple priors"):
+        post.check_proper_priors()
+
+
+
+def test_prior_transform_order(likelihood_for_pt):
+
+    post = radvel.posterior.Posterior(likelihood_for_pt)
+    post.priors += [radvel.prior.Gaussian( 'dvdt', 0, 1.0)]
+    post.priors += [radvel.prior.HardBounds( 'curv', 0.0, 1.0)]
+    post.priors += [radvel.prior.ModifiedJeffreys( 'jit', 0, 10.0, -0.1)]
+    post.priors += [radvel.prior.Gaussian( 'logk1', np.log(5), 5)]
 
     rng = np.random.default_rng(3245)
     u = rng.uniform(size=(len(post.vary_params), 100))
