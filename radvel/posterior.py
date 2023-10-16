@@ -51,6 +51,38 @@ class Posterior(Likelihood):
             return _logprob + self.likelihood.logprob()
         return _logprob
 
+    def get_prior_pnames(self):
+        return [p.param for p in self.priors]
+
+    def get_prior_dict(self):
+        return {p.param: p for p in self.priors}
+
+    def check_proper_priors(self):
+        params_with_prior = self.get_prior_pnames()
+        vary_params = self.name_vary_params()
+        for pname in vary_params:
+            num_priors = params_with_prior.count(pname)
+            if num_priors == 0:
+                raise ValueError("No prior specified for free parameter {}".format(pname))
+            elif num_priors > 1:
+                raise ValueError(
+                    "Multiple priors specified for free parameter {}. Not supported for nested sampling.".format(pname)
+                )
+        for pname in params_with_prior:
+            if pname not in vary_params:
+                raise ValueError("Prior specified for fixed parameter {}".format(pname))
+
+    def prior_transform(self, u):
+        x = np.array(u)
+        # NOTE: This assumes that each parameter has only one prior.
+        # check_proper_priors() or an assertion somewhere in prior_transform() would fix this for small performance hit
+        # Order 20-50 microsecond cost... Probably worth running at least some check systematically, if no NS wrapper?
+        vary_param_names = self.name_vary_params()
+        prior_dict = self.get_prior_dict()
+        for ind, pname in enumerate(vary_param_names):
+            x[ind] = prior_dict[pname].transform(u[ind])
+        return x
+
     def logprob_array(self, param_values_array):
         """Log probability for parameter vector
         Same as `self.logprob`, but will take a vector of
