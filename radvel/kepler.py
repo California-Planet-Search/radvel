@@ -1,3 +1,4 @@
+import warnings
 
 import numpy as np
 import radvel
@@ -9,6 +10,7 @@ def _check_cext():
         from . import _kepler
         return True
     except ImportError:
+        warnings.warn("Unable to import the C solver", category=UserWarning, stacklevel=2)
         return False
 
 # Set default value, but we'll check dynamically in functions
