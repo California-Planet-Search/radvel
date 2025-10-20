@@ -58,6 +58,7 @@ path = "radvel/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["radvel"]
+artifacts = ["*.so"]
 
 [tool.hatch.build.hooks.custom]
 path = "build_hook.py"
