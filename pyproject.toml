@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "Cython", "pybind11", "numpy"]
+requires = ["hatchling", "Cython", "pybind11", "numpy", "setuptools"]
 build-backend = "hatchling.build"
 
 [project]
