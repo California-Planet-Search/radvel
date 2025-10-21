@@ -7,7 +7,7 @@ name = "radvel"
 dynamic = ["version"]
 description = "General Toolkit for Modeling Radial Velocities"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     {name = "BJ Fulton, Erik Petigura, Sarah Blunt, Evan Sinukoff"}
 ]
