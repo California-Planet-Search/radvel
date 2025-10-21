@@ -51,8 +51,6 @@ jobs:
     
     - name: Build and test
       run: |
-        # Build C extension explicitly to ensure _kepler is compiled in CI
-        python setup.py build_ext -i
         pip install -e .
         # Ensure example data path is available to tests
         export RADVEL_DATADIR="$GITHUB_WORKSPACE/example_data"
