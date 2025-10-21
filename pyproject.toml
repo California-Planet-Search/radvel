@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "Cython", "pybind11", "numpy", "setuptools"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
@@ -11,11 +11,10 @@ requires-python = ">=3.8"
 authors = [
     {name = "BJ Fulton, Erik Petigura, Sarah Blunt, Evan Sinukoff"}
 ]
-license = {file = "LICENSE"}
+license = "MIT"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -60,8 +59,12 @@ path = "radvel/__init__.py"
 packages = ["radvel"]
 artifacts = ["*.so"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"example_data" = "radvel_example_data"
+
 [tool.hatch.build.hooks.custom]
 path = "build_hook.py"
+dependencies = ["setuptools", "Cython", "pybind11", "numpy"]
 
 [tool.pytest.ini_options]
 testpaths = ["radvel"]

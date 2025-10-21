@@ -2,77 +2,56 @@
 Custom build hook for hatchling to handle Cython extensions.
 This maintains backward compatibility while using modern build tools.
 """
-
 import os
-import numpy
+import subprocess
+import sys
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
+
+SETUP_CODE = """
+from setuptools import setup, Extension
+import numpy as np
+
+extensions = [
+    Extension("radvel._kepler", ["src/_kepler.pyx"], include_dirs=[np.get_include()])
+]
+
+setup(ext_modules=extensions, packages="radvel")
+"""
 
 
 class CustomBuildHook(BuildHookInterface):
     """Custom build hook to handle Cython extensions and data files."""
-    
+
     def initialize(self, version, build_data):
         """Initialize the build process."""
-        # Add Cython extension
-        if 'ext_modules' not in build_data:
-            build_data['ext_modules'] = []
-        
-        # Import Cython here to avoid import issues during build
+
+        # Import Cython and setuptools here to avoid import issues during build
         try:
-            from Cython.Build import cythonize
-            
-            # Try to import Extension from setuptools, fallback to distutils
-            try:
-                from setuptools import Extension
-            except ImportError:
-                try:
-                    from distutils.core import Extension
-                except ImportError:
-                    print("Warning: Neither setuptools nor distutils available, skipping extension compilation")
-                    build_data['ext_modules'] = []
-                    return
-            
-            extensions = [
-                Extension(
-                    "radvel._kepler", 
-                    ["src/_kepler.pyx"],
-                    include_dirs=[numpy.get_include()]
+            setup_path = "build_hook_setup.py"
+            with open(setup_path, "w") as setup_file:
+                setup_file.write(SETUP_CODE)
+
+            # This part is a simplified version of hatch-cython
+            # https://github.com/joshua-auchincloss/hatch-cython/blob/main/src/hatch_cython/plugin.py
+            process = subprocess.run(
+                [sys.executable, setup_path, "build_ext", "--inplace"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+            stdout = process.stdout.decode("utf-8")
+            if process.returncode:
+                self.app.display_error(
+                    f"cythonize exited non null status {process.returncode}"
                 )
-            ]
-            
-            # Cythonize the extensions
-            build_data['ext_modules'] = cythonize(extensions)
-            print("Successfully compiled Cython extensions")
-            
-        except ImportError as e:
-            # Fallback if Cython is not available
-            print(f"Warning: Cython not available ({e}), skipping extension compilation")
-            build_data['ext_modules'] = []
+                self.app.display_error(stdout)
+                msg = "failed compilation"
+                raise Exception(msg)
+            else:
+                self.app.display_info(stdout)
+                self.app.display_sucess("Successfully compiled Cython extensions")
         except Exception as e:
-            print(f"Error during Cython compilation: {e}")
-            build_data['ext_modules'] = []
-        
-        # Add data files
-        if 'include_files' not in build_data:
-            build_data['include_files'] = []
-        
-        data_files = [
-            ('radvel_example_data', [
-                'example_data/164922_fixed.txt',
-                'example_data/epic203771098.csv',
-                'example_data/k2-131.txt',
-                'example_data/rvs_toi141.dat',
-            ])
-        ]
-        
-        # Filter out non-existent files
-        existing_files = []
-        for target_dir, files in data_files:
-            existing_files_in_dir = []
-            for file_path in files:
-                if os.path.exists(file_path):
-                    existing_files_in_dir.append(file_path)
-            if existing_files_in_dir:
-                existing_files.append((target_dir, existing_files_in_dir))
-        
-        build_data['include_files'] = existing_files
+            self.app.display_error(f"Error during Cython compilation: {e}")
+        finally:
+            # Clean up the temporary setup file
+            if os.path.exists(setup_path):
+                os.remove(setup_path)
