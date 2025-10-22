@@ -48,7 +48,7 @@ class CustomBuildHook(BuildHookInterface):
                 raise Exception(msg)
             else:
                 self.app.display_info(stdout)
-                self.app.display_sucess("Successfully compiled Cython extensions")
+                self.app.display_success("Successfully compiled Cython extensions")
         except Exception as e:
             self.app.display_error(f"Error during Cython compilation: {e}")
         finally:
