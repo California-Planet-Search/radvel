@@ -620,11 +620,23 @@ def test_prior_transform_order():
         param_ind = post.name_vary_params().index(param_name)
         np.testing.assert_allclose(prior.transform(u[param_ind]), p[param_ind], err_msg="Prior transform failed for {}".format(prior))
 
-def test_kepler():
+def test_kepler_profile():
     """
     Profile and test C-based Kepler solver
     """
     radvel.kepler.profile()
+
+def test_kepler_conv():
+    # Test a use case that requires at least two iterations
+    # This ensures we do not automatically converge due to a faulty condition
+    Marr = np.array([0, 0.29999, np.pi])
+    eccarr = np.array([0.8, 0.99999, 0.8])
+    Earr = radvel.kepler.kepler(Marr, eccarr)
+
+    conv = 1.0e-12  # convergence criterion
+    fiarr = ( Earr - eccarr * np.sin( Earr ) - Marr) # how well did we do?
+    convd = np.abs(fiarr) > conv  # test for convergence
+    assert not convd.any()
 
 
 def test_model_comp(setupfn='example_planets/HD164922.py'):
