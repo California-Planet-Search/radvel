@@ -102,7 +102,7 @@ def kepler(Marr, eccarr):
         Earr[convd] = E
         fiarr = ( Earr - eccarr * np.sin( Earr ) - Marr) # how well did we do?
         convd = np.abs(fiarr) > conv  # test for convergence
-        nd = np.sum(convd is True)
+        nd = np.sum(convd)
 
     if Earr.size > 1:
         return Earr
