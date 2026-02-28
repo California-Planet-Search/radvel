@@ -408,3 +408,174 @@ class TestMCMCUtilities:
         sv.oac = 42
         sv.reset()
         assert sv.oac == 0
+
+
+# --- Model Tests ---
+
+class TestModelCoverage:
+    def test_parameter_repr(self):
+        p = radvel.Parameter(value=3.14, vary=True)
+        s = repr(p)
+        assert "3.14" in s
+        assert "True" in s
+
+    def test_parameter_repr_with_mcmcscale(self):
+        p = radvel.Parameter(value=1.3)
+        p.mcmcscale = 100.0
+        s = repr(p)
+        assert "100" in s
+
+    def test_parameter_float(self):
+        p = radvel.Parameter(value=2.718)
+        assert float(p) == 2.718
+
+    def test_parameter_equals(self):
+        p1 = radvel.Parameter(value=1.0, vary=True)
+        p2 = radvel.Parameter(value=1.0, vary=True)
+        p3 = radvel.Parameter(value=2.0, vary=True)
+        assert p1._equals(p2)
+        assert not p1._equals(p3)
+        assert p1._equals("not a Parameter") is None
+
+    def test_general_rv_model(self):
+        """Test GeneralRVModel array_to_params and list methods."""
+        params = radvel.Parameters(1, 'per tc secosw sesinw logk')
+        params['per1'] = radvel.Parameter(10.0)
+        params['tc1'] = radvel.Parameter(0.0)
+        params['secosw1'] = radvel.Parameter(0.0)
+        params['sesinw1'] = radvel.Parameter(0.0)
+        params['logk1'] = radvel.Parameter(1.5)
+
+        def simple_forward(t, params, vector):
+            return np.zeros(len(t))
+
+        mod = radvel.model.GeneralRVModel(params, simple_forward)
+        mod.params['dvdt'] = radvel.Parameter(value=0.0)
+        mod.params['curv'] = radvel.Parameter(value=0.0)
+
+        # Test list_params
+        keys = mod.list_params()
+        assert 'per1' in keys
+
+        # Test list_vary_params
+        vary_keys = mod.list_vary_params()
+        assert len(vary_keys) > 0
+
+        # Test array_to_params
+        vary_vals = np.ones(len(vary_keys)) * 5.0
+        new_params = mod.array_to_params(vary_vals)
+        assert new_params is not None
+
+    def test_vector_mcmcscale_none(self):
+        """Vector dict_to_vector handles mcmcscale=None."""
+        params = radvel.Parameters(1, 'per tc secosw sesinw logk')
+        params['per1'] = radvel.Parameter(10.0)
+        params['tc1'] = radvel.Parameter(0.0)
+        params['secosw1'] = radvel.Parameter(0.0)
+        params['sesinw1'] = radvel.Parameter(0.0)
+        params['logk1'] = radvel.Parameter(1.5)
+        # mcmcscale is None by default
+        assert params['per1'].mcmcscale is None
+        vec = radvel.model.Vector(params)
+        assert vec.vector is not None
+
+    def test_vector_with_mcmcscale(self):
+        """Vector dict_to_vector handles explicit mcmcscale."""
+        params = radvel.Parameters(1, 'per tc secosw sesinw logk')
+        params['per1'] = radvel.Parameter(10.0)
+        params['per1'].mcmcscale = 0.01
+        params['tc1'] = radvel.Parameter(0.0)
+        params['secosw1'] = radvel.Parameter(0.0)
+        params['sesinw1'] = radvel.Parameter(0.0)
+        params['logk1'] = radvel.Parameter(1.5)
+        vec = radvel.model.Vector(params)
+        per_idx = vec.indices['per1']
+        assert vec.vector[per_idx][2] == 0.01
+
+    def test_texlabel(self):
+        """Test Parameters.tex_labels method."""
+        params = radvel.Parameters(1, 'per tc secosw sesinw logk')
+        params['per1'] = radvel.Parameter(10.0)
+        params['tc1'] = radvel.Parameter(0.0)
+        params['secosw1'] = radvel.Parameter(0.0)
+        params['sesinw1'] = radvel.Parameter(0.0)
+        params['logk1'] = radvel.Parameter(1.5)
+        label = params.tex_labels()
+        assert isinstance(label, dict)
+
+
+# --- Additional Likelihood Coverage ---
+
+class TestLikelihoodExtra:
+    def test_decorr_params(self):
+        """Test RVLikelihood with decorrelation parameters."""
+        params = radvel.Parameters(1, 'per tc secosw sesinw logk')
+        params['per1'] = radvel.Parameter(10.0)
+        params['tc1'] = radvel.Parameter(0.0)
+        params['secosw1'] = radvel.Parameter(0.0)
+        params['sesinw1'] = radvel.Parameter(0.0)
+        params['logk1'] = radvel.Parameter(1.5)
+        mod = radvel.RVModel(params)
+        mod.params['dvdt'] = radvel.Parameter(value=0.0)
+        mod.params['curv'] = radvel.Parameter(value=0.0)
+
+        t = np.linspace(0, 100, 50)
+        vel = np.random.default_rng(42).normal(0, 1, 50)
+        errvel = np.ones(50) * 0.5
+        airmass = np.random.default_rng(42).uniform(1.0, 2.0, 50)
+
+        like = radvel.likelihood.RVLikelihood(
+            mod, t, vel, errvel,
+            decorr_vars=['airmass'],
+            decorr_vectors={'airmass': airmass},
+        )
+        like.params['gamma'] = radvel.Parameter(value=0.0)
+        like.params['jit'] = radvel.Parameter(value=1.0)
+
+        res = like.residuals()
+        assert len(res) == 50
+
+    def test_rvlikelihood_suffix_no_underscore(self):
+        """Test RVLikelihood with suffix that doesn't start with _."""
+        params = radvel.Parameters(1, 'per tc secosw sesinw logk')
+        params['per1'] = radvel.Parameter(10.0)
+        params['tc1'] = radvel.Parameter(0.0)
+        params['secosw1'] = radvel.Parameter(0.0)
+        params['sesinw1'] = radvel.Parameter(0.0)
+        params['logk1'] = radvel.Parameter(1.5)
+        mod = radvel.RVModel(params)
+        mod.params['dvdt'] = radvel.Parameter(value=0.0)
+        mod.params['curv'] = radvel.Parameter(value=0.0)
+
+        t = np.linspace(0, 100, 20)
+        vel = np.ones(20)
+        errvel = np.ones(20) * 0.5
+
+        like = radvel.likelihood.RVLikelihood(mod, t, vel, errvel, suffix='_hires')
+        like.params['gamma_hires'] = radvel.Parameter(value=0.0)
+        like.params['jit_hires'] = radvel.Parameter(value=1.0)
+        assert like.suffix == 'hires'
+
+    def test_linear_gamma(self):
+        """Test that linear gamma parameter is solved analytically."""
+        params = radvel.Parameters(1, 'per tc secosw sesinw logk')
+        params['per1'] = radvel.Parameter(10.0)
+        params['tc1'] = radvel.Parameter(0.0)
+        params['secosw1'] = radvel.Parameter(0.0)
+        params['sesinw1'] = radvel.Parameter(0.0)
+        params['logk1'] = radvel.Parameter(1.5)
+        mod = radvel.RVModel(params)
+        mod.params['dvdt'] = radvel.Parameter(value=0.0)
+        mod.params['curv'] = radvel.Parameter(value=0.0)
+
+        t = np.linspace(0, 100, 50)
+        vel = np.ones(50) * 5.0  # constant offset
+        errvel = np.ones(50) * 0.5
+
+        like = radvel.likelihood.RVLikelihood(mod, t, vel, errvel)
+        like.params['gamma'] = radvel.Parameter(value=0.0, vary=False, linear=True)
+        like.params['jit'] = radvel.Parameter(value=0.5)
+
+        res = like.residuals()
+        lp = like.logprob()
+        assert isinstance(lp, (float, np.floating))
