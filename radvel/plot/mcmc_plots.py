@@ -212,7 +212,7 @@ class DerivedPlot(object):
                     if np.median(self.chains[label]) > 100:
                         unit = "M$_{\\rm Jup}$"
                         self.chains[label] *= 0.00315
-                    if np.median(self.chains[label]) > 100:
+                    elif np.median(self.chains[label]) > 100:
                         unit = "M$_{\\odot}$"
                         self.chains[label] *= 0.000954265748
                 elif key == 'rhop':

@@ -26,7 +26,7 @@ class MultipanelPlot(object):
              scaling (default: False)
         yscale_sigma (float, optional): Scale y-axis limits for all panels to be +/-
              yscale_sigma*(RMS of data plotted) if yscale_auto==False
-        phase_nrows (int, optional): number of columns in the phase
+        phase_nrows (int, optional): number of rows in the phase
             folded plots. Default is nplanets.
         phase_ncols (int, optional): number of columns in the phase
             folded plots. Default is 1.
