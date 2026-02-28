@@ -323,8 +323,10 @@ def fastbin(x, y, nbins=30):
     n, _ = np.histogram(x, bins=nbins)
     sy, _ = np.histogram(x, bins=nbins, weights=y)
     sy2, _ = np.histogram(x, bins=nbins, weights=y*y)
-    bindat = sy / n
-    binerr = np.sqrt(sy2/n - bindat*bindat) / np.sqrt(n)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="invalid value encountered", category=RuntimeWarning)
+        bindat = sy / n
+        binerr = np.sqrt(sy2/n - bindat*bindat) / np.sqrt(n)
     bint = (_[1:] + _[:-1])/2.
 
     binN = n

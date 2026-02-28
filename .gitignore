@@ -12,3 +12,4 @@ src/_kepler.c
 Dockerfile
 *_demo*/
 buid_hook_setup.py
+__pycache__/

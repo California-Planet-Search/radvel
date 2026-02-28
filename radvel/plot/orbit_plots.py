@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 from matplotlib import rcParams, gridspec
@@ -485,7 +487,13 @@ class MultipanelPlot(object):
                 self.plot_phasefold(pltletter, i+1)
                 pltletter += 1
 
-        fig.tight_layout()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="This figure includes Axes that are not compatible with tight_layout",
+                category=UserWarning,
+            )
+            fig.tight_layout()
         if self.saveplot is not None:
             pl.savefig(self.saveplot, dpi=150)
             print("RV multi-panel plot saved to %s" % self.saveplot)

@@ -100,7 +100,8 @@ class AutoPlot(object):
         pl.scatter(self.auto['autosamples'], self.auto['automax'], color = 'red', label='Maximum Autocorrelation Time')
         pl.plot(self.auto['autosamples'], self.auto['autosamples']/self.auto['factor'][0], linestyle=':', color='gray',
                 label='Autocorrelation Factor Criterion (N/{})'.format(self.auto['factor'][0]))
-        pl.xlim(self.auto['autosamples'].min(), self.auto['autosamples'].max())
+        if self.auto['autosamples'].min() != self.auto['autosamples'].max():
+            pl.xlim(self.auto['autosamples'].min(), self.auto['autosamples'].max())
         if (self.auto['autosamples']/self.auto['factor']).max() > self.auto['automax'].max():
             pl.ylim(self.auto['automin'].min(), (self.auto['autosamples']/self.auto['factor']).max())
         else:

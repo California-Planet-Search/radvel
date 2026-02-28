@@ -22,7 +22,6 @@ from .fitting import *
 from .plot import *
 
 import warnings
-warnings.filterwarnings("ignore")
 
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'

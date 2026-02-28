@@ -1,6 +1,5 @@
 import sys
 import copy
-import warnings
 import time
 import types
 # pytest is now the test runner, but we don't need to import it in test files
@@ -12,7 +11,6 @@ import numpy as np
 import scipy
 import radvel.prior
 
-warnings.simplefilter('ignore')
 
 class _args(types.SimpleNamespace):
     outputdir = '/tmp/'
@@ -675,14 +673,3 @@ def test_name_vary_params():
     pnames = like.name_vary_params()
     names_from_params = [k for k in like.params.keys() if like.params[k].vary]
     assert sorted(names_from_params) == sorted(pnames)
-
-if __name__ == '__main__':
-    #test_k2()
-    #test_hd()
-    #test_model_comp()
-    test_k2131()
-    #test_celerite()
-    # test_basis()
-    #test_kernels()
-    #test_kepler()
-    #test_priors()

@@ -73,8 +73,5 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
 filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::PendingDeprecationWarning",
-    "ignore::UserWarning",
-    "ignore::RuntimeWarning",
+    "ignore:Jupyter is migrating its paths to use standard platformdirs:DeprecationWarning",
 ]
