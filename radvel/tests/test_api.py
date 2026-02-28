@@ -653,6 +653,21 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
     except AssertionError:  # expected result
         return
 
+def test_set_vary_params():
+    post = radvel.posterior.Posterior(likelihood_for_pt())
+    params_one = np.ones_like(post.get_vary_params())
+    post.set_vary_params(params_one)
+    keys = post.params.keys()
+    param_values = [post.params[k].value for k in keys if post.params[k].vary]
+    vector_values = []
+    for key in keys:
+        index = post.vector.indices[key]
+        if index not in post.vary_params:
+            continue
+        vector_values.append(post.vector.vector[index][0])
+    np.testing.assert_allclose(vector_values, params_one)
+    np.testing.assert_allclose(param_values, vector_values)
+
 if __name__ == '__main__':
     #test_k2()
     #test_hd()
