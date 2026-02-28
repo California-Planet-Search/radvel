@@ -546,14 +546,15 @@ def test_priors_no_transform():
         pass
 
 
-def likelihood_for_pt():
+def likelihood_for_pt(trend_params=True):
     params, _ = params_and_vector_for_priors()
     t = np.linspace(0, 10, num=100)
     vel = np.ones_like(t)
     errvel = np.ones_like(t) * 0.1
     mod = radvel.RVModel(params)
-    mod.params['dvdt'] = radvel.Parameter(value=-0.02)
-    mod.params['curv'] = radvel.Parameter(value=0.01)
+    if trend_params:
+        mod.params['dvdt'] = radvel.Parameter(value=-0.02)
+        mod.params['curv'] = radvel.Parameter(value=0.01)
     like = radvel.likelihood.RVLikelihood(mod, t, vel, errvel)
     like.params['gamma'] = radvel.Parameter(value=0.1, vary=False)
     like.params['jit'] = radvel.Parameter(value=1.0)
@@ -667,6 +668,13 @@ def test_set_vary_params():
         vector_values.append(post.vector.vector[index][0])
     np.testing.assert_allclose(vector_values, params_one)
     np.testing.assert_allclose(param_values, vector_values)
+
+def test_name_vary_params():
+    like = likelihood_for_pt(trend_params=False)
+    like.vector.dict_to_vector()
+    pnames = like.name_vary_params()
+    names_from_params = [k for k in like.params.keys() if like.params[k].vary]
+    assert sorted(names_from_params) == sorted(pnames)
 
 if __name__ == '__main__':
     #test_k2()
