@@ -39,11 +39,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ "${{ matrix.python-version }}" = "3.8" ]; then
-          pip install --no-cache-dir "numpy<1.26.0" "scipy<1.11.0" -r requirements.txt
-        else
-          pip install --no-cache-dir -r requirements.txt
-        fi
+        pip install --no-cache-dir -r requirements.txt
         # Install celerite to test if it resolves GP covariance matrix issues
         pip install celerite
         pip install coveralls pytest pytest-cov coverage
@@ -68,7 +64,7 @@ jobs:
         pytest radvel --cov=radvel --cov-report=term-missing -v --tb=long
     
     - name: Upload coverage to Coveralls
-      if: matrix.python-version == '3.8'
+      if: matrix.python-version == '3.9'
       env:
         COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
       run: |
@@ -86,7 +82,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.8'
+        python-version: '3.9'
     
     - name: Install build dependencies
       run: |
