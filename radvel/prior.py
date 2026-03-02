@@ -503,15 +503,15 @@ class UserDefinedPrior(Prior):
         func (function): a Python function that takes in  a list
             of values (ordered as in ``param_list``), and returns
             the corresponding log-value of a pdf.
+        tex_rep (str): TeX-readable string representation of
+            this prior, to be passed into radvel report and
+            plotting code.
         transform_func (function): a Python function that takes a unit cube
             with dimension equal to the number of parameters in
             param_list, and returns samples from the prior.
             This is usually the inverse-cdf of func.
             Set to None by default. In that case the prior cannot
             be used for Nested Sampling.
-        tex_rep (str): TeX-readable string representation of
-            this prior, to be passed into radvel report and
-            plotting code.
 
     Example:
         >>> def myPriorFunc(inp_list):
@@ -541,7 +541,7 @@ class UserDefinedPrior(Prior):
 
     def transform(self, u):
         if self.transform_func is None:
-            raise TypeError("transform_func is None. Set it to a function before callings transform().")
+            raise TypeError("transform_func is None. Set it to a function before calling transform().")
         return self.transform_func(u)
 
     def __repr__(self):
