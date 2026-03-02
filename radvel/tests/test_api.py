@@ -1,6 +1,5 @@
 import sys
 import copy
-import warnings
 import time
 import types
 # pytest is now the test runner, but we don't need to import it in test files
@@ -12,7 +11,6 @@ import numpy as np
 import scipy
 import radvel.prior
 
-warnings.simplefilter('ignore')
 
 class _args(types.SimpleNamespace):
     outputdir = '/tmp/'
@@ -205,99 +203,22 @@ def test_k2131(setupfn='example_planets/k2-131.py'):
     args = _args()
     args.setupfn = setupfn
 
-    # Add defensive checks for input data
     import tempfile
     import os
     temp_dir = tempfile.mkdtemp()
     args.outputdir = temp_dir
-    
-    try:
-        # Load and validate input data before fitting
-        import pandas as pd
-        data = pd.read_csv(os.path.join(radvel.DATADIR,'k2-131.txt'), sep=' ')
-        t = np.array(data['time'])
-        vel = np.array(data['mnvel'])
-        errvel = np.array(data['errvel'])
-        
-        # Debug: Print data summary for CI debugging
-        print(f"DEBUG: Data loaded from {os.path.join(radvel.DATADIR,'k2-131.txt')}")
-        print(f"DEBUG: Data shape: {data.shape}")
-        print(f"DEBUG: Time range: {t.min():.6f} to {t.max():.6f}")
-        print(f"DEBUG: Velocity range: {vel.min():.2f} to {vel.max():.2f}")
-        print(f"DEBUG: Error range: {errvel.min():.2f} to {errvel.max():.2f}")
-        print(f"DEBUG: Any NaNs in time: {np.any(np.isnan(t))}")
-        print(f"DEBUG: Any infs in time: {np.any(np.isinf(t))}")
-        print(f"DEBUG: Any NaNs in velocity: {np.any(np.isnan(vel))}")
-        print(f"DEBUG: Any infs in velocity: {np.any(np.isinf(vel))}")
-        print(f"DEBUG: Any NaNs in error: {np.any(np.isnan(errvel))}")
-        print(f"DEBUG: Any infs in error: {np.any(np.isinf(errvel))}")
-        print(f"DEBUG: Any non-positive errors: {np.any(errvel <= 0)}")
-        
-        # Check for problematic values in input data
-        if np.any(np.isnan(t)):
-            print(f"DEBUG: Found NaNs in time at indices: {np.where(np.isnan(t))[0]}")
-            print(f"DEBUG: Time values with NaNs: {t[np.isnan(t)]}")
-            assert False, "Input time array contains NaNs"
-        if np.any(np.isinf(t)):
-            print(f"DEBUG: Found infs in time at indices: {np.where(np.isinf(t))[0]}")
-            print(f"DEBUG: Time values with infs: {t[np.isinf(t)]}")
-            assert False, "Input time array contains infs"
-        if np.any(np.isnan(vel)):
-            print(f"DEBUG: Found NaNs in velocity at indices: {np.where(np.isnan(vel))[0]}")
-            print(f"DEBUG: Velocity values with NaNs: {vel[np.isnan(vel)]}")
-            assert False, "Input velocity array contains NaNs"
-        if np.any(np.isinf(vel)):
-            print(f"DEBUG: Found infs in velocity at indices: {np.where(np.isinf(vel))[0]}")
-            print(f"DEBUG: Velocity values with infs: {vel[np.isinf(vel)]}")
-            assert False, "Input velocity array contains infs"
-        if np.any(np.isnan(errvel)):
-            print(f"DEBUG: Found NaNs in error at indices: {np.where(np.isnan(errvel))[0]}")
-            print(f"DEBUG: Error values with NaNs: {errvel[np.isnan(errvel)]}")
-            assert False, "Input error array contains NaNs"
-        if np.any(np.isinf(errvel)):
-            print(f"DEBUG: Found infs in error at indices: {np.where(np.isinf(errvel))[0]}")
-            print(f"DEBUG: Error values with infs: {errvel[np.isinf(errvel)]}")
-            assert False, "Input error array contains infs"
-        if np.any(errvel <= 0):
-            print(f"DEBUG: Found non-positive errors at indices: {np.where(errvel <= 0)[0]}")
-            print(f"DEBUG: Non-positive error values: {errvel[errvel <= 0]}")
-            assert False, "Input error array contains non-positive values"
 
+    try:
         radvel.driver.fit(args)
-        # Check if any arrays in args contain infs/NaNs after fit
-        for attr_name in dir(args):
-            attr = getattr(args, attr_name)
-            if isinstance(attr, np.ndarray):
-                if np.any(np.isnan(attr)):
-                    raise ValueError(f"Array {attr_name} contains NaNs after fit")
-                if np.any(np.isinf(attr)):
-                    raise ValueError(f"Array {attr_name} contains infs after fit")
 
         args.type = ['gp']
         args.verbose = True
         radvel.driver.ic_compare(args)
-        # Check if any arrays in args contain infs/NaNs after ic_compare
-        for attr_name in dir(args):
-            attr = getattr(args, attr_name)
-            if isinstance(attr, np.ndarray):
-                if np.any(np.isnan(attr)):
-                    raise ValueError(f"Array {attr_name} contains NaNs after ic_compare")
-                if np.any(np.isinf(attr)):
-                    raise ValueError(f"Array {attr_name} contains infs after ic_compare")
 
         args.type = ['rv']
         args.gp = True
         args.plotkw = {}
         radvel.driver.plots(args)
-        # Check if any arrays in args contain infs/NaNs after plots
-        for attr_name in dir(args):
-            attr = getattr(args, attr_name)
-            if isinstance(attr, np.ndarray):
-                if np.any(np.isnan(attr)):
-                    raise ValueError(f"Array {attr_name} contains NaNs after plots")
-                if np.any(np.isinf(attr)):
-                    raise ValueError(f"Array {attr_name} contains infs after plots")
-                    
     finally:
         import shutil
         shutil.rmtree(temp_dir)
@@ -546,14 +467,15 @@ def test_priors_no_transform():
         pass
 
 
-def likelihood_for_pt():
+def likelihood_for_pt(trend_params=True):
     params, _ = params_and_vector_for_priors()
     t = np.linspace(0, 10, num=100)
     vel = np.ones_like(t)
     errvel = np.ones_like(t) * 0.1
     mod = radvel.RVModel(params)
-    mod.params['dvdt'] = radvel.Parameter(value=-0.02)
-    mod.params['curv'] = radvel.Parameter(value=0.01)
+    if trend_params:
+        mod.params['dvdt'] = radvel.Parameter(value=-0.02)
+        mod.params['curv'] = radvel.Parameter(value=0.01)
     like = radvel.likelihood.RVLikelihood(mod, t, vel, errvel)
     like.params['gamma'] = radvel.Parameter(value=0.1, vary=False)
     like.params['jit'] = radvel.Parameter(value=1.0)
@@ -620,11 +542,23 @@ def test_prior_transform_order():
         param_ind = post.name_vary_params().index(param_name)
         np.testing.assert_allclose(prior.transform(u[param_ind]), p[param_ind], err_msg="Prior transform failed for {}".format(prior))
 
-def test_kepler():
+def test_kepler_profile():
     """
     Profile and test C-based Kepler solver
     """
     radvel.kepler.profile()
+
+def test_kepler_conv():
+    # Test a use case that requires at least two iterations
+    # This ensures we do not automatically converge due to a faulty condition
+    Marr = np.array([0, 0.29999, np.pi])
+    eccarr = np.array([0.8, 0.99999, 0.8])
+    Earr = radvel.kepler.kepler(Marr, eccarr)
+
+    conv = 1.0e-12  # convergence criterion
+    fiarr = ( Earr - eccarr * np.sin( Earr ) - Marr) # how well did we do?
+    convd = np.abs(fiarr) > conv  # test for convergence
+    assert not convd.any()
 
 
 def test_model_comp(setupfn='example_planets/HD164922.py'):
@@ -653,13 +587,24 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
     except AssertionError:  # expected result
         return
 
-if __name__ == '__main__':
-    #test_k2()
-    #test_hd()
-    #test_model_comp()
-    test_k2131()
-    #test_celerite()
-    # test_basis()
-    #test_kernels()
-    #test_kepler()
-    #test_priors()
+def test_set_vary_params():
+    post = radvel.posterior.Posterior(likelihood_for_pt())
+    params_one = np.ones_like(post.get_vary_params())
+    post.set_vary_params(params_one)
+    keys = post.params.keys()
+    param_values = [post.params[k].value for k in keys if post.params[k].vary]
+    vector_values = []
+    for key in keys:
+        index = post.vector.indices[key]
+        if index not in post.vary_params:
+            continue
+        vector_values.append(post.vector.vector[index][0])
+    np.testing.assert_allclose(vector_values, params_one)
+    np.testing.assert_allclose(param_values, vector_values)
+
+def test_name_vary_params():
+    like = likelihood_for_pt(trend_params=False)
+    like.vector.dict_to_vector()
+    pnames = like.name_vary_params()
+    names_from_params = [k for k in like.params.keys() if like.params[k].vary]
+    assert sorted(names_from_params) == sorted(pnames)

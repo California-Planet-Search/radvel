@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 from matplotlib import rcParams, gridspec
@@ -24,7 +26,7 @@ class MultipanelPlot(object):
              scaling (default: False)
         yscale_sigma (float, optional): Scale y-axis limits for all panels to be +/-
              yscale_sigma*(RMS of data plotted) if yscale_auto==False
-        phase_nrows (int, optional): number of columns in the phase
+        phase_nrows (int, optional): number of rows in the phase
             folded plots. Default is nplanets.
         phase_ncols (int, optional): number of columns in the phase
             folded plots. Default is 1.
@@ -485,7 +487,13 @@ class MultipanelPlot(object):
                 self.plot_phasefold(pltletter, i+1)
                 pltletter += 1
 
-        fig.tight_layout()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="This figure includes Axes that are not compatible with tight_layout",
+                category=UserWarning,
+            )
+            fig.tight_layout()
         if self.saveplot is not None:
             pl.savefig(self.saveplot, dpi=150)
             print("RV multi-panel plot saved to %s" % self.saveplot)

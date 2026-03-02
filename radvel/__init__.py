@@ -22,7 +22,6 @@ from .fitting import *
 from .plot import *
 
 import warnings
-warnings.filterwarnings("ignore")
 
 def _custom_warningfmt(msg, *a, **b):
     return "WARNING:", str(msg) + '\n'
@@ -30,7 +29,7 @@ def _custom_warningfmt(msg, *a, **b):
 __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp', 'nested_sampling']
 
-__version__ = '1.5.0'
+__version__ = '1.5.1'
 __package__ = __path__[0]
 
 MODULEDIR, filename = os.path.split(__file__)

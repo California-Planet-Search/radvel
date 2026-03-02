@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
@@ -727,8 +729,14 @@ class Basis(object):
                 self.name = newbasis
                 self.params = newbasis.split()
 
-        params_out.basis = Basis(newbasis, self.num_planets)
-        params_out.planet_parameters = params_out.basis.name.split()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=UserWarning,
+                message="Pandas doesn't allow columns to be created via a new attribute name",
+            )
+            params_out.basis = Basis(newbasis, self.num_planets)
+            params_out.planet_parameters = params_out.basis.name.split()
 
         return params_out
 

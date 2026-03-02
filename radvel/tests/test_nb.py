@@ -1,4 +1,3 @@
-import warnings
 import os
 import sys
 from glob import glob
@@ -6,8 +5,6 @@ from glob import glob
 # pytest is now the test runner, but we don't need to import it in test files
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-
-warnings.simplefilter("ignore")
 
 
 def test_notebook():

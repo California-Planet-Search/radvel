@@ -139,7 +139,7 @@ class Likelihood(object):
 
         return s
 
-    def set_vary_params(self, param_values_array):
+    def set_vary_params(self, param_values_array, fast=False):
         param_values_array = list(param_values_array)
         i = 0
         try:
@@ -152,6 +152,9 @@ class Likelihood(object):
             i += 1
         assert i == len(param_values_array), \
             "Length of array must match number of varied parameters"
+        if not fast:
+            self.vector.vector_to_dict()
+
 
     def get_vary_params(self):
         try:
@@ -185,7 +188,7 @@ class Likelihood(object):
         return -self.logprob_array(params_array)
 
     def logprob_array(self, params_array):
-        self.set_vary_params(params_array)
+        self.set_vary_params(params_array, fast=True)
         _logprob = self.logprob()
         return _logprob
 

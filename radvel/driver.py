@@ -646,7 +646,7 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
         _set_param('a', a)
         outcols.append(_get_colname('a'))
 
-        musini = (mpsini * c.M_earth) / (mstar * c.M_sun)
+        musini = (mpsini * c.M_earth.value) / (mstar * c.M_sun.value)
         _set_param('musini', musini)
         outcols.append(_get_colname('musini'))
 

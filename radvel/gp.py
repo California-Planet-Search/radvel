@@ -6,8 +6,6 @@ import abc
 import numpy as np
 import warnings
 
-warnings.simplefilter('once')
-
 # implemented kernels & examples of their associated hyperparameters
 KERNELS = {
     "SqExp": ['gp_length', 'gp_amp'],

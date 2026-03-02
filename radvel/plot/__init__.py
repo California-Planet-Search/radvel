@@ -12,7 +12,7 @@ latex = {
 }
 
 telfmts_default = {
-    'j': dict(color='k', marker=u'o', label='HIRES', mew=1),
+    'j': dict(color='k', fmt=u'o', label='HIRES', mew=1),
     'k': dict(color='k', fmt='s', mfc='none', label='HIRES pre 2004', mew=1),
     'a': dict(color='g', fmt='d', label='APF'),
     'pfs': dict(color='magenta', fmt='p', label='PFS'),
@@ -73,7 +73,7 @@ def telplot(x, y, e, tel, ax, lw=1., telfmt={}, rms=0):
     for k in telfmt:
         kw[k] = telfmt[k]
 
-    if not 'label' in kw.keys():
+    if 'label' not in kw.keys():
         if tel in telfmts_default:
             kw['label'] = telfmts_default[tel]['label']
         else:

@@ -235,6 +235,11 @@ class Vector(object):
                 names[self.indices[key]] = key
             except KeyError:
                 pass
+        for extra_param in ['dvdt', 'curv']:
+            if extra_param not in self.params.keys():
+                extra_ind = self.indices[extra_param]
+                assert names[extra_ind] == 0, f"No index available for {extra_param} parameter. Please report this."
+                names[extra_ind] = extra_param
         self.names = [i for i in names if type(i) == str]
 
     def vector_to_dict(self):
