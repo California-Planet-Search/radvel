@@ -306,8 +306,12 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
                     pscale = np.abs(val * 1e-5*np.log10(val))
                 elif names[i].startswith('logper'):
                     pscale = np.abs(1e-5 * val)
-                elif names[i].startswith('tc'):
+                elif names[i].startswith('tc') or names[i].startswith('tp'):
                     pscale = 0.1
+                elif names[i].startswith('gamma'):
+                    pscale = 1.0
+                elif names[i].startswith('jit'):
+                    pscale = max(np.abs(0.10 * val), 0.1)
                 elif val == 0:
                     pscale = .00001
                 else:
