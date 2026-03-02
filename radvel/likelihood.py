@@ -397,10 +397,15 @@ class RVLikelihood(Likelihood):
             float: Natural log of likelihood
         """
 
+        # vector indices: [0]=value, [1]=vary, [2]=mcmcscale, [3]=linear
         sigma_jit = self.vector.vector[self.jit_index][0]
         residuals = self.residuals()
         loglike = loglike_jitter(residuals, self.yerr, sigma_jit)
 
+        # If gamma is analytically marginalized (linear=True, vary=False),
+        # add the normalization correction for the marginalized gamma.
+        # sigz = 1/sum(1/sigma_i^2) is the inverse-variance-weighted
+        # variance of the gamma parameter (Brandt 2017 method).
         if self.vector.vector[self.gamma_index][3] \
                 and not self.vector.vector[self.gamma_index][1]:
             sigz = 1/np.sum(1 / (self.yerr**2 + sigma_jit**2))
@@ -594,7 +599,7 @@ class CeleriteLikelihood(GPLikelihood):
 
             return lnlike
 
-        except celerite.solver.LinAlgError:
+        except (celerite.solver.LinAlgError if _has_celerite else Exception):
             warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
             return -np.inf
 
@@ -608,6 +613,9 @@ class CeleriteLikelihood(GPLikelihood):
                     np.array: numpy array of predictive means \n
                     np.array: numpy array of predictive standard deviations
         """
+
+        if not _has_celerite:
+            raise ImportError("celerite is required for CeleriteLikelihood")
 
         self.update_kernel_params()
 

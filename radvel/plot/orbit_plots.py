@@ -367,41 +367,61 @@ class MultipanelPlot(object):
             anotext += [_anotext]
 
         if hasattr(self.post, 'derived'):
-            chains = pd.read_csv(self.status['derive']['chainfile'])
-            self.post.nplanets = self.num_planets
-            dp = mcmc_plots.DerivedPlot(chains, self.post)
-            labels = dp.labels
-            texlabels = dp.texlabels
-            units = dp.units
-            derived_params = ['mpsini']
-            for l, par in enumerate(derived_params):
-                par_label = par + str(pnum)
-                if par_label in self.post.derived.columns:
-                    index = np.where(np.array(labels) == par_label)[0][0]
+            has_status = hasattr(self, 'status') and self.status is not None \
+                         and 'derive' in self.status and 'chainfile' in self.status['derive']
+            if has_status:
+                chains = pd.read_csv(self.status['derive']['chainfile'])
+                self.post.nplanets = self.num_planets
+                dp = mcmc_plots.DerivedPlot(chains, self.post)
+                labels = dp.labels
+                texlabels = dp.texlabels
+                units = dp.units
+                derived_params = ['mpsini']
+                for l, par in enumerate(derived_params):
+                    par_label = par + str(pnum)
+                    if par_label in self.post.derived.columns:
+                        index = np.where(np.array(labels) == par_label)[0][0]
 
-                    unit = units[index]
-                    if unit == "M$_{\\rm Jup}$":
-                        conversion_fac = 0.00315
-                    elif unit == "M$_{\\odot}$":
-                        conversion_fac = 0.000954265748
-                    else:
-                        conversion_fac = 1
+                        unit = units[index]
+                        if unit == "M$_{\\rm Jup}$":
+                            conversion_fac = 0.00315
+                        elif unit == "M$_{\\odot}$":
+                            conversion_fac = 0.000954265748
+                        else:
+                            conversion_fac = 1
 
-                    val = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.500] * conversion_fac
-                    low = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.159] * conversion_fac
-                    high = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.841] * conversion_fac
-                    err_low = val - low
-                    err_high = high - val
-                    err = np.mean([err_low, err_high])
-                    err = radvel.utils.round_sig(err)
-                    if err > 1e-15:
-                        val, err, errlow = sigfig(val, err)
-                        _anotext = r'$\mathregular{%s}$ = %s $\mathregular{\pm}$ %s %s' \
-                                   % (texlabels[index].replace("$", ""), val, err, units[index])
-                    else:
-                        _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (texlabels[index].replace("$", ""), val, units[index])
+                        val = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.500] * conversion_fac
+                        low = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.159] * conversion_fac
+                        high = self.post.derived["%s%d" % (derived_params[l], pnum)].loc[0.841] * conversion_fac
+                        err_low = val - low
+                        err_high = high - val
+                        err = np.mean([err_low, err_high])
+                        err = radvel.utils.round_sig(err)
+                        if err > 1e-15:
+                            val, err, errlow = sigfig(val, err)
+                            _anotext = r'$\mathregular{%s}$ = %s $\mathregular{\pm}$ %s %s' \
+                                       % (texlabels[index].replace("$", ""), val, err, units[index])
+                        else:
+                            _anotext = r'$\mathregular{%s}$ = %4.2f %s' % (texlabels[index].replace("$", ""), val, units[index])
 
-                    anotext += [_anotext]
+                        anotext += [_anotext]
+            elif self.uparams is not None:
+                # Fallback: use uparams directly for derived param annotations
+                # when no status/chain file is available (e.g. API usage)
+                derived_params = ['mpsini']
+                for par in derived_params:
+                    par_label = par + str(pnum)
+                    if par_label in self.uparams and par_label in self.post.derived.columns:
+                        val = self.post.derived[par_label].loc[0.500]
+                        err = self.uparams[par_label]
+                        err = radvel.utils.round_sig(err)
+                        if err > 1e-15:
+                            val, err, errlow = sigfig(val, err)
+                            _anotext = r'$\mathregular{%s}$ = %s $\mathregular{\pm}$ %s' \
+                                       % (par_label, val, err)
+                        else:
+                            _anotext = r'$\mathregular{%s}$ = %4.2f' % (par_label, val)
+                        anotext += [_anotext]
 
         anotext = '\n'.join(anotext)
         plot.add_anchored(
