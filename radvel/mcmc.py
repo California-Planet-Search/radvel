@@ -3,7 +3,7 @@ import curses
 import sys
 import os
 
-import multiprocessing as mp
+import multiprocess as mp
 
 import pandas as pd
 import numpy as np

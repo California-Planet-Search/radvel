@@ -13,6 +13,7 @@ jinja2>=2.9
 python-dateutil>=2.5.0
 h5py>=3.9.0
 dill
+multiprocess
 ipython
 coveralls==3.2.0
 ultranest
