@@ -587,6 +587,33 @@ def test_model_comp(setupfn='example_planets/HD164922.py'):
     except AssertionError:  # expected result
         return
 
+def test_params_synced_after_optimize():
+    """Regression test for #409: params dict must reflect optimized values
+    after scipy.optimize.minimize(post.neglogprob_array, ...) even without
+    an explicit vector_to_dict() call. The sync happens in __repr__."""
+    post = radvel.posterior.Posterior(likelihood_for_pt())
+    initial_params = post.get_vary_params().copy()
+
+    # Optimize — this uses fast=True internally, so params dict is NOT synced
+    from scipy import optimize
+    res = optimize.minimize(post.neglogprob_array, initial_params, method='Powell',
+                            options=dict(maxiter=200, maxfev=100000, xtol=1e-8))
+
+    # repr/print triggers sync — params dict should now match optimized values
+    repr(post)
+    for key in post.params.keys():
+        if not post.params[key].vary:
+            continue
+        idx = post.vector.indices[key]
+        assert post.params[key].value == post.vector.vector[idx][0], \
+            f"params['{key}'].value not synced to vector after optimize + repr"
+
+    # Verify the optimizer actually moved at least one parameter
+    final_params = post.get_vary_params()
+    assert not np.allclose(initial_params, final_params), \
+        "Optimizer did not move any parameters"
+
+
 def test_set_vary_params():
     post = radvel.posterior.Posterior(likelihood_for_pt())
     params_one = np.ones_like(post.get_vary_params())
