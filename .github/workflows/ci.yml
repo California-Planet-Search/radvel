@@ -25,17 +25,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
-    
+
     - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc git pkg-config libhdf5-hl-100 libhdf5-dev
-    
+
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
@@ -43,11 +43,11 @@ jobs:
         # Install celerite to test if it resolves GP covariance matrix issues
         pip install celerite
         pip install coveralls pytest pytest-cov coverage
-    
+
     - name: Install build dependencies
       run: |
         pip install Cython pybind11 setuptools wheel hatchling
-    
+
     - name: Build and test
       run: |
         pip install -e .
@@ -62,7 +62,7 @@ jobs:
         pytest radvel --collect-only -q
         # Run tests with more verbose output
         pytest radvel --cov=radvel --cov-report=term-missing -v --tb=long
-    
+
     - name: Upload coverage to Coveralls
       if: matrix.python-version == '3.9'
       env:
@@ -71,29 +71,65 @@ jobs:
         coverage xml
         coveralls
 
-  build-and-deploy:
+  build-wheels:
     needs: test
-    runs-on: ubuntu-latest
     if: github.event_name == 'release'
-    
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-13, macos-14, windows-latest]
+
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-    
-    - name: Install build dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build twine
-    
-    - name: Build package
-      run: python -m build
-    
-    - name: Publish to PyPI
+
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v2.22
       env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-      run: twine upload dist/*
+        CIBW_BUILD: cp39-* cp311-* cp312-* cp313-*
+        CIBW_SKIP: "*-musllinux_*"
+        CIBW_BUILD_VERBOSITY: 1
+        CIBW_BEFORE_BUILD: pip install Cython numpy setuptools
+        CIBW_TEST_COMMAND: python -c "import radvel._kepler; print('C extension OK')"
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: wheels-${{ matrix.os }}
+        path: ./wheelhouse/*.whl
+
+  build-sdist:
+    needs: test
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build sdist
+      run: |
+        python -m pip install build
+        python -m build --sdist
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: sdist
+        path: dist/*.tar.gz
+
+  publish:
+    needs: [build-wheels, build-sdist]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        path: dist
+        merge-multiple: true
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_TOKEN }}
