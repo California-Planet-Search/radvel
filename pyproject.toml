@@ -1,6 +1,6 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=64", "wheel", "Cython", "numpy"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "radvel"
@@ -53,19 +53,17 @@ Homepage = "https://github.com/California-Planet-Search/radvel"
 Documentation = "http://radvel.readthedocs.io/"
 Repository = "https://github.com/California-Planet-Search/radvel"
 
-[tool.hatch.version]
-path = "radvel/__init__.py"
+[tool.setuptools.dynamic]
+version = {attr = "radvel.__version__"}
 
-[tool.hatch.build.targets.wheel]
-packages = ["radvel"]
-artifacts = ["*.so"]
+[tool.setuptools.packages.find]
+include = ["radvel*"]
 
-[tool.hatch.build.targets.wheel.force-include]
-"example_data" = "radvel_example_data"
+[tool.setuptools.package-data]
+radvel = ["_kepler*.so", "_kepler*.pyd"]
 
-[tool.hatch.build.hooks.custom]
-path = "build_hook.py"
-dependencies = ["setuptools", "Cython", "pybind11", "numpy"]
+[tool.setuptools.data-files]
+"radvel_example_data" = ["example_data/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["radvel"]
