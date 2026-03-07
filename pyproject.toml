@@ -39,6 +39,7 @@ dependencies = [
     "python-dateutil>=2.5.0",
     "h5py>=3.9.0",
     "dill",
+    "multiprocess",
     "ipython",
     "ultranest",
     "tables",

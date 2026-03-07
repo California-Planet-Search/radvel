@@ -50,6 +50,7 @@ class Likelihood(object):
         self.vector.vector_names()
 
     def __repr__(self):
+        self.vector.vector_to_dict()
         s = ""
         if self.uparams is None:
             s += "{:<20s}{:>15s}{:>10s}\n".format(
