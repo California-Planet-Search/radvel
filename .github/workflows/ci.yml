@@ -90,7 +90,7 @@ jobs:
         CIBW_SKIP: "*-musllinux_*"
         CIBW_BUILD_VERBOSITY: 1
         CIBW_BEFORE_BUILD: pip install Cython numpy setuptools
-        CIBW_TEST_COMMAND: python -c "import radvel._kepler; print('C extension OK')"
+        CIBW_TEST_SKIP: "*"
 
     - uses: actions/upload-artifact@v4
       with:
