@@ -83,6 +83,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+
+    - name: Pre-cache virtualenv for cibuildwheel
+      shell: bash
+      run: |
+        pip install virtualenv
+        VENV_VERSION=$(python -c "import virtualenv; print(virtualenv.__version__)")
+        echo "virtualenv version: $VENV_VERSION"
+
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.22
       env:
@@ -91,6 +103,7 @@ jobs:
         CIBW_BUILD_VERBOSITY: 1
         CIBW_BEFORE_BUILD: pip install Cython numpy setuptools
         CIBW_TEST_SKIP: "*"
+        CIBW_DEPENDENCY_VERSIONS: latest
 
     - uses: actions/upload-artifact@v4
       with:
