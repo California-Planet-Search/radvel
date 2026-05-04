@@ -89,6 +89,17 @@ def initialize_posterior_from_dict(config, decorr=False):
         tuple: (SimpleNamespace mirroring the legacy ``P`` module, radvel.Posterior)
     """
 
+    P = _namespace_from_dict(config)
+    return _finalise_posterior(P, decorr=decorr)
+
+
+def _namespace_from_dict(config):
+    """Build a SimpleNamespace mirroring a setup-file's globals from a dict.
+
+    Shared between :func:`initialize_posterior_from_dict` and the API setup
+    shim that the HTTP service writes into a run directory so the legacy
+    :func:`initialize_posterior` loader sees the same namespace.
+    """
     P = types.SimpleNamespace()
     P.starname = config.get('starname', 'unnamed')
     P.nplanets = int(config['nplanets'])
@@ -100,19 +111,14 @@ def initialize_posterior_from_dict(config, decorr=False):
     if planet_letters is not None:
         P.planet_letters = {int(k): v for k, v in planet_letters.items()}
 
-    data = config['data']
-    if isinstance(data, pd.DataFrame):
-        P.data = data.copy()
-    else:
-        P.data = pd.DataFrame(list(data))
-    P.data = P.data.reset_index(drop=True)
+    P.data = _data_to_dataframe(config['data']).reset_index(drop=True)
 
     if config.get('time_base') is not None:
         P.time_base = float(config['time_base'])
     else:
         P.time_base = float(np.mean([P.data.time.min(), P.data.time.max()]))
 
-    any_basis = config.get('any_basis', P.fitting_basis)
+    any_basis = config.get('any_basis') or P.fitting_basis
     params_in = config['params']
     if isinstance(params_in, radvel.Parameters):
         params_obj = params_in
@@ -136,7 +142,38 @@ def initialize_posterior_from_dict(config, decorr=False):
     if config.get('kernel_name'):
         P.kernel_name = dict(config['kernel_name'])
 
-    return _finalise_posterior(P, decorr=decorr)
+    return P
+
+
+def _data_to_dataframe(spec):
+    """Translate a setup-file ``data`` field into a pandas DataFrame.
+
+    Accepts either a pre-built DataFrame, a list of row dicts, or one of
+    the JSON-style discriminated unions defined in
+    :mod:`radvel.api.schemas` (``inline``, ``csv_base64``, ``server_path``,
+    ``dataset_ref``).
+    """
+    if isinstance(spec, pd.DataFrame):
+        return spec.copy()
+    if isinstance(spec, dict):
+        kind = spec.get('kind')
+        if kind == 'inline':
+            return pd.DataFrame(list(spec.get('rows', [])))
+        if kind == 'csv_base64':
+            import base64
+            import io
+            csv_bytes = base64.b64decode(spec['csv_base64'])
+            sep = spec.get('separator', ',')
+            return pd.read_csv(io.BytesIO(csv_bytes), sep=sep)
+        if kind == 'server_path':
+            return pd.read_csv(spec['path'])
+        if kind == 'dataset_ref':
+            import radvel as _radvel
+            path = os.path.join(_radvel.DATADIR, spec['dataset'])
+            return pd.read_csv(path)
+        # Treat any other dict as a column-oriented mapping.
+        return pd.DataFrame(spec)
+    return pd.DataFrame(list(spec))
 
 
 def _build_parameters(params_dict, nplanets, basis):

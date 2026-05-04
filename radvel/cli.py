@@ -227,7 +227,25 @@ descriptive titles without star name [False]'''
 
     psr_report.set_defaults(func=radvel.driver.report)
 
+    # serve: launch the HTTP API service (added in v1.6).
+    psr_serve = subpsr.add_parser(
+        'serve',
+        description='Launch the RadVel HTTP API service. Requires the [api] extra '
+                    '(`pip install radvel[api]`).'
+    )
+    psr_serve.add_argument('--host', default='127.0.0.1', help='Bind address (default: 127.0.0.1)')
+    psr_serve.add_argument('--port', default=8000, type=int, help='Listen port (default: 8000)')
+    psr_serve.add_argument('--workers', default=1, type=int,
+                           help='Number of uvicorn worker processes (default: 1)')
+    psr_serve.add_argument('--reload', action='store_true',
+                           help='Enable hot-reload (development only; do NOT use in production)')
+    psr_serve.set_defaults(func=_serve)
+
     args = psr.parse_args()
+
+    if args.subcommand == 'serve':
+        args.func(args)
+        return
 
     if args.outputdir is None:
         setupfile = args.setupfn
@@ -240,6 +258,24 @@ descriptive titles without star name [False]'''
         os.mkdir(args.outputdir)
 
     args.func(args)
+
+
+def _serve(args):
+    """Launch the RadVel HTTP API service via uvicorn."""
+    try:
+        import uvicorn
+    except ImportError:
+        raise SystemExit(
+            "radvel serve requires the [api] extra. Install with:\n"
+            "    pip install 'radvel[api]'"
+        )
+    uvicorn.run(
+        "radvel.api.main:app",
+        host=args.host,
+        port=args.port,
+        workers=args.workers if not args.reload else 1,
+        reload=args.reload,
+    )
 
 
 if __name__ == '__main__':
