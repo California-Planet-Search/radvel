@@ -151,10 +151,14 @@ def run_ic_compare(record: RunRecord, *, types: List[str], mixed: bool = True,
     status = load_status(str(record.stat_file))
     raw = status.get("ic_compare", "ic")
     # The driver stores the ic_compare result as repr(OrderedDict([...])); eval
-    # needs OrderedDict in scope. The string is produced by driver.ic_compare
-    # itself, never user input.
+    # needs both OrderedDict and (under NumPy 2.x) `np` in scope because newer
+    # numpy reprs scalars as `np.float64(...)`. The string is produced by
+    # driver.ic_compare itself, never user input.
     from collections import OrderedDict
-    statsdicts = eval(raw, {"OrderedDict": OrderedDict})  # noqa: S307
+    statsdicts = eval(  # noqa: S307
+        raw,
+        {"OrderedDict": OrderedDict, "np": np, "numpy": np},
+    )
     return {"statsdicts": list(statsdicts)}
 
 
