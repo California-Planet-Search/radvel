@@ -1,10 +1,12 @@
 import os
 import sys
+import types
 from decimal import Decimal
 from contextlib import contextmanager
 import warnings
 
 import numpy as np
+import pandas as pd
 from datetime import datetime, timedelta
 from astropy import constants as c
 from astropy import units as u
@@ -48,7 +50,7 @@ def load_module_from_file(module_name, module_path):
 
 
 def initialize_posterior(config_file, decorr=False):
-    """Initialize Posterior object
+    """Initialize Posterior object from a Python setup file.
 
     Parse a setup file and initialize the RVModel, Likelihood, Posterior and priors.
 
@@ -62,6 +64,139 @@ def initialize_posterior(config_file, decorr=False):
 
     system_name = os.path.basename(config_file).split('.')[0]
     P = load_module_from_file(system_name, os.path.abspath(config_file))
+    return _finalise_posterior(P, decorr=decorr)
+
+
+def initialize_posterior_from_dict(config, decorr=False):
+    """Initialize Posterior object from an in-memory dict.
+
+    Mirrors the namespace of a Python setup file but accepts JSON-friendly
+    types so callers (e.g. an HTTP API) can build a posterior without
+    writing a file to disk first. Each top-level field may either contain a
+    ready-made radvel object (e.g. a ``radvel.Parameters`` instance for
+    ``params``) or a JSON-style representation that this function translates
+    via the helpers below.
+
+    Args:
+        config (dict): mapping with keys ``starname``, ``nplanets``,
+            ``instnames``, ``fitting_basis``, ``params``, ``data``,
+            ``priors``, optionally ``bjd0``, ``time_base``, ``planet_letters``,
+            ``stellar``, ``planet``, ``decorr_vars``, ``hnames``,
+            ``kernel_name``, ``any_basis``, ``anybasis_params``.
+        decorr (bool): same meaning as :func:`initialize_posterior`.
+
+    Returns:
+        tuple: (SimpleNamespace mirroring the legacy ``P`` module, radvel.Posterior)
+    """
+
+    P = types.SimpleNamespace()
+    P.starname = config.get('starname', 'unnamed')
+    P.nplanets = int(config['nplanets'])
+    P.instnames = list(config['instnames'])
+    P.fitting_basis = config['fitting_basis']
+    P.bjd0 = float(config.get('bjd0', 0.0))
+
+    planet_letters = config.get('planet_letters')
+    if planet_letters is not None:
+        P.planet_letters = {int(k): v for k, v in planet_letters.items()}
+
+    data = config['data']
+    if isinstance(data, pd.DataFrame):
+        P.data = data.copy()
+    else:
+        P.data = pd.DataFrame(list(data))
+    P.data = P.data.reset_index(drop=True)
+
+    if config.get('time_base') is not None:
+        P.time_base = float(config['time_base'])
+    else:
+        P.time_base = float(np.mean([P.data.time.min(), P.data.time.max()]))
+
+    any_basis = config.get('any_basis', P.fitting_basis)
+    params_in = config['params']
+    if isinstance(params_in, radvel.Parameters):
+        params_obj = params_in
+    else:
+        params_obj = _build_parameters(params_in, P.nplanets, any_basis)
+    if str(params_obj.basis) != "Basis Object <{}>".format(P.fitting_basis):
+        params_obj = params_obj.basis.to_any_basis(params_obj, P.fitting_basis)
+    P.params = params_obj
+
+    P.priors = [_build_prior(p) if isinstance(p, dict) else p
+                for p in config.get('priors', [])]
+
+    if config.get('stellar') is not None:
+        P.stellar = dict(config['stellar'])
+    if config.get('planet') is not None:
+        P.planet = dict(config['planet'])
+    if config.get('decorr_vars'):
+        P.decorr_vars = list(config['decorr_vars'])
+    if config.get('hnames'):
+        P.hnames = {k: list(v) for k, v in config['hnames'].items()}
+    if config.get('kernel_name'):
+        P.kernel_name = dict(config['kernel_name'])
+
+    return _finalise_posterior(P, decorr=decorr)
+
+
+def _build_parameters(params_dict, nplanets, basis):
+    """Translate a JSON-style mapping to a :class:`radvel.Parameters` instance."""
+    params_obj = radvel.Parameters(nplanets, basis=basis)
+    for name, spec in params_dict.items():
+        if isinstance(spec, radvel.model.Parameter):
+            params_obj[name] = spec
+            continue
+        if isinstance(spec, (int, float, np.floating, np.integer)):
+            spec = {'value': float(spec)}
+        kwargs = {
+            'value': float(spec['value']),
+            'vary': bool(spec.get('vary', True)),
+        }
+        if spec.get('mcmcscale') is not None:
+            kwargs['mcmcscale'] = float(spec['mcmcscale'])
+        if spec.get('linear', False):
+            kwargs['linear'] = True
+        params_obj[name] = radvel.model.Parameter(**kwargs)
+    return params_obj
+
+
+def _build_prior(spec):
+    """Dispatch a prior dict (with ``type`` key) to a :mod:`radvel.prior` instance."""
+    t = spec['type']
+    if t == 'gaussian':
+        return radvel.prior.Gaussian(spec['param'], float(spec['mu']), float(spec['sigma']))
+    if t == 'jeffreys':
+        return radvel.prior.Jeffreys(spec['param'], float(spec['minval']), float(spec['maxval']))
+    if t == 'modifiedjeffreys':
+        return radvel.prior.ModifiedJeffreys(spec['param'], float(spec['minval']),
+                                             float(spec['maxval']), float(spec['kneeval']))
+    if t == 'hardbounds':
+        return radvel.prior.HardBounds(spec['param'], float(spec['minval']), float(spec['maxval']))
+    if t == 'eccentricity':
+        return radvel.prior.EccentricityPrior(spec['num_planets'],
+                                              upperlims=spec.get('upperlims', 0.99))
+    if t == 'positivek':
+        return radvel.prior.PositiveKPrior(int(spec['num_planets']))
+    if t == 'secondaryeclipse':
+        return radvel.prior.SecondaryEclipsePrior(int(spec['planet_num']),
+                                                  float(spec['ts']), float(spec['ts_err']))
+    if t == 'informative_baseline':
+        return radvel.prior.InformativeBaselinePrior(spec['param'], float(spec['baseline']),
+                                                     duration=float(spec.get('duration', 0.0)))
+    raise ValueError("Unknown prior type: {!r}".format(t))
+
+
+def _finalise_posterior(P, decorr=False):
+    """Build a :class:`radvel.posterior.Posterior` from a prepared namespace.
+
+    ``P`` must expose ``params`` (a :class:`radvel.Parameters` already in the
+    fitting basis), ``fitting_basis``, ``data`` (DataFrame with ``time``,
+    ``mnvel``, ``errvel``, ``tel``), ``instnames``, ``time_base`` and
+    ``priors``. Optional attributes ``hnames``, ``kernel_name`` and
+    ``decorr_vars`` follow the same shape as the legacy setup-file
+    namespace. This is the shared backend for both
+    :func:`initialize_posterior` and :func:`initialize_posterior_from_dict`.
+    """
 
     params = P.params
     assert str(params.basis) == "Basis Object <{}>".format(P.fitting_basis), """
@@ -77,7 +212,7 @@ Parameters in config file must be converted to fitting basis.
     else:
         decorr_vars = []
 
-    for key in params.keys():
+    for key in list(params.keys()):
         if key.startswith('logjit'):
             msg = """
 Fitting log(jitter) is depreciated. Please convert your config
