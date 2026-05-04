@@ -168,6 +168,22 @@ def test_unknown_prior_type_raises():
         _build_prior({'type': 'made-up-prior'})
 
 
+def test_build_parameters_passthrough_radvel_parameter():
+    """Existing Parameter instances are accepted unchanged."""
+    spec = {'k1': radvel.model.Parameter(value=7.0, mcmcscale=0.25)}
+    out = _build_parameters(spec, nplanets=1, basis='per tc secosw sesinw k')
+    assert out['k1'].value == 7.0
+    assert out['k1'].mcmcscale == 0.25
+
+
+def test_build_parameters_bare_float_shorthand():
+    """A bare float is treated as ``{'value': x}`` for ergonomics."""
+    spec = {'k1': 5.5}
+    out = _build_parameters(spec, nplanets=1, basis='per tc secosw sesinw k')
+    assert out['k1'].value == 5.5
+    assert out['k1'].vary is True
+
+
 def test_data_accepts_dataframe():
     """DataFrame inputs are passed through (legacy ergonomics)."""
     cfg = _epic203771098_dict()
