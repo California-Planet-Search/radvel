@@ -64,9 +64,11 @@ jobs:
         pytest radvel --cov=radvel --cov-report=term-missing -v --tb=long
 
     - name: Upload coverage to Coveralls
-      if: matrix.python-version == '3.9'
+      if: matrix.python-version == '3.9' && github.actor != 'dependabot[bot]'
       env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      continue-on-error: true
       run: |
         coverage xml
         coveralls
