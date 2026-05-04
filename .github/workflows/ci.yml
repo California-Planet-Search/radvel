@@ -73,6 +73,37 @@ jobs:
         coverage xml
         coveralls
 
+  api-test:
+    needs: test
+    if: github.event_name != 'release'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc git pkg-config libhdf5-hl-100 libhdf5-dev
+
+    - name: Install Python dependencies (with [api] extra)
+      run: |
+        python -m pip install --upgrade pip
+        pip install --no-cache-dir -r requirements.txt
+        pip install celerite
+        pip install Cython pybind11 setuptools wheel hatchling
+        pip install -e ".[api,dev-api]" pytest pytest-cov coverage
+
+    - name: Run API integration tests
+      run: |
+        export RADVEL_DATADIR="$GITHUB_WORKSPACE/example_data"
+        python -c "import radvel._kepler; print('C extension _kepler available')"
+        pytest radvel -m api -v --tb=long
+
   build-wheels:
     needs: test
     if: github.event_name == 'release'
