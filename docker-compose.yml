@@ -1,0 +1,19 @@
+# Local-dev compose for the RadVel HTTP service.
+#
+#   docker compose up --build
+#
+# Mounts ./.runs as /data so SQLite + run outputs survive restarts.
+
+services:
+  radvel-api:
+    build: .
+    image: radvel-api:dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./.runs:/data
+    environment:
+      RADVEL_API_ALLOW_PY_UPLOAD: "false"
+      RADVEL_API_ENABLE_UI: "true"
+      RADVEL_API_WORKERS: "1"
+    restart: unless-stopped

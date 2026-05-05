@@ -199,3 +199,28 @@ def test_time_base_auto_filled_when_missing():
     assert P.time_base == pytest.approx(
         float(np.mean([P.data.time.min(), P.data.time.max()]))
     )
+
+
+def test_dataset_ref_normalises_columns_and_tel():
+    """``dataset_ref`` against a built-in t/vel/errvel CSV must work end-to-end.
+
+    Reproduces the M5 docker-smoke regression: ``epic203771098.csv``
+    ships with ``t/vel/errvel`` columns and no ``tel``, so the dict
+    loader has to rename the columns and synthesise ``tel`` from the
+    single instrument before fit.
+    """
+    from radvel.utils import _data_to_dataframe, _namespace_from_dict
+
+    df = _data_to_dataframe({
+        'kind': 'dataset_ref',
+        'dataset': 'epic203771098.csv',
+    })
+    assert 'time' in df.columns and 'mnvel' in df.columns
+
+    cfg = _epic203771098_dict()
+    cfg['data'] = {'kind': 'dataset_ref', 'dataset': 'epic203771098.csv'}
+    P, post = initialize_posterior_from_dict(cfg)
+    assert (P.data['tel'] == 'j').all()
+    # Sanity: the same posterior produced by the inline-rows path is
+    # well-defined here too.
+    assert post.logprob() < 0

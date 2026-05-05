@@ -112,6 +112,11 @@ def _namespace_from_dict(config):
         P.planet_letters = {int(k): v for k, v in planet_letters.items()}
 
     P.data = _data_to_dataframe(config['data']).reset_index(drop=True)
+    # The CLI setup-file convention requires a 'tel' column. Inline-rows
+    # payloads include it explicitly, but built-in CSV fixtures don't —
+    # default to the single instrument when there's only one defined.
+    if 'tel' not in P.data.columns and len(P.instnames) == 1:
+        P.data['tel'] = P.instnames[0]
 
     if config.get('time_base') is not None:
         P.time_base = float(config['time_base'])
@@ -145,6 +150,25 @@ def _namespace_from_dict(config):
     return P
 
 
+def _normalise_rv_columns(df):
+    """Map common alternative column names to the canonical CLI form.
+
+    Many built-in example CSVs (e.g. ``epic203771098.csv``) ship with
+    ``t/vel/errvel`` columns, while the rest of the pipeline expects
+    ``time/mnvel/errvel/tel``. Rename in-place when the canonical
+    column is absent. If no ``tel`` column exists at all, leave it
+    missing — the caller decides whether that's an error.
+    """
+    rename = {}
+    if 'time' not in df.columns and 't' in df.columns:
+        rename['t'] = 'time'
+    if 'mnvel' not in df.columns and 'vel' in df.columns:
+        rename['vel'] = 'mnvel'
+    if rename:
+        df = df.rename(columns=rename)
+    return df
+
+
 def _data_to_dataframe(spec):
     """Translate a setup-file ``data`` field into a pandas DataFrame.
 
@@ -166,11 +190,11 @@ def _data_to_dataframe(spec):
             sep = spec.get('separator', ',')
             return pd.read_csv(io.BytesIO(csv_bytes), sep=sep)
         if kind == 'server_path':
-            return pd.read_csv(spec['path'])
+            return _normalise_rv_columns(pd.read_csv(spec['path']))
         if kind == 'dataset_ref':
             import radvel as _radvel
             path = os.path.join(_radvel.DATADIR, spec['dataset'])
-            return pd.read_csv(path)
+            return _normalise_rv_columns(pd.read_csv(path))
         # Treat any other dict as a column-oriented mapping.
         return pd.DataFrame(spec)
     return pd.DataFrame(list(spec))
