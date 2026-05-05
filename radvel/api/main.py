@@ -19,7 +19,7 @@ from fastapi import FastAPI
 
 from radvel.api.config import get_settings
 from radvel.api.jobs import JobRegistry, JobRunner
-from radvel.api.routers import health, jobs, pipeline, runs
+from radvel.api.routers import files, health, jobs, pipeline, runs
 
 
 log = logging.getLogger("radvel.api")
@@ -76,6 +76,7 @@ def create_app() -> FastAPI:
     app.include_router(runs.router)
     app.include_router(pipeline.router)
     app.include_router(jobs.router)
+    app.include_router(files.router)
 
     return app
 

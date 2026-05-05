@@ -15,6 +15,8 @@ from radvel.api.drivers_adapter import (
     run_derive,
     run_fit,
     run_ic_compare,
+    run_plots,
+    run_report,
     run_tables,
 )
 from radvel.api.runs import RunNotFound, RunRegistry, is_valid_run_id
@@ -114,3 +116,42 @@ def tables_endpoint(
     except AdapterError as err:
         raise _surface(err)
     return schemas.TablesResult(**result)
+
+
+@router.post("/plots", response_model=schemas.PlotsResult)
+def plots_endpoint(
+    run_id: str,
+    body: schemas.PlotsRequest,
+    registry: RunRegistry = Depends(_registry),
+) -> schemas.PlotsResult:
+    record = _resolve(run_id, registry)
+    try:
+        result = run_plots(
+            record,
+            types=body.types,
+            plotkw=body.plotkw,
+            gp=body.gp,
+            sampler=body.sampler,
+        )
+    except AdapterError as err:
+        raise _surface(err)
+    return schemas.PlotsResult(**result)
+
+
+@router.post("/report", response_model=schemas.ReportResult)
+def report_endpoint(
+    run_id: str,
+    body: schemas.ReportRequest = schemas.ReportRequest(),
+    registry: RunRegistry = Depends(_registry),
+) -> schemas.ReportResult:
+    record = _resolve(run_id, registry)
+    try:
+        result = run_report(
+            record,
+            comptype=body.comptype,
+            latex_compiler=body.latex_compiler,
+            sampler=body.sampler,
+        )
+    except AdapterError as err:
+        raise _surface(err)
+    return schemas.ReportResult(**result)
