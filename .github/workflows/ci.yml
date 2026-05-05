@@ -124,7 +124,11 @@ jobs:
 
     - name: Boot the container
       run: |
-        docker run -d --name rv -p 8000:8000 -v ${{ runner.temp }}/runs:/data radvel-api:smoke
+        # Use a named docker volume rather than a host bind-mount so the
+        # non-root operator inside the image (uid 10001) can actually
+        # write to /data. Host bind-mounts overlay the chowned /data with
+        # a host-owned dir and the lifespan crashes with EACCES.
+        docker run -d --name rv -p 8000:8000 -v rv-data:/data radvel-api:smoke
         # Wait for /healthz to come up — fail fast if it never does.
         for i in $(seq 1 30); do
           if curl --fail --silent http://localhost:8000/healthz; then echo; break; fi
