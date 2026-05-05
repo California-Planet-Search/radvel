@@ -192,6 +192,71 @@ def run_tables(record: RunRecord, *, types: List[str], header: bool = False,
     return {"latex": latex, "files": files}
 
 
+# ---- plots ---------------------------------------------------------------
+
+
+def run_plots(record: RunRecord, *, types: List[str],
+              plotkw: Optional[Dict[str, Any]] = None,
+              gp: bool = False, sampler: str = "auto") -> Dict[str, Any]:
+    """Generate plot PDFs in the run dir, return a list of {type, path, url}."""
+    args = _build_args(
+        record,
+        type=list(types),
+        plotkw=dict(plotkw or {}),
+        gp=bool(gp),
+        sampler=sampler,
+    )
+    with _capture(record):
+        driver.plots(args)
+    files: List[Dict[str, str]] = []
+    suffix_map = {
+        "rv": "rv_multipanel",
+        "auto": "auto",
+        "corner": "corner",
+        "trend": "trends",
+        "derived": "corner_derived_pars",
+    }
+    for ptype in types:
+        suffix = suffix_map.get(ptype, ptype)
+        path = record.outputdir / "{}_{}.pdf".format(record.run_id, suffix)
+        if path.is_file():
+            files.append({
+                "type": ptype,
+                "path": path.name,
+                "url": "/runs/{}/files/{}".format(record.run_id, path.name),
+            })
+    return {"files": files}
+
+
+# ---- report --------------------------------------------------------------
+
+
+def run_report(record: RunRecord, *, comptype: str = "ic",
+               latex_compiler: str = "pdflatex",
+               sampler: str = "auto") -> Dict[str, Any]:
+    """Compile the LaTeX report into ``{run_id}_results.pdf``."""
+    args = _build_args(
+        record,
+        comptype=comptype,
+        latex_compiler=latex_compiler,
+        sampler=sampler,
+    )
+    with _capture(record) as (buf_out, _):
+        driver.report(args)
+    pdf = record.outputdir / "{}_results.pdf".format(record.run_id)
+    if not pdf.is_file() or pdf.stat().st_size == 0:
+        raise AdapterError(
+            error_type="report_pdf_missing",
+            message="report produced no PDF (check pdflatex on PATH and report.log)",
+            status_code=500,
+        )
+    return {
+        "file": pdf.name,
+        "url": "/runs/{}/files/{}".format(record.run_id, pdf.name),
+        "stdout": buf_out.getvalue()[-4000:],
+    }
+
+
 # ---- async workers (run in a child process via JobRunner) ----------------
 
 
