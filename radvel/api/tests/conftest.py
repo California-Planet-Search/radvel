@@ -28,10 +28,17 @@ def settings_env(tmp_path: Path, monkeypatch):
 
 @pytest.fixture
 def client(settings_env):
+    """A TestClient that runs the FastAPI lifespan event.
+
+    Required because the lifespan installs the JobRunner on
+    ``app.state.job_runner``; without entering the context the async
+    endpoints would 503.
+    """
     from fastapi.testclient import TestClient
 
     from radvel.api.main import create_app
-    return TestClient(create_app())
+    with TestClient(create_app()) as test_client:
+        yield test_client
 
 
 @pytest.fixture

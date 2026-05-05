@@ -172,6 +172,38 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
         else:
             _status_message_CLI(statevars)
 
+    cb = getattr(statevars, "progress_callback", None)
+    if cb is not None:
+        try:
+            cb(_progress_snapshot())
+        except Exception:
+            # Telemetry must never block the MCMC loop. Drop the snapshot
+            # silently; the caller can inspect logs if it cares.
+            pass
+
+
+def _progress_snapshot():
+    """Return a JSON-serialisable snapshot of the current ``statevars``.
+
+    Used by the API job runner to expose live convergence telemetry via
+    ``GET /jobs/{id}``. The keys mirror ``statevars`` and stay stable so
+    the schema in :class:`radvel.api.schemas.JobProgress` does not drift.
+    """
+    return {
+        "nsteps_complete": int(getattr(statevars, "ncomplete", 0) or 0),
+        "totsteps": int(getattr(statevars, "totsteps", 0) or 0),
+        "pcomplete": float(getattr(statevars, "pcomplete", 0.0) or 0.0),
+        "rate": float(getattr(statevars, "rate", 0.0) or 0.0),
+        "ar": float(getattr(statevars, "ar", 0.0) or 0.0),
+        "minafactor": float(getattr(statevars, "minafactor", 0.0) or 0.0),
+        "maxarchange": float(getattr(statevars, "maxarchange", 0.0) or 0.0),
+        "mintz": float(getattr(statevars, "mintz", 0.0) or 0.0),
+        "maxgr": float(getattr(statevars, "maxgr", 0.0) or 0.0),
+        "ismixed": bool(getattr(statevars, "ismixed", False)),
+        "burn_complete": bool(getattr(statevars, "preburned", False)),
+        "nburn": int(getattr(statevars, "nburn", 0) or 0),
+    }
+
 
 def _domcmc(input_tuple):
     """Function to be run in parallel on different CPUs
@@ -188,7 +220,7 @@ def _domcmc(input_tuple):
 
 def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=40, maxArchange=.03, burnAfactor=25,
          burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=False,
-         savename=None, proceed=False, proceedname=None, headless=False):
+         savename=None, proceed=False, proceedname=None, headless=False, progress_callback=None):
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -223,6 +255,7 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
     """
 
     statevars.reset()
+    statevars.progress_callback = progress_callback
 
     try:
         if save and savename is None:

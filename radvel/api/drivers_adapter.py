@@ -1,11 +1,14 @@
-"""Sync adapters wrapping :mod:`radvel.driver` for the HTTP API.
+"""Adapters wrapping :mod:`radvel.driver` for the HTTP API.
 
-The driver functions accept an ``argparse.Namespace`` and write outputs
-relative to ``args.outputdir``. These adapters build that namespace from
-typed request models, capture stdout, and translate exceptions into HTTP
-errors. Long-running operations (``mcmc``, ``nested_sampling``) ship in
-M3 via the async job runner; this module covers the synchronous
-operations only.
+Two flavours:
+
+1. **Sync** — used directly by the FastAPI request handler, runs in the
+   web process, returns a typed result. Covers ``fit``, ``derive``,
+   ``ic_compare``, ``tables``.
+2. **Async workers** — invoked by :class:`radvel.api.jobs.JobRunner` in
+   a child process. Cover ``mcmc`` and ``ns``. They wire a
+   :class:`radvel.api.progress.ProgressWriter` into the driver call so
+   ``GET /jobs/{id}`` can stream live convergence stats.
 """
 
 from __future__ import annotations
@@ -13,12 +16,14 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import json
 import os
+import signal
 import traceback
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -27,7 +32,8 @@ import radvel
 from radvel import driver
 from radvel.driver import load_status
 
-from .runs import RunRecord
+from .progress import ProgressWriter
+from .runs import RunNotFound, RunRecord, RunRegistry
 
 
 @dataclass
@@ -184,3 +190,113 @@ def run_tables(record: RunRecord, *, types: List[str], header: bool = False,
             latex[tabtype] = path.read_text()
             files[tabtype] = path.name
     return {"latex": latex, "files": files}
+
+
+# ---- async workers (run in a child process via JobRunner) ----------------
+
+
+def _resolve_record(run_id: str) -> RunRecord:
+    """Re-acquire a RunRecord inside the worker process."""
+    registry = RunRegistry()
+    return registry.get(run_id)
+
+
+def _install_sigterm_handler() -> None:
+    """Translate SIGTERM into SystemExit so JobRunner.cancel can interrupt."""
+    def _handler(signum, frame):
+        raise SystemExit(128 + signum)
+    signal.signal(signal.SIGTERM, _handler)
+
+
+def _run_mcmc_worker(run_id: str, params_json: str) -> Dict[str, Any]:
+    """ProcessPool worker for ``POST /runs/{id}/mcmc``.
+
+    Receives only JSON-serialisable arguments because it runs in a fresh
+    child process. Writes outputs identically to ``radvel.driver.mcmc``
+    so subsequent ``derive``/``tables``/``report`` calls keep working.
+    """
+    _install_sigterm_handler()
+    record = _resolve_record(run_id)
+    params = json.loads(params_json)
+
+    progress_path = record.outputdir / "mcmc_progress.json"
+    writer = ProgressWriter(progress_path)
+    writer.write({"state": "starting"})
+
+    args = _build_args(
+        record,
+        nsteps=int(params.get("nsteps", 10000)),
+        nwalkers=int(params.get("nwalkers", 50)),
+        ensembles=int(params.get("ensembles", 8)),
+        minAfactor=float(params.get("minAfactor", 40.0)),
+        maxArchange=float(params.get("maxArchange", 0.03)),
+        burnAfactor=float(params.get("burnAfactor", 25.0)),
+        burnGR=float(params.get("burnGR", 1.03)),
+        maxGR=float(params.get("maxGR", 1.01)),
+        minTz=int(params.get("minTz", 1000)),
+        minsteps=int(params.get("minsteps", 0)),
+        minpercent=float(params.get("minpercent", 5.0)),
+        thin=int(params.get("thin", 1)),
+        serial=bool(params.get("serial", False)),
+        save=bool(params.get("save", False)),
+        proceed=bool(params.get("proceed", False)),
+        headless=True,  # never animate from inside a worker process
+        progress_callback=writer.write,
+    )
+    with _capture(record):
+        driver.mcmc(args)
+
+    status = load_status(str(record.stat_file))
+    summary = {
+        "logprob": None,
+        "chainfile": None,
+        "postfile": None,
+    }
+    if status.has_section("mcmc"):
+        summary["chainfile"] = os.path.basename(status.get("mcmc", "chainfile"))
+        summary["postfile"] = os.path.basename(status.get("mcmc", "postfile"))
+        try:
+            post = radvel.posterior.load(status.get("mcmc", "postfile"))
+            summary["logprob"] = float(post.logprob())
+        except Exception:
+            pass
+    return summary
+
+
+def _run_ns_worker(run_id: str, params_json: str) -> Dict[str, Any]:
+    """ProcessPool worker for ``POST /runs/{id}/ns``."""
+    _install_sigterm_handler()
+    record = _resolve_record(run_id)
+    params = json.loads(params_json)
+
+    args = _build_args(
+        record,
+        sampler=params.get("sampler", "ultranest"),
+        sampler_kwargs=_kwargs_to_str(params.get("sampler_kwargs") or {}),
+        run_kwargs=_kwargs_to_str(params.get("run_kwargs") or {}),
+        proceed=bool(params.get("proceed", False)),
+        overwrite=bool(params.get("overwrite", False)),
+    )
+    with _capture(record):
+        driver.nested_sampling(args)
+
+    status = load_status(str(record.stat_file))
+    summary: Dict[str, Any] = {
+        "chainfile": None,
+        "postfile": None,
+    }
+    if status.has_section("ns"):
+        summary["chainfile"] = os.path.basename(status.get("ns", "chainfile"))
+        summary["postfile"] = os.path.basename(status.get("ns", "postfile"))
+    return summary
+
+
+def _kwargs_to_str(kwargs: Dict[str, Any]) -> Optional[str]:
+    """Convert a dict into the space-separated `key=value` form the CLI uses.
+
+    The driver's NS path only accepts the string form (because the CLI
+    parses it that way). ``None`` means "no kwargs".
+    """
+    if not kwargs:
+        return None
+    return " ".join("{}={}".format(k, v) for k, v in kwargs.items())

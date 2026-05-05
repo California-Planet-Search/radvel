@@ -202,7 +202,8 @@ def mcmc(args):
                          minAfactor=args.minAfactor, maxArchange=args.maxArchange, burnAfactor=args.burnAfactor,
                          burnGR=args.burnGR, maxGR=args.maxGR, minTz=args.minTz, minsteps=args.minsteps,
                          minpercent=args.minpercent, thin=args.thin, serial=args.serial, save=args.save,
-                         savename=backend_loc, proceed=args.proceed, proceedname=backend_loc, headless=args.headless)
+                         savename=backend_loc, proceed=args.proceed, proceedname=backend_loc, headless=args.headless,
+                         progress_callback=getattr(args, 'progress_callback', None))
 
     mintz = statevars.mintz
     maxgr = statevars.maxgr

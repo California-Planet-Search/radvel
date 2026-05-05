@@ -18,7 +18,8 @@ import logging
 from fastapi import FastAPI
 
 from radvel.api.config import get_settings
-from radvel.api.routers import health, pipeline, runs
+from radvel.api.jobs import JobRegistry, JobRunner
+from radvel.api.routers import health, jobs, pipeline, runs
 
 
 log = logging.getLogger("radvel.api")
@@ -35,7 +36,18 @@ async def lifespan(app: FastAPI):
         log.info("radvel._kepler C extension loaded")
     except Exception as exc:  # pragma: no cover — exercised only when the .so is missing
         log.warning("radvel._kepler not available, falling back to NumPy: %s", exc)
-    yield
+
+    # Repair stale 'running' rows from a prior process that didn't shut down
+    # cleanly, then start the executor for new jobs.
+    job_registry = JobRegistry(settings=settings)
+    repaired = job_registry.reconcile_orphaned()
+    if repaired:
+        log.warning("reconciled %d orphaned job(s) at startup", repaired)
+    app.state.job_runner = JobRunner(job_registry)
+    try:
+        yield
+    finally:
+        app.state.job_runner.shutdown(wait=False)
 
 
 def create_app() -> FastAPI:
@@ -63,6 +75,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(runs.router)
     app.include_router(pipeline.router)
+    app.include_router(jobs.router)
 
     return app
 
