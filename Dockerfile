@@ -11,7 +11,7 @@
 
 # ---- builder ------------------------------------------------------------
 # Compiles the Cython _kepler extension and the wheels for runtime deps.
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -44,7 +44,7 @@ RUN pip wheel --no-deps --wheel-dir=/wheels .
 
 # ---- runtime ------------------------------------------------------------
 # Same Python base, plus runtime libs and TeX Live for /report.
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim-bookworm AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -63,8 +63,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     RADVEL_API_ALLOW_PY_UPLOAD=false \
     RADVEL_API_ENABLE_UI=true
 
+# libhdf5-dev pulls in the runtime libhdf5-* package as a dependency
+# regardless of which SOVERSION the active Debian release ships
+# (Bookworm = 103, Trixie = 310, …). Worth ~5 MB to avoid a per-release
+# package-name dance. We install it here even though h5py never compiles
+# in the runtime stage — it just dlopens the SO at import time.
 RUN apt-get update && apt-get install --no-install-recommends -y \
-        libhdf5-103-1 \
+        libhdf5-dev \
         texlive-latex-base \
         texlive-fonts-recommended \
         texlive-latex-extra \
