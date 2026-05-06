@@ -1,10 +1,11 @@
 import warnings
 
 import numpy as np
+from numpy.typing import ArrayLike
 import radvel
 
 # Try to import Kepler's equation solver written in C
-def _check_cext():
+def _check_cext() -> bool:
     """Check if C extension is available - call this dynamically"""
     try:
         from . import _kepler
@@ -17,7 +18,7 @@ def _check_cext():
 cext = _check_cext()
 
 
-def rv_drive(t, orbel, use_c_kepler_solver=cext):
+def rv_drive(t: np.ndarray, orbel: ArrayLike, use_c_kepler_solver: bool = cext) -> np.ndarray:
     """RV Drive
     Args:
         t (array of floats): times of observations
@@ -63,7 +64,7 @@ def rv_drive(t, orbel, use_c_kepler_solver=cext):
     return rv
 
 
-def kepler(Marr, eccarr):
+def kepler(Marr: np.ndarray, eccarr: np.ndarray) -> np.ndarray:
     """Solve Kepler's Equation
     Args:
         Marr (array): input Mean anomaly
@@ -110,7 +111,7 @@ def kepler(Marr, eccarr):
         return Earr[0]
 
 
-def profile():
+def profile() -> None:
     # Profile and compare C-based Kepler solver with
     # Python/Numpy implementation
 

@@ -8,7 +8,7 @@ import radvel.driver
 from radvel.nested_sampling import BACKENDS
 
 
-def main():
+def main() -> None:
     psr = ArgumentParser(
         description="RadVel: The Radial Velocity Toolkit", prog='RadVel'
     )

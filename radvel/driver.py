@@ -3,10 +3,12 @@ Driver functions for the radvel pipeline.\
 These functions are meant to be used only with\
 the `cli.py` command line interface.
 """
-from __future__ import print_function
+from __future__ import annotations, print_function
+from argparse import ArgumentParser
 
 import radvel
 from radvel.likelihood import GPLikelihood
+from radvel.posterior import Posterior
 from radvel.plot import orbit_plots, mcmc_plots
 from radvel.mcmc import statevars
 
@@ -14,11 +16,9 @@ import os
 import sys
 import copy
 import collections
-from collections import OrderedDict
 
 import pandas as pd
 import numpy as np
-from numpy import inf
 from astropy import constants as c
 
 if sys.version_info[0] < 3:
@@ -28,7 +28,7 @@ else:
     from configparser import NoSectionError
 
 
-def plots(args):
+def plots(args: ArgumentParser) -> None:
     """
     Generate plots
 
@@ -136,7 +136,7 @@ You may want to use the '--gp' flag when making these plots.")
         save_status(statfile, 'plot', savestate)
 
 
-def fit(args):
+def fit(args: ArgumentParser) -> None:
     """Perform maximum a posteriori fit
 
     Args:
@@ -162,7 +162,7 @@ def fit(args):
                 'fit', savestate)
 
 
-def mcmc(args):
+def mcmc(args: ArgumentParser) -> None:
     """Perform MCMC error analysis
 
     Args:
@@ -250,7 +250,10 @@ def mcmc(args):
     statevars.reset()
 
 
-def sampling_postprocessing(post, chains):
+def sampling_postprocessing(
+    post: Posterior,
+    chains: pd.DataFrame
+) -> tuple[Posterior, pd.DataFrame, pd.DataFrame]:
     # Convert chains into synth basis
     synthchains = chains.copy()
     for par in post.params.keys():
@@ -311,7 +314,7 @@ def sampling_postprocessing(post, chains):
     return post, post_summary, chains
 
 
-def _cast_str_arg(arg):
+def _cast_str_arg(arg: str) -> int | float | bool | str:
     try:
         return int(arg)
     except ValueError:
@@ -328,7 +331,7 @@ def _cast_str_arg(arg):
     else:
         return arg
 
-def _process_kwargs_str(kwargs_str):
+def _process_kwargs_str(kwargs_str: str | None) -> dict:
     if kwargs_str is None:
         return {}
 
@@ -340,7 +343,7 @@ def _process_kwargs_str(kwargs_str):
     return kwargs_dict
 
 
-def nested_sampling(args):
+def nested_sampling(args: ArgumentParser) -> None:
     """Perform nested sampling
 
     Args:
@@ -395,7 +398,7 @@ def nested_sampling(args):
     save_status(statfile, 'ns', savestate)
 
 
-def ic_compare(args):
+def ic_compare(args: ArgumentParser) -> None:
     """Compare different models and comparative statistics including
           AIC and BIC statistics.
 
@@ -459,7 +462,7 @@ def ic_compare(args):
     save_status(statfile, 'ic_compare', savestate)
 
 
-def tables(args):
+def tables(args: ArgumentParser) -> None:
     """Generate TeX code for tables in summary report
 
     Args:
@@ -537,7 +540,7 @@ def tables(args):
         save_status(statfile, 'table', savestate)
 
 
-def _pick_sampler(args, status):
+def _pick_sampler(args: ArgumentParser, status: configparser.RawConfigParser) -> str:
     has_mcmc = status.has_section('mcmc') and status.getboolean('mcmc', 'run')
     has_ns = status.has_section('ns') and status.getboolean('ns', 'run')
     assert has_mcmc or has_ns, "Must run MCMC or nested sampling before making tables or deriving parameters"
@@ -563,7 +566,7 @@ def _pick_sampler(args, status):
     return sampler_type
 
 
-def derive(args):
+def derive(args: ArgumentParser) -> None:
     """Derive physical parameters from posterior samples
 
     Args:
@@ -616,20 +619,20 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
     outcols = []
     for i in np.arange(1, P.nplanets + 1, 1):
         # Grab parameters from the chain
-        def _has_col(key):
+        def _has_col(key: str) -> bool:
             cols = list(synthchains.columns)
             return cols.count('{}{}'.format(key, i)) == 1
 
-        def _get_param(key):
+        def _get_param(key: str) -> float:
             if _has_col(key):
                 return synthchains['{}{}'.format(key, i)]
             else:
                 return P.params['{}{}'.format(key, i)].value
 
-        def _set_param(key, value):
+        def _set_param(key: str, value: float):
             chains['{}{}'.format(key, i)] = value
 
-        def _get_colname(key):
+        def _get_colname(key: str) -> str:
             return '{}{}'.format(key, i)
 
         per = _get_param('per')
@@ -684,7 +687,7 @@ values. Interpret posterior with caution.".format(num_nan, nan_perc))
     save_status(statfile, 'derive', savestate)
 
 
-def report(args):
+def report(args: ArgumentParser) -> None:
     """Generate summary report
 
     Args:
@@ -757,7 +760,7 @@ report.".format(args.comptype,
         )
 
 
-def save_status(statfile, section, statevars):
+def save_status(statfile: str, section: str, statevars: dict) -> None:
     """Save pipeline status
 
     Args:
@@ -782,7 +785,7 @@ def save_status(statfile, section, statevars):
         config.write(f)
 
 
-def load_status(statfile):
+def load_status(statfile: str) -> configparser.RawConfigParser:
     """Load pipeline status
 
     Args:

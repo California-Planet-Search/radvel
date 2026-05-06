@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 import curses
 import sys
@@ -13,10 +15,11 @@ import h5py
 
 from radvel import utils
 import radvel
+from radvel.posterior import Posterior
 
 
 class StateVars(object):
-    def __init__(self):
+    def __init__(self) -> None:
         self.oac = 0
         self.autosamples = []
         self.automean = []
@@ -24,13 +27,13 @@ class StateVars(object):
         self.automax = []
         self.proceed_started = 0
 
-    def reset(self):
+    def reset(self) -> None:
         self.__init__()
 
 statevars = StateVars()
 
 
-def isnotebook():
+def isnotebook() -> bool:
     try:
         shell = get_ipython().__class__.__name__
         if shell == 'ZMQInteractiveShell':
@@ -43,27 +46,27 @@ def isnotebook():
         return False      # Probably standard Python interpreter
 
 
-def _closescr():
-    if isnotebook() == False:
+def _closescr() -> None:
+    if isnotebook():
         try:
             curses.endwin()
         except Exception:
              pass
 
 
-def _progress_bar(step, totsteps, width=50):
+def _progress_bar(step: int, totsteps: int, width: int = 50) -> str:
     fltot = float(totsteps)
     numsym = int(np.round(width * (step / fltot)))
 
-    bar = ''.join(["=" for s in range(numsym)])
-    bar += ''.join([" " for s in range(width - numsym)])
+    bar = ''.join(["=" for _ in range(numsym)])
+    bar += ''.join([" " for _ in range(width - numsym)])
 
     msg = "[" + bar + "]"
 
-    return(msg)
+    return msg
 
 
-def _status_message_NB(statevars):
+def _status_message_NB(statevars: StateVars) -> None:
 
     msg1 = (
         "{:d}/{:d} ({:3.1f}%) steps complete; "
@@ -77,7 +80,7 @@ def _status_message_NB(statevars):
     sys.stdout.flush()
 
 
-def _status_message_CLI(statevars):
+def _status_message_CLI(statevars: StateVars) -> None:
 
     statevars.screen = curses.initscr()
 
@@ -101,7 +104,15 @@ def _status_message_CLI(statevars):
     statevars.screen.refresh()
 
 
-def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercent, headless):
+def convergence_check(
+    minAfactor: float,
+    maxArchange: float,
+    maxGR: float,
+    minTz: int,
+    minsteps: int,
+    minpercent: float,
+    headless: bool
+) -> None:
     """Check for convergence
 
     Check for convergence for a list of emcee samplers
@@ -173,7 +184,7 @@ def convergence_check(minAfactor, maxArchange, maxGR, minTz, minsteps, minpercen
             _status_message_CLI(statevars)
 
 
-def _domcmc(input_tuple):
+def _domcmc(input_tuple: tuple[emcee.EnsembleSampler, np.ndarray, int]) -> emcee.EnsembleSampler:
     """Function to be run in parallel on different CPUs
     Input is a tuple: first element is an emcee sampler object, second is an array of
     initial positions, third is number of steps to run before doing a convergence check
@@ -186,9 +197,28 @@ def _domcmc(input_tuple):
     return sampler
 
 
-def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfactor=40, maxArchange=.03, burnAfactor=25,
-         burnGR=1.03, maxGR=1.01, minTz=1000, minsteps=1000, minpercent=5, thin=1, serial=False, save=False,
-         savename=None, proceed=False, proceedname=None, headless=False):
+def mcmc(
+    post: Posterior,
+    nwalkers: int = 50,
+    nrun: int = 10000,
+    ensembles: int = 8,
+    checkinterval: int = 50,
+    minAfactor: int = 40,
+    maxArchange: float = .03,
+    burnAfactor: int = 25,
+    burnGR: float = 1.03,
+    maxGR: float = 1.01,
+    minTz: int = 1000,
+    minsteps: int = 1000,
+    minpercent: int = 5,
+    thin: int = 1,
+    serial: bool = False,
+    save: bool = False,
+    savename: int = None,
+    proceed: bool = False,
+    proceedname: int = None,
+    headless: bool = False
+) -> pd.DataFrame:
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
     Args:
@@ -489,7 +519,14 @@ def mcmc(post, nwalkers=50, nrun=10000, ensembles=8, checkinterval=50, minAfacto
         curses.endwin()
 
 
-def convergence_calculate(chains, oldautocorrelation, minAfactor, maxArchange, minTz, maxGR):
+def convergence_calculate(
+    chains: np.ndarray,
+    oldautocorrelation: float,
+    minAfactor: float,
+    maxArchange: float,
+    minTz: int,
+    maxGR: float
+) -> tuple[bool, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Calculate Convergence Criterion
 
     Calculates the Gelman-Rubin statistic, autocorrelation time factor,

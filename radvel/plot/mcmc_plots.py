@@ -1,10 +1,15 @@
+from __future__ import annotations
+
+from types import ModuleType
 import numpy as np
 import corner
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib import pyplot as pl
 from matplotlib import rcParams
+from pandas import DataFrame
 
 from radvel import plot
+from radvel.posterior import Posterior
 
 """
 Module for plotting results of MCMC analysis, including:
@@ -28,7 +33,7 @@ class TrendPlot(object):
         
     """
 
-    def __init__(self, post, chains, nwalkers, nensembles, outfile=None):
+    def __init__(self, post: Posterior, chains: DataFrame, nwalkers: int, nensembles: int, outfile: str | None = None):
 
         self.chains = chains
         self.outfile = outfile
@@ -39,7 +44,7 @@ class TrendPlot(object):
         self.texlabels = [post.params.tex_labels().get(l, l) for l in self.labels]
         self.colors = [plot.cmap(x) for x in np.linspace(0.05, 0.95, nwalkers)]
 
-    def plot(self):
+    def plot(self) -> None:
         """
         Make and save the trend plot as PDF
         """
@@ -84,12 +89,12 @@ class AutoPlot(object):
             interactive matplotlib window if not defined.
 
     """
-    def __init__(self, auto, saveplot=None):
+    def __init__(self, auto: DataFrame, saveplot: str | None = None):
 
         self.auto = auto
         self.saveplot = saveplot
 
-    def plot(self):
+    def plot(self) -> None:
         """
         Make and either save or display the autocorrelation plot
         """
@@ -131,7 +136,7 @@ class CornerPlot(object):
             interactive matplotlib window if not defined.
     
     """
-    def __init__(self, post, chains, saveplot=None):
+    def __init__(self, post: Posterior, chains: DataFrame, saveplot: str | None = None) -> None:
 
         self.post = post
         self.chains = chains
@@ -140,7 +145,7 @@ class CornerPlot(object):
         self.labels = [k for k in post.params.keys() if post.params[k].vary]
         self.texlabels = [post.params.tex_labels().get(l, l) for l in self.labels]
     
-    def plot(self):
+    def plot(self) -> None:
         """
         Make and either save or display the corner plot
         """
@@ -176,7 +181,7 @@ class DerivedPlot(object):
     
     """
 
-    def __init__(self, chains, P, saveplot=None):
+    def __init__(self, chains: DataFrame, P: ModuleType, saveplot: str | None = None) -> None:
 
         self.chains = chains
         self.saveplot = saveplot
@@ -226,7 +231,7 @@ class DerivedPlot(object):
                 self.labels.append(label)
                 self.texlabels.append(tl)
 
-    def plot(self):
+    def plot(self) -> None:
         """
         Make and either save or display the corner plot
         """
@@ -244,7 +249,7 @@ class DerivedPlot(object):
             plot_datapoints=False, bins=30, quantiles=[0.16, 0.50, 0.84],
             show_titles=True, title_kwargs={"fontsize": 14}, smooth=True
         )
-        
+
         if self.saveplot is not None:
             pl.savefig(self.saveplot, dpi=150)
             print("Derived plot saved to %s" % self.saveplot)
@@ -254,10 +259,10 @@ class DerivedPlot(object):
         rcParams['font.size'] = f
 
 
-def texlabel(key, letter):
+def texlabel(key: str, letter: str) -> str:
     """
     Args:
-        key (list of string): list of parameter strings
+        key (string): list of parameter strings
         letter (string): planet letter
 
     Returns:
