@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 import radvel
 from radvel.api import schemas
+from radvel.api.config import get_settings
 
 
 router = APIRouter()
@@ -22,16 +23,23 @@ def healthz() -> schemas.HealthResponse:
     importable. The pure-NumPy fallback still works correctly, but a
     ``False`` here is a sign that the build artefacts are out of sync
     with the installed package.
+
+    ``allow_py_upload`` and ``enable_ui`` echo the runtime feature flags
+    so the ``/ui`` SPA can decide what to render without a separate
+    settings endpoint.
     """
     try:
         import radvel._kepler  # noqa: F401
         kepler_c = True
     except Exception:
         kepler_c = False
+    settings = get_settings()
     return schemas.HealthResponse(
         status="ok" if kepler_c else "degraded",
         kepler_c=kepler_c,
         version=radvel.__version__,
+        allow_py_upload=settings.allow_py_upload,
+        enable_ui=settings.enable_ui,
     )
 
 

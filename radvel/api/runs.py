@@ -158,6 +158,61 @@ class RunRegistry:
             created_at=created_at,
         )
 
+    def create_from_py(self, source_bytes: bytes) -> RunRecord:
+        """Materialise a run from an uploaded ``.py`` setup file.
+
+        Caller must have already verified the
+        ``RADVEL_API_ALLOW_PY_UPLOAD`` flag is on — this method does not
+        re-check, because allowing it executes arbitrary Python.
+
+        The legacy CLI loads setup files by importing them, so we save
+        the file as ``<run_id>.py`` and then call
+        :func:`radvel.utils.initialize_posterior` once just to extract
+        ``starname``, ``fitting_basis``, ``nplanets`` for the metadata.
+        Any import-time failure surfaces as ``ValueError`` and the
+        caller turns it into a 4xx.
+        """
+        run_id = make_run_id()
+        outdir = self.runs_dir / run_id
+        outdir.mkdir(parents=True, exist_ok=False)
+        setup_py = outdir / "{}.py".format(run_id)
+        setup_py.write_bytes(source_bytes)
+
+        try:
+            P, _ = radvel.utils.initialize_posterior(str(setup_py))
+        except Exception as exc:
+            shutil.rmtree(outdir, ignore_errors=True)
+            raise ValueError(
+                "uploaded setup failed to import: {}".format(exc)
+            ) from exc
+
+        starname = getattr(P, "starname", "unnamed")
+        fitting_basis = getattr(P, "fitting_basis", "")
+        nplanets = int(getattr(P, "nplanets", 0))
+
+        created_at = _dt.datetime.now(_dt.timezone.utc)
+        meta = {
+            "run_id": run_id,
+            "starname": starname,
+            "fitting_basis": fitting_basis,
+            "nplanets": nplanets,
+            "radvel_version": radvel.__version__,
+            "created_at": created_at.isoformat(),
+            "source": "py_upload",
+        }
+        with open(outdir / "meta.json", "w") as f:
+            json.dump(meta, f, indent=2, sort_keys=True)
+
+        return RunRecord(
+            run_id=run_id,
+            outputdir=outdir,
+            starname=starname,
+            fitting_basis=fitting_basis,
+            nplanets=nplanets,
+            radvel_version=radvel.__version__,
+            created_at=created_at,
+        )
+
     def get(self, run_id: str) -> RunRecord:
         if not is_valid_run_id(run_id):
             raise RunNotFound(run_id)
