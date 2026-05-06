@@ -509,6 +509,10 @@ async function viewRunDetail(runId) {
     log.scrollTop = log.scrollHeight;
   };
 
+  // Step buttons call this after a sync action so the panel refreshes
+  // immediately rather than waiting up to 3 s for the next interval tick.
+  window.__rv_refresh = () => render().catch(() => {});
+
   let lastSig = "";
   const render = async () => {
     const run = await api.get(`/runs/${runId}`);
@@ -670,17 +674,13 @@ function renderSteps(runId, run) {
     } else if (s.done) {
       badge = el("span", { class: "text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-800" }, "✓ done");
       dotClass = "bg-emerald-500";
-      btn = el("button", {
-        class: "px-3 py-1 text-sm border border-slate-300 rounded text-slate-700 hover:bg-slate-100",
-        onclick: () => s.action(),
-      }, "Re-run");
+      btn = _actionButton(s, "Re-run",
+        "px-3 py-1 text-sm border border-slate-300 rounded text-slate-700 hover:bg-slate-100");
     } else if (s.enabled) {
       badge = el("span", { class: "text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-700" }, "ready");
       dotClass = "bg-slate-400";
-      btn = el("button", {
-        class: "px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700",
-        onclick: () => s.action(),
-      }, "Run");
+      btn = _actionButton(s, "Run",
+        "px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700");
     } else {
       badge = el("span", { class: "text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-400" }, "blocked");
       dotClass = "bg-slate-200";
@@ -804,6 +804,52 @@ function _section(title, body) {
   );
 }
 
+function _actionButton(step, label, className) {
+  // Wraps the step action in a button that shows immediate feedback —
+  // disables itself, swaps the label for a spinner, then re-renders the
+  // step list so a successful run flips to "✓ done" without waiting for
+  // the 3 s polling tick.
+  const btn = el("button", { class: className }, label);
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btn.classList.add("opacity-50", "cursor-not-allowed");
+    const orig = btn.textContent;
+    btn.replaceChildren(el("span", { class: "spinner mr-1", style: "vertical-align:-2px" }), "running…");
+    try {
+      const result = await Promise.resolve(step.action());
+      // mcmc/ns return early — they navigate to a job page.
+      // Sync steps return a {ok, status, body} shape from runStep.
+      if (result && result.ok === false) {
+        _showStepError(result);
+      }
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove("opacity-50", "cursor-not-allowed");
+      btn.textContent = orig;
+      window.__rv_refresh?.();
+    }
+  };
+  return btn;
+}
+
+function _showStepError(resp) {
+  // Surface errors above the fold so the user can't miss them.
+  const banner = el("div", {
+    class: "fixed top-4 right-4 max-w-md bg-rose-50 border border-rose-300 text-rose-800 rounded shadow-lg p-3 text-sm z-50",
+  },
+    el("div", { class: "flex justify-between items-start gap-3" },
+      el("div", {},
+        el("div", { class: "font-medium mb-1" }, `Step failed (${resp.status})`),
+        el("pre", { class: "text-xs whitespace-pre-wrap font-mono" },
+          JSON.stringify(resp.body?.detail || resp.body, null, 2)),
+      ),
+      el("button", { class: "text-rose-600", onclick: () => banner.remove() }, "✕"),
+    ),
+  );
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 12000);
+}
+
 async function runStep(runId, step, body) {
   window.__rv_log?.(`POST /runs/${runId}/${step}…`);
   const resp = await api.post(`/runs/${runId}/${step}`, body);
@@ -812,6 +858,7 @@ async function runStep(runId, step, body) {
   } else {
     window.__rv_log?.(`FAIL ${resp.status}: ${JSON.stringify(resp.body)}`);
   }
+  return resp;
 }
 
 function mcmcModal(runId) {
