@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from radvel.prior import Prior
 from .likelihood  import Likelihood
 import numpy as np
 import dill as pickle
@@ -16,7 +19,7 @@ class Posterior(Likelihood):
         to apply priors in the likelihood calculations.
     """
 
-    def __init__(self,likelihood):
+    def __init__(self, likelihood: Likelihood) -> None:
         self.likelihood = likelihood
         self.model = self.likelihood.model
         self.vector = self.likelihood.vector
@@ -27,7 +30,7 @@ class Posterior(Likelihood):
 
         self.vparams_order = self.list_vary_params()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = super(Posterior, self).__repr__()
         s += "\nPriors\n"
         s += "------\n"
@@ -35,7 +38,7 @@ class Posterior(Likelihood):
             s += prior.__repr__() + "\n"
         return s
 
-    def logprob(self):
+    def logprob(self) -> float:
         """Log probability
         Log-probability for the likelihood given the list
         of priors in `Posterior.priors`.
@@ -49,7 +52,7 @@ class Posterior(Likelihood):
             return _logprob + self.likelihood.logprob()
         return _logprob
 
-    def get_prior_dict(self):
+    def get_prior_dict(self) -> dict[str, list[Prior]]:
         """Prior dictionary
         Returns:
             dict: Dictionary mapping parameters to a list of their priors
@@ -66,7 +69,7 @@ class Posterior(Likelihood):
                 prior_dict[param] += [prior]
         return prior_dict
 
-    def check_proper_priors(self):
+    def check_proper_priors(self) -> None:
         """Checks that the priors are proper for nested sampling.
         Checks that the priors are properly normalized and that there is only one prior per parameter.
         Runs internally before nested sampling.
@@ -102,7 +105,7 @@ class Posterior(Likelihood):
                     )
 
 
-    def prior_transform(self, u, inplace=False):
+    def prior_transform(self, u: np.ndarray, inplace: bool = False) -> np.ndarray:
         """Prior transform for all model parameters
         Takes an array of uniform values between 0 and 1 and converts them to parametre values
         through each parameter's prior transform.
@@ -130,7 +133,7 @@ class Posterior(Likelihood):
 
         return x
 
-    def extra_likelihood(self):
+    def extra_likelihood(self) -> float:
         """Computes "extra constraint" priors to add them to the likelihood
         This runs internally to add priors such as PositiveK as likelihood constraint
         for nested sampling.
@@ -145,7 +148,7 @@ class Posterior(Likelihood):
                 _logprob += prior(self.params, self.vector, finite=True)
         return _logprob
 
-    def extra_likelihood_array(self, param_values_array):
+    def extra_likelihood_array(self, param_values_array: np.ndarray) -> float:
         """Calls Posterior.extra_likelihood with a vector of parameter values.
 
         Args:
@@ -157,7 +160,7 @@ class Posterior(Likelihood):
         self.likelihood.set_vary_params(param_values_array, fast=True)
         return self.extra_likelihood()
 
-    def likelihood_ns_array(self, param_values_array):
+    def likelihood_ns_array(self, param_values_array: np.ndarray) -> float:
         """Likelihood of the model, with 'extra prior' constraints applied.
 
         This is basically a combined call to `self.likelihood.logprob()` and `self.extra_likelihood()`.
@@ -175,7 +178,7 @@ class Posterior(Likelihood):
         # Ultranest requires finite values, so return very large negative instead of -inf
         return -1e100
 
-    def logprob_array(self, param_values_array):
+    def logprob_array(self, param_values_array: np.ndarray) -> float:
         """Log probability for parameter vector
         Same as `self.logprob`, but will take a vector of
         parameter values. Useful as the objective function
@@ -192,7 +195,7 @@ class Posterior(Likelihood):
 
         return _logprob
 
-    def writeto(self, filename):
+    def writeto(self, filename: str) -> None:
         """
         Save posterior object to pickle file.
         Args:
@@ -202,23 +205,23 @@ class Posterior(Likelihood):
         with open(filename, 'wb') as f:
             pickle.dump(self, f)
 
-    def residuals(self):
+    def residuals(self) -> np.ndarray:
         """Overwrite inherited residuals method that does not work"""
 
         return self.likelihood.residuals()
 
-    def bic(self):
+    def bic(self) -> float:
         """Moved to Likelihood.bic"""
 
         return self.likelihood.bic()
 
-    def aic(self):
+    def aic(self) -> float:
         """Moved to Likelihood.aic"""
 
         raise self.likelihood.aic()
 
 
-def load(filename):
+def load(filename: str) -> Posterior:
     """
     Load posterior object from pickle file.
     Args:

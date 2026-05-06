@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import sys
-import radvel
+
+from numpy.typing import ArrayLike
 import scipy
 from scipy import spatial
 import abc
 import numpy as np
 import warnings
+
+from radvel.model import Parameter
 
 # implemented kernels & examples of their associated hyperparameters
 KERNELS = {
@@ -21,7 +26,7 @@ else:
 
 
 # celerite is an optional dependency
-def _try_celerite():
+def _try_celerite() -> bool:
     try:
         import celerite
         from celerite.solver import CholeskySolver
@@ -51,15 +56,15 @@ class Kernel(ABC):
     """
 
     @abc.abstractproperty
-    def name(self):
+    def name(self) -> str:
         pass
 
     @abc.abstractmethod
-    def compute_distances(self, x1, x2):
+    def compute_distances(self, x1: ArrayLike, x2: ArrayLike) -> None:
         pass
 
     @abc.abstractmethod
-    def compute_covmatrix(self, errors):
+    def compute_covmatrix(self, errors: float | np.ndarray) -> np.ndarray:
         pass
 
 
@@ -82,10 +87,10 @@ class SqExpKernel(Kernel):
     """
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "SqExp"
 
-    def __init__(self, hparams):
+    def __init__(self, hparams: dict[Parameter]) -> None:
         self.covmatrix = None
         self.hparams = {}
         for par in hparams:
@@ -108,17 +113,17 @@ class SqExpKernel(Kernel):
             raise AttributeError("SqExpKernel requires dictionary of" \
                                  + " radvel.Parameter objects as input.")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         length = self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
         return "SqExp Kernel with length: {}, amp: {}".format(length, amp)
 
-    def compute_distances(self, x1, x2):
+    def compute_distances(self, x1: ArrayLike, x2: ArrayLike) -> None:
         X1 = np.array([x1]).T
         X2 = np.array([x2]).T
         self.dist = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
 
-    def compute_covmatrix(self, errors):
+    def compute_covmatrix(self, errors: float | np.ndarray) -> np.ndarray:
         """ Compute the covariance matrix, and optionally add errors along
             the diagonal.
 
@@ -162,10 +167,10 @@ class PerKernel(Kernel):
     """
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "Per"
 
-    def __init__(self, hparams):
+    def __init__(self, hparams: dict[Parameter]) -> None:
         self.covmatrix = None
         self.hparams = {}
         for par in hparams:
@@ -191,7 +196,7 @@ class PerKernel(Kernel):
             raise AttributeError("PerKernel requires dictionary of " \
                                  + "radvel.Parameter objects as input.")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         length = self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
         per = self.hparams['gp_per'].value
@@ -199,12 +204,12 @@ class PerKernel(Kernel):
             length, amp, per
         )
 
-    def compute_distances(self, x1, x2):
+    def compute_distances(self, x1: ArrayLike, x2: ArrayLike) -> None:
         X1 = np.array([x1]).T
         X2 = np.array([x2]).T
         self.dist = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
 
-    def compute_covmatrix(self, errors):
+    def compute_covmatrix(self, errors: float | np.ndarray) -> np.ndarray:
         """ Compute the covariance matrix, and optionally add errors along
             the diagonal.
 
@@ -214,7 +219,7 @@ class PerKernel(Kernel):
                     this can be a numpy array of observational errors and jitter
                     added in quadrature.
         """
-        length= self.hparams['gp_length'].value
+        length = self.hparams['gp_length'].value
         amp = self.hparams['gp_amp'].value
         per = self.hparams['gp_per'].value
 
@@ -247,10 +252,10 @@ class QuasiPerKernel(Kernel):
 
     """
     @property
-    def name(self):
+    def name(self) -> str:
         return "QuasiPer"
 
-    def __init__(self, hparams):
+    def __init__(self, hparams: dict[Parameter]) -> None:
         self.covmatrix = None
         self.hparams = {}
         for par in hparams:
@@ -280,7 +285,7 @@ class QuasiPerKernel(Kernel):
             raise AttributeError("QuasiPerKernel requires dictionary of" \
                                  + " radvel.Parameter objects as input.")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         perlength = self.hparams['gp_perlength'].value
         amp = self.hparams['gp_amp'].value
         per = self.hparams['gp_per'].value
@@ -292,13 +297,13 @@ class QuasiPerKernel(Kernel):
         ).format(amp, perlength, per, explength)
         return msg
 
-    def compute_distances(self, x1, x2):
+    def compute_distances(self, x1: ArrayLike, x2: ArrayLike) -> None:
         X1 = np.array([x1]).T
         X2 = np.array([x2]).T
         self.dist_p = scipy.spatial.distance.cdist(X1, X2, 'euclidean')
         self.dist_se = scipy.spatial.distance.cdist(X1, X2, 'sqeuclidean')
 
-    def compute_covmatrix(self, errors):
+    def compute_covmatrix(self, errors: float | np.ndarray) -> np.ndarray:
         """ Compute the covariance matrix, and optionally add errors along
             the diagonal.
 
@@ -323,7 +328,7 @@ class QuasiPerKernel(Kernel):
             raise ValueError(f"Invalid gp_explength value: {explength}")
         if not np.isfinite(perlength) or perlength < 0:
             raise ValueError(f"Invalid gp_perlength value: {perlength}")
-        
+
         # If any GP parameter is 0, this is likely a "no GP" model comparison
         # In this case, return a zero covariance matrix
         if amp == 0 or per == 0 or explength == 0 or perlength == 0:
@@ -338,15 +343,15 @@ class QuasiPerKernel(Kernel):
         # Compute covariance matrix step by step
         exp_term1 = -self.dist_se/(explength**2)
         exp_term2 = (-np.sin(np.pi*self.dist_p/per)**2.) / (2.*perlength**2)
-        
+
         # Clamp extreme values to prevent overflow
         exp_term1 = np.clip(exp_term1, -100, 100)
         exp_term2 = np.clip(exp_term2, -100, 100)
-        
+
         # Compute exponential terms
         exp1 = np.exp(exp_term1)
         exp2 = np.exp(exp_term2)
-        
+
         # Compute final covariance matrix
         K = np.array(amp**2 * exp1 * exp2)
 
@@ -387,10 +392,10 @@ class CeleriteKernel(Kernel):
     """
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "Celerite"
 
-    def __init__(self, hparams):
+    def __init__(self, hparams: dict[Parameter]) -> None:
 
         self.hparams = {}
         for par in hparams:
@@ -420,7 +425,7 @@ CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'
             raise AttributeError("CeleriteKernel requires dictionary of radvel.Parameter objects as input.")
 
     # get arrays of real and complex parameters
-    def compute_real_and_complex_hparams(self):
+    def compute_real_and_complex_hparams(self) -> None:
 
         self.real = np.zeros((1, 4))
         self.complex = np.zeros((1, 4))
@@ -438,7 +443,7 @@ CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'
         self.complex[0,2] = 1/L
         self.complex[0,3] = 2*np.pi/Prot
 
-    def __repr__(self):
+    def __repr__(self) -> str:
 
         B = self.hparams['gp_B'].value
         C = self.hparams['gp_C'].value
@@ -450,7 +455,7 @@ CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'
         ).format(B, C, L, Prot)
         return msg
 
-    def compute_distances(self, x1, x2):
+    def compute_distances(self, x1: ArrayLike, x2: ArrayLike) -> None:
         """
         The celerite.solver.CholeskySolver object does
         not require distances to be precomputed, so
@@ -465,7 +470,7 @@ CeleriteKernel requires hyperparameters 'gp_B*', 'gp_C*', 'gp_L', and 'gp_Prot*'
         self.V = self.U
 
 
-    def compute_covmatrix(self, errors):
+    def compute_covmatrix(self, errors: float | np.ndarray) -> CholeskySolver:
         """ Compute the Cholesky decomposition of a celerite kernel
 
             Args:
