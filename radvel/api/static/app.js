@@ -296,7 +296,33 @@ function buildFormPanel(status) {
         "logper tc ecosw esinw k"].map(b => el("option", { value: b }, b))
   );
   const bjd0 = NUM(2454833.0);
+
+  // Data source — either reference a built-in CSV under RADVEL_DATADIR
+  // or upload a CSV from the operator's machine. Upload reads the file
+  // in the browser, base64-encodes it, and submits as kind="csv_base64"
+  // so no second HTTP round-trip is needed.
+  const dataSource = el("select", { class: "border border-slate-300 rounded px-2 py-1 w-full text-sm" },
+    el("option", { value: "dataset_ref" }, "Built-in dataset"),
+    el("option", { value: "csv_upload" }, "Upload CSV"),
+  );
   const dataset = TXT("epic203771098.csv");
+  const csvFile = el("input", { type: "file", accept: ".csv,text/csv", class: "block text-sm" });
+  const csvSep = TXT(",");
+  csvSep.style.maxWidth = "4rem";
+  const datasetGroup = el("div", {}, F("dataset (built-in CSV)", dataset, "path under DATADIR"));
+  const csvGroup = el("div", { style: "display:none" },
+    F("CSV file", csvFile, "columns: time, mnvel, errvel, tel — or t/vel/errvel"),
+    el("div", { class: "flex items-center gap-2 -mt-2" },
+      el("span", { class: "text-xs text-slate-600" }, "separator:"),
+      csvSep,
+    ),
+  );
+  dataSource.onchange = () => {
+    const upload = dataSource.value === "csv_upload";
+    datasetGroup.style.display = upload ? "none" : "";
+    csvGroup.style.display = upload ? "" : "none";
+  };
+
   const mstar = NUM(1.12);
   const mstarErr = NUM(0.05);
   const dvdtVary = CHK(true);
@@ -333,28 +359,41 @@ function buildFormPanel(status) {
   nplanets.oninput = renderPlanets;
   renderPlanets();
 
+  const collect = () => buildPayloadFromForm({
+    starname, nplanets, instnames, fittingBasis, bjd0,
+    dataSource, dataset, csvFile, csvSep,
+    mstar, mstarErr, dvdtVary, curvVary, eccPrior, positiveK,
+    planets: planetsContainer._inputs,
+  });
+
   const submit = el("button", {
     class: "bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50",
     onclick: async () => {
-      const payload = buildPayloadFromForm({
-        starname, nplanets, instnames, fittingBasis, bjd0, dataset,
-        mstar, mstarErr, dvdtVary, curvVary, eccPrior, positiveK,
-        planets: planetsContainer._inputs,
-      });
-      submitPayload(JSON.stringify(payload), status, submit);
+      try {
+        const payload = await collect();
+        submitPayload(JSON.stringify(payload), status, submit);
+      } catch (e) {
+        status.textContent = e.message || String(e);
+      }
     },
   }, "Create run");
 
   const previewBtn = el("button", {
     class: "ml-2 px-3 py-2 text-sm border border-slate-300 rounded hover:bg-slate-100",
-    onclick: () => {
-      const payload = buildPayloadFromForm({
-        starname, nplanets, instnames, fittingBasis, bjd0, dataset,
-        mstar, mstarErr, dvdtVary, curvVary, eccPrior, positiveK,
-        planets: planetsContainer._inputs,
-      });
-      status.replaceChildren(el("pre", { class: "text-xs bg-slate-100 p-3 rounded whitespace-pre-wrap" },
-        JSON.stringify(payload, null, 2)));
+    onclick: async () => {
+      try {
+        const payload = await collect();
+        // Truncate the base64 blob for display so the panel stays useful.
+        const display = JSON.parse(JSON.stringify(payload));
+        if (display?.data?.csv_base64) {
+          const n = display.data.csv_base64.length;
+          display.data.csv_base64 = `<${n} chars of base64-encoded CSV>`;
+        }
+        status.replaceChildren(el("pre", { class: "text-xs bg-slate-100 p-3 rounded whitespace-pre-wrap" },
+          JSON.stringify(display, null, 2)));
+      } catch (e) {
+        status.textContent = e.message || String(e);
+      }
     },
   }, "Preview JSON");
 
@@ -365,7 +404,7 @@ function buildFormPanel(status) {
       el("div", {}, F("instnames", instnames, "comma-separated, e.g. \"j,k\"")),
       el("div", {}, F("fitting_basis", fittingBasis)),
       el("div", {}, F("bjd0", bjd0, "reference epoch")),
-      el("div", {}, F("dataset (built-in CSV)", dataset, "path under DATADIR")),
+      el("div", {}, F("data source", dataSource), datasetGroup, csvGroup),
       el("div", {}, F("mstar (M☉)", mstar)),
       el("div", {}, F("mstar_err", mstarErr)),
     ),
@@ -385,9 +424,8 @@ function buildFormPanel(status) {
   return { btn, body };
 }
 
-function buildPayloadFromForm(f) {
+async function buildPayloadFromForm(f) {
   const insts = f.instnames.value.split(",").map(s => s.trim()).filter(Boolean);
-  const inst = insts[0] || "j";
   const params = {};
   const priors = [];
   const n = parseInt(f.nplanets.value, 10);
@@ -412,6 +450,16 @@ function buildPayloadFromForm(f) {
   if (f.eccPrior.checked) priors.push({ type: "eccentricity", num_planets: n });
   if (f.positiveK.checked) priors.push({ type: "positivek", num_planets: n });
 
+  let data;
+  if (f.dataSource.value === "csv_upload") {
+    const file = f.csvFile.files[0];
+    if (!file) throw new Error("Pick a CSV file or switch the data source to a built-in dataset.");
+    const csv_base64 = await readFileAsBase64(file);
+    data = { kind: "csv_base64", csv_base64, separator: f.csvSep.value || "," };
+  } else {
+    data = { kind: "dataset_ref", dataset: f.dataset.value };
+  }
+
   const payload = {
     starname: f.starname.value,
     nplanets: n,
@@ -419,13 +467,27 @@ function buildPayloadFromForm(f) {
     fitting_basis: f.fittingBasis.value,
     bjd0: Number(f.bjd0.value),
     params,
-    data: { kind: "dataset_ref", dataset: f.dataset.value },
+    data,
     priors,
   };
   if (f.mstar.value) {
     payload.stellar = { mstar: Number(f.mstar.value), mstar_err: Number(f.mstarErr.value || 0) };
   }
   return payload;
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      // result is "data:<mime>;base64,<payload>" — strip the prefix.
+      const s = String(r.result);
+      const i = s.indexOf(",");
+      resolve(i >= 0 ? s.slice(i + 1) : s);
+    };
+    r.onerror = () => reject(r.error || new Error("file read failed"));
+    r.readAsDataURL(file);
+  });
 }
 
 async function viewRunDetail(runId) {
