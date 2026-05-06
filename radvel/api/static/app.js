@@ -151,42 +151,343 @@ async function viewRunsList() {
   $app.appendChild(table);
 }
 
-function viewNewRun() {
+async function viewNewRun() {
   clear();
   $app.appendChild(el("h1", { class: "text-2xl font-semibold mb-4" }, "Create a run"));
+
+  // Health check tells us whether .py upload is permitted.
+  const health = await api.get("/healthz").catch(() => ({}));
+  const allowPyUpload = !!health.allow_py_upload;
+
+  // Tab strip
+  const tabs = ["Form", "JSON", ...(allowPyUpload ? ["Upload .py"] : [])];
+  const panels = {};
+  let active = "Form";
+
+  const tabBar = el("div", { class: "flex border-b border-slate-300 mb-4" });
+  const setActive = (name) => {
+    active = name;
+    for (const t of tabs) {
+      const btn = panels[t].btn;
+      btn.className = "px-4 py-2 text-sm border-b-2 -mb-px " + (
+        t === name
+          ? "border-blue-600 text-blue-700 font-medium"
+          : "border-transparent text-slate-500 hover:text-slate-800"
+      );
+      panels[t].body.style.display = t === name ? "" : "none";
+    }
+  };
+
+  const status = el("div", { class: "mt-3 text-sm" });
+  panels["Form"] = buildFormPanel(status);
+  panels["JSON"] = buildJsonPanel(status);
+  if (allowPyUpload) panels["Upload .py"] = buildUploadPyPanel(status);
+
+  for (const t of tabs) {
+    const btn = panels[t].btn;
+    btn.onclick = () => setActive(t);
+    tabBar.appendChild(btn);
+  }
+  $app.appendChild(tabBar);
+  for (const t of tabs) $app.appendChild(panels[t].body);
+  $app.appendChild(status);
+
+  setActive("Form");
+}
+
+// ---- "JSON" tab — paste/edit a full payload --------------------------
+
+function buildJsonPanel(status) {
+  const btn = el("button", { class: "px-4 py-2 text-sm" }, "JSON");
   const ta = el("textarea", {
     class: "w-full h-96 font-mono text-xs p-3 border border-slate-300 rounded focus:outline-none focus:border-blue-500",
     placeholder: "Paste a setup JSON payload here…",
   });
-  const status = el("div", { class: "mt-3 text-sm text-slate-600" });
   const submit = el("button", {
     class: "bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50",
-    onclick: async () => {
-      submit.disabled = true;
-      status.replaceChildren(el("span", { class: "spinner" }), " creating run…");
-      let payload;
-      try { payload = JSON.parse(ta.value); }
-      catch (e) {
-        status.textContent = `Invalid JSON: ${e.message}`;
-        submit.disabled = false;
-        return;
-      }
-      const resp = await api.post("/runs", payload);
-      submit.disabled = false;
-      if (resp.ok) {
-        location.hash = `#/runs/${resp.body.run_id}`;
-      } else {
-        status.replaceChildren(el("pre", { class: "text-rose-700 whitespace-pre-wrap" }, JSON.stringify(resp.body, null, 2)));
-      }
-    },
+    onclick: async () => submitPayload(ta.value, status, submit),
   }, "Create run");
   const example = el("button", {
     class: "ml-2 px-3 py-2 text-sm border border-slate-300 rounded hover:bg-slate-100",
     onclick: () => { ta.value = JSON.stringify(EXAMPLE_PAYLOAD, null, 2); },
   }, "Load example");
-  $app.appendChild(ta);
-  $app.appendChild(el("div", { class: "mt-3" }, submit, example));
-  $app.appendChild(status);
+  const body = el("div", {}, ta, el("div", { class: "mt-3" }, submit, example));
+  return { btn, body };
+}
+
+async function submitPayload(jsonText, status, submitBtn) {
+  submitBtn.disabled = true;
+  status.replaceChildren(el("span", { class: "spinner" }), " creating run…");
+  let payload;
+  try { payload = JSON.parse(jsonText); }
+  catch (e) {
+    status.textContent = "Invalid JSON: " + e.message;
+    submitBtn.disabled = false;
+    return;
+  }
+  const resp = await api.post("/runs", payload);
+  submitBtn.disabled = false;
+  if (resp.ok) {
+    location.hash = `#/runs/${resp.body.run_id}`;
+  } else {
+    status.replaceChildren(el("pre", { class: "text-rose-700 whitespace-pre-wrap" },
+      JSON.stringify(resp.body, null, 2)));
+  }
+}
+
+// ---- "Upload .py" tab — multipart upload of a setup file -------------
+
+function buildUploadPyPanel(status) {
+  const btn = el("button", { class: "px-4 py-2 text-sm" }, "Upload .py");
+  const fileInput = el("input", { type: "file", accept: ".py", class: "block text-sm" });
+  const submit = el("button", {
+    class: "mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50",
+    onclick: async () => {
+      const f = fileInput.files[0];
+      if (!f) { status.textContent = "Pick a .py file first."; return; }
+      submit.disabled = true;
+      status.replaceChildren(el("span", { class: "spinner" }), ` uploading ${f.name}…`);
+      const fd = new FormData();
+      fd.append("setup_file", f);
+      const r = await fetch("/runs/upload-py", { method: "POST", body: fd });
+      const data = await r.json().catch(() => ({}));
+      submit.disabled = false;
+      if (r.ok) {
+        location.hash = `#/runs/${data.run_id}`;
+      } else {
+        status.replaceChildren(el("pre", { class: "text-rose-700 whitespace-pre-wrap" },
+          `${r.status} ${JSON.stringify(data, null, 2)}`));
+      }
+    },
+  }, "Upload");
+  const body = el("div", {},
+    el("p", { class: "text-sm text-slate-600 mb-3" },
+      "Upload an existing radvel setup file (the same Python module the CLI uses). " +
+      "Server will import it to extract metadata, then run the pipeline against it directly."),
+    fileInput, el("div", {}, submit),
+    el("p", { class: "mt-3 text-xs text-slate-500" },
+      "Disabled by default. Enabled here because RADVEL_API_ALLOW_PY_UPLOAD=true. " +
+      "Only do this with setup files you trust — they execute on the server."),
+  );
+  return { btn, body };
+}
+
+// ---- "Form" tab — guided builder for the most common shape -----------
+
+function buildFormPanel(status) {
+  const btn = el("button", { class: "px-4 py-2 text-sm" }, "Form");
+
+  const F = (lbl, input, hint) => el("label", { class: "block mb-3" },
+    el("div", { class: "text-xs text-slate-600 mb-1" }, lbl,
+      hint ? el("span", { class: "text-slate-400" }, " — " + hint) : null),
+    input
+  );
+  const TXT = (val = "") => el("input", { type: "text", value: val, class: "border border-slate-300 rounded px-2 py-1 w-full text-sm" });
+  const NUM = (val = "", step = "any") => el("input", { type: "number", value: String(val), step, class: "border border-slate-300 rounded px-2 py-1 w-full text-sm font-mono" });
+  const CHK = (val = false) => { const i = el("input", { type: "checkbox" }); i.checked = val; return i; };
+
+  const starname = TXT("epic203771098");
+  const nplanets = NUM(2, "1");
+  const instnames = TXT("j");
+  const fittingBasis = el("select", { class: "border border-slate-300 rounded px-2 py-1 w-full text-sm" },
+    ...["per tc secosw sesinw k", "per tc e w k", "per tp e w k", "per tc se w k",
+        "per tc secosw sesinw logk", "logper tc secosw sesinw k",
+        "logper tc secosw sesinw logk", "per tc se omega k", "per tc ecosw esinw k",
+        "logper tc ecosw esinw k"].map(b => el("option", { value: b }, b))
+  );
+  const bjd0 = NUM(2454833.0);
+
+  // Data source — either reference a built-in CSV under RADVEL_DATADIR
+  // or upload a CSV from the operator's machine. Upload reads the file
+  // in the browser, base64-encodes it, and submits as kind="csv_base64"
+  // so no second HTTP round-trip is needed.
+  const dataSource = el("select", { class: "border border-slate-300 rounded px-2 py-1 w-full text-sm" },
+    el("option", { value: "dataset_ref" }, "Built-in dataset"),
+    el("option", { value: "csv_upload" }, "Upload CSV"),
+  );
+  const dataset = TXT("epic203771098.csv");
+  const csvFile = el("input", { type: "file", accept: ".csv,text/csv", class: "block text-sm" });
+  const csvSep = TXT(",");
+  csvSep.style.maxWidth = "4rem";
+  const datasetGroup = el("div", {}, F("dataset (built-in CSV)", dataset, "path under DATADIR"));
+  const csvGroup = el("div", { style: "display:none" },
+    F("CSV file", csvFile, "columns: time, mnvel, errvel, tel — or t/vel/errvel"),
+    el("div", { class: "flex items-center gap-2 -mt-2" },
+      el("span", { class: "text-xs text-slate-600" }, "separator:"),
+      csvSep,
+    ),
+  );
+  dataSource.onchange = () => {
+    const upload = dataSource.value === "csv_upload";
+    datasetGroup.style.display = upload ? "none" : "";
+    csvGroup.style.display = upload ? "" : "none";
+  };
+
+  const mstar = NUM(1.12);
+  const mstarErr = NUM(0.05);
+  const dvdtVary = CHK(true);
+  const curvVary = CHK(true);
+  const eccPrior = CHK(true);
+  const positiveK = CHK(true);
+
+  // Per-planet params shown when nplanets changes
+  const planetsContainer = el("div", { class: "space-y-3" });
+
+  const renderPlanets = () => {
+    const n = Math.max(1, Math.min(20, parseInt(nplanets.value || "1", 10)));
+    planetsContainer.replaceChildren();
+    for (let i = 1; i <= n; i++) {
+      const per = NUM(i === 1 ? 20.885258 : 42.363011);
+      const tc = NUM(i === 1 ? 2072.79438 : 2082.62516);
+      const k = NUM(10);
+      const perVary = CHK(false);
+      const tcVary = CHK(false);
+      const kVary = CHK(true);
+      const card = el("div", { class: "border border-slate-200 rounded p-3 bg-slate-50" },
+        el("div", { class: "font-medium mb-2 text-sm" }, "Planet " + i),
+        el("div", { class: "grid grid-cols-3 gap-3" },
+          el("div", {}, F("per (days)", per), el("label", { class: "text-xs flex gap-1 -mt-2" }, perVary, " vary")),
+          el("div", {}, F("tc", tc), el("label", { class: "text-xs flex gap-1 -mt-2" }, tcVary, " vary")),
+          el("div", {}, F("K (m/s)", k), el("label", { class: "text-xs flex gap-1 -mt-2" }, kVary, " vary")),
+        ),
+      );
+      planetsContainer.appendChild(card);
+      planetsContainer._inputs ||= [];
+      planetsContainer._inputs[i] = { per, tc, k, perVary, tcVary, kVary };
+    }
+  };
+  nplanets.oninput = renderPlanets;
+  renderPlanets();
+
+  const collect = () => buildPayloadFromForm({
+    starname, nplanets, instnames, fittingBasis, bjd0,
+    dataSource, dataset, csvFile, csvSep,
+    mstar, mstarErr, dvdtVary, curvVary, eccPrior, positiveK,
+    planets: planetsContainer._inputs,
+  });
+
+  const submit = el("button", {
+    class: "bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm disabled:opacity-50",
+    onclick: async () => {
+      try {
+        const payload = await collect();
+        submitPayload(JSON.stringify(payload), status, submit);
+      } catch (e) {
+        status.textContent = e.message || String(e);
+      }
+    },
+  }, "Create run");
+
+  const previewBtn = el("button", {
+    class: "ml-2 px-3 py-2 text-sm border border-slate-300 rounded hover:bg-slate-100",
+    onclick: async () => {
+      try {
+        const payload = await collect();
+        // Truncate the base64 blob for display so the panel stays useful.
+        const display = JSON.parse(JSON.stringify(payload));
+        if (display?.data?.csv_base64) {
+          const n = display.data.csv_base64.length;
+          display.data.csv_base64 = `<${n} chars of base64-encoded CSV>`;
+        }
+        status.replaceChildren(el("pre", { class: "text-xs bg-slate-100 p-3 rounded whitespace-pre-wrap" },
+          JSON.stringify(display, null, 2)));
+      } catch (e) {
+        status.textContent = e.message || String(e);
+      }
+    },
+  }, "Preview JSON");
+
+  const body = el("div", { class: "space-y-4" },
+    el("div", { class: "grid grid-cols-2 gap-4" },
+      el("div", {}, F("starname", starname)),
+      el("div", {}, F("nplanets", nplanets, "1–20")),
+      el("div", {}, F("instnames", instnames, "comma-separated, e.g. \"j,k\"")),
+      el("div", {}, F("fitting_basis", fittingBasis)),
+      el("div", {}, F("bjd0", bjd0, "reference epoch")),
+      el("div", {}, F("data source", dataSource), datasetGroup, csvGroup),
+      el("div", {}, F("mstar (M☉)", mstar)),
+      el("div", {}, F("mstar_err", mstarErr)),
+    ),
+    planetsContainer,
+    el("div", { class: "border-t pt-3" },
+      el("div", { class: "text-sm font-medium mb-2" }, "Trend / priors"),
+      el("div", { class: "grid grid-cols-4 gap-3 text-xs" },
+        el("label", { class: "flex items-center gap-1" }, dvdtVary, " vary dvdt"),
+        el("label", { class: "flex items-center gap-1" }, curvVary, " vary curv"),
+        el("label", { class: "flex items-center gap-1" }, eccPrior, " eccentricity prior"),
+        el("label", { class: "flex items-center gap-1" }, positiveK, " positive-K prior"),
+      )
+    ),
+    el("div", {}, submit, previewBtn),
+  );
+
+  return { btn, body };
+}
+
+async function buildPayloadFromForm(f) {
+  const insts = f.instnames.value.split(",").map(s => s.trim()).filter(Boolean);
+  const params = {};
+  const priors = [];
+  const n = parseInt(f.nplanets.value, 10);
+  for (let i = 1; i <= n; i++) {
+    const p = f.planets[i];
+    params[`per${i}`] = { value: Number(p.per.value), vary: p.perVary.checked };
+    params[`tc${i}`] = { value: Number(p.tc.value), vary: p.tcVary.checked };
+    params[`secosw${i}`] = { value: 0.0, vary: false };
+    params[`sesinw${i}`] = { value: 0.1, vary: false };
+    params[`k${i}`] = { value: Number(p.k.value), vary: p.kVary.checked };
+    priors.push({ type: "jeffreys", param: `k${i}`, minval: 0.01, maxval: 1000 });
+  }
+  params.dvdt = { value: 0.0, vary: f.dvdtVary.checked };
+  params.curv = { value: 0.0, vary: f.curvVary.checked };
+  for (const i of insts) {
+    params[`gamma_${i}`] = { value: 1.0, vary: false, linear: true };
+    params[`jit_${i}`] = { value: 2.6, vary: true };
+    priors.push({ type: "hardbounds", param: `jit_${i}`, minval: 0.0, maxval: 15.0 });
+  }
+  if (f.dvdtVary.checked) priors.push({ type: "gaussian", param: "dvdt", mu: 0.0, sigma: 1.0 });
+  if (f.curvVary.checked) priors.push({ type: "gaussian", param: "curv", mu: 0.0, sigma: 0.1 });
+  if (f.eccPrior.checked) priors.push({ type: "eccentricity", num_planets: n });
+  if (f.positiveK.checked) priors.push({ type: "positivek", num_planets: n });
+
+  let data;
+  if (f.dataSource.value === "csv_upload") {
+    const file = f.csvFile.files[0];
+    if (!file) throw new Error("Pick a CSV file or switch the data source to a built-in dataset.");
+    const csv_base64 = await readFileAsBase64(file);
+    data = { kind: "csv_base64", csv_base64, separator: f.csvSep.value || "," };
+  } else {
+    data = { kind: "dataset_ref", dataset: f.dataset.value };
+  }
+
+  const payload = {
+    starname: f.starname.value,
+    nplanets: n,
+    instnames: insts,
+    fitting_basis: f.fittingBasis.value,
+    bjd0: Number(f.bjd0.value),
+    params,
+    data,
+    priors,
+  };
+  if (f.mstar.value) {
+    payload.stellar = { mstar: Number(f.mstar.value), mstar_err: Number(f.mstarErr.value || 0) };
+  }
+  return payload;
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      // result is "data:<mime>;base64,<payload>" — strip the prefix.
+      const s = String(r.result);
+      const i = s.indexOf(",");
+      resolve(i >= 0 ? s.slice(i + 1) : s);
+    };
+    r.onerror = () => reject(r.error || new Error("file read failed"));
+    r.readAsDataURL(file);
+  });
 }
 
 async function viewRunDetail(runId) {

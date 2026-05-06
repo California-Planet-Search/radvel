@@ -44,12 +44,28 @@ button in the top-right opens the create form.
 Create a run (``#/runs/new``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A textarea takes a JSON setup payload (the schema is documented in
-:doc:`api_service`). Click *Load example* to populate with the
-``epic203771098`` two-planet test case. Submit calls ``POST /runs``;
-on success the UI navigates to the new run's detail page. Validation
-errors from Pydantic come back as a structured 422 and render in a
-red panel below the textarea.
+Three tabs let you build a run in whichever form is most convenient:
+
+- **Form** — guided builder. Fill in starname, instrument names,
+  fitting basis, planet count, then per-planet ``per/tc/k`` fields
+  (each with a "vary" checkbox), and the standard prior toggles
+  (eccentricity, positive-K, dvdt/curv Gaussian, jitter hardbounds).
+  Click *Preview JSON* to inspect what will be submitted, or
+  *Create run* to ``POST /runs`` directly. The form covers ~80% of
+  configurations; drop into the JSON tab for anything more exotic.
+- **JSON** — paste a full setup payload (the schema is documented in
+  :doc:`api_service`). *Load example* fills in the ``epic203771098``
+  two-planet payload. Validation errors from Pydantic surface as a
+  structured 422 in a red panel below the textarea.
+- **Upload .py** — only shown when ``RADVEL_API_ALLOW_PY_UPLOAD=true``.
+  Pick an existing ``radvel`` setup module from disk (the same Python
+  file the CLI consumes) and upload it. The server imports the module
+  to extract metadata, then the rest of the pipeline runs against the
+  ``.py`` directly with no JSON round-trip. Disabled by default
+  because the upload executes arbitrary Python on the server.
+
+On success any of the three paths navigate to the new run's detail
+page.
 
 Run detail (``#/runs/{id}``)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

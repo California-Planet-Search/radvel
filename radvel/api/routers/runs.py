@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 import radvel
 from radvel.api import schemas
-from radvel.api.config import get_settings
+from radvel.api.config import Settings, get_settings
 from radvel.api.runs import RunNotFound, RunRegistry, is_valid_run_id
 
 
@@ -78,6 +78,48 @@ def get_run(
         radvel_version=record.radvel_version,
         state=registry.stat_dict(record),
         active_job=None,
+    )
+
+
+@router.post(
+    "/upload-py",
+    response_model=schemas.RunCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_py_setup(
+    setup_file: UploadFile = File(..., description="A radvel setup .py file"),
+    registry: RunRegistry = Depends(_registry),
+    settings: Settings = Depends(get_settings),
+) -> schemas.RunCreateResponse:
+    """Create a run by uploading an existing ``radvel`` setup ``.py``.
+
+    Gated by ``RADVEL_API_ALLOW_PY_UPLOAD`` because it executes arbitrary
+    Python from the request body. Off by default.
+    """
+    if not settings.allow_py_upload:
+        raise HTTPException(
+            status_code=415,
+            detail="setup-file upload disabled (set RADVEL_API_ALLOW_PY_UPLOAD=true)",
+        )
+    name = (setup_file.filename or "").lower()
+    if not name.endswith(".py"):
+        raise HTTPException(
+            status_code=400, detail="filename must end with .py"
+        )
+    body = await setup_file.read(settings.max_upload_bytes + 1)
+    if len(body) > settings.max_upload_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail="upload exceeds {} bytes".format(settings.max_upload_bytes),
+        )
+    try:
+        record = registry.create_from_py(body)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return schemas.RunCreateResponse(
+        run_id=record.run_id,
+        outputdir=str(record.outputdir),
+        created_at=record.created_at,
     )
 
 

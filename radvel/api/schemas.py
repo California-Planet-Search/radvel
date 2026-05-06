@@ -260,6 +260,8 @@ class HealthResponse(BaseModel):
     status: Literal["ok", "degraded"]
     kepler_c: bool
     version: str
+    allow_py_upload: bool = False
+    enable_ui: bool = True
 
 
 class VersionResponse(BaseModel):

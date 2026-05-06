@@ -25,9 +25,15 @@ def test_ui_assets_served(client):
     assert css.status_code == 200
     assert css.headers["content-type"].startswith("text/css")
 
-    fav = client.get("/ui/favicon.svg")
+    fav = client.get("/ui/favicon.ico")
     assert fav.status_code == 200
-    assert fav.headers["content-type"].startswith("image/svg")
+    assert fav.headers["content-type"] in (
+        "image/x-icon", "image/vnd.microsoft.icon",
+    )
+
+    logo = client.get("/ui/radvel_logo.png")
+    assert logo.status_code == 200
+    assert logo.headers["content-type"] == "image/png"
 
 
 def test_ui_path_traversal_blocked(client):
