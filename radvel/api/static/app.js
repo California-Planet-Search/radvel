@@ -501,17 +501,46 @@ async function viewRunDetail(runId) {
   const summary = el("div", { class: "bg-white rounded p-4 mb-4 shadow-sm" });
   const stepsContainer = el("div", { class: "space-y-2 mb-6" });
   const resultsContainer = el("div", { class: "mb-4" });
-  const log = el("pre", { class: "bg-slate-900 text-slate-100 p-3 rounded text-xs overflow-x-auto whitespace-pre-wrap min-h-[6rem]" }, "ready.\n");
-  $app.append(header, summary, stepsContainer, resultsContainer, log);
 
+  // Persistent log — refetched from /runs/{id}/files/run.log on every
+  // render so it survives page reloads. The in-flight POST is also
+  // teed to the panel for instant feedback while the request is open.
+  const logHeader = el("div", { class: "flex justify-between items-center mb-1 text-xs text-slate-500" },
+    el("span", {}, "run.log"),
+    el("a", { href: `/runs/${runId}/files/run.log`, download: "run.log",
+      class: "text-blue-600 underline" }, "download"),
+  );
+  const log = el("pre", { class: "bg-slate-900 text-slate-100 p-3 rounded text-xs overflow-x-auto whitespace-pre-wrap min-h-[8rem] max-h-[24rem] overflow-y-auto" });
+  $app.append(header, summary, stepsContainer, resultsContainer, logHeader, log);
+
+  let lastLog = "";
+  const refreshLog = async () => {
+    try {
+      const r = await fetch(`/runs/${runId}/files/run.log`, { cache: "no-store" });
+      const text = r.ok ? await r.text() : "";
+      if (text === lastLog) return;
+      // Stay scrolled to the bottom unless the user scrolled up.
+      const wasAtBottom = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+      log.textContent = text || "(no output yet)";
+      lastLog = text;
+      if (wasAtBottom) log.scrollTop = log.scrollHeight;
+    } catch { /* ignore */ }
+  };
+
+  // Tee the inline POST/result info into the panel so users see a
+  // response before the next refresh tick that picks up run.log.
   window.__rv_log = (line) => {
-    log.textContent += line + "\n";
+    log.textContent = (log.textContent === "(no output yet)" ? "" : log.textContent)
+      + line + "\n";
     log.scrollTop = log.scrollHeight;
   };
 
   // Step buttons call this after a sync action so the panel refreshes
   // immediately rather than waiting up to 3 s for the next interval tick.
-  window.__rv_refresh = () => render().catch(() => {});
+  window.__rv_refresh = () => {
+    refreshLog();
+    return render().catch(() => {});
+  };
 
   let lastSig = "";
   const render = async () => {
@@ -548,6 +577,7 @@ async function viewRunDetail(runId) {
   };
 
   await render();
+  await refreshLog();
   // Re-poll every 3 s while a job is active (or just after one finished)
   // so the step list flips to "done" without a manual refresh.
   const interval = setInterval(async () => {
@@ -556,6 +586,7 @@ async function viewRunDetail(runId) {
       return;
     }
     await render().catch(() => {});
+    await refreshLog();
   }, 3000);
 }
 
@@ -619,43 +650,44 @@ function renderSteps(runId, run) {
       action: () => runStep(runId, "derive", {}),
     },
     {
+      // The driver writes [ic_compare] with an `ic` key but no `run`,
+      // so we treat section presence as done.
       id: "ic", label: "IC compare",
       enabled: has("fit") && !activeKind,
-      done: has("ic_compare"),
+      done: !!stat.ic_compare,
       reason: reasons.ic,
-      summary: () => has("ic_compare") && "AIC/BIC table written",
+      summary: () => stat.ic_compare && "AIC/BIC table written",
       action: () => runStep(runId, "ic", { types: ["e"], simple: true }),
     },
     {
+      // [table] section gets one `<tabtype>_tex` key per type produced.
       id: "tables", label: "Tables",
       enabled: has("fit") && !activeKind,
-      done: !!(stat.tables),
+      done: !!(stat.table),
       reason: reasons.tables,
-      summary: () => stat.tables && Object.keys(stat.tables).join(", "),
-      action: () => runStep(runId, "tables", { types: ["params", "priors", "rv"] }),
+      summary: () => stat.table && Object.keys(stat.table)
+        .map(k => k.replace(/_tex$/, "")).join(", "),
+      action: () => tablesModal(runId, stat),
     },
     {
-      id: "plots-rv", label: "Plot: RV multipanel",
+      id: "plots", label: "Plots",
+      // RV plot is the cheapest / always-fit-only entry; corner+trend
+      // need MCMC/NS. We enable the step as soon as fit is done so the
+      // modal can offer the post-fit-only types; the modal disables
+      // chains-required types when MCMC/NS hasn't run.
       enabled: has("fit") && !activeKind,
-      done: !!(stat.plot && stat.plot.rv_plot),
+      done: !!(stat.plot && Object.keys(stat.plot).length > 0),
       reason: reasons["plots-rv"],
-      summary: () => stat.plot && stat.plot.rv_plot && "PDF written",
-      action: () => runStep(runId, "plots", { types: ["rv"] }),
-    },
-    {
-      id: "plots-corner", label: "Plot: corner",
-      enabled: (has("mcmc") || has("ns")) && !activeKind,
-      done: !!(stat.plot && stat.plot.corner_plot),
-      reason: reasons["plots-corner"],
-      summary: () => stat.plot && stat.plot.corner_plot && "PDF written",
-      action: () => runStep(runId, "plots", { types: ["corner"] }),
+      summary: () => stat.plot && Object.keys(stat.plot)
+        .map(k => k.replace(/_plot$/, "")).join(", "),
+      action: () => plotsModal(runId, stat),
     },
     {
       id: "report", label: "Report (PDF)",
       enabled: (has("mcmc") || has("ns")) && !activeKind,
-      done: !!(stat.report),
+      done: has("report"),
       reason: reasons.report,
-      summary: () => stat.report && "PDF written",
+      summary: () => has("report") && "PDF written",
       action: () => runStep(runId, "report", {}),
     },
   ];
@@ -718,19 +750,37 @@ async function renderResults(runId, run) {
   const plotEntries = Object.entries(stat.plot || {})
     .filter(([k]) => k.endsWith("_plot"));
   if (plotEntries.length) {
-    sections.push(_section("Plots", el("div", { class: "grid grid-cols-1 md:grid-cols-2 gap-4" },
-      ...plotEntries.map(([key, relPath]) => {
-        const name = String(relPath).split("/").pop();
-        const ptype = key.replace(/_plot$/, "");
-        return el("div", { class: "border border-slate-200 rounded overflow-hidden" },
-          el("div", { class: "px-3 py-2 bg-slate-50 flex justify-between items-center" },
-            el("span", { class: "text-sm font-medium" }, ptype),
-            el("a", { href: url(name), download: name, class: "text-xs text-blue-600 underline" }, "Download"),
-          ),
-          el("embed", { src: url(name), type: "application/pdf",
-            class: "w-full", style: "height:480px" }),
-        );
-      })
+    // Per-type height tuned so the embed shows the whole PDF without
+    // an inner scrollbar. RV multipanel is tall portrait (one panel
+    // per planet plus the trend); corner is square; autocorr/trend
+    // are wide landscape so they need less vertical room.
+    const heightFor = (ptype) => {
+      if (ptype === "rv") return "height:85vh";
+      if (ptype === "corner") return "height:70vh";
+      return "height:50vh";
+    };
+    // RV multipanel is the most informative one and is tall portrait, so
+    // it gets its own row; everything else lays out 2-up.
+    const rvRow = plotEntries.filter(([k]) => k === "rv_plot");
+    const otherRow = plotEntries.filter(([k]) => k !== "rv_plot");
+    const renderOne = ([key, relPath]) => {
+      const name = String(relPath).split("/").pop();
+      const ptype = key.replace(/_plot$/, "");
+      return el("div", { class: "border border-slate-200 rounded overflow-hidden" },
+        el("div", { class: "px-3 py-2 bg-slate-50 flex justify-between items-center" },
+          el("span", { class: "text-sm font-medium" }, ptype),
+          el("a", { href: url(name), download: name, class: "text-xs text-blue-600 underline" }, "Download"),
+        ),
+        el("embed", { src: url(name), type: "application/pdf",
+          class: "w-full block", style: heightFor(ptype) }),
+      );
+    };
+    sections.push(_section("Plots", el("div", { class: "space-y-4" },
+      ...rvRow.map(renderOne),
+      otherRow.length
+        ? el("div", { class: "grid grid-cols-1 md:grid-cols-2 gap-4" },
+            ...otherRow.map(renderOne))
+        : null,
     )));
   }
 
@@ -745,7 +795,7 @@ async function renderResults(runId, run) {
             class: "text-xs text-blue-600 underline" }, "Download PDF"),
         ),
         el("embed", { src: url(reportFile.name), type: "application/pdf",
-          class: "w-full", style: "height:600px" }),
+          class: "w-full block", style: "min-height:90vh" }),
       )
     ));
   }
@@ -933,6 +983,124 @@ function nsModal(runId) {
   );
   overlay.appendChild(card);
   document.body.appendChild(overlay);
+}
+
+function _typePickerModal({ title, types, runId, endpoint, currentStat, log }) {
+  // Generic modal: present a checkbox list of step types, post the
+  // selection to /runs/{id}/{endpoint}. ``types`` is an ordered list
+  // of {value, label, requires?, disabled?, defaultChecked?}.
+  return new Promise((resolve) => {
+    const overlay = el("div", { class: "fixed inset-0 bg-black/40 flex items-center justify-center z-50" });
+    const close = (resp) => { overlay.remove(); resolve(resp); };
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+    const inputs = types.map((t) => {
+      const cb = el("input", { type: "checkbox" });
+      cb.checked = !!t.defaultChecked && !t.disabled;
+      cb.disabled = !!t.disabled;
+      return { spec: t, input: cb };
+    });
+
+    const card = el("div", { class: "bg-white rounded p-6 w-96 shadow-lg" },
+      el("h2", { class: "text-lg font-semibold mb-3" }, title),
+      el("div", { class: "space-y-2" },
+        ...inputs.map(({ spec, input }) => {
+          const row = el("label", {
+            class: "flex items-center gap-2 text-sm" + (spec.disabled ? " text-slate-400" : ""),
+          }, input,
+            el("span", { class: "font-mono" }, spec.value),
+            spec.label && spec.label !== spec.value
+              ? el("span", { class: "text-xs text-slate-500" }, "— " + spec.label)
+              : null,
+            spec.disabled
+              ? el("span", { class: "text-xs text-slate-400" }, " (" + spec.disabledReason + ")")
+              : null,
+          );
+          return row;
+        })
+      ),
+      el("div", { class: "flex justify-end gap-2 mt-4" },
+        el("button", { class: "px-3 py-1 text-sm border rounded", onclick: () => close() }, "Cancel"),
+        el("button", {
+          class: "px-3 py-1 text-sm bg-blue-600 text-white rounded",
+          onclick: async () => {
+            const picked = inputs
+              .filter(({ input }) => input.checked && !input.disabled)
+              .map(({ spec }) => spec.value);
+            if (picked.length === 0) {
+              alert("Pick at least one type.");
+              return;
+            }
+            window.__rv_log?.(`POST /runs/${runId}/${endpoint} types=${JSON.stringify(picked)}…`);
+            const resp = await api.post(`/runs/${runId}/${endpoint}`, { types: picked });
+            close(resp);
+          },
+        }, "Run"),
+      ),
+    );
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  });
+}
+
+function plotsModal(runId, stat) {
+  const has = (k) => stat[k] && stat[k].run === "True";
+  const hasChains = has("mcmc") || has("ns");
+  const existing = new Set(Object.keys(stat.plot || {}));
+  const types = [
+    { value: "rv", label: "RV multipanel", defaultChecked: !existing.has("rv_plot") },
+    { value: "corner", label: "Corner plot", defaultChecked: !existing.has("corner_plot"),
+      disabled: !hasChains, disabledReason: "needs MCMC/NS" },
+    { value: "auto", label: "Autocorrelation", defaultChecked: false,
+      disabled: !has("mcmc"), disabledReason: "needs MCMC" },
+    { value: "trend", label: "Walker trends", defaultChecked: false,
+      disabled: !has("mcmc"), disabledReason: "needs MCMC" },
+    { value: "derived", label: "Derived params corner", defaultChecked: false,
+      disabled: !has("derive"), disabledReason: "needs Derive" },
+  ];
+  return _typePickerModal({
+    title: "Generate plots", types, runId, endpoint: "plots",
+    currentStat: stat,
+  }).then(resp => {
+    if (!resp) return;
+    if (resp.ok) {
+      window.__rv_log?.(`OK ${resp.status}: ${JSON.stringify(resp.body, null, 2)}`);
+      window.__rv_refresh?.();
+    } else {
+      _showStepError(resp);
+    }
+  });
+}
+
+function tablesModal(runId, stat) {
+  const has = (k) => stat[k] && stat[k].run === "True";
+  const existing = new Set(Object.keys(stat.table || {}));
+  const types = [
+    { value: "params", label: "Final parameters", defaultChecked: !existing.has("params_tex") },
+    { value: "priors", label: "Priors", defaultChecked: !existing.has("priors_tex") },
+    { value: "rv", label: "RV measurements", defaultChecked: !existing.has("rv_tex") },
+    { value: "ic_compare", label: "Information criteria",
+      defaultChecked: false,
+      disabled: !stat.ic_compare, disabledReason: "needs IC compare" },
+    { value: "derived", label: "Derived parameters",
+      defaultChecked: false,
+      disabled: !has("derive"), disabledReason: "needs Derive" },
+    { value: "crit", label: "Convergence criteria",
+      defaultChecked: false,
+      disabled: !has("mcmc"), disabledReason: "needs MCMC" },
+  ];
+  return _typePickerModal({
+    title: "Generate tables", types, runId, endpoint: "tables",
+    currentStat: stat,
+  }).then(resp => {
+    if (!resp) return;
+    if (resp.ok) {
+      window.__rv_log?.(`OK ${resp.status}: ${JSON.stringify(resp.body, null, 2)}`);
+      window.__rv_refresh?.();
+    } else {
+      _showStepError(resp);
+    }
+  });
 }
 
 async function viewJob(runId, jobId) {

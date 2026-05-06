@@ -20,7 +20,7 @@ def test_fit_then_derive_blocked_then_tables_blocked(client, epic_payload):
     body = fit.json()
     assert "logprob" in body
     assert body["logprob"] < 0  # log-prob is negative for an OK fit
-    assert body["postfile"].startswith("r-")
+    assert body["postfile"].startswith("run-")
 
     # derive without sampling: driver bails (fit alone doesn't produce chains)
     derive = client.post(f"/runs/{rid}/derive", json={"sampler": "auto"})

@@ -58,22 +58,33 @@ def _build_args(record: RunRecord, **extra: Any) -> argparse.Namespace:
 
 
 @contextlib.contextmanager
-def _capture(record: RunRecord):
-    """Capture stdout/stderr and translate driver exceptions to AdapterError."""
+def _capture(record: RunRecord, *, step: Optional[str] = None):
+    """Capture stdout/stderr and translate driver exceptions to AdapterError.
+
+    The captured output is also appended to ``<outputdir>/run.log`` with
+    a step header so the UI can show a persistent log across page
+    reloads. The errors.log file still exists for tracebacks correlated
+    by ``traceback_id``.
+    """
+    import datetime as _dt
     buf_out, buf_err = io.StringIO(), io.StringIO()
     cwd = os.getcwd()
+    started = _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
+    raised: Optional[BaseException] = None
     try:
         with contextlib.redirect_stdout(buf_out), contextlib.redirect_stderr(buf_err):
             yield buf_out, buf_err
     except AssertionError as exc:
         # The driver uses assertions for "step prerequisite not met"
         # (e.g. "Must perform max-likelihood fit before plotting").
+        raised = exc
         raise AdapterError(
             error_type="step_prerequisite_unmet",
             message=str(exc) or "step prerequisite assertion failed",
             status_code=409,
         ) from exc
     except Exception as exc:
+        raised = exc
         traceback_id = uuid.uuid4().hex[:12]
         # Persist the full traceback so operators can correlate from logs.
         log_path = record.outputdir / "errors.log"
@@ -91,6 +102,30 @@ def _capture(record: RunRecord):
         ) from exc
     finally:
         os.chdir(cwd)
+        # Always append to run.log so the UI's terminal panel survives a
+        # page reload. Header makes individual steps easy to scan.
+        try:
+            with open(record.outputdir / "run.log", "a") as f:
+                outcome = "FAIL" if raised else "OK"
+                f.write("\n=== {} {} {} ===\n".format(
+                    started, step or "step", outcome,
+                ))
+                stdout = buf_out.getvalue()
+                stderr = buf_err.getvalue()
+                if stdout:
+                    f.write(stdout)
+                    if not stdout.endswith("\n"):
+                        f.write("\n")
+                if stderr:
+                    f.write("--- stderr ---\n")
+                    f.write(stderr)
+                    if not stderr.endswith("\n"):
+                        f.write("\n")
+                if raised:
+                    f.write("--- error ---\n")
+                    f.write("{}: {}\n".format(type(raised).__name__, raised))
+        except OSError:
+            pass
 
 
 # ---- fit -----------------------------------------------------------------
@@ -98,7 +133,7 @@ def _capture(record: RunRecord):
 
 def run_fit(record: RunRecord, *, decorr: bool = False) -> Dict[str, Any]:
     args = _build_args(record, decorr=decorr)
-    with _capture(record):
+    with _capture(record, step="fit"):
         driver.fit(args)
     postfile = record.outputdir / "{}_post_obj.pkl".format(record.run_id)
     post = radvel.posterior.load(str(postfile))
@@ -119,7 +154,7 @@ def run_fit(record: RunRecord, *, decorr: bool = False) -> Dict[str, Any]:
 
 def run_derive(record: RunRecord, *, sampler: str = "auto") -> Dict[str, Any]:
     args = _build_args(record, sampler=sampler)
-    with _capture(record):
+    with _capture(record, step="derive"):
         driver.derive(args)
     status = load_status(str(record.stat_file))
     if not status.has_section("derive") or not status.getboolean("derive", "run"):
@@ -152,7 +187,7 @@ def run_ic_compare(record: RunRecord, *, types: List[str], mixed: bool = True,
         simple=simple,
         verbose=verbose,
     )
-    with _capture(record):
+    with _capture(record, step="ic_compare"):
         driver.ic_compare(args)
     status = load_status(str(record.stat_file))
     raw = status.get("ic_compare", "ic")
@@ -180,7 +215,7 @@ def run_tables(record: RunRecord, *, types: List[str], header: bool = False,
         name_in_title=name_in_title,
         sampler=sampler,
     )
-    with _capture(record):
+    with _capture(record, step="tables"):
         driver.tables(args)
     latex: Dict[str, str] = {}
     files: Dict[str, str] = {}
@@ -206,7 +241,7 @@ def run_plots(record: RunRecord, *, types: List[str],
         gp=bool(gp),
         sampler=sampler,
     )
-    with _capture(record):
+    with _capture(record, step="plots"):
         driver.plots(args)
     files: List[Dict[str, str]] = []
     suffix_map = {
@@ -241,8 +276,34 @@ def run_report(record: RunRecord, *, comptype: str = "ic",
         latex_compiler=latex_compiler,
         sampler=sampler,
     )
-    with _capture(record) as (buf_out, _):
-        driver.report(args)
+    try:
+        with _capture(record, step="report") as (buf_out, _):
+            driver.report(args)
+    except AdapterError as exc:
+        # ``radvel.report.compile`` raises FileNotFoundError from
+        # ``shutil.copy(pdfname, current)`` when pdflatex compiled but
+        # silently produced no PDF (a malformed setup, missing fonts,
+        # etc.). Translate to a clearer message that points operators
+        # at the right place to look — the .tex source is left in the
+        # outputdir by the driver before the failed copy.
+        if exc.error_type == "FileNotFoundError" \
+                and "_results.pdf" in (exc.message or ""):
+            tex = record.outputdir / "{}_results.tex".format(record.run_id)
+            hint = (
+                "pdflatex did not produce {0}_results.pdf. The .tex source "
+                "was written to {0}_results.tex; inspect it (or attempt "
+                "`pdflatex {0}_results.tex` manually inside the run "
+                "directory) to see why LaTeX failed."
+            ).format(record.run_id)
+            raise AdapterError(
+                error_type="report_pdf_missing",
+                message=hint if tex.is_file() else
+                    "pdflatex did not produce a PDF; check that LaTeX is "
+                    "installed and the setup is well-formed.",
+                status_code=500,
+                traceback_id=exc.traceback_id,
+            ) from exc
+        raise
     pdf = record.outputdir / "{}_results.pdf".format(record.run_id)
     if not pdf.is_file() or pdf.stat().st_size == 0:
         raise AdapterError(
@@ -250,6 +311,10 @@ def run_report(record: RunRecord, *, comptype: str = "ic",
             message="report produced no PDF (check pdflatex on PATH and report.log)",
             status_code=500,
         )
+    # Mark the report step done in .stat so the UI can show "✓ done".
+    from radvel.driver import save_status
+    save_status(str(record.stat_file), "report",
+                {"run": True, "file": os.path.relpath(str(pdf))})
     return {
         "file": pdf.name,
         "url": "/runs/{}/files/{}".format(record.run_id, pdf.name),
@@ -308,7 +373,7 @@ def _run_mcmc_worker(run_id: str, params_json: str) -> Dict[str, Any]:
         headless=True,  # never animate from inside a worker process
         progress_callback=writer.write,
     )
-    with _capture(record):
+    with _capture(record, step="mcmc"):
         driver.mcmc(args)
 
     status = load_status(str(record.stat_file))
@@ -342,7 +407,7 @@ def _run_ns_worker(run_id: str, params_json: str) -> Dict[str, Any]:
         proceed=bool(params.get("proceed", False)),
         overwrite=bool(params.get("overwrite", False)),
     )
-    with _capture(record):
+    with _capture(record, step="ns"):
         driver.nested_sampling(args)
 
     status = load_status(str(record.stat_file))
