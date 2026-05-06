@@ -492,58 +492,316 @@ function readFileAsBase64(file) {
 
 async function viewRunDetail(runId) {
   clear();
-  $app.appendChild(el("div", { class: "text-slate-400" }, el("span", { class: "spinner" }), " loading…"));
-  const run = await api.get(`/runs/${runId}`);
-  clear();
-  if (run.detail) {
-    $app.appendChild(el("p", { class: "text-rose-700" }, `Error: ${JSON.stringify(run.detail)}`));
-    return;
-  }
+  const header = el("div", { class: "flex justify-between items-baseline mb-4" },
+    el("h1", { class: "text-2xl font-semibold mono" }, runId),
+    el("div", { class: "flex gap-3 text-sm" },
+      el("a", { href: `#/runs/${runId}/files`, class: "text-blue-600 underline" }, "Files →"),
+    ),
+  );
+  const summary = el("div", { class: "bg-white rounded p-4 mb-4 shadow-sm" });
+  const stepsContainer = el("div", { class: "space-y-2 mb-6" });
+  const resultsContainer = el("div", { class: "mb-4" });
+  const log = el("pre", { class: "bg-slate-900 text-slate-100 p-3 rounded text-xs overflow-x-auto whitespace-pre-wrap min-h-[6rem]" }, "ready.\n");
+  $app.append(header, summary, stepsContainer, resultsContainer, log);
+
+  window.__rv_log = (line) => {
+    log.textContent += line + "\n";
+    log.scrollTop = log.scrollHeight;
+  };
+
+  let lastSig = "";
+  const render = async () => {
+    const run = await api.get(`/runs/${runId}`);
+    if (run.detail) {
+      stepsContainer.replaceChildren(
+        el("p", { class: "text-rose-700" }, `Error: ${JSON.stringify(run.detail)}`)
+      );
+      return;
+    }
+    // Cheap fingerprint to skip re-render when nothing changed.
+    const sig = JSON.stringify([run.stat, run.active_job]);
+    if (sig === lastSig) return;
+    lastSig = sig;
+
+    summary.replaceChildren(
+      el("div", { class: "grid grid-cols-2 gap-2 text-sm" },
+        el("div", { class: "text-slate-500" }, "starname"),
+        el("div", {}, run.starname || "—"),
+        el("div", { class: "text-slate-500" }, "nplanets"),
+        el("div", {}, String(run.nplanets ?? "—")),
+        el("div", { class: "text-slate-500" }, "outputdir"),
+        el("div", { class: "mono text-xs truncate" }, run.outputdir || ""),
+        el("div", { class: "text-slate-500" }, "active job"),
+        el("div", {}, run.active_job
+          ? el("a", { href: `#/runs/${runId}/jobs/${run.active_job.job_id}`,
+                      class: "text-blue-600 underline mono" }, run.active_job.job_id)
+          : "—"),
+      )
+    );
+
+    stepsContainer.replaceChildren(...renderSteps(runId, run));
+    resultsContainer.replaceChildren(await renderResults(runId, run));
+  };
+
+  await render();
+  // Re-poll every 3 s while a job is active (or just after one finished)
+  // so the step list flips to "done" without a manual refresh.
+  const interval = setInterval(async () => {
+    if (!document.body.contains(stepsContainer)) {
+      clearInterval(interval);
+      return;
+    }
+    await render().catch(() => {});
+  }, 3000);
+}
+
+function renderSteps(runId, run) {
   const stat = run.stat || {};
   const has = (k) => stat[k] && stat[k].run === "True";
+  const active = run.active_job;
+  const activeKind = active && ["queued", "running"].includes(active.state) ? active.kind : null;
 
-  $app.appendChild(el("div", { class: "flex justify-between items-baseline mb-4" },
-    el("h1", { class: "text-2xl font-semibold mono" }, runId),
-    el("a", { href: `#/runs/${runId}/files`, class: "text-sm text-blue-600 underline" }, "Files →")
-  ));
-  $app.appendChild(el("div", { class: "bg-white rounded p-4 mb-4 shadow-sm" },
-    el("div", { class: "grid grid-cols-2 gap-2 text-sm" },
-      el("div", { class: "text-slate-500" }, "starname"),
-      el("div", {}, run.starname || "—"),
-      el("div", { class: "text-slate-500" }, "nplanets"),
-      el("div", {}, String(run.nplanets ?? "—")),
-      el("div", { class: "text-slate-500" }, "outputdir"),
-      el("div", { class: "mono text-xs truncate" }, run.outputdir || ""),
-      el("div", { class: "text-slate-500" }, "active job"),
-      el("div", {}, run.active_job
-        ? el("a", { href: `#/runs/${runId}/jobs/${run.active_job.job_id}`, class: "text-blue-600 underline mono" }, run.active_job.job_id)
-        : "—"),
-    )
-  ));
+  // Reason text that explains why a step is gated.
+  const reasons = {
+    mcmc: !has("fit") && "Run Fit first.",
+    ns: !has("fit") && "Run Fit first.",
+    derive: !(has("mcmc") || has("ns")) && "Run MCMC or NS first.",
+    ic: !has("fit") && "Run Fit first.",
+    tables: !has("fit") && "Run Fit first.",
+    "plots-rv": !has("fit") && "Run Fit first.",
+    "plots-corner": !(has("mcmc") || has("ns")) && "Run MCMC or NS first.",
+    report: !(has("mcmc") || has("ns")) && "Run MCMC or NS first.",
+  };
 
-  const stepBtn = (label, onclick, enabled = true, hint) => el("button", {
-    class: `px-3 py-2 rounded text-sm ${enabled ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-slate-200 text-slate-400 cursor-not-allowed"}`,
-    disabled: enabled ? null : true,
-    title: hint || "",
-    onclick,
-  }, label);
+  const steps = [
+    {
+      id: "fit", label: "Fit (MAP)", enabled: true,
+      done: has("fit"),
+      summary: () => has("fit") && "Maximum-likelihood fit completed",
+      action: () => runStep(runId, "fit", {}),
+    },
+    {
+      id: "mcmc", label: "MCMC",
+      enabled: has("fit") && !activeKind,
+      running: activeKind === "mcmc",
+      done: has("mcmc"),
+      reason: reasons.mcmc,
+      summary: () => has("mcmc") && [
+        stat.mcmc.nsteps ? `${stat.mcmc.nsteps} steps` : null,
+        stat.mcmc.minafactor ? `A-factor ${Number(stat.mcmc.minafactor).toFixed(1)}` : null,
+        stat.mcmc.maxgr ? `GR ${Number(stat.mcmc.maxgr).toFixed(3)}` : null,
+      ].filter(Boolean).join(" · "),
+      action: () => mcmcModal(runId),
+      live: () => active && active.kind === "mcmc"
+        ? `#/runs/${runId}/jobs/${active.job_id}` : null,
+    },
+    {
+      id: "ns", label: "Nested sampling",
+      enabled: has("fit") && !activeKind,
+      running: activeKind === "ns",
+      done: has("ns"),
+      reason: reasons.ns,
+      summary: () => has("ns") && `chains: ${(stat.ns.chainfile || "").split("/").pop() || "—"}`,
+      action: () => nsModal(runId),
+      live: () => active && active.kind === "ns"
+        ? `#/runs/${runId}/jobs/${active.job_id}` : null,
+    },
+    {
+      id: "derive", label: "Derive physical params",
+      enabled: (has("mcmc") || has("ns")) && !activeKind,
+      done: has("derive"),
+      reason: reasons.derive,
+      summary: () => has("derive") && "physical-parameter chains written",
+      action: () => runStep(runId, "derive", {}),
+    },
+    {
+      id: "ic", label: "IC compare",
+      enabled: has("fit") && !activeKind,
+      done: has("ic_compare"),
+      reason: reasons.ic,
+      summary: () => has("ic_compare") && "AIC/BIC table written",
+      action: () => runStep(runId, "ic", { types: ["e"], simple: true }),
+    },
+    {
+      id: "tables", label: "Tables",
+      enabled: has("fit") && !activeKind,
+      done: !!(stat.tables),
+      reason: reasons.tables,
+      summary: () => stat.tables && Object.keys(stat.tables).join(", "),
+      action: () => runStep(runId, "tables", { types: ["params", "priors", "rv"] }),
+    },
+    {
+      id: "plots-rv", label: "Plot: RV multipanel",
+      enabled: has("fit") && !activeKind,
+      done: !!(stat.plot && stat.plot.rv_plot),
+      reason: reasons["plots-rv"],
+      summary: () => stat.plot && stat.plot.rv_plot && "PDF written",
+      action: () => runStep(runId, "plots", { types: ["rv"] }),
+    },
+    {
+      id: "plots-corner", label: "Plot: corner",
+      enabled: (has("mcmc") || has("ns")) && !activeKind,
+      done: !!(stat.plot && stat.plot.corner_plot),
+      reason: reasons["plots-corner"],
+      summary: () => stat.plot && stat.plot.corner_plot && "PDF written",
+      action: () => runStep(runId, "plots", { types: ["corner"] }),
+    },
+    {
+      id: "report", label: "Report (PDF)",
+      enabled: (has("mcmc") || has("ns")) && !activeKind,
+      done: !!(stat.report),
+      reason: reasons.report,
+      summary: () => stat.report && "PDF written",
+      action: () => runStep(runId, "report", {}),
+    },
+  ];
 
-  const buttons = el("div", { class: "flex flex-wrap gap-2 mb-4" },
-    stepBtn("Fit", async () => runStep(runId, "fit", {})),
-    stepBtn("MCMC", () => mcmcModal(runId), has("fit"), "Fit must succeed first"),
-    stepBtn("NS", () => nsModal(runId), has("fit"), "Fit must succeed first"),
-    stepBtn("Derive", async () => runStep(runId, "derive", {}), has("mcmc") || has("ns"), "Run MCMC or NS first"),
-    stepBtn("IC compare", async () => runStep(runId, "ic", { types: ["e"], simple: true }), has("fit"), "Fit first"),
-    stepBtn("Tables", async () => runStep(runId, "tables", { types: ["params", "priors", "rv"] }), has("fit")),
-    stepBtn("Plots: rv", async () => runStep(runId, "plots", { types: ["rv"] }), has("fit")),
-    stepBtn("Plots: corner", async () => runStep(runId, "plots", { types: ["corner"] }), has("mcmc") || has("ns"), "Run MCMC/NS first"),
-    stepBtn("Report", async () => runStep(runId, "report", {}), has("mcmc") || has("ns"), "Run MCMC/NS first"),
+  return steps.map((s) => {
+    let badge, dotClass, btn;
+    if (s.running) {
+      badge = el("span", { class: "text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800" },
+        el("span", { class: "spinner mr-1", style: "vertical-align:-2px" }), "running");
+      dotClass = "bg-amber-400";
+      const live = s.live && s.live();
+      btn = el("a", {
+        href: live || "#",
+        class: "px-3 py-1 text-sm border border-blue-300 rounded text-blue-700 hover:bg-blue-50",
+      }, "View progress →");
+    } else if (s.done) {
+      badge = el("span", { class: "text-xs px-2 py-0.5 rounded bg-emerald-100 text-emerald-800" }, "✓ done");
+      dotClass = "bg-emerald-500";
+      btn = el("button", {
+        class: "px-3 py-1 text-sm border border-slate-300 rounded text-slate-700 hover:bg-slate-100",
+        onclick: () => s.action(),
+      }, "Re-run");
+    } else if (s.enabled) {
+      badge = el("span", { class: "text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-700" }, "ready");
+      dotClass = "bg-slate-400";
+      btn = el("button", {
+        class: "px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700",
+        onclick: () => s.action(),
+      }, "Run");
+    } else {
+      badge = el("span", { class: "text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-400" }, "blocked");
+      dotClass = "bg-slate-200";
+      btn = el("button", {
+        class: "px-3 py-1 text-sm bg-slate-100 text-slate-400 rounded cursor-not-allowed",
+        disabled: true,
+        title: s.reason || "",
+      }, "Run");
+    }
+    const summary = (s.summary && s.summary()) || (!s.enabled && s.reason) || "";
+    return el("div", { class: "bg-white rounded p-3 shadow-sm flex items-center gap-3" },
+      el("span", { class: `inline-block w-2 h-2 rounded-full ${dotClass}` }),
+      el("div", { class: "flex-1" },
+        el("div", { class: "flex items-center gap-2" },
+          el("span", { class: "font-medium text-sm" }, s.label),
+          badge,
+        ),
+        summary ? el("div", { class: "text-xs text-slate-500 mt-0.5" }, summary) : null,
+      ),
+      btn,
+    );
+  });
+}
+
+async function renderResults(runId, run) {
+  const stat = run.stat || {};
+  // Pull the file list once and slot files into the right result panel.
+  const files = await api.get(`/runs/${runId}/files`).catch(() => []);
+  const byName = (suffix) => files.find(f => f.name.endsWith(suffix));
+  const url = (name) => `/runs/${runId}/files/${name}`;
+
+  const sections = [];
+
+  // ---- Plots ----------------------------------------------------------
+  const plotEntries = Object.entries(stat.plot || {})
+    .filter(([k]) => k.endsWith("_plot"));
+  if (plotEntries.length) {
+    sections.push(_section("Plots", el("div", { class: "grid grid-cols-1 md:grid-cols-2 gap-4" },
+      ...plotEntries.map(([key, relPath]) => {
+        const name = String(relPath).split("/").pop();
+        const ptype = key.replace(/_plot$/, "");
+        return el("div", { class: "border border-slate-200 rounded overflow-hidden" },
+          el("div", { class: "px-3 py-2 bg-slate-50 flex justify-between items-center" },
+            el("span", { class: "text-sm font-medium" }, ptype),
+            el("a", { href: url(name), download: name, class: "text-xs text-blue-600 underline" }, "Download"),
+          ),
+          el("embed", { src: url(name), type: "application/pdf",
+            class: "w-full", style: "height:480px" }),
+        );
+      })
+    )));
+  }
+
+  // ---- Report ---------------------------------------------------------
+  const reportFile = byName("_results.pdf");
+  if (reportFile) {
+    sections.push(_section("Report",
+      el("div", { class: "border border-slate-200 rounded overflow-hidden" },
+        el("div", { class: "px-3 py-2 bg-slate-50 flex justify-between items-center" },
+          el("span", { class: "text-sm font-medium" }, reportFile.name),
+          el("a", { href: url(reportFile.name), download: reportFile.name,
+            class: "text-xs text-blue-600 underline" }, "Download PDF"),
+        ),
+        el("embed", { src: url(reportFile.name), type: "application/pdf",
+          class: "w-full", style: "height:600px" }),
+      )
+    ));
+  }
+
+  // ---- Tables (inline LaTeX) -----------------------------------------
+  const tableEntries = Object.entries(stat.table || {}).filter(([k]) => k.endsWith("_tex"));
+  if (tableEntries.length) {
+    sections.push(_section("Tables (LaTeX)",
+      el("div", { class: "space-y-2" },
+        ...tableEntries.map(([key, relPath]) => {
+          const name = String(relPath).split("/").pop();
+          const tabtype = key.replace(/_tex$/, "");
+          const block = el("pre", {
+            class: "bg-slate-100 p-3 rounded text-xs whitespace-pre-wrap font-mono max-h-72 overflow-y-auto",
+          }, "Loading…");
+          fetch(url(name)).then(r => r.text()).then(t => { block.textContent = t; });
+          return el("details", { class: "border border-slate-200 rounded" },
+            el("summary", { class: "cursor-pointer px-3 py-2 bg-slate-50 text-sm flex justify-between items-center" },
+              el("span", { class: "font-medium" }, tabtype),
+              el("a", { href: url(name), download: name,
+                class: "text-xs text-blue-600 underline",
+                onclick: (e) => e.stopPropagation() }, "Download"),
+            ),
+            block,
+          );
+        })
+      )
+    ));
+  }
+
+  // ---- IC compare summary --------------------------------------------
+  if (stat.ic_compare && stat.ic_compare.ic) {
+    sections.push(_section("Information criteria",
+      el("pre", { class: "bg-slate-100 p-3 rounded text-xs whitespace-pre-wrap font-mono overflow-x-auto" },
+        String(stat.ic_compare.ic))));
+  }
+
+  // ---- All output files -----------------------------------------------
+  if (files.length) {
+    sections.push(_section("All output files",
+      buildFilesTable(runId, files)
+    ));
+  }
+
+  if (sections.length === 0) {
+    return el("p", { class: "text-sm text-slate-400" },
+      "Results will appear here once you run a step.");
+  }
+  return el("div", { class: "space-y-4" }, ...sections);
+}
+
+function _section(title, body) {
+  return el("section", { class: "bg-white rounded p-4 shadow-sm" },
+    el("h2", { class: "text-lg font-semibold mb-3" }, title),
+    body,
   );
-  $app.appendChild(buttons);
-  const log = el("pre", { class: "bg-slate-900 text-slate-100 p-3 rounded text-xs overflow-x-auto whitespace-pre-wrap min-h-[6rem]" }, "ready.\n");
-  $app.appendChild(log);
-
-  window.__rv_log = (line) => { log.textContent += line + "\n"; log.scrollTop = log.scrollHeight; };
 }
 
 async function runStep(runId, step, body) {
@@ -678,9 +936,19 @@ async function viewJob(runId, jobId) {
     if (["succeeded", "failed", "cancelled"].includes(j.state)) {
       stop = true;
       cancelBtn.disabled = true;
+      // pcomplete may stop reporting before the last batch of steps because
+      // convergence is reached early. Snap to 100% on success so the bar
+      // matches the badge.
+      if (j.state === "succeeded") bar.style.setProperty("--pct", "100%");
       if (j.error) {
         $app.appendChild(el("pre", { class: "mt-3 bg-rose-50 text-rose-800 p-3 rounded text-xs whitespace-pre-wrap" }, j.error));
       }
+      // Offer a clear way back to the run, where the new step status will
+      // reflect the just-completed work.
+      $app.appendChild(el("div", { class: "mt-4" },
+        el("a", { href: `#/runs/${runId}`, class: "px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700" },
+          "← back to run")
+      ));
       return;
     }
     setTimeout(tick, 2000);
@@ -692,32 +960,145 @@ async function viewFiles(runId) {
   clear();
   $app.appendChild(el("h1", { class: "text-2xl font-semibold mb-4" }, "Files"));
   const list = await api.get(`/runs/${runId}/files`);
-  if (!Array.isArray(list)) {
+  if (!Array.isArray(list) || list.length === 0) {
     $app.appendChild(el("p", { class: "text-slate-500" }, "No files."));
     return;
   }
-  const table = el("table", { class: "w-full text-sm bg-white rounded overflow-hidden shadow-sm" });
-  table.appendChild(el("thead", { class: "bg-slate-100 text-left" },
+  $app.appendChild(buildFilesTable(runId, list, { compact: false }));
+}
+
+// ---- Files table + viewer (shared between run page + Files page) ------
+
+const _TEXT_EXTS = new Set([
+  "json", "py", "stat", "tex", "csv", "log", "txt", "ini", "yaml", "yml", "md",
+]);
+const _PDF_EXTS = new Set(["pdf"]);
+
+function _ext(name) {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
+}
+
+function buildFilesTable(runId, files, opts = {}) {
+  const compact = opts.compact !== false;
+  const cellPad = compact ? "py-1" : "px-4 py-2";
+  const fileUrl = (name) => `/runs/${runId}/files/${name}`;
+
+  const header = el("thead", { class: compact ? "text-left text-xs text-slate-500" : "bg-slate-100 text-left" },
     el("tr", {},
-      el("th", { class: "px-4 py-2" }, "name"),
-      el("th", { class: "px-4 py-2" }, "size"),
-      el("th", { class: "px-4 py-2" }, "modified"),
-      el("th", { class: "px-4 py-2" }, ""),
-    )
-  ));
+      el("th", { class: cellPad }, "name"),
+      el("th", { class: cellPad }, "size"),
+      el("th", { class: cellPad }, "modified"),
+      el("th", { class: cellPad + " text-right" }, ""),
+    ),
+  );
   const tbody = el("tbody", {});
-  for (const f of list) {
+  for (const f of files) {
+    const ext = _ext(f.name);
+    const actions = [];
+    if (_TEXT_EXTS.has(ext) || _PDF_EXTS.has(ext)) {
+      actions.push(el("a", {
+        class: "text-xs text-blue-600 underline",
+        href: "#",
+        onclick: (e) => {
+          e.preventDefault();
+          openFileViewer(fileUrl(f.name), f.name, ext);
+        },
+      }, "view"));
+    }
+    actions.push(el("a", {
+      class: "text-xs text-blue-600 underline",
+      href: fileUrl(f.name),
+      download: f.name,
+    }, "download"));
+
     tbody.appendChild(el("tr", { class: "border-t border-slate-100" },
-      el("td", { class: "px-4 py-2 mono" }, f.name),
-      el("td", { class: "px-4 py-2" }, fmtBytes(f.size)),
-      el("td", { class: "px-4 py-2 text-slate-500" }, fmtTime(f.mtime)),
-      el("td", { class: "px-4 py-2 text-right" },
-        el("a", { class: "text-blue-600 underline", href: `/runs/${runId}/files/${f.name}` }, "download")
-      ),
+      el("td", { class: cellPad + " mono text-xs" }, f.name),
+      el("td", { class: cellPad + " text-xs" }, fmtBytes(f.size)),
+      el("td", { class: cellPad + " text-xs text-slate-500" }, fmtTime(f.mtime)),
+      el("td", { class: cellPad + " text-right" },
+        el("div", { class: "flex justify-end gap-3" }, ...actions)),
     ));
   }
-  table.appendChild(tbody);
-  $app.appendChild(table);
+  return el("table", {
+    class: compact
+      ? "w-full text-sm"
+      : "w-full text-sm bg-white rounded overflow-hidden shadow-sm",
+  }, header, tbody);
+}
+
+async function openFileViewer(url, name, ext) {
+  const overlay = el("div", { class: "fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6" });
+  const close = () => overlay.remove();
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+  const card = el("div", { class: "bg-white rounded shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col" });
+  const header = el("div", { class: "px-4 py-2 border-b flex justify-between items-center" },
+    el("span", { class: "font-medium text-sm mono" }, name),
+    el("div", { class: "flex gap-3 text-sm" },
+      el("a", { href: url, download: name, class: "text-blue-600 underline" }, "Download"),
+      el("button", { class: "text-slate-500 hover:text-slate-800", onclick: close }, "Close ✕"),
+    ),
+  );
+  const body = el("div", { class: "flex-1 overflow-auto" }, el("div", { class: "p-4 text-slate-400" },
+    el("span", { class: "spinner" }), " loading…"));
+  card.append(header, body);
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  if (_PDF_EXTS.has(ext)) {
+    body.replaceChildren(el("embed", {
+      src: url, type: "application/pdf", class: "w-full h-full", style: "min-height:75vh",
+    }));
+    return;
+  }
+
+  try {
+    const r = await fetch(url);
+    const text = await r.text();
+    if (ext === "json") {
+      try {
+        const parsed = JSON.parse(text);
+        body.replaceChildren(el("pre", {
+          class: "p-4 text-xs whitespace-pre-wrap font-mono",
+        }, JSON.stringify(parsed, null, 2)));
+        return;
+      } catch { /* fall through to plain text */ }
+    }
+    if (ext === "csv") {
+      body.replaceChildren(_renderCsvTable(text));
+      return;
+    }
+    body.replaceChildren(el("pre", {
+      class: "p-4 text-xs whitespace-pre-wrap font-mono",
+    }, text));
+  } catch (e) {
+    body.replaceChildren(el("pre", { class: "p-4 text-xs text-rose-700" },
+      "Failed to load: " + (e.message || String(e))));
+  }
+}
+
+function _renderCsvTable(text) {
+  // Render the first ~500 rows in a real table. Anything bigger gets the
+  // raw-text fallback to keep the modal responsive.
+  const lines = text.split(/\r?\n/);
+  const MAX = 500;
+  if (lines.length > MAX) {
+    return el("pre", { class: "p-4 text-xs whitespace-pre-wrap font-mono" }, text);
+  }
+  const rows = lines.filter(Boolean).map(l => l.split(","));
+  if (rows.length === 0) return el("pre", { class: "p-4 text-xs text-slate-400" }, "(empty)");
+  const [head, ...body] = rows;
+  return el("table", { class: "w-full text-xs font-mono" },
+    el("thead", { class: "bg-slate-100 text-left" },
+      el("tr", {}, ...head.map(h => el("th", { class: "px-2 py-1" }, h))),
+    ),
+    el("tbody", {},
+      ...body.map(r => el("tr", { class: "border-t border-slate-100" },
+        ...r.map(c => el("td", { class: "px-2 py-1" }, c)),
+      )),
+    ),
+  );
 }
 
 // ---- router --------------------------------------------------------------

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 import radvel
 from radvel.api import schemas
 from radvel.api.config import Settings, get_settings
+from radvel.api.jobs import JobRegistry
 from radvel.api.runs import RunNotFound, RunRegistry, is_valid_run_id
 
 
@@ -69,6 +70,18 @@ def get_run(
         record = registry.get(run_id)
     except RunNotFound:
         raise HTTPException(status_code=404, detail="unknown run_id")
+    job_row = JobRegistry(settings=get_settings()).active_job_for_run(run_id)
+    active_job = (
+        schemas.JobSummary(
+            job_id=job_row.job_id,
+            run_id=job_row.run_id,
+            kind=job_row.kind,
+            state=job_row.state,
+            submitted_at=job_row.submitted_at,
+            started_at=job_row.started_at,
+            finished_at=job_row.finished_at,
+        ) if job_row is not None else None
+    )
     return schemas.RunStatus(
         run_id=record.run_id,
         starname=record.starname,
@@ -77,7 +90,7 @@ def get_run(
         created_at=record.created_at,
         radvel_version=record.radvel_version,
         state=registry.stat_dict(record),
-        active_job=None,
+        active_job=active_job,
     )
 
 
