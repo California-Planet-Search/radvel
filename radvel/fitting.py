@@ -3,15 +3,17 @@ import warnings
 import scipy.optimize
 import numpy as np
 import copy
-import collections
+from collections import OrderedDict
 import itertools
+
 import radvel.likelihood
+from radvel.posterior import Posterior
 
 ALPHABET = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
             'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
 
-def maxlike_fitting(post, verbose=True, method='Powell'):
+def maxlike_fitting(post: Posterior, verbose: bool =True, method: str='Powell') -> Posterior:
     """Maximum A Posteriori Fitting
 
     Perform a maximum a posteriori fit.
@@ -46,7 +48,12 @@ def maxlike_fitting(post, verbose=True, method='Powell'):
     return post
 
 
-def model_comp(post, params=[], mc_list=[], verbose=False):
+def model_comp(
+    post: Posterior,
+    params: list[str]=[],
+    mc_list: list[OrderedDict]=[],
+    verbose: bool=False
+) -> list[OrderedDict]:
     """Model Comparison
 
     Vary the presence of additional parameters and check how the improve the model fit
@@ -105,7 +112,7 @@ def model_comp(post, params=[], mc_list=[], verbose=False):
 
         comparison_parameters = ['Free Params', r'$N_{\rm free}$', r'$N_{\rm data}$',
                                  'RMS', r'$\ln{\mathcal{L}}$', 'BIC', 'AICc']
-        pdict = collections.OrderedDict.fromkeys(comparison_parameters)
+        pdict = OrderedDict.fromkeys(comparison_parameters)
         pdict[r'$N_{\rm data}$'] = (ndata, 'number of measurements')
         pdict[r'$N_{\rm free}$'] = (nfree, 'number of free parameters')
         pdict['RMS'] = (

@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+from configparser import ConfigParser
 import warnings
 
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
 from matplotlib import rcParams, gridspec
@@ -10,7 +15,9 @@ import copy
 
 import radvel
 from radvel import plot
+from radvel.likelihood import GPLikelihood
 from radvel.plot import mcmc_plots
+from radvel.posterior import Posterior
 from radvel.utils import t_to_phase, fastbin, sigfig
 
 
@@ -62,11 +69,31 @@ class MultipanelPlot(object):
         legend_kwargs (dict): dict of options to pass to legend (plotted in top panel)
         status (ConfigParser): (optional) result of radvel.driver.load_status on the .stat status file
     """
-    def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
-                 phase_nrows=None, phase_ncols=None, uparams=None, telfmts={}, legend=True,
-                 phase_limits=[], nobin=False, phasetext_size='large', rv_phase_space=0.08,
-                 figwidth=7.5, fit_linewidth=2.0, set_xlim=None, text_size=9, highlight_last=False,
-                 show_rms=False, legend_kwargs=dict(loc='best'), status=None):
+    def __init__(
+        self,
+        post: Posterior,
+        saveplot: str | None = None,
+        epoch: int = 2450000,
+        yscale_auto: bool = False,
+        yscale_sigma: float | None = 3.0,
+        phase_nrows: int | None = None,
+        phase_ncols: int | None = None,
+        uparams: dict[str, float] | None = None,
+        telfmts: dict[str, dict] = {},
+        legend: bool = True,
+        phase_limits: list[float] = [],
+        nobin: bool = False,
+        phasetext_size: str = 'large',
+        rv_phase_space: float = 0.08,
+        figwidth: float = 7.5,
+        fit_linewidth: float = 2.0,
+        set_xlim: list[float] | None = None,
+        text_size: int = 9,
+        highlight_last: bool = False,
+        show_rms: bool = False,
+        legend_kwargs: dict = dict(loc='best'),
+        status: ConfigParser | None = None,
+    ):
 
         self.post = copy.deepcopy(post)
         self.saveplot = saveplot
@@ -177,7 +204,7 @@ class MultipanelPlot(object):
         # list for Axes objects
         self.ax_list = []
 
-    def plot_timeseries(self):
+    def plot_timeseries(self) -> None:
         """
         Make a plot of the RV data and model in the current Axes.
         """
@@ -238,7 +265,7 @@ class MultipanelPlot(object):
         ticks = ax.yaxis.get_majorticklocs()
         ax.yaxis.set_ticks(ticks[1:])
 
-    def plot_residuals(self):
+    def plot_residuals(self) -> None:
         """
         Make a plot of residuals in the current Axes.
         """
@@ -266,7 +293,7 @@ class MultipanelPlot(object):
         ax.set_ylabel('Residuals', weight='bold')
         ax.yaxis.set_major_locator(MaxNLocator(5, prune='both'))
 
-    def plot_phasefold(self, pltletter, pnum):
+    def plot_phasefold(self, pltletter: int, pnum: int) -> None:
         """
         Plot phased orbit plots for each planet in the fit.
 
@@ -429,7 +456,7 @@ class MultipanelPlot(object):
             bbox=dict(ec='none', fc='w', alpha=0.8)
         )
 
-    def plot_multipanel(self, nophase=False, letter_labels=True):
+    def plot_multipanel(self, nophase: bool = False, letter_labels: bool = True) -> tuple[Figure, list[Axes]]:
         """
         Provision and plot an RV multipanel plot
 
@@ -541,12 +568,33 @@ class GPMultipanelPlot(MultipanelPlot):
         status (ConfigParser): (optional) result of radvel.driver.load_status on the .stat status file
 
     """
-    def __init__(self, post, saveplot=None, epoch=2450000, yscale_auto=False, yscale_sigma=3.0,
-                 phase_nrows=None, phase_ncols=None, uparams=None, rv_phase_space=0.08, telfmts={},
-                 legend=True,
-                 phase_limits=[], nobin=False, phasetext_size='large',  figwidth=7.5, fit_linewidth=2.0,
-                 set_xlim=None, text_size=9, legend_kwargs=dict(loc='best'), subtract_gp_mean_model=False,
-                 plot_likelihoods_separately=False, subtract_orbit_model=False, status=None, separate_orbit_gp=False):
+    def __init__(
+        self,
+        post: Posterior,
+        saveplot: str | None = None,
+        epoch: int = 2450000,
+        yscale_auto: bool = False,
+        yscale_sigma: float | None = 3.0,
+        phase_nrows: int | None = None,
+        phase_ncols: int | None = None,
+        uparams: dict[str, float] | None = None,
+        rv_phase_space: float = 0.08,
+        telfmts: dict[str, dict] = {},
+        legend: bool = True,
+        phase_limits: list[float] = [],
+        nobin: bool = False,
+        phasetext_size: str = 'large',
+        figwidth: float = 7.5,
+        fit_linewidth: float = 2.0,
+        set_xlim: list[float] | None = None,
+        text_size: int = 9,
+        legend_kwargs: dict = dict(loc='best'),
+        subtract_gp_mean_model: bool = False,
+        plot_likelihoods_separately: bool = False,
+        subtract_orbit_model: bool = False,
+        status: ConfigParser | None = None,
+        separate_orbit_gp: bool = False,
+    ) -> None:
 
         super(GPMultipanelPlot, self).__init__(
             post, saveplot=saveplot, epoch=epoch, yscale_auto=yscale_auto,
@@ -573,7 +621,7 @@ class GPMultipanelPlot(MultipanelPlot):
                 pass
         assert is_gp, "This class requires at least one GPLikelihood object in the Posterior."
 
-    def plot_gp_like(self, like, orbit_model4data, ci):
+    def plot_gp_like(self, like: GPLikelihood, orbit_model4data: np.ndarray, ci: int) -> int:
         """
         Plot a single Gaussian Process Likleihood object in the current Axes, 
         including Gaussian Process uncertainty bands.
@@ -652,7 +700,7 @@ class GPMultipanelPlot(MultipanelPlot):
 
         return ci
 
-    def plot_timeseries(self):
+    def plot_timeseries(self) -> None:
         """
         Make a plot of the RV data and Gaussian Process + orbit model in the current Axes.
         """
@@ -697,7 +745,7 @@ class GPMultipanelPlot(MultipanelPlot):
         axyrs.set_xlabel('Year', fontweight='bold')
 
 
-    def plot_multipanel(self, nophase=False):
+    def plot_multipanel(self, nophase: bool = False) -> tuple[Figure, list[Axes]]:
         """
         Provision and plot an RV multipanel plot for a Posterior object containing 
         one or more Gaussian Process Likelihood objects. 

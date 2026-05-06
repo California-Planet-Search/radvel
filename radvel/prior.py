@@ -1,5 +1,7 @@
+from __future__ import annotations
 
 import warnings
+from typing import Callable
 
 import numpy as np
 from scipy.stats import gaussian_kde, norm
@@ -14,9 +16,9 @@ class Prior(object):
     # By default, priors are not extra constraints.
     # They should specify if they are.
     # Relevant only for nested sampling.
-    extra_constraint = False
+    extra_constraint: bool = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Generic Prior"
 
 
@@ -31,25 +33,25 @@ class Gaussian(Prior):
         sigma (float): width of Gaussian prior
     """
 
-    def __init__(self, param, mu, sigma):
+    def __init__(self, param: str, mu: float, sigma: float):
         self.mu = mu
         self.sigma = sigma
         self.param = param
 
-    def __call__(self, params, vector):
+    def __call__(self, params: model.Parameters, vector: model.Vector) -> float:
         x = vector.vector[vector.indices[self.param]][0]
         return -0.5 * ((x - self.mu) / self.sigma)**2 - 0.5*np.log((self.sigma**2)*2.*np.pi)
 
-    def transform(self, u):
+    def transform(self, u: float) -> float:
         return norm.ppf(u, loc=self.mu, scale=self.sigma)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = "Gaussian prior on {}, mu={}, sigma={}".format(
             self.param, self.mu, self.sigma
             )
         return s
 
-    def __str__(self):
+    def __str__(self) -> str:
         try:
             tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
 
@@ -76,16 +78,16 @@ class EccentricityPrior(Prior):
             each planet can have a different eccentricity upper limit.
     """
 
-    extra_constraint = True
+    extra_constraint: bool = True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         msg = ""
         for i, num_planet in enumerate(self.planet_list):
             msg += "e{} constrained to be < {}\n".format(num_planet, self.upperlims[i])
 
         return msg[:-1]
 
-    def __str__(self):
+    def __str__(self) -> str:
         tex = model.Parameters(9, basis='per tc e w k').tex_labels()
 
         msg = ""
@@ -96,7 +98,7 @@ class EccentricityPrior(Prior):
 
         return msg[:-5]
 
-    def __init__(self, num_planets, upperlims=0.99):
+    def __init__(self, num_planets: int | list[int], upperlims: float = 0.99) -> None:
 
         if type(num_planets) == int:
             self.planet_list = range(1, num_planets+1)
@@ -112,8 +114,8 @@ class EccentricityPrior(Prior):
 upper limits must match number of planets."
             self.upperlims = upperlims
 
-    def __call__(self, params, vector, finite=False):
-        def _getpar(key, num_planet):
+    def __call__(self, params: model.Parameters, vector: model.Vector, finite: bool = False) -> float:
+        def _getpar(key: str, num_planet: int) -> float:
             return vector.vector[vector.indices['{}{}'.format(key, num_planet)]][0]
 
         parnames = params.basis.name.split()
@@ -138,7 +140,7 @@ upper limits must match number of planets."
 
         return -np.sum(np.log(self.upperlims))
 
-    def transform(self, u):
+    def transform(self, u: float | np.ndarray) -> None:
         raise NotImplementedError(
             "EccentricityPrior places an extra_constraint on existing parameters. "
             "It will be called by 'extra_likelihood' and not as a prior transform. "
@@ -160,17 +162,17 @@ class PositiveKPrior(Prior):
 
     extra_constraint = True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "K constrained to be > 0"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "$K$ constrained to be $>0$"
 
-    def __init__(self, num_planets):
+    def __init__(self, num_planets: int) -> None:
         self.num_planets = num_planets
 
-    def __call__(self, params, vector, finite=False):
-        def _getpar(key, num_planet):
+    def __call__(self, params: model.Parameters, vector: model.Vector, finite: bool = False) -> float:
+        def _getpar(key: str, num_planet: int) -> float:
             return vector.vector[vector.indices['{}{}'.format(key, num_planet)]][0]
 
         for num_planet in range(1, self.num_planets+1):
@@ -183,7 +185,7 @@ class PositiveKPrior(Prior):
                 return -np.inf if not finite else -1e100
         return 0
 
-    def transform(self, u):
+    def transform(self, u: float | np.ndarray) -> None:
         raise NotImplementedError(
             "PositiveKPrior places an extra_constraint on existing parameters. "
             "It will be called by 'extra_likelihood' and not as a prior transform. "
@@ -203,7 +205,7 @@ class HardBounds(Prior):
         maxval (float): maximum allowed value
     """
 
-    def __init__(self, param, minval, maxval):
+    def __init__(self, param: str, minval: float, maxval: float) -> None:
         self.minval = minval
         self.maxval = maxval
         self.param = param
@@ -215,7 +217,7 @@ class HardBounds(Prior):
                           UserWarning)
             self.finite = False
 
-    def __call__(self, params, vector):
+    def __call__(self, params: model.Parameters, vector: model.Vector) -> float:
         x = vector.vector[vector.indices[self.param]][0]
         if x <= self.minval or x >= self.maxval:
             return -np.inf
@@ -225,18 +227,18 @@ class HardBounds(Prior):
             else:
                 return 0
 
-    def transform(self, u):
+    def transform(self, u: float | np.ndarray) -> float | np.ndarray:
         if not self.finite:
             raise ValueError("Prior transform for HardBounds requires finite boundaries")
         return self.minval + u * (self.maxval - self.minval)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = "Bounded prior on {}, min={}, max={}".format(
             self.param, self.minval, self.maxval
             )
         return s
 
-    def __str__(self):
+    def __str__(self) -> str:
         try:
             tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
 
@@ -263,24 +265,24 @@ class SecondaryEclipsePrior(Prior):
 
     extra_constraint = True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         msg = ""
         msg += "secondary eclipse constraint: {} +/- {}\n".format(self.ts, self.ts_err)
 
         return msg[:-1]
 
-    def __str__(self):
+    def __str__(self) -> str:
         msg = "secondary eclipse prior: ${} \\pm {}$ \\\\\\\\\n".format(self.ts, self.ts_err)
 
         return msg[:-5]
 
-    def __init__(self, planet_num, ts, ts_err):
+    def __init__(self, planet_num: int, ts: float, ts_err: float) -> None:
 
         self.planet_num = planet_num
         self.ts = ts
         self.ts_err = ts_err
 
-    def __call__(self, params, vector):
+    def __call__(self, params: model.Parameters, vector: model.Vector) -> float:
         def _getpar(key):
             return synth_params[vector.indices['{}{}'.format(key, self.planet_num)]][0]
 
@@ -301,7 +303,7 @@ class SecondaryEclipsePrior(Prior):
 
         return penalty
 
-    def transform(self, u):
+    def transform(self, u: float | np.ndarray) -> None:
         raise NotImplementedError(
             "SecondaryEclipsePrior places an extra_constraint on existing parameters. "
             "It will be called by 'extra_likelihood' and not as a prior transform. "
@@ -325,29 +327,29 @@ class Jeffreys(Prior):
         maxval (float): maximum allowed value
     """
 
-    def __init__(self, param, minval, maxval):
+    def __init__(self, param: str, minval: float, maxval: float) -> None:
         self.minval = minval
         self.maxval = maxval
         self.param = param
 
         self.normalization = 1./np.log(self.maxval/self.minval)
 
-    def __call__(self, params, vector):
+    def __call__(self, params: model.Parameters, vector: model.Vector) -> float:
         x = vector.vector[vector.indices[self.param]][0]
         if x < self.minval or x > self.maxval:
             return -np.inf
         else:
             return np.log(self.normalization) - np.log(x)
 
-    def transform(self, u):
+    def transform(self, u: float | np.ndarray) -> float | np.ndarray:
         return self.minval * np.exp(u * np.log(self.maxval / self.minval))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = "Jeffrey's prior on {}, min={}, max={}".format(
             self.param, self.minval, self.maxval
             )
         return s
-    def __str__(self):
+    def __str__(self) -> str:
         try:
             tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
 
@@ -378,7 +380,7 @@ class ModifiedJeffreys(Prior):
 
     """
 
-    def __init__(self, param, minval, maxval, kneeval):
+    def __init__(self, param: str, minval: float, maxval: float, kneeval: float) -> None:
         self.maxval = maxval
         self.param = param
         self.kneeval = kneeval
@@ -388,22 +390,22 @@ class ModifiedJeffreys(Prior):
 
         assert self.minval > self.kneeval, "ModifiedJeffreys prior requires minval>kneeval."
 
-    def __call__(self, params, vector):
+    def __call__(self, params: model.Parameters, vector: model.Vector) -> float:
         x = vector.vector[vector.indices[self.param]][0]
         if (x > self.maxval) or (x < self.minval):
             return -np.inf
         else:
             return np.log(self.normalization) - np.log(x-self.kneeval)
 
-    def transform(self, u):
+    def transform(self, u: float | np.ndarray) -> float | np.ndarray:
         return self.kneeval + (self.minval - self.kneeval) * np.exp(u / self.normalization)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = "Modified Jeffrey's prior on {}, knee={}, min={}, max={}".format(
             self.param, self.kneeval, self.minval, self.maxval
             )
         return s
-    def __str__(self):
+    def __str__(self) -> str:
         try:
             tex = model.Parameters(9).tex_labels(param_list=[self.param])[self.param]
 
@@ -449,7 +451,7 @@ class NumericalPrior(Prior):
 
     """
 
-    def __init__(self, param_list, values, bw_method=None, bins='auto'):
+    def __init__(self, param_list: list[str], values: np.ndarray, bw_method: str | float | None = None, bins: int | str = 'auto') -> None:
         self.param_list = param_list
         self.pdf_estimate = gaussian_kde(values, bw_method=bw_method)
         # Ref (and source code) for the histogram: https://johannesbuchner.github.io/UltraNest/priors.html#Non-analytic-priors
@@ -457,23 +459,23 @@ class NumericalPrior(Prior):
         self.hist_cumulative = np.cumsum(hist / hist.sum())
         self.bin_middle = (bin_edges[:-1] + bin_edges[1:]) / 2
 
-    def __call__(self, params, vector):
+    def __call__(self, params: model.Parameters, vector: model.Vector) -> float:
         x = []
         for param in self.param_list:
             x.append(vector.vector[vector.indices[param]][0])
         val = np.log(self.pdf_estimate(x))
         return val[0]
 
-    def transform(self, u):
+    def transform(self, u: float | np.ndarray) -> float | np.ndarray:
         return np.interp(u, self.hist_cumulative, self.bin_middle)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = "Numerical prior on {}".format(
             self.param_list
             )
         return s
 
-    def __str__(self):
+    def __str__(self) -> str:
         try:
             tex = model.Parameters(9).tex_labels(param_list=self.param_list)
             t=[tex[key] for key in tex.keys()]
@@ -527,30 +529,30 @@ class UserDefinedPrior(Prior):
         entire parameter space must give a probability of 1.
     """
 
-    def __init__(self, param_list, func, tex_rep, transform_func=None):
+    def __init__(self, param_list: list[str], func: Callable, tex_rep: str, transform_func: Callable | None = None) -> None:
         self.param_list = param_list
         self.func = func
         self.transform_func = transform_func
         self.tex_rep = tex_rep
 
-    def __call__(self, params, vector):
+    def __call__(self, params: model.Parameters, vector: model.Vector) -> float:
         x = []
         for param in self.param_list:
             x.append(vector.vector[vector.indices[param]][0])
         return self.func(x)
 
-    def transform(self, u):
+    def transform(self, u: float | np.ndarray) -> float | np.ndarray:
         if self.transform_func is None:
             raise TypeError("transform_func is None. Set it to a function before calling transform().")
         return self.transform_func(u)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = "User-defined prior on {}".format(
             self.param_list
             )
         return s
 
-    def __str__(self):
+    def __str__(self) -> str:
         s = self.tex_rep
         return s
 
@@ -575,18 +577,18 @@ class InformativeBaselinePrior(Prior):
 
     """
 
-    def __init__(self, param, baseline, duration=0.0):
+    def __init__(self, param: str, baseline: float, duration: float = 0.0) -> None:
         self.param = param
         self.baseline = baseline
         self.duration = duration
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = "Informative baseline prior on {}, baseline={}, duration={}".format(
             self.param, self.baseline, self.duration
             )
         return s
 
-    def __call__(self, params, vector):
+    def __call__(self, params: model.Parameters, vector: model.Vector) -> float:
 
         per = vector.vector[vector.indices[self.param]][0]
 
@@ -598,6 +600,6 @@ class InformativeBaselinePrior(Prior):
         else:
             return np.log((self.baseline+self.duration)/per)
 
-    def transform(self, u):
+    def transform(self, u: float | np.ndarray) -> None:
         # TODO: Implement for this distribution
         raise NotImplementedError("Prior transform not yet implemented InformativeBaselinePrior")

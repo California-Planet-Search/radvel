@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
 
 # turn off numpy multithreading
 import os
@@ -23,7 +23,7 @@ from .plot import *
 
 import warnings
 
-def _custom_warningfmt(msg, *a, **b):
+def _custom_warningfmt(msg: str, *a: object, **b: object) -> str:
     return "WARNING:", str(msg) + '\n'
 
 __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
@@ -70,14 +70,14 @@ if DATADIR is None:
 #  threaded mode.
 
 
-def _pickle_method(method):
+def _pickle_method(method: object) -> tuple:
     func_name = method.im_func.__name__
     obj = method.im_self
     cls = method.im_class
     return _unpickle_method, (func_name, obj, cls)
 
 
-def _unpickle_method(func_name, obj, cls):
+def _unpickle_method(func_name: str, obj: object, cls: type) -> object:
     for cls in cls.mro():
         try:
             func = cls.__dict__[func_name]

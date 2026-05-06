@@ -1,5 +1,10 @@
+from __future__ import annotations
+
+from typing import Callable
 import numpy as np
 from collections import OrderedDict
+
+from numpy.typing import ArrayLike
 
 from radvel import kepler
 from radvel.basis import Basis
@@ -46,26 +51,26 @@ class Parameter(object):
             using the `trick <http://cadence.caltech.edu/~bfulton/share/Marginalizing_the_likelihood.pdf>`_. derived by Timothy Brandt.
     """
 
-    def __init__(self, value=None, vary=True, mcmcscale=None, linear=False):
+    def __init__(self, value: float | None = None, vary: bool = True, mcmcscale: float | None = None, linear: bool = False) -> None:
         self.value = value
         self.vary = vary
         self.mcmcscale = mcmcscale
         self.linear = linear
 
-    def _equals(self, other):
+    def _equals(self, other: "Parameter") -> bool:
         """method to assess the equivalence of two Parameter objects"""
         if isinstance(other, self.__class__):
             return (self.value == other.value) \
                    and (self.vary == other.vary) \
                    and (self.mcmcscale == other.mcmcscale)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = (
             "Parameter object: value = {}, vary = {}, mcmc scale = {}"
         ).format(self.value, self.vary, self.mcmcscale)
         return s
 
-    def __float__(self):
+    def __float__(self) -> float:
         return self.value
 
 
@@ -98,8 +103,12 @@ class Parameters(OrderedDict):
        >>> params = radvel.Parameters(2, planet_letters={1:'d', 2:'e'})
 
     """
-    def __init__(self, num_planets, basis='per tc secosw sesinw logk',
-                 planet_letters=None):
+    def __init__(
+        self,
+        num_planets: int,
+        basis: str = 'per tc secosw sesinw logk',
+        planet_letters: dict[int, str] | None = None
+    ) -> None:
         super(Parameters, self).__init__()
 
         basis = Basis(basis,num_planets)
@@ -120,7 +129,7 @@ should have only integers as keys."""
         self.num_planets = num_planets
         self.planet_letters = planet_letters
 
-    def __reduce__(self):
+    def __reduce__(self) -> tuple:
 
         red = (self.__class__, (self.num_planets,
                                 self.basis.name,
@@ -128,7 +137,7 @@ should have only integers as keys."""
                                 None,None,iter(self.items()))
         return red
 
-    def tex_labels(self, param_list=None):
+    def tex_labels(self, param_list: list[str] | None = None) -> dict[str, str]:
         """Map Parameters keys to pretty TeX code representations.
 
         Args:
@@ -162,10 +171,10 @@ should have only integers as keys."""
 
         return tex_labels
 
-    def _sparameter(self, parameter, num_planet):
+    def _sparameter(self, parameter: str, num_planet: int) -> str:
         return '{0}{1}'.format(parameter, num_planet)
 
-    def _planet_texlabel(self, parameter, num_planet):
+    def _planet_texlabel(self, parameter: str, num_planet: int) -> str:
         pname = texdict.get(parameter, parameter)
         if self.planet_letters is not None:
             lett_planet = self.planet_letters[int(num_planet)]
@@ -182,7 +191,7 @@ if __name__ == "__main__":
 
 class Vector(object):
 
-    def __init__(self, params):
+    def __init__(self, params: Parameters) -> None:
 
         self.params = params
 
@@ -190,7 +199,7 @@ class Vector(object):
         self.dict_to_vector()
         self.vector_names()
 
-    def init_index_dict(self):
+    def init_index_dict(self) -> None:
         indices = dict()
         n = 0
         for k in self.params.keys():
@@ -208,7 +217,7 @@ class Vector(object):
         indices.update({'dvdt':(5*self.params.num_planets),'curv':1+(5*self.params.num_planets)})
         self.indices = indices
 
-    def dict_to_vector(self):
+    def dict_to_vector(self) -> None:
         n = 0
         if 'dvdt' not in self.params.keys():
             n += 1
@@ -228,7 +237,7 @@ class Vector(object):
                 pass
         self.vector = vector
 
-    def vector_names(self):
+    def vector_names(self) -> None:
         names = [0] * (len(self.params.keys()) + 2)
         for key in self.params.keys():
             try:
@@ -242,7 +251,7 @@ class Vector(object):
                 names[extra_ind] = extra_param
         self.names = [i for i in names if type(i) == str]
 
-    def vector_to_dict(self):
+    def vector_to_dict(self) -> None:
         for key in self.params.keys():
             try:
                 self.params[key].value = self.vector[self.indices[key]][0]
@@ -274,13 +283,14 @@ class GeneralRVModel(object):
         >>> rvmodel = radvel.GeneralRVModel(myparams,my_rv_function)
         >>> rv = rvmodel(10)
     """
-    def __init__(self,params,forward_model,time_base=0):
+    def __init__(self,params: Parameters,forward_model: Callable,time_base: float = 0) -> None:
         self.params = params
         self.vector = Vector(self.params)
         self.time_base = time_base
         self._forward_model = forward_model
         assert callable(forward_model)
-    def __call__(self,t,*args,**kwargs):
+
+    def __call__(self, t: np.ndarray, *args: object, **kwargs: object) -> np.ndarray:
         """Compute the signal
 
         Args:
@@ -294,23 +304,23 @@ class GeneralRVModel(object):
         vel += self.vector.vector[self.vector.indices['curv']][0] * (t - self.time_base)**2
         return vel
 
-    def array_to_params(self,param_values):
-    
-    	new_params = self.params
-    	
-    	vary_parameters = self.list_vary_params()
-    	
-    	for i in range(len(vary_parameters)):
-    		new_params[vary_parameters[i]] = Parameter(value=param_values[i])
-    		
-    	return new_params
-             
-    def list_vary_params(self):
+    def array_to_params(self, param_values: ArrayLike) -> Parameters:
+
+        new_params = self.params
+
+        vary_parameters = self.list_vary_params()
+
+        for i in range(len(vary_parameters)):
+            new_params[vary_parameters[i]] = Parameter(value=param_values[i])
+
+        return new_params
+
+    def list_vary_params(self) -> list[str]:
         keys = self.list_params()
 
         return [key for key in keys if self.params[key].vary]
 
-    def list_params(self):
+    def list_params(self) -> list[str]:
         try:
             keys = self.params_order
         except AttributeError:
@@ -318,8 +328,8 @@ class GeneralRVModel(object):
             self.params_order = keys
         return keys
 
-        
-def _standard_rv_calc(t,params,vector,planet_num=None):
+
+def _standard_rv_calc(t: np.ndarray, params: Parameters, vector: Vector, planet_num: int | None = None) -> np.ndarray:
         vel = np.zeros(len(t))
         params_synth = params.basis.v_to_synth(vector)
         if planet_num is None:
@@ -352,6 +362,6 @@ class RVModel(GeneralRVModel):
     classes. The different RV models, with different
     parameterizations, all inherit from this class.
     """
-    def __init__(self, params, time_base=0):
-        super(RVModel,self).__init__(params,_standard_rv_calc,time_base)
+    def __init__(self, params: Parameters, time_base: float = 0) -> None:
+        super(RVModel,self).__init__(params, _standard_rv_calc, time_base)
         self.num_planets=params.num_planets

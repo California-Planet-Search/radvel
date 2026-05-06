@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from types import ModuleType
 import numpy as np
 import pandas as pd
 
@@ -9,6 +12,7 @@ from operator import itemgetter
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 import radvel
+from radvel.posterior import Posterior
 
 env = Environment(loader=PackageLoader('radvel', 'templates'))
 print_basis = 'per tc tp e w k'
@@ -55,8 +59,18 @@ class RadvelReport(object):
         criterion (DataFrame): output DataFrame from a 'radvel.mcmc' run
     """
 
-    def __init__(self, planet, post, chains, minafactor, maxarchange, maxgr, mintz, compstats=None,
-                 derived=False):
+    def __init__(
+        self,
+        planet: ModuleType,
+        post: Posterior,
+        chains: pd.DataFrame,
+        minafactor: float,
+        maxarchange: float,
+        maxgr: float,
+        mintz: int,
+        compstats: dict | None = None,
+        derived: bool = False
+    ) -> None:
         self.planet = planet
         self.post = post
         self.starname = planet.starname
@@ -88,7 +102,7 @@ class RadvelReport(object):
         self.compstats = compstats
         self.num_planets = self.post.params.num_planets
 
-    def texdoc(self):
+    def texdoc(self) -> str:
         """TeX for entire document
 
         Returns:
@@ -122,7 +136,7 @@ class RadvelReport(object):
         out = t.render(report=self, **reportkw)
         return out
 
-    def compile(self, pdfname, latex_compiler='pdflatex', depfiles=[]):
+    def compile(self, pdfname: str, latex_compiler: str = 'pdflatex', depfiles: list[str] = []) -> None:
         """Compile radvel report
 
         Compile the radvel report from a string containing TeX code
@@ -183,7 +197,7 @@ class TexTable(RadvelReport):
         full (bool): get full-length RV table [default: True]
     """
 
-    def __init__(self, report):
+    def __init__(self, report: RadvelReport) -> None:
         self.report = report
         self.post = report.post
         self.quantiles = report.quantiles
@@ -193,7 +207,7 @@ class TexTable(RadvelReport):
         self.maxgr = report.maxgr
         self.mintz = report.mintz
 
-    def _row(self, param, unit):
+    def _row(self, param: str, unit: str) -> str:
         """
         Helper function to output the rows in the parameter table
         """
@@ -228,7 +242,7 @@ class TexTable(RadvelReport):
         row = "%s & $%s%s$ & $%s$ & %s" % (tex, med, errfmt, maxlike, unit)
         return row
 
-    def _data(self, basis, dontloop=False):
+    def _data(self, basis: str, dontloop: bool = False) -> list[str]:
         """
         Helper function to output the rows in the parameter table
 
@@ -272,7 +286,7 @@ class TexTable(RadvelReport):
 
         return rows
 
-    def tab_prior_summary(self, name_in_title=False):
+    def tab_prior_summary(self, name_in_title: bool = False) -> str:
         """Summary of priors
 
         Args:
@@ -298,7 +312,7 @@ class TexTable(RadvelReport):
         out = t.render(rows=rows, **kw)
         return out
 
-    def tab_rv(self, name_in_title=False, max_lines=50):
+    def tab_rv(self, name_in_title: bool = False, max_lines: int | None = 50) -> str:
         """Table of input velocities
 
         Args:
@@ -339,7 +353,7 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
         out = t.render(rows=rows, **kw)
         return out
 
-    def tab_params(self, name_in_title=False):
+    def tab_params(self, name_in_title: bool = False) -> str:
         """ Table of final parameter values
         Args:
             name_in_title (Bool [optional]): if True, include
@@ -379,7 +393,7 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
         out = t.render(**kw)
         return out
 
-    def tab_crit(self, name_in_title=False):
+    def tab_crit(self, name_in_title: bool = False) -> str:
         """Table of final convergence criterion values
         Args:
             name_in_title (Bool [optional]): if True, include
@@ -407,7 +421,7 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
 
         return out
 
-    def tab_derived(self, name_in_title=False):
+    def tab_derived(self, name_in_title: bool = False) -> str:
         """ Table of derived parameter values
         Args:
             name_in_title (Bool [optional]): if True, include
@@ -445,7 +459,7 @@ Use \texttt{radvel table -t rv} to save the full \LaTeX\ table as a separate fil
 
         return out
 
-    def tab_comparison(self):
+    def tab_comparison(self) -> str:
         """Model comparisons
         """
         statsdict = self.report.compstats

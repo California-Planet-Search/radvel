@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import warnings
 
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from radvel.orbit import timeperi_to_timetrans, timetrans_to_timeperi
-import radvel.model
+from radvel.model import Parameters, Parameter, Vector
 
 
 BASIS_NAMES = ['per tp e w k',  # The synth basis
@@ -41,16 +43,16 @@ CIRCULAR_PARAMS_DICT = {
               'logper tp e w logk': 'logper tp logk'}
 
 
-def _print_valid_basis():
+def _print_valid_basis() -> None:
     print("Available bases:")
     print("\n".join(BASIS_NAMES))
 
 
-def _copy_params(params_in):
+def _copy_params(params_in: Parameters) -> Parameters:
     num_planets = params_in.num_planets
     basis = params_in.basis.name
     planet_letters = params_in.planet_letters
-    params_out = radvel.model.Parameters(num_planets, basis=basis,
+    params_out = Parameters(num_planets, basis=basis,
                                          planet_letters=planet_letters)
     params_out.update(params_in)
 
@@ -82,7 +84,7 @@ class Basis(object):
     """
     synth_params = 'per tp e w k'.split()
 
-    def __init__(self, *args):
+    def __init__(self, *args: str | int) -> None:
         self.name = None
         self.num_planets = 0
         if len(args) == 0:
@@ -103,35 +105,35 @@ class Basis(object):
     def __repr__(self):
         return "Basis Object <{}>".format(self.name)
 
-    def to_any_basis(self, params_in, newbasis):
+    def to_any_basis(self, params_in: Parameters, newbasis: str) -> Parameters:
         """Convenience function for converting Parameters object to an arbitraty basis
 
         Args:
-            params_in (radvel.Parameters): radvel.Parameters object expressed in current basis
+            params_in (Parameters): Parameters object expressed in current basis
             newbasis (string): string corresponding to basis to switch into
         Returns:
-            radvel.Parameters object expressed in the new basis
+            Parameters object expressed in the new basis
 
         """
         synth_params = self.to_synth(params_in)
         arbbasis_params = self.from_synth(synth_params, newbasis, keep=False)
         return arbbasis_params
 
-    def v_to_any_basis(self, params_in, newbasis):
+    def v_to_any_basis(self, params_in: Vector | Parameters, newbasis: str) -> Vector:
         synth_vector = self.v_to_synth(params_in)
         arbbasis_vector = self.v_from_synth(synth_vector, newbasis)
         return arbbasis_vector
 
-    def v_to_synth(self, params_in, **kwargs):
+    def v_to_synth(self, params_in: Vector | Parameters, **kwargs: bool | str) -> Vector:
         basis_name = kwargs.setdefault('basis_name', self.name)
-        if isinstance(params_in, radvel.Vector):
+        if isinstance(params_in, Vector):
             vector = params_in.vector
         else:
             vector = params_in
 
         vector2 = vector.copy()
 
-        def setvary(indices):
+        def setvary(indices: list[int]) -> None:
             if kwargs.get('noVary', True):
                 for i in indices:
                     vector2[i][1] = False
@@ -224,12 +226,12 @@ class Basis(object):
         return vector2
 
 
-    def to_synth(self, params_in, **kwargs):
+    def to_synth(self, params_in: Parameters, **kwargs: bool | str) -> Parameters:
         """Convert to synth basis
         Convert Parameters object with parameters of a given basis into the
         synth basis
         Args:
-            params_in (radvel.Parameters or pandas.DataFrame):  radvel.Parameters object or pandas.Dataframe containing
+            params_in (Parameters or pandas.DataFrame):  Parameters object or pandas.Dataframe containing
                 orbital parameters expressed in current basis
             noVary (bool [optional]): if True, set the 'vary' attribute of the returned Parameter objects
                 to '' (used for displaying best fit parameters)
@@ -246,13 +248,13 @@ class Basis(object):
 
         for num_planet in range(1, 1+self.num_planets):
 
-            def _getpar(key):
+            def _getpar(key: str) -> float:
                 if isinstance(params_in, pd.core.frame.DataFrame):
                     return params_in['{}{}'.format(key, num_planet)]
                 else:
                     return params_in['{}{}'.format(key, num_planet)].value
 
-            def _setpar(key, new_value):
+            def _setpar(key: str, new_value: float) -> None:
                 key_name = '{}{}'.format(key, num_planet)
 
                 if isinstance(params_in, pd.core.frame.DataFrame):
@@ -268,7 +270,7 @@ class Basis(object):
                         local_vary = True
                         local_mcmcscale = None
 
-                    params_out[key_name] = radvel.model.Parameter(value=new_value,
+                    params_out[key_name] = Parameter(value=new_value,
                                                                   vary=local_vary,
                                                                   mcmcscale=local_mcmcscale)
 
@@ -393,20 +395,20 @@ class Basis(object):
             _setpar('w', w)
             _setpar('k', k)
 
-        if isinstance(params_out, radvel.model.Parameters):
+        if isinstance(params_out, Parameters):
             params_out.basis = Basis('per tp e w k', self.num_planets)
             params_out.planet_parameters = params_out.basis.name.split()
         return params_out
 
-    def v_from_synth(self, params_in, newbasis):
-        if isinstance(params_in, radvel.Vector):
+    def v_from_synth(self, params_in: Vector | Parameters, newbasis: str) -> Vector:
+        if isinstance(params_in, Vector):
             vector = params_in.vector
         else:
             vector = params_in
 
         vector2 = vector.copy()
 
-        def setvary(indices):
+        def setvary(indices: list[int]):
             for i in indices:
                 vector2[i][1] = True
                 vector2[i][2] = None
@@ -485,7 +487,12 @@ class Basis(object):
         return vector2
 
 
-    def from_synth(self, params_in, newbasis,  **kwargs):
+    def from_synth(
+        self,
+        params_in: Parameters | pd.DataFrame,
+        newbasis: str,
+        **kwargs: bool
+    ) -> Parameters | pd.DataFrame:
         """Convert from synth basis into another basis
 
         Convert instance of Parameters with parameters of a given basis into the synth basis
@@ -515,13 +522,13 @@ class Basis(object):
 
         for num_planet in range(1, 1+self.num_planets):
 
-            def _getpar(key):
+            def _getpar(key: str) -> float:
                 if isinstance(params_in, pd.core.frame.DataFrame):
                     return params_in['{}{}'.format(key, num_planet)]
                 else:
                     return params_in['{}{}'.format(key, num_planet)].value
 
-            def _setpar(key, new_value):
+            def _setpar(key: str, new_value: float) -> None:
                 key_name = '{}{}'.format(key, num_planet)
 
                 if isinstance(params_in, pd.core.frame.DataFrame):
@@ -534,11 +541,11 @@ class Basis(object):
                         local_vary = True
                         local_mcmcscale = None
 
-                    params_out[key_name] = radvel.model.Parameter(value=new_value,
+                    params_out[key_name] = Parameter(value=new_value,
                                                                   vary=local_vary,
                                                                   mcmcscale=local_mcmcscale)
 
-            def _delpar(key):
+            def _delpar(key: str) -> None:
                 if isinstance(params_in, OrderedDict):
                     del params_out['{}{}'.format(key, num_planet)]
                 elif isinstance(params_in, pd.core.frame.DataFrame):
@@ -740,7 +747,7 @@ class Basis(object):
 
         return params_out
 
-    def get_eparams(self):
+    def get_eparams(self) -> list[str]:
         """Return the eccentricity parameters for the object's basis
 
         Returns:
@@ -755,7 +762,7 @@ class Basis(object):
 
         return eparamlist
 
-    def get_circparams(self):
+    def get_circparams(self) -> list[str]:
         """Return the 3 parameters for a circular orbit of a plent in the object's basis
 
         Returns:
