@@ -523,7 +523,7 @@ async function viewRunDetail(runId) {
       return;
     }
     // Cheap fingerprint to skip re-render when nothing changed.
-    const sig = JSON.stringify([run.stat, run.active_job]);
+    const sig = JSON.stringify([run.state, run.active_job]);
     if (sig === lastSig) return;
     lastSig = sig;
 
@@ -560,7 +560,7 @@ async function viewRunDetail(runId) {
 }
 
 function renderSteps(runId, run) {
-  const stat = run.stat || {};
+  const stat = run.state || {};
   const has = (k) => stat[k] && stat[k].run === "True";
   const active = run.active_job;
   const activeKind = active && ["queued", "running"].includes(active.state) ? active.kind : null;
@@ -706,7 +706,7 @@ function renderSteps(runId, run) {
 }
 
 async function renderResults(runId, run) {
-  const stat = run.stat || {};
+  const stat = run.state || {};
   // Pull the file list once and slot files into the right result panel.
   const files = await api.get(`/runs/${runId}/files`).catch(() => []);
   const byName = (suffix) => files.find(f => f.name.endsWith(suffix));
