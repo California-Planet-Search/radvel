@@ -43,30 +43,33 @@ def test_delete_is_idempotent(client, epic_payload):
 
 
 def test_get_run_reports_active_job(client, epic_payload):
-    """active_job should reflect a running mcmc/ns job, not always None."""
+    """active_job should reflect a queued/running mcmc/ns job, not always None.
+
+    Goes directly through JobRegistry rather than through the async
+    runner so the test is deterministic — submitting a real worker
+    creates a queued→running→terminal race window that's unobservable
+    on fast machines and noisy on CI.
+    """
+    from radvel.api.config import get_settings
+    from radvel.api.jobs import JobRegistry
+
     rid = client.post("/runs", json=epic_payload).json()["run_id"]
     client.post(f"/runs/{rid}/fit", json={})
 
     # No active job initially.
     assert client.get(f"/runs/{rid}").json()["active_job"] is None
 
-    # Submit a long MCMC; the run status should now report it.
-    job_id = client.post(
-        f"/runs/{rid}/mcmc",
-        json={"nsteps": 100000, "nwalkers": 30, "ensembles": 2, "serial": True},
-    ).json()["job_id"]
-    try:
-        info = client.get(f"/runs/{rid}").json()
-        assert info["active_job"] is not None
-        assert info["active_job"]["job_id"] == job_id
-        assert info["active_job"]["kind"] == "mcmc"
-    finally:
-        client.delete(f"/jobs/{job_id}")
-        # Wait for cancellation to complete so teardown doesn't hang.
-        import time
-        deadline = time.monotonic() + 30
-        while time.monotonic() < deadline:
-            state = client.get(f"/jobs/{job_id}").json()["state"]
-            if state in {"succeeded", "failed", "cancelled"}:
-                break
-            time.sleep(0.5)
+    # Insert a queued mcmc row directly. The wiring under test is the
+    # /runs/{id} → JobRegistry.active_job_for_run hand-off.
+    registry = JobRegistry(settings=get_settings())
+    row = registry.submit(rid, "mcmc", {"nsteps": 1})
+
+    info = client.get(f"/runs/{rid}").json()
+    assert info["active_job"] is not None
+    assert info["active_job"]["job_id"] == row.job_id
+    assert info["active_job"]["kind"] == "mcmc"
+    assert info["active_job"]["state"] == "queued"
+
+    # Once it's marked terminal, active_job clears.
+    registry.mark_finished(row.job_id, state="cancelled", error=None)
+    assert client.get(f"/runs/{rid}").json()["active_job"] is None

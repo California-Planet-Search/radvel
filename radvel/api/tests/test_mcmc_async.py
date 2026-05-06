@@ -95,21 +95,30 @@ def test_mcmc_cancel(client, epic_payload):
 
 
 def test_active_job_blocks_concurrent_kickoff(client, epic_payload):
+    """Submitting MCMC while a job is already active for the run → 409.
+
+    The pinning step uses the JobRegistry directly rather than a real
+    worker so the test is deterministic: a real worker can transition
+    queued → running → terminal before the second POST hits, leaving
+    nothing for ``active_job_for_run`` to find. The block-logic itself
+    just needs *any* queued/running row to be present.
+    """
+    from radvel.api.config import get_settings
+    from radvel.api.jobs import JobRegistry
+
     rid = _create(client, epic_payload)
     client.post(f"/runs/{rid}/fit", json={})
 
-    first = client.post(
-        f"/runs/{rid}/mcmc",
-        json={"nsteps": 100000, "nwalkers": 30, "ensembles": 2, "serial": True},
-    )
-    assert first.status_code == 202
-
-    second = client.post(
-        f"/runs/{rid}/mcmc",
-        json={"nsteps": 100, "nwalkers": 20, "ensembles": 2, "serial": True},
-    )
-    assert second.status_code == 409
-    # Cleanup: cancel and wait for the worker to actually exit, otherwise
-    # pytest blocks at session exit waiting for the non-daemon subprocess.
-    client.delete(f"/jobs/{first.json()['job_id']}")
-    _wait_for_job(client, first.json()["job_id"], timeout=30)
+    pinned = JobRegistry(settings=get_settings()).submit(rid, "mcmc", {"nsteps": 1})
+    try:
+        second = client.post(
+            f"/runs/{rid}/mcmc",
+            json={"nsteps": 100, "nwalkers": 20, "ensembles": 2, "serial": True},
+        )
+        assert second.status_code == 409, second.text
+    finally:
+        # Mark the pinned row terminal so subsequent runs (and shutdown)
+        # don't think there's a real worker out there.
+        JobRegistry(settings=get_settings()).mark_finished(
+            pinned.job_id, state="cancelled", error=None,
+        )
