@@ -49,7 +49,7 @@ def test_upload_py_creates_run_when_enabled(tmp_path, monkeypatch):
             )
             assert resp.status_code == 201, resp.text
             body = resp.json()
-            assert body["run_id"].startswith("r-") and len(body["run_id"]) == 12
+            assert body["run_id"].startswith("run-") and len(body["run_id"]) == 14
 
             # Run is fully usable: GET /runs/{id} works, fit kicks off normally.
             r = test_client.get(f"/runs/{body['run_id']}")

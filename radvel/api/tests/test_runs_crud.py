@@ -10,7 +10,7 @@ def test_create_run_then_get_then_list(client, epic_payload):
     create = client.post("/runs", json=epic_payload)
     assert create.status_code == 201, create.text
     run_id = create.json()["run_id"]
-    assert run_id.startswith("r-") and len(run_id) == 12
+    assert run_id.startswith("run-") and len(run_id) == 14
 
     get = client.get(f"/runs/{run_id}")
     assert get.status_code == 200
