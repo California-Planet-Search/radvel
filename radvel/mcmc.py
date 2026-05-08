@@ -243,15 +243,15 @@ def mcmc(
     maxGR: float = 1.01,
     minTz: int = 1000,
     minsteps: int = 1000,
-    minpercent: int = 5,
+    minpercent: float = 5,
     thin: int = 1,
     serial: bool = False,
     save: bool = False,
-    savename: str = None,
+    savename: str | None = None,
     proceed: bool = False,
-    proceedname: str = None,
+    proceedname: str | None = None,
     headless: bool = False,
-    progress_callback: Callable = None,
+    progress_callback: Callable | None = None,
 ) -> pd.DataFrame:
     """Run MCMC
     Run MCMC chains using the emcee EnsambleSampler
