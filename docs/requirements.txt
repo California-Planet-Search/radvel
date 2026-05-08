@@ -8,7 +8,7 @@ emcee>=3.0.0
 pandas>=0.20.0
 nbsphinx==0.9.3
 nbconvert==7.17.0
-mistune==3.0.1
+mistune==3.2.1
 jupyter_client
 ipykernel
 pybind11
