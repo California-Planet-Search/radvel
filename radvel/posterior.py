@@ -220,7 +220,7 @@ class Posterior(Likelihood):
     def aic(self) -> float:
         """Moved to Likelihood.aic"""
 
-        raise self.likelihood.aic()
+        return self.likelihood.aic()
 
 
 def load(filename: str) -> Posterior:
