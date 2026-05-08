@@ -18,7 +18,7 @@ from astropy import units as u
 from scipy.optimize import root
 
 import radvel
-from radvel.posterior import Posterior
+import radvel.posterior
 from radvel.model import Parameters, Vector, GeneralRVModel
 
 # Normalization.
@@ -56,7 +56,7 @@ def load_module_from_file(module_name: str, module_path: str) -> ModuleType:
     return module
 
 
-def initialize_posterior(config_file: str, decorr: bool = False) -> tuple[ModuleType, Posterior]:
+def initialize_posterior(config_file: str, decorr: bool = False) -> tuple[ModuleType, radvel.posterior.Posterior]:
     """Initialize Posterior object from a Python setup file.
 
     Parse a setup file and initialize the RVModel, Likelihood, Posterior and priors.
