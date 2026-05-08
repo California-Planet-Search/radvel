@@ -4,22 +4,23 @@ These functions are meant to be used only with\
 the `cli.py` command line interface.
 """
 from __future__ import annotations, print_function
+
+import collections
+import copy
+import os
+import sys
 from argparse import ArgumentParser
+from collections import OrderedDict  # noqa: F401 - needed for eval(status.get('ic_compare', 'ic'))
+
+import numpy as np
+import pandas as pd
+from astropy import constants as c
 
 import radvel
 from radvel.likelihood import GPLikelihood
-from radvel.posterior import Posterior
-from radvel.plot import orbit_plots, mcmc_plots
 from radvel.mcmc import statevars
-
-import os
-import sys
-import copy
-import collections
-
-import pandas as pd
-import numpy as np
-from astropy import constants as c
+from radvel.plot import mcmc_plots, orbit_plots
+from radvel.posterior import Posterior
 
 if sys.version_info[0] < 3:
     import ConfigParser as configparser
@@ -513,7 +514,8 @@ def tables(args: ArgumentParser) -> None:
         if tabtype == 'ic_compare':
             assert status.has_option('ic_compare', 'ic'), \
                 "Must run Information Criteria comparison before making comparison tables"
-
+            if 'ic_compare' in status.keys():
+                status['ic_compare']['ic'] = status['ic_compare']['ic'].replace('-inf', '-np.inf')
             compstats = eval(status.get('ic_compare', 'ic'))
             report = radvel.report.RadvelReport(
                 P, post, chains, minafactor, maxarchange, maxgr, mintz, compstats=compstats
