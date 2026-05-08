@@ -48,7 +48,7 @@ def isnotebook() -> bool:
 
 
 def _closescr() -> None:
-    if isnotebook():
+    if not isnotebook():
         try:
             curses.endwin()
         except Exception:
