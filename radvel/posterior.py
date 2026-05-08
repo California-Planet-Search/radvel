@@ -1,6 +1,8 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 
-from radvel.prior import Prior
+if TYPE_CHECKING:
+    from radvel.prior import Prior
 from .likelihood  import Likelihood
 import numpy as np
 import dill as pickle
@@ -52,7 +54,7 @@ class Posterior(Likelihood):
             return _logprob + self.likelihood.logprob()
         return _logprob
 
-    def get_prior_dict(self) -> dict[str, list[Prior]]:
+    def get_prior_dict(self) -> dict[str, list["Prior"]]:
         """Prior dictionary
         Returns:
             dict: Dictionary mapping parameters to a list of their priors
