@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from matplotlib.axes import Axes
 import numpy as np
+from numpy.typing import NDArray
 import matplotlib
 # matplotlib.use('agg')
 from matplotlib import pyplot as pl
@@ -49,10 +50,10 @@ highlight_format = dict(marker='o', ms=16, mfc='none', mew=2, mec='gold', zorder
 
 
 def telplot(
-    x: np.ndarray[float],
-    y: np.ndarray[float],
-    e: np.ndarray[float],
-    tel: np.ndarray[str],
+    x: NDArray[float],
+    y: NDArray[float],
+    e: NDArray[float],
+    tel: NDArray[str],
     ax: Axes,
     lw: float =1.,
     telfmt: dict = {},
@@ -98,10 +99,10 @@ def telplot(
 
 
 def mtelplot(
-    x: np.ndarray[float],
-    y: np.ndarray[float],
-    e: np.ndarray[float],
-    tel: np.ndarray[str],
+    x: NDArray[float],
+    y: NDArray[float],
+    e: NDArray[float],
+    tel: NDArray[str],
     ax: Axes,
     lw: float =1.,
     telfmts: dict[str, dict] = {},

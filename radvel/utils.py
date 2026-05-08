@@ -11,6 +11,7 @@ import warnings
 
 from pandas import DataFrame
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from datetime import datetime, timedelta
 from astropy import constants as c
@@ -423,7 +424,7 @@ def time_print(tdiff: float) -> tuple[float, str]:
 
 
 def timebin(
-        time: np.ndarray, meas: np.ndarray, meas_err: np.ndarray, binsize: float
+        time: NDArray, meas: NDArray, meas_err: NDArray, binsize: float
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Bin in equal sized time bins
 
@@ -466,8 +467,8 @@ def timebin(
 
 
 def bintels(
-        t: np.ndarray[float], vel: np.ndarray[float], err: np.ndarray[float], telvec: np.ndarray[str], binsize: float = 1/2.
-) -> tuple[np.ndarray[float],np.ndarray[float],np.ndarray[float],np.ndarray[str]]:
+        t: NDArray[float], vel: np.ndarray[float], err: np.ndarray[float], telvec: np.ndarray[str], binsize: float = 1/2.
+) -> tuple[NDArray[float],NDArray[float],NDArray[float],NDArray[str]]:
     """Bin velocities by instrument
 
     Bin RV data with bins of with binsize in the units of t.
@@ -514,8 +515,8 @@ def bintels(
 
 
 def fastbin(
-        x: np.ndarray[float], y: np.ndarray[float], nbins: int = 30
-) -> tuple[np.ndarray[float], np.ndarray[float], np.ndarray[float]]:
+        x: NDArray[float], y: NDArray[float], nbins: int = 30
+) -> tuple[NDArray[float], NDArray[float], NDArray[float]]:
     """Fast binning
 
     Fast binning function for equally spaced data
@@ -551,7 +552,7 @@ def fastbin(
     return bint, bindat, binerr
 
 
-def t_to_phase(params: Parameters, t: np.ndarray[float], num_planet: int, cat: bool = False) -> np.ndarray[float]:
+def t_to_phase(params: Parameters, t: NDArray[float], num_planet: int, cat: bool = False) -> NDArray[float]:
     """Time to phase
 
     Convert JD to orbital phase
@@ -579,7 +580,7 @@ def t_to_phase(params: Parameters, t: np.ndarray[float], num_planet: int, cat: b
         phase = np.concatenate((phase, phase+1))
     return phase
 
-def t_to_phase_vector(vector: Vector, t: np.ndarray[float], num_planet: int, cat: bool = False) -> np.ndarray[float]:
+def t_to_phase_vector(vector: Vector, t: NDArray[float], num_planet: int, cat: bool = False) -> NDArray[float]:
 
     synth_params = vector.params.basis.v_to_synth(vector)
 
@@ -650,7 +651,7 @@ def jd2date(jd: float) -> datetime:
     return dt
 
 
-def geterr(vec: np.ndarray[float], angular: bool = False) -> tuple[float, float, float]:
+def geterr(vec: NDArray[float], angular: bool = False) -> tuple[float, float, float]:
     """
     Calculate median, 15.9, and 84.1 percentile values
     for a given vector.
@@ -749,12 +750,12 @@ def semi_major_axis(P: float, Mtotal: float) -> float:
 
 
 def Msini(
-    K: float | np.ndarray[float],
-    P: float | np.ndarray[float],
-    Mstar: float | np.ndarray[float],
-    e: float | np.ndarray[float],
+    K: float | NDArray[float],
+    P: float | NDArray[float],
+    Mstar: float | NDArray[float],
+    e: float | NDArray[float],
     Msini_units: str = 'earth'
-) -> float | np.ndarray[float]:
+) -> float | NDArray[float]:
     """Calculate Msini
 
     Calculate Msini for a given K, P, stellar mass, and e
@@ -856,8 +857,8 @@ def density(mass: float, radius: float, MR_units: str = 'earth') -> float:
 
 
 def draw_models_from_chain(
-        mod: GeneralRVModel, chain: DataFrame, t: np.ndarray[float], nsamples: int = 50
-) -> np.ndarray[float]:
+        mod: GeneralRVModel, chain: DataFrame, t: NDArray[float], nsamples: int = 50
+) -> NDArray[float]:
     """Draw Models from Chain
 
     Given an MCMC chain of parameters, draw representative parameters
