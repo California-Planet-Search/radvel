@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from collections import OrderedDict
 from radvel.orbit import timeperi_to_timetrans, timetrans_to_timeperi
-from radvel.model import Parameters, Parameter, Vector
+import radvel.model
 
 
 BASIS_NAMES = ['per tp e w k',  # The synth basis
@@ -48,11 +48,11 @@ def _print_valid_basis() -> None:
     print("\n".join(BASIS_NAMES))
 
 
-def _copy_params(params_in: Parameters) -> Parameters:
+def _copy_params(params_in: radvel.model.Parameters) -> radvel.model.Parameters:
     num_planets = params_in.num_planets
     basis = params_in.basis.name
     planet_letters = params_in.planet_letters
-    params_out = Parameters(num_planets, basis=basis,
+    params_out = radvel.model.Parameters(num_planets, basis=basis,
                                          planet_letters=planet_letters)
     params_out.update(params_in)
 
@@ -105,7 +105,7 @@ class Basis(object):
     def __repr__(self):
         return "Basis Object <{}>".format(self.name)
 
-    def to_any_basis(self, params_in: Parameters, newbasis: str) -> Parameters:
+    def to_any_basis(self, params_in: radvel.model.Parameters, newbasis: str) -> radvel.model.Parameters:
         """Convenience function for converting Parameters object to an arbitraty basis
 
         Args:
@@ -119,14 +119,14 @@ class Basis(object):
         arbbasis_params = self.from_synth(synth_params, newbasis, keep=False)
         return arbbasis_params
 
-    def v_to_any_basis(self, params_in: Vector | Parameters, newbasis: str) -> Vector:
+    def v_to_any_basis(self, params_in: radvel.model.Vector | radvel.model.Parameters, newbasis: str) -> radvel.model.Vector:
         synth_vector = self.v_to_synth(params_in)
         arbbasis_vector = self.v_from_synth(synth_vector, newbasis)
         return arbbasis_vector
 
-    def v_to_synth(self, params_in: Vector | Parameters, **kwargs: bool | str) -> Vector:
+    def v_to_synth(self, params_in: radvel.model.Vector | radvel.model.Parameters, **kwargs: bool | str) -> radvel.model.Vector:
         basis_name = kwargs.setdefault('basis_name', self.name)
-        if isinstance(params_in, Vector):
+        if isinstance(params_in, radvel.model.Vector):
             vector = params_in.vector
         else:
             vector = params_in
@@ -226,7 +226,7 @@ class Basis(object):
         return vector2
 
 
-    def to_synth(self, params_in: Parameters, **kwargs: bool | str) -> Parameters:
+    def to_synth(self, params_in: radvel.model.Parameters, **kwargs: bool | str) -> radvel.model.Parameters:
         """Convert to synth basis
         Convert Parameters object with parameters of a given basis into the
         synth basis
@@ -270,7 +270,7 @@ class Basis(object):
                         local_vary = True
                         local_mcmcscale = None
 
-                    params_out[key_name] = Parameter(value=new_value,
+                    params_out[key_name] = radvel.model.Parameter(value=new_value,
                                                                   vary=local_vary,
                                                                   mcmcscale=local_mcmcscale)
 
@@ -395,13 +395,13 @@ class Basis(object):
             _setpar('w', w)
             _setpar('k', k)
 
-        if isinstance(params_out, Parameters):
+        if isinstance(params_out, radvel.model.Parameters):
             params_out.basis = Basis('per tp e w k', self.num_planets)
             params_out.planet_parameters = params_out.basis.name.split()
         return params_out
 
-    def v_from_synth(self, params_in: Vector | Parameters, newbasis: str) -> Vector:
-        if isinstance(params_in, Vector):
+    def v_from_synth(self, params_in: radvel.model.Vector | radvel.model.Parameters, newbasis: str) -> radvel.model.Vector:
+        if isinstance(params_in, radvel.model.Vector):
             vector = params_in.vector
         else:
             vector = params_in
@@ -489,10 +489,10 @@ class Basis(object):
 
     def from_synth(
         self,
-        params_in: Parameters | pd.DataFrame,
+        params_in: radvel.model.Parameters | pd.DataFrame,
         newbasis: str,
         **kwargs: bool
-    ) -> Parameters | pd.DataFrame:
+    ) -> radvel.model.Parameters | pd.DataFrame:
         """Convert from synth basis into another basis
 
         Convert instance of Parameters with parameters of a given basis into the synth basis
@@ -541,7 +541,7 @@ class Basis(object):
                         local_vary = True
                         local_mcmcscale = None
 
-                    params_out[key_name] = Parameter(value=new_value,
+                    params_out[key_name] = radvel.model.Parameter(value=new_value,
                                                                   vary=local_vary,
                                                                   mcmcscale=local_mcmcscale)
 
