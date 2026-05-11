@@ -73,6 +73,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
         texlive-latex-base \
         texlive-fonts-recommended \
         texlive-latex-extra \
+        texlive-publishers \
+        texlive-plain-generic \
         lmodern \
         curl \
         tini \
