@@ -12,6 +12,7 @@ so library users without the API extra installed are unaffected.
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -71,12 +72,42 @@ class DataCsvBase64(_DataInBase):
 class DataServerPath(_DataInBase):
     """Reference a CSV/text file already on the server.
 
-    The server enforces the file lives inside ``RADVEL_DATA_ALLOWLIST``;
-    requests pointing outside the allowlist receive ``403``.
+    The server enforces that the resolved path lives under one of the
+    directories configured in ``RADVEL_API_DATA_ALLOWLIST`` (a
+    colon-separated list of absolute roots). When the allowlist is
+    empty, ``server_path`` is disabled and requests using it are
+    rejected with ``422``.
     """
 
     kind: Literal["server_path"] = "server_path"
     path: str
+
+    @field_validator("path")
+    @classmethod
+    def _path_in_allowlist(cls, value: str) -> str:
+        # Import locally so this module stays importable without the
+        # full API extras (Settings depends on pydantic-settings).
+        from radvel.api.config import get_settings
+        allowlist = [Path(p).resolve() for p in get_settings().data_allowlist]
+        if not allowlist:
+            raise ValueError(
+                "server_path is disabled: set RADVEL_API_DATA_ALLOWLIST to "
+                "one or more absolute directories to permit it"
+            )
+        resolved = Path(value).resolve()
+        if not any(_is_within(resolved, root) for root in allowlist):
+            raise ValueError(
+                "path {!r} is outside the configured data allowlist".format(value)
+            )
+        return value
+
+
+def _is_within(child: Path, root: Path) -> bool:
+    try:
+        child.relative_to(root)
+        return True
+    except ValueError:
+        return False
 
 
 class DataDatasetRef(_DataInBase):

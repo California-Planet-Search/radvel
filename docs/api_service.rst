@@ -113,8 +113,10 @@ The four ``data`` shapes are:
 
 - ``{"kind": "inline", "rows": [{"time": ..., "mnvel": ..., "errvel": ..., "tel": ...}]}``
 - ``{"kind": "csv_base64", "csv_base64": "...", "separator": ","}``
-- ``{"kind": "server_path", "path": "/some/csv"}`` *(only allowed if the
-  path lives under ``RADVEL_DATA_ALLOWLIST``)*
+- ``{"kind": "server_path", "path": "/some/csv"}`` *(disabled by default;
+  requires* ``RADVEL_API_DATA_ALLOWLIST`` *to be set to one or more
+  absolute directories, and rejected with* ``422`` *if the resolved path
+  is outside every configured root)*
 - ``{"kind": "dataset_ref", "dataset": "epic203771098.csv"}`` *(any
   fixture in* ``radvel.DATADIR`` *)*
 
@@ -185,19 +187,43 @@ container restart)`` so polling clients see a clean terminal state.
 Environment variables
 ---------------------
 
-==============================  ==============================  ==============
-Variable                        Default                          Meaning
-==============================  ==============================  ==============
-``RADVEL_API_RUNS_DIR``         ``/data/runs``                   Per-run output dir.
-``RADVEL_API_DB_PATH``          ``/data/jobs.db``                SQLite jobs table.
-``RADVEL_API_HOST``             ``0.0.0.0``                      uvicorn bind host.
-``RADVEL_API_PORT``             ``8000``                         uvicorn port.
-``RADVEL_API_WORKERS``          ``1``                            ProcessPool size for MCMC/NS.
-``RADVEL_API_ALLOW_PY_UPLOAD``  ``false``                        Permit ``POST /runs/upload-py`` and ``userdefined`` priors. **Off by default** because it executes user-supplied Python.
-``RADVEL_API_ENABLE_UI``        ``true``                         Mount ``/ui``. Set to ``false`` for headless deployments.
-``RADVEL_DATADIR``              install-relative                 Where ``dataset_ref`` looks for fixtures.
-``MPLBACKEND``                  ``Agg`` *(set by package init)*  Matplotlib backend.
-==============================  ==============================  ==============
+.. list-table::
+   :header-rows: 1
+   :widths: 30 22 48
+
+   * - Variable
+     - Default
+     - Meaning
+   * - ``RADVEL_API_RUNS_DIR``
+     - ``/data/runs``
+     - Per-run output dir.
+   * - ``RADVEL_API_DB_PATH``
+     - ``/data/jobs.db``
+     - SQLite jobs table.
+   * - ``RADVEL_API_HOST``
+     - ``0.0.0.0``
+     - uvicorn bind host.
+   * - ``RADVEL_API_PORT``
+     - ``8000``
+     - uvicorn port.
+   * - ``RADVEL_API_WORKERS``
+     - ``1``
+     - ProcessPool size for MCMC/NS.
+   * - ``RADVEL_API_ALLOW_PY_UPLOAD``
+     - ``false``
+     - Permit ``POST /runs/upload-py`` and ``userdefined`` priors. **Off by default** because it executes user-supplied Python.
+   * - ``RADVEL_API_ENABLE_UI``
+     - ``true``
+     - Mount ``/ui``. Set to ``false`` for headless deployments.
+   * - ``RADVEL_API_DATA_ALLOWLIST``
+     - *(empty)*
+     - Colon-separated absolute roots permitted for ``data.kind=server_path``. Empty disables ``server_path`` entirely.
+   * - ``RADVEL_DATADIR``
+     - install-relative
+     - Where ``dataset_ref`` looks for fixtures.
+   * - ``MPLBACKEND``
+     - ``Agg`` *(set by package init)*
+     - Matplotlib backend.
 
 Security notes
 --------------

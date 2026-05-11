@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -35,8 +35,17 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 50_000_000
     allow_py_upload: bool = False
     enable_ui: bool = True
-    data_allowlist: List[Path] = Field(default_factory=list)
+    # NoDecode keeps pydantic-settings from JSON-decoding the env value;
+    # the validator below splits PATH-style (colon-separated) strings.
+    data_allowlist: Annotated[List[Path], NoDecode] = Field(default_factory=list)
     log_level: str = "INFO"
+
+    @field_validator("data_allowlist", mode="before")
+    @classmethod
+    def _split_colon_list(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [p for p in value.split(":") if p]
+        return value
 
 
 @lru_cache(maxsize=1)
