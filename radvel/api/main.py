@@ -17,6 +17,7 @@ import logging
 
 from fastapi import FastAPI
 
+import radvel as _radvel
 from radvel.api.config import get_settings
 from radvel.api.jobs import JobRegistry, JobRunner
 from radvel.api.routers import files, health, jobs, pipeline, runs, ui
@@ -62,7 +63,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="RadVel HTTP API",
-        version="1.6.0",
+        version=_radvel.__version__,
         description=(
             "HTTP interface to the RadVel Keplerian-orbit pipeline. "
             "All synchronous endpoints follow the CLI workflow "
