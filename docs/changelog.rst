@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.6.0 (unreleased)
+1.6.0 (2026-05-11)
 ------------------
 
 **HTTP API + Docker service.** RadVel now ships an FastAPI-based HTTP
