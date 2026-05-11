@@ -135,11 +135,21 @@ class JobRegistry:
     def submit(self, run_id: str, kind: str, params: Dict[str, Any]) -> JobRow:
         if kind not in {"mcmc", "ns"}:
             raise ValueError("kind must be 'mcmc' or 'ns'; got {!r}".format(kind))
-        if self.active_job_for_run(run_id) is not None:
-            raise JobActiveError("a job is already active for run {!r}".format(run_id))
         job_id = make_job_id()
         now = _now()
+        # The active-job check and the INSERT live in the same locked
+        # block so two concurrent /mcmc submissions can't both pass the
+        # pre-check and enqueue duplicate queued rows for one run.
         with self._lock, self._connect() as conn:
+            existing = conn.execute(
+                "SELECT job_id FROM jobs WHERE run_id = ? "
+                "AND state IN ('queued', 'running') LIMIT 1",
+                (run_id,),
+            ).fetchone()
+            if existing is not None:
+                raise JobActiveError(
+                    "a job is already active for run {!r}".format(run_id)
+                )
             conn.execute(
                 "INSERT INTO jobs(job_id, run_id, kind, state, params_json, submitted_at) "
                 "VALUES (?, ?, ?, 'queued', ?, ?)",
@@ -204,10 +214,14 @@ class JobRegistry:
                       error: Optional[str] = None) -> None:
         if state not in {"succeeded", "failed", "cancelled"}:
             raise ValueError("invalid terminal state: {}".format(state))
+        # Guard the terminal transition: only move from a non-terminal
+        # state. Without this, a worker that completes its happy-path
+        # right as the parent issues `cancel()` can overwrite the
+        # cancelled row with `succeeded`.
         with self._lock, self._connect() as conn:
             conn.execute(
                 "UPDATE jobs SET state=?, finished_at=?, error=? "
-                "WHERE job_id=?",
+                "WHERE job_id=? AND state IN ('queued', 'running')",
                 (state, _iso(_now()), error, job_id),
             )
 
