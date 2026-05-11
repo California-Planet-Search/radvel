@@ -28,8 +28,12 @@ Two-line quickstart
 
    $ docker run --rm -p 8000:8000 \
        -v rv-data:/data \
-       ghcr.io/california-planet-search/radvel-api:1.6
+       ghcr.io/california-planet-search/radvel-api:latest
    $ open http://localhost:8000/ui
+
+The release workflow publishes ``:latest``, ``:{major}.{minor}``, and
+``:{version}`` tags; pin to a specific version (e.g. ``:1.6.0``) for
+reproducible deployments.
 
 Visit ``/docs`` for live Swagger UI, ``/redoc`` for ReDoc.
 

@@ -60,7 +60,7 @@ clients, long-running MCMC jobs, and reproducible deployments.
 
 ```bash
 docker run --rm -p 8000:8000 -v "$PWD/.runs:/data" \
-    ghcr.io/california-planet-search/radvel-api:1.6
+    ghcr.io/california-planet-search/radvel-api:latest
 open http://localhost:8000/ui
 ```
 

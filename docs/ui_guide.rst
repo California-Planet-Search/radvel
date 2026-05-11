@@ -16,7 +16,7 @@ Open the UI
 .. code-block:: console
 
    $ docker run --rm -p 8000:8000 -v "$PWD/.runs:/data" \
-       ghcr.io/california-planet-search/radvel-api:1.6
+       ghcr.io/california-planet-search/radvel-api:latest
    $ open http://localhost:8000/ui
 
 If the page renders an empty shell, the service is healthy but
