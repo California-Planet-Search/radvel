@@ -163,14 +163,12 @@ def run_derive(record: RunRecord, *, sampler: str = "auto") -> Dict[str, Any]:
             message="derive completed without producing output (likely missing stellar mass in setup)",
             status_code=409,
         )
-    # driver.derive stores cwd-relative paths in the .stat file; resolve
-    # them against outputdir so reads succeed regardless of the API
-    # process's working directory.
-    def _resolve(p: str) -> Path:
-        candidate = Path(p)
-        return candidate if candidate.is_absolute() else record.outputdir / candidate
-    quantfile = _resolve(status.get("derive", "quantfile"))
-    chainfile = _resolve(status.get("derive", "chainfile"))
+    # driver.derive writes the derive files into outputdir then stores
+    # cwd-relative paths in the .stat file. We can't reproduce the
+    # original cwd here (the API process's cwd is fixed at /data), so
+    # take the basename and join with outputdir directly.
+    quantfile = record.outputdir / Path(status.get("derive", "quantfile")).name
+    chainfile = record.outputdir / Path(status.get("derive", "chainfile")).name
     chains = pd.read_csv(chainfile)
     return {
         "columns": list(chains.columns),
