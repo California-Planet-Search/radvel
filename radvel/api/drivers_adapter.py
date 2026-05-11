@@ -200,7 +200,21 @@ def run_ic_compare(record: RunRecord, *, types: List[str], mixed: bool = True,
         raw,
         {"OrderedDict": OrderedDict, "np": np, "numpy": np},
     )
-    return {"statsdicts": list(statsdicts)}
+    statsdicts = list(statsdicts)
+    # JSON sidecar so the UI can render a real table on reload — the stat
+    # file only keeps the Python repr, which JS can't parse safely.
+    sidecar = record.outputdir / "{}_ic.json".format(record.run_id)
+    with open(sidecar, "w") as f:
+        json.dump(statsdicts, f, default=_json_default)
+    return {"statsdicts": statsdicts, "sidecar": sidecar.name}
+
+
+def _json_default(obj: Any) -> Any:
+    if isinstance(obj, (np.floating, np.integer)):
+        return obj.item()
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    raise TypeError("not JSON serialisable: {!r}".format(obj))
 
 
 # ---- tables --------------------------------------------------------------

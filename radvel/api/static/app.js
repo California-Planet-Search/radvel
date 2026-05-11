@@ -828,9 +828,12 @@ async function renderResults(runId, run) {
 
   // ---- IC compare summary --------------------------------------------
   if (stat.ic_compare && stat.ic_compare.ic) {
+    const sidecar = files.find(f => f.name.endsWith("_ic.json"));
     sections.push(_section("Information criteria",
-      el("pre", { class: "bg-slate-100 p-3 rounded text-xs whitespace-pre-wrap font-mono overflow-x-auto" },
-        String(stat.ic_compare.ic))));
+      sidecar
+        ? _icTablePlaceholder(url(sidecar.name))
+        : el("pre", { class: "bg-slate-100 p-3 rounded text-xs whitespace-pre-wrap font-mono overflow-x-auto" },
+            String(stat.ic_compare.ic))));
   }
 
   // ---- All output files -----------------------------------------------
@@ -854,6 +857,81 @@ function _section(title, body) {
   );
 }
 
+function _icTablePlaceholder(jsonUrl) {
+  // Async-fetches the JSON sidecar emitted by run_ic_compare. The repr
+  // string we keep in stat.ic_compare.ic is unparseable from JS, so the
+  // adapter writes a real JSON copy next to it.
+  const host = el("div", { class: "text-sm text-slate-500" }, "Loading…");
+  fetch(jsonUrl, { cache: "no-store" })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(models => host.replaceChildren(_renderIcTable(models)))
+    .catch(() => {
+      host.replaceChildren(el("p", { class: "text-sm text-rose-700" },
+        "Failed to load IC compare results."));
+    });
+  return host;
+}
+
+function _renderIcTable(models) {
+  // models is a list of {statName: [value, description]} dicts, one per
+  // candidate model. Render rows = stats, columns = models. The
+  // "Free Params" entry is a list-of-names; everything else is a scalar.
+  if (!Array.isArray(models) || models.length === 0) {
+    return el("p", { class: "text-sm text-slate-500" }, "No models compared.");
+  }
+  const fmt = (v) => {
+    if (typeof v === "number") return Number.isInteger(v) ? String(v) : v.toFixed(2);
+    if (Array.isArray(v)) return v.join(", ");
+    return String(v);
+  };
+  // Preserve insertion order from the first model for stable rows.
+  const statNames = Object.keys(models[0]);
+  const headerCells = [el("th", { class: "text-left px-3 py-2 font-medium text-slate-600" }, "Statistic")];
+  models.forEach((_, i) => {
+    headerCells.push(el("th", { class: "text-left px-3 py-2 font-medium text-slate-600" }, `Model ${i + 1}`));
+  });
+  const rows = statNames.map((name) => {
+    const cells = [el("td", { class: "px-3 py-1.5 align-top text-slate-700 font-mono text-xs" }, name)];
+    models.forEach((m) => {
+      const pair = m[name];
+      const [value] = Array.isArray(pair) ? pair : [pair];
+      cells.push(el("td", { class: "px-3 py-1.5 align-top text-xs font-mono" }, fmt(value)));
+    });
+    return el("tr", { class: "border-t border-slate-100" }, ...cells);
+  });
+  // Show the description for each stat below the table for context.
+  const legend = statNames
+    .map((name) => {
+      const pair = models[0][name];
+      const desc = Array.isArray(pair) ? pair[1] : null;
+      return desc ? `${name}: ${desc}` : null;
+    })
+    .filter(Boolean);
+  return el("div", { class: "space-y-3" },
+    el("div", { class: "overflow-x-auto" },
+      el("table", { class: "min-w-full text-sm border border-slate-200 rounded" },
+        el("thead", { class: "bg-slate-50" }, el("tr", {}, ...headerCells)),
+        el("tbody", {}, ...rows),
+      ),
+    ),
+    legend.length ? el("ul", { class: "text-xs text-slate-500 space-y-0.5 pl-4 list-disc" },
+      ...legend.map((line) => el("li", {}, line))) : null,
+  );
+}
+
+function _showToast(message, kind) {
+  // Brief confirmation that a sync step completed — without it, fast
+  // steps (e.g. ic --simple) look like nothing happened.
+  const palette = kind === "error"
+    ? "bg-rose-50 border-rose-300 text-rose-800"
+    : "bg-emerald-50 border-emerald-300 text-emerald-800";
+  const toast = el("div", {
+    class: `fixed top-4 right-4 ${palette} border rounded shadow-lg px-4 py-2 text-sm z-50`,
+  }, message);
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
 function _actionButton(step, label, className) {
   // Wraps the step action in a button that shows immediate feedback —
   // disables itself, swaps the label for a spinner, then re-renders the
@@ -871,6 +949,8 @@ function _actionButton(step, label, className) {
       // Sync steps return a {ok, status, body} shape from runStep.
       if (result && result.ok === false) {
         _showStepError(result);
+      } else if (result && result.ok === true) {
+        _showToast(`✓ ${step.label} complete`);
       }
     } finally {
       btn.disabled = false;

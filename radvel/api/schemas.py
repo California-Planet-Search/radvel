@@ -377,6 +377,7 @@ class ICCompareRequest(BaseModel):
 
 class ICCompareResult(BaseModel):
     statsdicts: List[Dict[str, Any]]
+    sidecar: Optional[str] = None
 
 
 class TablesRequest(BaseModel):
