@@ -44,6 +44,28 @@ Visit ``/docs`` for live Swagger UI, ``/redoc`` for ReDoc.
    Otherwise the lifespan crashes on the first write with
    ``PermissionError``.
 
+Run from a source checkout
+--------------------------
+
+To build the image from your working tree — useful when you're
+contributing to ``radvel/api/`` or testing an unreleased branch — use
+the bundled ``docker-compose.yml``:
+
+.. code-block:: console
+
+   $ git clone https://github.com/California-Planet-Search/radvel
+   $ cd radvel
+   $ docker compose up --build       # rebuilds on every edit to the source tree
+   $ open http://localhost:8000/ui
+
+The compose file mounts ``./.runs`` into ``/data`` so runs survive
+container restarts, pins ``RADVEL_API_WORKERS=1``, and disables
+``.py`` setup-file upload (``RADVEL_API_ALLOW_PY_UPLOAD=false``). Edit
+``docker-compose.yml`` to flip those for local experimentation.
+
+Rebuild after a code change with ``docker compose up --build -d``;
+``docker compose logs -f radvel-api`` tails the uvicorn output.
+
 JSON setup file
 ---------------
 
