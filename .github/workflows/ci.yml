@@ -64,12 +64,102 @@ jobs:
         pytest radvel --cov=radvel --cov-report=term-missing -v --tb=long
 
     - name: Upload coverage to Coveralls
-      if: matrix.python-version == '3.9'
+      if: matrix.python-version == '3.9' && github.actor != 'dependabot[bot]'
       env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      continue-on-error: true
       run: |
         coverage xml
         coveralls
+
+  api-test:
+    needs: test
+    if: github.event_name != 'release'
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc git pkg-config libhdf5-hl-100 libhdf5-dev
+
+    - name: Install Python dependencies (with [api] extra)
+      run: |
+        python -m pip install --upgrade pip
+        pip install --no-cache-dir -r requirements.txt
+        pip install celerite
+        pip install Cython pybind11 setuptools wheel hatchling
+        pip install -e ".[api,dev-api]" pytest pytest-cov coverage
+
+    - name: Run API integration tests
+      run: |
+        export RADVEL_DATADIR="$GITHUB_WORKSPACE/example_data"
+        python -c "import radvel._kepler; print('C extension _kepler available')"
+        pytest radvel -m api -v --tb=long
+
+  docker-smoke:
+    needs: test
+    if: github.event_name != 'release'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: docker/setup-buildx-action@v3
+
+    - name: Build radvel-api image (load into local docker)
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        load: true
+        tags: radvel-api:smoke
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Boot the container
+      run: |
+        # Use a named docker volume rather than a host bind-mount so the
+        # non-root operator inside the image (uid 10001) can actually
+        # write to /data. Host bind-mounts overlay the chowned /data with
+        # a host-owned dir and the lifespan crashes with EACCES.
+        docker run -d --name rv -p 8000:8000 -v rv-data:/data radvel-api:smoke
+        # Wait for /healthz to come up — fail fast if it never does.
+        for i in $(seq 1 30); do
+          if curl --fail --silent http://localhost:8000/healthz; then echo; break; fi
+          sleep 2
+        done
+        curl --fail --silent http://localhost:8000/healthz
+
+    - name: Verify /ui mounted
+      run: |
+        curl --fail --silent http://localhost:8000/ui | grep -q '<title>RadVel</title>'
+
+    - name: Run end-to-end smoke
+      run: |
+        python radvel/api/tests/scripts/smoke_e2e.py http://localhost:8000
+
+    - name: Container logs (always)
+      if: always()
+      run: docker logs rv || true
+
+    - name: Tear down
+      if: always()
+      run: docker rm -f rv || true
+
+    - name: Image size budget
+      run: |
+        size_mb=$(docker image inspect radvel-api:smoke --format='{{.Size}}' | awk '{print int($1/1024/1024)}')
+        echo "image size: ${size_mb} MiB"
+        if [ "$size_mb" -gt 2048 ]; then
+          echo "FAIL: image size ${size_mb} MiB exceeds 2 GiB budget"
+          exit 1
+        fi
 
   build-wheels:
     needs: test

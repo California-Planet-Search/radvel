@@ -52,6 +52,22 @@ pip install -e .
 
 Documentation is available [here](http://radvel.readthedocs.io/)
 
+## Run as a service (v1.6+)
+
+RadVel 1.6 ships an HTTP service that wraps the entire CLI workflow
+behind a JSON API plus an optional browser UI. Useful for non-Python
+clients, long-running MCMC jobs, and reproducible deployments.
+
+```bash
+docker run --rm -p 8000:8000 -v "$PWD/.runs:/data" \
+    ghcr.io/california-planet-search/radvel-api:1.6
+open http://localhost:8000/ui
+```
+
+See the [service guide](http://radvel.readthedocs.io/en/latest/api_service.html)
+and the [UI walkthrough](http://radvel.readthedocs.io/en/latest/ui_guide.html)
+for details. The same image is what runs in production.
+
 ## Features
 
 With RadVel you can

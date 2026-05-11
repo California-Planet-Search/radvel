@@ -3,7 +3,7 @@ import numpy as np
 import radvel.kepler
 
 
-def timetrans_to_timeperi(tc, per, ecc, omega):
+def timetrans_to_timeperi(tc: float, per: float, ecc: float, omega: float) -> float:
     """
     Convert Time of Transit to Time of Periastron Passage
 
@@ -30,7 +30,7 @@ def timetrans_to_timeperi(tc, per, ecc, omega):
     return tp
 
 
-def timeperi_to_timetrans(tp, per, ecc, omega, secondary=False):
+def timeperi_to_timetrans(tp: float, per: float, ecc: float, omega: float, secondary: bool = False) -> float:
     """
     Convert Time of Periastron to Time of Transit
 
@@ -69,7 +69,7 @@ def timeperi_to_timetrans(tp, per, ecc, omega, secondary=False):
     return tc
 
 
-def true_anomaly(t, tp, per, e):
+def true_anomaly(t: np.ndarray, tp: float, per: float, e: float) -> np.ndarray:
     """
     Calculate the true anomaly for a given time, period, eccentricity.
 

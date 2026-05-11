@@ -45,6 +45,20 @@ dependencies = [
     "tables",
 ]
 
+[project.optional-dependencies]
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+    "python-multipart",
+    "httpx",
+    "aiosqlite",
+]
+dev-api = [
+    "pytest-asyncio>=0.23",
+]
+
 [project.scripts]
 radvel = "radvel.cli:main"
 
@@ -61,6 +75,7 @@ include = ["radvel*"]
 
 [tool.setuptools.package-data]
 radvel = ["_kepler*.so", "_kepler*.pyd"]
+"radvel.api" = ["static/*", "static/**/*"]
 
 [tool.setuptools.data-files]
 "radvel_example_data" = ["example_data/*"]
@@ -70,7 +85,10 @@ testpaths = ["radvel"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --tb=short"
+addopts = "-m 'not api' -v --tb=short"
+markers = [
+    "api: API integration tests; require the [api] extra and run in a separate CI job",
+]
 filterwarnings = [
     "ignore:Jupyter is migrating its paths to use standard platformdirs:DeprecationWarning",
 ]

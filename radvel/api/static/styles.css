@@ -1,0 +1,40 @@
+/* Small overrides on top of Tailwind. */
+
+:root {
+  --rv-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+code, pre, .mono {
+  font-family: var(--rv-mono);
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid #cbd5e1;
+  border-top-color: #2563eb;
+  border-radius: 9999px;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: -3px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.progress-bar {
+  background: linear-gradient(
+    to right,
+    #2563eb var(--pct, 0%),
+    #e2e8f0 var(--pct, 0%)
+  );
+}
