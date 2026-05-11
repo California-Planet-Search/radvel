@@ -90,7 +90,7 @@ class SqExpKernel(Kernel):
     def name(self) -> str:
         return "SqExp"
 
-    def __init__(self, hparams: dict[Parameter]) -> None:
+    def __init__(self, hparams: dict[str, Parameter]) -> None:
         self.covmatrix = None
         self.hparams = {}
         for par in hparams:
@@ -170,7 +170,7 @@ class PerKernel(Kernel):
     def name(self) -> str:
         return "Per"
 
-    def __init__(self, hparams: dict[Parameter]) -> None:
+    def __init__(self, hparams: dict[str, Parameter]) -> None:
         self.covmatrix = None
         self.hparams = {}
         for par in hparams:
@@ -255,7 +255,7 @@ class QuasiPerKernel(Kernel):
     def name(self) -> str:
         return "QuasiPer"
 
-    def __init__(self, hparams: dict[Parameter]) -> None:
+    def __init__(self, hparams: dict[str, Parameter]) -> None:
         self.covmatrix = None
         self.hparams = {}
         for par in hparams:
@@ -395,7 +395,7 @@ class CeleriteKernel(Kernel):
     def name(self) -> str:
         return "Celerite"
 
-    def __init__(self, hparams: dict[Parameter]) -> None:
+    def __init__(self, hparams: dict[str, Parameter]) -> None:
 
         self.hparams = {}
         for par in hparams:
