@@ -3,6 +3,8 @@
 *~
 .*
 docs/_*
+!docs/_templates/
+!docs/_templates/**
 dist
 build
 src/*.o
