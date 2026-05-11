@@ -1,5 +1,5 @@
-numpy==1.24.3
-scipy==1.10.1
+numpy>=1.26
+scipy>=1.11
 matplotlib>=1.5.3
 corner>=2.0
 cython>=0.23
@@ -14,4 +14,3 @@ ipykernel
 pybind11
 sphinx_rtd_theme
 mock
-docutils==0.16
