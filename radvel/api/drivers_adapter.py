@@ -163,12 +163,18 @@ def run_derive(record: RunRecord, *, sampler: str = "auto") -> Dict[str, Any]:
             message="derive completed without producing output (likely missing stellar mass in setup)",
             status_code=409,
         )
-    quantfile = status.get("derive", "quantfile")
-    chainfile = status.get("derive", "chainfile")
+    # driver.derive stores cwd-relative paths in the .stat file; resolve
+    # them against outputdir so reads succeed regardless of the API
+    # process's working directory.
+    def _resolve(p: str) -> Path:
+        candidate = Path(p)
+        return candidate if candidate.is_absolute() else record.outputdir / candidate
+    quantfile = _resolve(status.get("derive", "quantfile"))
+    chainfile = _resolve(status.get("derive", "chainfile"))
     chains = pd.read_csv(chainfile)
     return {
         "columns": list(chains.columns),
-        "quantfile": os.path.basename(quantfile),
+        "quantfile": quantfile.name,
     }
 
 
@@ -196,9 +202,15 @@ def run_ic_compare(record: RunRecord, *, types: List[str], mixed: bool = True,
     # numpy reprs scalars as `np.float64(...)`. The string is produced by
     # driver.ic_compare itself, never user input.
     from collections import OrderedDict
+    # `eval` with explicit `__builtins__: {}` blocks attribute access to
+    # builtins (open, __import__, …) so a tampered .stat file can't
+    # escalate to arbitrary code execution. The grammar we accept is
+    # constrained to literal-only OrderedDict([(key, (value, descr))…])
+    # constructions produced by driver.ic_compare.
     statsdicts = eval(  # noqa: S307
         raw,
-        {"OrderedDict": OrderedDict, "np": np, "numpy": np},
+        {"__builtins__": {}, "OrderedDict": OrderedDict,
+         "np": np, "numpy": np},
     )
     statsdicts = list(statsdicts)
     # JSON sidecar so the UI can render a real table on reload — the stat
