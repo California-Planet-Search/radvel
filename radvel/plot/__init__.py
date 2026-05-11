@@ -1,4 +1,8 @@
+from __future__ import annotations
+
+from matplotlib.axes import Axes
 import numpy as np
+from numpy.typing import NDArray
 import matplotlib
 # matplotlib.use('agg')
 from matplotlib import pyplot as pl
@@ -45,7 +49,16 @@ default_colors = ['orange', 'purple', 'magenta', 'pink', 'green', 'grey', 'red',
 highlight_format = dict(marker='o', ms=16, mfc='none', mew=2, mec='gold', zorder=99)
 
 
-def telplot(x, y, e, tel, ax, lw=1., telfmt={}, rms=0):
+def telplot(
+    x: NDArray[float],
+    y: NDArray[float],
+    e: NDArray[float],
+    tel: NDArray[str],
+    ax: Axes,
+    lw: float =1.,
+    telfmt: dict = {},
+    rms: float = 0
+) -> None:
     """Plot data from from a single telescope
 
     x (array): Either time or phase
@@ -85,7 +98,16 @@ def telplot(x, y, e, tel, ax, lw=1., telfmt={}, rms=0):
     pl.errorbar(x, y, yerr=e, **kw)
 
 
-def mtelplot(x, y, e, tel, ax, lw=1., telfmts={}, **kwargs):
+def mtelplot(
+    x: NDArray[float],
+    y: NDArray[float],
+    e: NDArray[float],
+    tel: NDArray[str],
+    ax: Axes,
+    lw: float =1.,
+    telfmts: dict[str, dict] = {},
+    **kwargs: object
+) -> None:
     """
     Overplot data from from multiple telescopes.
 
@@ -140,7 +162,7 @@ def mtelplot(x, y, e, tel, ax, lw=1., telfmts={}, **kwargs):
         matplotlib.ticker.ScalarFormatter(useOffset=False)
     )
 
-def add_anchored(*args, **kwargs):
+def add_anchored(*args: object, **kwargs: object) -> None:
     """
     Add text at a particular location in the current Axes
 
@@ -163,7 +185,7 @@ def add_anchored(*args, **kwargs):
     ax = pl.gca()
     ax.add_artist(at)
 
-def labelfig(letter):
+def labelfig(letter: int) -> None:
     """
     Add a letter in the top left corner in the current Axes
 

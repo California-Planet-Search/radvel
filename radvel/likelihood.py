@@ -1,16 +1,21 @@
-import numpy as np
-import radvel.model
-from radvel import gp
-from scipy.linalg import cho_factor, cho_solve
+from __future__ import annotations
+
 import warnings
 
+import numpy as np
+from numpy.typing import ArrayLike
+from scipy.linalg import cho_factor, cho_solve
+
+import radvel.model
+from radvel import gp
+from radvel.model import GeneralRVModel, RVModel
 
 _has_celerite = gp._try_celerite()
 if _has_celerite:
     import celerite
 
 
-def custom_formatwarning(msg, *args, **kwargs):
+def custom_formatwarning(msg: str, *args: object, **kwargs: object) -> str:
     # ignore everything except the message
     return str(msg) + '\n'
 
@@ -22,8 +27,16 @@ class Likelihood(object):
     """
     Generic Likelihood
     """
-    def __init__(self, model, x, y, yerr, extra_params=[], decorr_params=[],
-                 decorr_vectors=[]):
+    def __init__(
+        self,
+        model: GeneralRVModel,
+        x: np.ndarray,
+        y: np.ndarray,
+        yerr: np.ndarray,
+        extra_params: list[str] = [],
+        decorr_params: list[str]=[],
+        decorr_vectors: list[ArrayLike]=[]
+    ) -> None:
         self.model = model
         self.vector = model.vector
         self.params = model.params
@@ -49,7 +62,7 @@ class Likelihood(object):
         self.vector.dict_to_vector()
         self.vector.vector_names()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         self.vector.vector_to_dict()
         s = ""
         if self.uparams is None:
@@ -140,7 +153,7 @@ class Likelihood(object):
 
         return s
 
-    def set_vary_params(self, param_values_array, fast=False):
+    def set_vary_params(self, param_values_array: np.ndarray, fast: bool = False) -> None:
         param_values_array = list(param_values_array)
         i = 0
         try:
@@ -157,17 +170,17 @@ class Likelihood(object):
             self.vector.vector_to_dict()
 
 
-    def get_vary_params(self):
+    def get_vary_params(self) -> np.ndarray:
         try:
             return self.vector.vector[self.vary_params][:,0]
         except AttributeError:
             self.list_vary_params()
             return self.vector.vector[self.vary_params][:, 0]
 
-    def list_vary_params(self):
+    def list_vary_params(self) -> None:
         self.vary_params = np.where(self.vector.vector[:,1] == True)[0]
 
-    def name_vary_params(self):
+    def name_vary_params(self) -> list[str]:
         list = []
         try:
             for i in self.vary_params:
@@ -179,21 +192,21 @@ class Likelihood(object):
                 list.append(self.vector.names[i])
             return list
 
-    def residuals(self):
+    def residuals(self) -> np.ndarray:
         return self.y - self.model(self.x)
 
-    def neglogprob(self):
+    def neglogprob(self) -> float:
         return -1.0 * self.logprob()
 
-    def neglogprob_array(self, params_array):
+    def neglogprob_array(self, params_array: np.ndarray) -> float:
         return -self.logprob_array(params_array)
 
-    def logprob_array(self, params_array):
+    def logprob_array(self, params_array: np.ndarray) -> float:
         self.set_vary_params(params_array, fast=True)
         _logprob = self.logprob()
         return _logprob
 
-    def bic(self):
+    def bic(self) -> float:
         """
         Calculate the Bayesian information criterion
         Returns:
@@ -205,7 +218,7 @@ class Likelihood(object):
         _bic = np.log(n) * k - 2.0 * self.logprob()
         return _bic
 
-    def aic(self):
+    def aic(self) -> float:
         """
         Calculate the Aikike information criterion
         The Small Sample AIC (AICC) is returned because for most RV data sets n < 40 * k
@@ -238,7 +251,7 @@ class CompositeLikelihood(Likelihood):
     Args:
         like_list (list): list of `radvel.likelihood.RVLikelihood` objects
     """
-    def __init__(self, like_list):
+    def __init__(self, like_list: list["RVLikelihood"]) -> None:
         self.nlike = len(like_list)
 
         like0 = like_list[0]
@@ -284,7 +297,7 @@ class CompositeLikelihood(Likelihood):
         self.vector = vector
         self.like_list = like_list
 
-    def logprob(self):
+    def logprob(self) -> float:
         """
         See `radvel.likelihood.RVLikelihood.logprob`
         """
@@ -293,7 +306,7 @@ class CompositeLikelihood(Likelihood):
             _logprob += like.logprob()
         return _logprob
 
-    def residuals(self):
+    def residuals(self) -> np.ndarray:
         """
         See `radvel.likelihood.RVLikelihood.residuals`
         """
@@ -304,7 +317,7 @@ class CompositeLikelihood(Likelihood):
 
         return res
 
-    def errorbars(self):
+    def errorbars(self) -> np.ndarray:
         """
         See `radvel.likelihood.RVLikelihood.errorbars`
         """
@@ -326,8 +339,17 @@ class RVLikelihood(Likelihood):
         suffix (string): suffix to identify this Likelihood object
            useful when constructing a `CompositeLikelihood` object.
     """
-    def __init__(self, model, t, vel, errvel, suffix='', decorr_vars=[],
-                 decorr_vectors=[], **kwargs):
+    def __init__(
+        self,
+        model: GeneralRVModel,
+        t: np.ndarray,
+        vel: np.ndarray,
+        errvel: np.ndarray,
+        suffix: str = '',
+        decorr_vars: list[str] = [],
+        decorr_vectors: list[ArrayLike] = [],
+        **kwargs
+    ) -> None:
         self.gamma_param = 'gamma'+suffix
         self.jit_param = 'jit'+suffix
         self.extra_params = [self.gamma_param, self.jit_param]
@@ -352,7 +374,7 @@ class RVLikelihood(Likelihood):
         self.gamma_index = self.vector.indices[self.gamma_param]
         self.jit_index = self.vector.indices[self.jit_param]
 
-    def residuals(self):
+    def residuals(self) -> np.ndarray:
         """Residuals
         Data minus model
         """
@@ -381,7 +403,7 @@ class RVLikelihood(Likelihood):
                     res -= p(vec)
         return res
 
-    def errorbars(self):
+    def errorbars(self) -> np.ndarray:
         """
         Return uncertainties with jitter added
         in quadrature.
@@ -390,7 +412,7 @@ class RVLikelihood(Likelihood):
         """
         return np.sqrt(self.yerr**2 + self.vector.vector[self.jit_index][0]**2)
 
-    def logprob(self):
+    def logprob(self) -> float:
         """
         Return log-likelihood given the data and model.
         Priors are not applied here.
@@ -428,9 +450,17 @@ class GPLikelihood(RVLikelihood):
         suffix (string): suffix to identify this Likelihood object;
            useful when constructing a `CompositeLikelihood` object
     """
-    def __init__(self, model, t, vel, errvel,
-                 hnames=['gp_per', 'gp_perlength', 'gp_explength', 'gp_amp'],
-                 suffix='', kernel_name="QuasiPer", **kwargs):
+    def __init__(
+        self,
+        model: RVModel,
+        t: np.ndarray,
+        vel: np.ndarray,
+        errvel: np.ndarray,
+        hnames: list[str] = ['gp_per', 'gp_perlength', 'gp_explength', 'gp_amp'],
+        suffix: str = '',
+        kernel_name: str = "QuasiPer",
+        **kwargs
+    ) -> None:
 
         self.suffix = suffix
         super(GPLikelihood, self).__init__(
@@ -450,7 +480,7 @@ class GPLikelihood(RVLikelihood):
         self.kernel.compute_distances(self.x, self.x)
         self.N = len(self.x)
 
-    def update_kernel_params(self):
+    def update_kernel_params(self) -> None:
         """ Update the Kernel object with new values of the hyperparameters
         """
         for key in self.vector.indices:
@@ -459,14 +489,14 @@ class GPLikelihood(RVLikelihood):
                 hparams_key = hparams_key[0] + '_' + hparams_key[1]
                 self.kernel.hparams[hparams_key].value = self.vector.vector[self.vector.indices[key]][0]
 
-    def _resids(self):
+    def _resids(self) -> np.ndarray:
         """Residuals for internal GP calculations
         Data minus orbit model. For internal use in GP calculations ONLY.
         """
         res = self.y - self.vector.vector[self.gamma_index][0] - self.model(self.x)
         return res
 
-    def residuals(self):
+    def residuals(self) -> np.ndarray:
         """Residuals
         Data minus (orbit model + predicted mean of GP noise model). For making GP plots.
         """
@@ -474,7 +504,7 @@ class GPLikelihood(RVLikelihood):
         res = self.y - self.vector.vector[self.gamma_index][0] - self.model(self.x) - mu_pred
         return res
 
-    def logprob(self):
+    def logprob(self) -> float:
         """
         Return GP log-likelihood given the data and model.
         log-likelihood is computed using Cholesky decomposition as:
@@ -512,7 +542,7 @@ class GPLikelihood(RVLikelihood):
             warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
             return -np.inf
 
-    def predict(self, xpred):
+    def predict(self, xpred: ArrayLike) -> tuple[np.ndarray, np.ndarray]:
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
             Used for making GP plots.
             Args:
@@ -574,7 +604,7 @@ class CeleriteLikelihood(GPLikelihood):
            useful when constructing a `CompositeLikelihood` object
     """
 
-    def __init__(self, model, t, vel, errvel, hnames, suffix='', **kwargs):
+    def __init__(self, model: RVModel, t: np.ndarray, vel: np.ndarray, errvel: np.ndarray, hnames: list[str], suffix: str = '', **kwargs) -> None:
 
         super(CeleriteLikelihood, self).__init__(
             model, t, vel, errvel, hnames,
@@ -588,7 +618,7 @@ class CeleriteLikelihood(GPLikelihood):
         self.yerr = self.yerr[order]
         self.N = len(self.x)
 
-    def logprob(self):
+    def logprob(self) -> float:
 
         self.update_kernel_params()
 
@@ -604,7 +634,7 @@ class CeleriteLikelihood(GPLikelihood):
             warnings.warn("Non-positive definite kernel detected.", RuntimeWarning)
             return -np.inf
 
-    def predict(self,xpred):
+    def predict(self, xpred: ArrayLike) -> tuple[np.ndarray, np.ndarray]:
         """ Realize the GP using the current values of the hyperparameters at values x=xpred.
             Used for making GP plots. Wrapper for `celerite.GP.predict()`.
             Args:
@@ -651,7 +681,7 @@ class CeleriteLikelihood(GPLikelihood):
         return mu, stdev
 
 
-def loglike_jitter(residuals, sigma, sigma_jit):
+def loglike_jitter(residuals: ArrayLike, sigma: ArrayLike, sigma_jit: float | np.ndarray) -> float:
     """
     Log-likelihood incorporating jitter
     See equation (1) in Howard et al. 2014. Returns loglikelihood, where

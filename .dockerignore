@@ -1,7 +1,13 @@
 .idea
+.git
+.github
 docs
 dist
 build
 radvel.egg-info
+.pytest_cache
+.venv
+.runs
 *.pyc
 *.so
+__pycache__

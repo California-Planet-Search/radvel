@@ -23,9 +23,12 @@ Contents:
    :maxdepth: 2
 
    quickstartcli
+   api_service
+   ui_guide
    autocorrintro
    tutorials
    api
+   changelog
 
 Indices and tables for Python code
 ==================================
