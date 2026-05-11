@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import os
 import shutil
 from typing import Optional
 
 import h5py
 import numpy as np
+from numpy.typing import ArrayLike
 from pandas import DataFrame, read_hdf
 
 
@@ -232,7 +235,7 @@ def _run_multinest(
 
     os.makedirs(output_dir, exist_ok=tmp or overwrite or proceed)
 
-    def loglike(p, ndim, nparams):
+    def loglike(p: ArrayLike, ndim: int, nparams: int) -> float:
         """Log-likelihood for multinest
         Must support ndim and nparams arguments
         and create a list-copy of the object to avoid segfault.
@@ -242,7 +245,7 @@ def _run_multinest(
         p = [p[i] for i in range(ndim)]
         return post.likelihood_ns_array(p)
 
-    def prior_transform(u, ndim, nparams):
+    def prior_transform(u: ArrayLike, ndim: int, nparams: int) -> None:
         """Prior transform for multinest
 
         Multinest requires the prior transform to handle ndim, nparams arguments

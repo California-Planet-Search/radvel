@@ -1,18 +1,26 @@
+from __future__ import annotations
+
 import os
 import sys
 import types
 from decimal import Decimal
+from types import ModuleType
 from contextlib import contextmanager
+from typing import Generator
 import warnings
 
+from pandas import DataFrame
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 from datetime import datetime, timedelta
 from astropy import constants as c
 from astropy import units as u
+from scipy.optimize import root
 
 import radvel
-from scipy.optimize import root
+import radvel.posterior
+from radvel.model import Parameters, Vector, GeneralRVModel
 
 # Normalization.
 # RV m/s of a 1.0 Jupiter mass planet tugging on a 1.0
@@ -20,7 +28,7 @@ from scipy.optimize import root
 K_0 = 28.4329
 
 
-def load_module_from_file(module_name, module_path):
+def load_module_from_file(module_name: str, module_path: str) -> ModuleType:
     """Loads a python module from the path of the corresponding file.
 
     Args:
@@ -49,7 +57,7 @@ def load_module_from_file(module_name, module_path):
     return module
 
 
-def initialize_posterior(config_file, decorr=False):
+def initialize_posterior(config_file: str, decorr: bool = False) -> tuple[ModuleType, radvel.posterior.Posterior]:
     """Initialize Posterior object from a Python setup file.
 
     Parse a setup file and initialize the RVModel, Likelihood, Posterior and priors.
@@ -339,7 +347,7 @@ Converting 'logjit' to 'jit' for you now.
     return P, post
 
 
-def round_sig(x, sig=2):
+def round_sig(x: float, sig: int = 2) -> float:
     """Round by significant figures
     Args:
         x (float): number to be rounded
@@ -353,7 +361,7 @@ def round_sig(x, sig=2):
     return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
 
 
-def sigfig(med, errlow, errhigh=None):
+def sigfig(med: float, errlow: float, errhigh: float | None = None) -> tuple[float, float, float]:
     """
     Format values with errors into an equal number of signficant figures.
 
@@ -391,7 +399,7 @@ def sigfig(med, errlow, errhigh=None):
     return med, errlow, errhigh
 
 
-def time_print(tdiff):
+def time_print(tdiff: float) -> tuple[float, str]:
     """Print time
 
     Helper function to print time remaining in sensible units.
@@ -415,7 +423,9 @@ def time_print(tdiff):
     return tdiff, units
 
 
-def timebin(time, meas, meas_err, binsize):
+def timebin(
+        time: NDArray, meas: NDArray, meas_err: NDArray, binsize: float
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Bin in equal sized time bins
 
     This routine bins a set of times, measurements, and measurement errors
@@ -456,7 +466,9 @@ def timebin(time, meas, meas_err, binsize):
     return time_out, meas_out, meas_err_out
 
 
-def bintels(t, vel, err, telvec, binsize=1/2.):
+def bintels(
+        t: NDArray[float], vel: np.ndarray[float], err: np.ndarray[float], telvec: np.ndarray[str], binsize: float = 1/2.
+) -> tuple[NDArray[float],NDArray[float],NDArray[float],NDArray[str]]:
     """Bin velocities by instrument
 
     Bin RV data with bins of with binsize in the units of t.
@@ -502,7 +514,9 @@ def bintels(t, vel, err, telvec, binsize=1/2.):
     return rvtimes, rvdat, rverr, newtelvec
 
 
-def fastbin(x, y, nbins=30):
+def fastbin(
+        x: NDArray[float], y: NDArray[float], nbins: int = 30
+) -> tuple[NDArray[float], NDArray[float], NDArray[float]]:
     """Fast binning
 
     Fast binning function for equally spaced data
@@ -538,7 +552,7 @@ def fastbin(x, y, nbins=30):
     return bint, bindat, binerr
 
 
-def t_to_phase(params, t, num_planet, cat=False):
+def t_to_phase(params: Parameters, t: NDArray[float], num_planet: int, cat: bool = False) -> NDArray[float]:
     """Time to phase
 
     Convert JD to orbital phase
@@ -566,7 +580,7 @@ def t_to_phase(params, t, num_planet, cat=False):
         phase = np.concatenate((phase, phase+1))
     return phase
 
-def t_to_phase_vector(vector, t, num_planet, cat=False):
+def t_to_phase_vector(vector: Vector, t: NDArray[float], num_planet: int, cat: bool = False) -> NDArray[float]:
 
     synth_params = vector.params.basis.v_to_synth(vector)
 
@@ -579,7 +593,7 @@ def t_to_phase_vector(vector, t, num_planet, cat=False):
     return phase
 
 @contextmanager
-def working_directory(dir):
+def working_directory(dir: str) -> Generator[None, None, None]:
     """Do something in a directory
 
     Function to use with `with` statements.
@@ -599,13 +613,13 @@ def working_directory(dir):
         os.chdir(cwd)
 
 
-def cmd_exists(cmd):
+def cmd_exists(cmd: str) -> bool:
     return any(
         os.access(os.path.join(path, cmd), os.X_OK)
         for path in os.environ["PATH"].split(os.pathsep))
 
 
-def date2jd(date):
+def date2jd(date: datetime) -> float:
     """
     Convert datetime object to JD"
 
@@ -620,7 +634,7 @@ def date2jd(date):
     return jd
 
 
-def jd2date(jd):
+def jd2date(jd: float) -> datetime:
     """
     Convert JD to datetime.datetime object
 
@@ -637,7 +651,7 @@ def jd2date(jd):
     return dt
 
 
-def geterr(vec, angular=False):
+def geterr(vec: NDArray[float], angular: bool = False) -> tuple[float, float, float]:
     """
     Calculate median, 15.9, and 84.1 percentile values
     for a given vector.
@@ -674,7 +688,7 @@ def geterr(vec, angular=False):
 
     return med, errlow, errhigh
 
-def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
+def semi_amplitude(Msini: float, P: float, Mtotal: float, e: float, Msini_units: str = 'jupiter') -> float:
     """Compute Doppler semi-amplitude
 
     Args:
@@ -708,7 +722,7 @@ def semi_amplitude(Msini, P, Mtotal, e, Msini_units='jupiter'):
 
     return K
 
-def semi_major_axis(P, Mtotal):
+def semi_major_axis(P: float, Mtotal: float) -> float:
     """Semi-major axis
 
     Kepler's third law
@@ -735,7 +749,13 @@ def semi_major_axis(P, Mtotal):
     return a
 
 
-def Msini(K, P, Mstar, e, Msini_units='earth'):
+def Msini(
+    K: float | NDArray[float],
+    P: float | NDArray[float],
+    Mstar: float | NDArray[float],
+    e: float | NDArray[float],
+    Msini_units: str = 'earth'
+) -> float | NDArray[float]:
     """Calculate Msini
 
     Calculate Msini for a given K, P, stellar mass, and e
@@ -785,7 +805,7 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
             assert K.size == P.size == Mstar.size == e.size, "All input arrays must have the same length."
             n_elements = len(P)
         for i in range(n_elements):
-            def func(x):
+            def func(x: float) -> float:
                 try:
                     return x - a[i]*((Mstar[i]+x)**(2/3.))
                 except IndexError:
@@ -807,7 +827,7 @@ def Msini(K, P, Mstar, e, Msini_units='earth'):
     return Msini
 
 
-def density(mass, radius, MR_units='earth'):
+def density(mass: float, radius: float, MR_units: str = 'earth') -> float:
     """Compute density from mass and radius
 
     Args:
@@ -836,7 +856,9 @@ def density(mass, radius, MR_units='earth'):
     return rho
 
 
-def draw_models_from_chain(mod, chain, t, nsamples=50):
+def draw_models_from_chain(
+        mod: GeneralRVModel, chain: DataFrame, t: NDArray[float], nsamples: int = 50
+) -> NDArray[float]:
     """Draw Models from Chain
 
     Given an MCMC chain of parameters, draw representative parameters
