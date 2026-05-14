@@ -1,6 +1,18 @@
 Changelog
 =========
 
+1.6.1 (2026-05-14)
+------------------
+
+- Re-cut release. The v1.6.0 release tag exists on GitHub and GHCR
+  (``ghcr.io/california-planet-search/radvel-api:1.6.0``) but never
+  reached PyPI because the ``build-wheels (macos-13)`` job sat queued
+  for 19+ hours on GitHub's effectively-unavailable Intel macOS
+  runners. v1.6.1 drops ``macos-13`` from the matrix and
+  cross-compiles x86_64 macOS wheels from the ``macos-14`` ARM
+  runner via cibuildwheel's ``CIBW_ARCHS_MACOS=arm64 x86_64`` — same
+  wheel coverage, no dependence on Intel runners.
+
 1.6.0 (2026-05-11)
 ------------------
 
