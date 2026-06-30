@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # the validator below splits PATH-style (colon-separated) strings.
     data_allowlist: Annotated[List[Path], NoDecode] = Field(default_factory=list)
     log_level: str = "INFO"
+    # When set, all non-health requests must carry this value in the
+    # ``X-API-Key`` header.  Leave unset (the default) to rely on
+    # network-level access control (e.g. localhost-only binding).
+    auth_key: Optional[str] = Field(default=None)
 
     @field_validator("data_allowlist", mode="before")
     @classmethod

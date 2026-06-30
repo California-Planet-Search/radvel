@@ -14,8 +14,11 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import secrets
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 import radvel as _radvel
 from radvel.api.config import get_settings
@@ -24,6 +27,29 @@ from radvel.api.routers import files, health, jobs, pipeline, runs, ui
 
 
 log = logging.getLogger("radvel.api")
+
+# Paths that bypass API key auth so health monitoring always works.
+_AUTH_EXEMPT = frozenset({"/healthz", "/version"})
+
+
+class _APIKeyMiddleware(BaseHTTPMiddleware):
+    """Require ``X-API-Key: <key>`` on every non-exempt request when
+    ``RADVEL_API_KEY`` is configured.  When the env var is unset the
+    middleware is a no-op, leaving network-level controls (e.g.
+    localhost-only binding) as the sole access gate.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        settings = get_settings()
+        if not settings.auth_key or request.url.path in _AUTH_EXEMPT:
+            return await call_next(request)
+        provided = request.headers.get("X-API-Key", "")
+        if not secrets.compare_digest(provided, settings.auth_key):
+            return JSONResponse(
+                {"detail": "Invalid or missing API key"},
+                status_code=401,
+            )
+        return await call_next(request)
 
 
 @contextlib.asynccontextmanager
@@ -72,6 +98,8 @@ def create_app() -> FastAPI:
         ),
         lifespan=lifespan,
     )
+
+    app.add_middleware(_APIKeyMiddleware)
 
     app.include_router(health.router)
     app.include_router(runs.router)
