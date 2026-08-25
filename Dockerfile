@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # RadVel HTTP API — single fat image bundling TeX Live so /report works.
 #
 # Build:
@@ -85,13 +86,17 @@ RUN useradd --system --uid 10001 --gid root --no-create-home radvel \
  && mkdir -p /data /usr/local/share/radvel \
  && chown -R radvel:root /data /usr/local/share/radvel
 
-COPY --from=builder /wheels /wheels
-RUN pip install --no-index --find-links=/wheels \
+# The wheels are bind-mounted from the builder stage rather than COPYed in. A
+# COPY commits them to their own layer, and the `rm -rf` that used to follow
+# could only write a whiteout on top of that layer -- it cannot remove a layer
+# that is already committed, so the wheels shipped in every pull. A bind mount
+# is never committed to a layer, so there is nothing left to remove.
+RUN --mount=type=bind,from=builder,source=/wheels,target=/wheels \
+    pip install --no-index --find-links=/wheels \
         radvel \
         celerite \
         fastapi "uvicorn[standard]" pydantic pydantic-settings \
-        python-multipart httpx aiosqlite \
- && rm -rf /wheels
+        python-multipart httpx aiosqlite
 
 # Bundle the example datasets so air-gapped installs still have inputs.
 COPY --chown=radvel:root example_data /usr/local/share/radvel/example_data
