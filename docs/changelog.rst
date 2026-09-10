@@ -1,6 +1,26 @@
 Changelog
 =========
 
+1.6.3 (2026-09-10)
+------------------
+
+- Re-cut release. The v1.6.2 tag exists on GitHub but never reached
+  PyPI: the ``build-wheels (ubuntu-latest)`` job failed, so the
+  ``publish`` job was skipped. NumPy 2.5.3 stopped shipping
+  glibc-2.17 wheels for CPython 3.12 and 3.13 (it now ships
+  ``manylinux_2_27``/``manylinux_2_28`` only), and the Linux wheels
+  are built in the ``manylinux2014`` image, which is glibc 2.17. pip
+  could not use those wheels, fell back to the NumPy sdist, and the
+  source build failed with ``NumPy requires GCC >= 10.3``.
+- The build-time NumPy is now pinned to ``numpy<2.3``, which still
+  publishes ``manylinux_2_17`` wheels across the whole build matrix
+  (2.2.6 for CPython 3.11 through 3.13, 2.0.2 for 3.9). Building an
+  extension against an older NumPy 2.x is safe at runtime: the
+  NumPy 2 C ABI is forward compatible, so the wheels keep working
+  with newer NumPy at import time. Pinning here rather than moving
+  the builder to ``manylinux_2_28`` keeps publishing Linux wheels
+  usable on older cluster operating systems such as CentOS 7.
+
 1.6.2 (2026-09-10)
 ------------------
 
