@@ -1,6 +1,18 @@
 Changelog
 =========
 
+1.6.2 (2026-09-10)
+------------------
+
+- Docker image no longer ships the build-stage wheels. They were
+  copied into their own layer with ``COPY``, so the ``rm -rf /wheels``
+  that followed could only write a whiteout on top of a layer that
+  was already committed, and every pull carried them. The wheels are
+  now bind-mounted from the builder stage with
+  ``RUN --mount=type=bind``, which is never committed to a layer, so
+  there is nothing left to remove.
+- Docs build pins ``mistune==3.3.3``.
+
 1.6.1 (2026-05-14)
 ------------------
 
