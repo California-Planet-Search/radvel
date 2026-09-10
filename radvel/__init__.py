@@ -2,6 +2,7 @@ from __future__ import absolute_import, annotations
 
 # turn off numpy multithreading
 import os
+import sys
 os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['NUMEXPR_NUM_THREADS'] = '1'
 os.environ['OMP_NUM_THREADS'] = '1'
