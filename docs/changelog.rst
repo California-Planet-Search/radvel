@@ -1,6 +1,23 @@
 Changelog
 =========
 
+1.6.4 (2026-09-10)
+------------------
+
+- Re-cut release. The v1.6.3 tag exists on GitHub but never reached PyPI,
+  failing the same way v1.6.2 did. The ``numpy<2.3`` pin added in 1.6.3
+  was placed in ``CIBW_BEFORE_BUILD``, which installs into cibuildwheel's
+  outer environment. ``pip wheel`` then builds under PEP 517 isolation: it
+  creates a fresh environment and reinstalls the ``[build-system]
+  requires`` list from ``pyproject.toml`` from scratch, so the pin was
+  never present in the environment that actually performed the build and
+  an unpinned NumPy 2.5.3 was source-built again.
+- The pin now lives in ``[build-system] requires`` in ``pyproject.toml``,
+  which is the list build isolation reads. It carries a
+  ``python_version < '3.14'`` marker so that a flat pin does not make
+  radvel unbuildable from source on Python versions that ``numpy<2.3``
+  does not support; ``requires-python`` has no upper bound.
+
 1.6.3 (2026-09-10)
 ------------------
 

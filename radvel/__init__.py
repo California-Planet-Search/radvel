@@ -30,7 +30,7 @@ def _custom_warningfmt(msg: str, *a: object, **b: object) -> str:
 __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp', 'nested_sampling']
 
-__version__ = '1.6.3'
+__version__ = '1.6.4'
 __package__ = __path__[0]
 
 MODULEDIR, filename = os.path.split(__file__)
