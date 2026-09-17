@@ -3,8 +3,15 @@
 from __future__ import annotations
 
 import pytest
-from fastapi.testclient import TestClient
 
+# These need the [api] extra and run in the separate `api-test` CI job.
+#
+# The marker alone is not enough: pytest has to IMPORT a module before it can
+# read `pytestmark`, so a module-level `from fastapi... import ...` fails at
+# COLLECTION in the base `test` matrix, which installs no extras — the marker
+# never gets a chance to deselect it, and a collection error aborts the whole
+# run. Hence the fastapi import below sits inside the fixture body, which is
+# what conftest.py's `client` fixture and test_job_recovery.py already do.
 pytestmark = pytest.mark.api
 
 _KEY = "test-secret-key"
@@ -14,6 +21,8 @@ _KEY = "test-secret-key"
 def authed_client(settings_env, monkeypatch):
     """TestClient with RADVEL_API_AUTH_KEY configured."""
     monkeypatch.setenv("RADVEL_API_AUTH_KEY", _KEY)
+    from fastapi.testclient import TestClient
+
     from radvel.api.config import get_settings
     get_settings.cache_clear()
     from radvel.api.main import create_app
