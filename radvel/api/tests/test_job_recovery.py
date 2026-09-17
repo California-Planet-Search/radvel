@@ -13,17 +13,23 @@ import os
 
 import pytest
 
-from radvel.api.config import get_settings
-from radvel.api.jobs import JobRegistry
 
-# Same as every other module under radvel/api/tests: these need the [api]
-# extra (pydantic, pydantic-settings) and run in the separate `api-test` CI
-# job. Without the marker the base `test` matrix collects this file and dies
-# at import on all four Python versions, because that job installs no extras.
+# These need the [api] extra and run in the separate `api-test` CI job.
+#
+# The marker alone is not enough: pytest has to IMPORT a module before it can
+# read `pytestmark`, so a module-level `from radvel.api... import ...` fails at
+# COLLECTION in the base `test` matrix, which installs no extras — the marker
+# never gets a chance to deselect it. Hence every radvel.api import below sits
+# inside a function, which is exactly what conftest.py and the other API test
+# modules already do (conftest imports get_settings inside the fixture body,
+# and test_mcmc_async.py imports only `time` and `pytest` at module level).
 pytestmark = pytest.mark.api
 
 
-def _registry(settings_env) -> JobRegistry:
+def _registry(settings_env):
+    from radvel.api.config import get_settings
+    from radvel.api.jobs import JobRegistry
+
     return JobRegistry(settings=get_settings())
 
 
