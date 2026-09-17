@@ -39,6 +39,16 @@ Changelog
   /home/radvel/.config/matplotlib`` on every start and fell back to
   ``/tmp``. Functionally harmless, but it is the first thing an outage
   investigation finds and it cost real time before being ruled out.
+- **Optional API key authentication for the HTTP service.** Setting
+  ``RADVEL_API_AUTH_KEY`` makes every request other than ``/healthz``
+  and ``/version`` require a matching ``X-API-Key`` header. Leaving it
+  unset keeps the middleware a no-op, so deployments that rely on
+  network-level controls — a localhost-only bind, or a host firewall —
+  need no configuration change. Keys are compared with
+  ``secrets.compare_digest``, so a wrong key takes the same time to
+  reject however many leading bytes happen to be correct. The two health
+  paths stay exempt so monitoring keeps working against an authenticated
+  service.
 
 1.6.4 (2026-09-10)
 ------------------
