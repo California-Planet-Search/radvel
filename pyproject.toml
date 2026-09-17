@@ -1,5 +1,16 @@
 [build-system]
-requires = ["setuptools>=64", "wheel", "Cython", "numpy"]
+requires = [
+    "setuptools>=64",
+    "wheel",
+    "Cython",
+    # Build against an older NumPy 2.x. The manylinux2014 image used for the
+    # Linux wheels is glibc 2.17, and NumPy stopped shipping glibc-2.17 wheels
+    # at 2.3, so an unpinned NumPy here is source-built and fails on that
+    # image's GCC. The NumPy 2 C ABI is forward compatible, so an extension
+    # built against 2.2 keeps working with newer NumPy at runtime.
+    "numpy<2.3; python_version < '3.14'",
+    "numpy; python_version >= '3.14'",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
