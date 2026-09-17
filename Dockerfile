@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # RadVel HTTP API — single fat image bundling TeX Live so /report works.
 #
 # Build:
@@ -81,17 +82,28 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root operator. /data is the only writable mount.
+# `--no-create-home` with HOME still set to /home/radvel left the service
+# user without a writable home, so anything that caches there failed on
+# first use -- matplotlib logged `mkdir -p failed for path
+# /home/radvel/.config/matplotlib` on every start and fell back to /tmp.
+# Harmless in itself, but it is noise in the logs that sent an outage
+# investigation down a false path, so give the user the home it is told
+# it has.
 RUN useradd --system --uid 10001 --gid root --no-create-home radvel \
- && mkdir -p /data /usr/local/share/radvel \
- && chown -R radvel:root /data /usr/local/share/radvel
+ && mkdir -p /data /usr/local/share/radvel /home/radvel \
+ && chown -R radvel:root /data /usr/local/share/radvel /home/radvel
 
-COPY --from=builder /wheels /wheels
-RUN pip install --no-index --find-links=/wheels \
+# The wheels are bind-mounted from the builder stage rather than COPYed in. A
+# COPY commits them to their own layer, and the `rm -rf` that used to follow
+# could only write a whiteout on top of that layer -- it cannot remove a layer
+# that is already committed, so the wheels shipped in every pull. A bind mount
+# is never committed to a layer, so there is nothing left to remove.
+RUN --mount=type=bind,from=builder,source=/wheels,target=/wheels \
+    pip install --no-index --find-links=/wheels \
         radvel \
         celerite \
         fastapi "uvicorn[standard]" pydantic pydantic-settings \
-        python-multipart httpx aiosqlite \
- && rm -rf /wheels
+        python-multipart httpx aiosqlite
 
 # Bundle the example datasets so air-gapped installs still have inputs.
 COPY --chown=radvel:root example_data /usr/local/share/radvel/example_data
@@ -101,9 +113,23 @@ WORKDIR /data
 VOLUME ["/data"]
 EXPOSE 8000
 
+# `/healthz` already imports `radvel._kepler` in-process and reports the
+# result as `kepler_c`, so the old second clause (`python -c "import
+# radvel._kepler"`) re-answered a question the endpoint had just answered --
+# at the cost of starting a fresh interpreter and importing a compiled
+# extension inside the 5s budget, on a box that may be running several MCMC
+# fits. That is what pushed the check past its timeout: the recorded output
+# showed a valid `{"status": "ok", "kepler_c": true, ...}` AND a failure, with
+# a failing streak in the thousands. A permanently-unhealthy container is
+# worse than none, because nobody can tell "always been like that" from "just
+# broke" -- it is why a two-week outage went unnoticed.
+#
+# Grepping the payload keeps the same assertion (the extension is importable)
+# with no interpreter start-up: `status` is "degraded", not an error code,
+# when it is missing, so `curl --fail` alone would not catch it.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD curl --fail --silent --show-error http://127.0.0.1:8000/healthz \
-        && python -c "import radvel._kepler" \
+        | grep -q '"kepler_c":true' \
         || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]

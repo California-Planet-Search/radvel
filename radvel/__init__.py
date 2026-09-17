@@ -2,6 +2,7 @@ from __future__ import absolute_import, annotations
 
 # turn off numpy multithreading
 import os
+import sys
 os.environ['MKL_NUM_THREADS'] = '1'
 os.environ['NUMEXPR_NUM_THREADS'] = '1'
 os.environ['OMP_NUM_THREADS'] = '1'
@@ -29,7 +30,7 @@ def _custom_warningfmt(msg: str, *a: object, **b: object) -> str:
 __all__ = ['model', 'likelihood', 'posterior', 'mcmc', 'prior', 'utils',
          'fitting', 'report', 'cli', 'driver', 'gp', 'nested_sampling']
 
-__version__ = '1.6.1'
+__version__ = '1.6.5'
 __package__ = __path__[0]
 
 MODULEDIR, filename = os.path.split(__file__)
