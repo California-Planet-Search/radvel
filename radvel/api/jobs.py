@@ -226,18 +226,48 @@ class JobRegistry:
             )
 
     def reconcile_orphaned(self) -> int:
-        """At startup, mark `running` rows whose pid is gone as `failed`.
+        """At startup, fail rows a previous process left mid-flight.
 
-        Survives container restarts: a job whose worker process died while
-        the host was offline is repaired with a clear error so clients
-        polling ``GET /jobs/{id}`` see the correct terminal state instead
-        of forever-running.
+        Two states strand, not one, and the second is the one that hurt:
+
+        ``running`` — the worker process died while the host was offline.
+        Repaired with a clear error so clients polling ``GET /jobs/{id}``
+        see a terminal state instead of forever-running.
+
+        ``queued`` — the row was inserted by :meth:`JobRunner.submit` but
+        the process died before (or instead of) the executor picking it
+        up. It has no pid, so it is not ``running``, and the in-memory
+        ``ProcessPoolExecutor`` only ever knows jobs submitted during its
+        own process's life — so nothing will ever dispatch it. Left
+        unhandled these sit at ``queued`` forever while every client
+        blocks on a long read and reports a timeout, which is
+        indistinguishable from a slow fit.
+
+        That is not hypothetical: three MCMC jobs sat queued from
+        2026-09-10 to 2026-09-16 behind exactly this gap, and a container
+        restart did not rescue them because this method only looked at
+        ``running``.
+
+        Failing them (rather than re-dispatching) is deliberate: an
+        unattended restart that silently starts N queued MCMC fits is a
+        thundering herd on a shared box, and the caller has the context
+        to decide whether the fit is still wanted.
         """
         repaired = 0
         with self._connect() as conn:
             rows = conn.execute(
                 "SELECT job_id, pid, host FROM jobs WHERE state='running'"
             ).fetchall()
+            stranded = conn.execute(
+                "SELECT job_id FROM jobs WHERE state='queued'"
+            ).fetchall()
+        for row in stranded:
+            self.mark_finished(
+                row["job_id"], state="failed",
+                error="queued but never started (the service restarted "
+                      "before it was dispatched); resubmit if still wanted",
+            )
+            repaired += 1
         host = os.uname().nodename if hasattr(os, "uname") else ""
         for row in rows:
             pid = row["pid"]
