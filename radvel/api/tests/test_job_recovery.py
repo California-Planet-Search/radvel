@@ -11,8 +11,16 @@ from __future__ import annotations
 
 import os
 
+import pytest
+
 from radvel.api.config import get_settings
 from radvel.api.jobs import JobRegistry
+
+# Same as every other module under radvel/api/tests: these need the [api]
+# extra (pydantic, pydantic-settings) and run in the separate `api-test` CI
+# job. Without the marker the base `test` matrix collects this file and dies
+# at import on all four Python versions, because that job installs no extras.
+pytestmark = pytest.mark.api
 
 
 def _registry(settings_env) -> JobRegistry:
