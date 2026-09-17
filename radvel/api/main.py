@@ -34,7 +34,7 @@ _AUTH_EXEMPT = frozenset({"/healthz", "/version"})
 
 class _APIKeyMiddleware(BaseHTTPMiddleware):
     """Require ``X-API-Key: <key>`` on every non-exempt request when
-    ``RADVEL_API_KEY`` is configured.  When the env var is unset the
+    ``RADVEL_API_AUTH_KEY`` is configured.  When the env var is unset the
     middleware is a no-op, leaving network-level controls (e.g.
     localhost-only binding) as the sole access gate.
     """
