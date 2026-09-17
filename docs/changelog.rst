@@ -1,6 +1,45 @@
 Changelog
 =========
 
+1.6.5 (2026-09-17)
+------------------
+
+- **A queued job is no longer stranded when the API process dies.**
+  ``JobRegistry.reconcile_orphaned()`` repaired rows left in ``running``
+  whose worker pid was gone, but never looked at ``queued``.
+  ``JobRunner.submit()`` inserts the row and *then* hands the work to the
+  ``ProcessPoolExecutor``: if the process dies in between, the row keeps
+  ``state='queued'`` with no pid, so it is not ``running`` and reconcile
+  skipped it — while the executor only ever knows jobs submitted during
+  its own process's life, so nothing would dispatch it again. Three MCMC
+  jobs sat queued for six days behind this gap and a container recreate
+  did not rescue them; every client meanwhile blocked for its full read
+  timeout, which is indistinguishable from a slow fit. Such rows now
+  reach ``failed`` with an error telling the caller to resubmit.
+  Failing rather than re-dispatching is deliberate: an unattended restart
+  that silently starts N queued MCMC fits is a thundering herd on a
+  shared host, and the caller has the context to decide whether the fit
+  is still wanted.
+- **The container health check can pass again.** It ran ``python -c
+  "import radvel._kepler"`` as a second clause, starting a fresh
+  interpreter and importing a compiled extension inside a 5-second
+  budget on a host that may be running several MCMC fits. ``/healthz``
+  already imports that extension in-process and reports it as
+  ``kepler_c``, so the clause re-answered a question the endpoint had
+  just answered. The check timed out permanently — a failing streak over
+  2200 while the service was healthy — and a container that is always
+  unhealthy carries no signal, which is why the queue outage above went
+  unnoticed for a fortnight. The check now greps the payload the
+  endpoint already returns: same assertion, no interpreter start-up.
+  ``curl --fail`` alone would not do, because a missing extension
+  returns 200 with ``status: "degraded"``.
+- **The service user has the home directory it is told it has.**
+  ``useradd --no-create-home`` left ``$HOME=/home/radvel`` pointing at
+  nothing, so matplotlib logged ``mkdir -p failed for path
+  /home/radvel/.config/matplotlib`` on every start and fell back to
+  ``/tmp``. Functionally harmless, but it is the first thing an outage
+  investigation finds and it cost real time before being ruled out.
+
 1.6.4 (2026-09-10)
 ------------------
 
