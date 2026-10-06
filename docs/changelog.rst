@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Unreleased
-----------
+1.6.6 (2026-10-06)
+------------------
 
 - **Other packages can add job kinds to the HTTP service.**
   ``radvel.api.extensions`` is the public surface: ``register_job_kind``,
