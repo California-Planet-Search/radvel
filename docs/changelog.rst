@@ -4,6 +4,28 @@ Changelog
 Unreleased
 ----------
 
+- **One failed job no longer stops every later MCMC/NS job.** A worker
+  that failed re-raised its exception to the parent process.
+  ``AdapterError`` is a dataclass, so ``Exception.args`` is empty and
+  pickle rebuilds it by calling ``AdapterError()`` with no arguments,
+  which fails; ``concurrent.futures`` answers a result it cannot read by
+  marking the whole ``ProcessPoolExecutor`` broken, and a broken pool
+  never recovers. In production one fit that hit a NaN on 2026-09-30 was
+  followed by six days of ``500 Internal Server Error`` on every
+  ``POST /runs/{id}/mcmc`` (``BrokenProcessPool: A child process
+  terminated abruptly``) while ``/healthz`` reported ``ok``. Three
+  changes:
+
+  - the worker now raises a plain ``RuntimeError`` carrying the original
+    type and message, so nothing a driver raises can break the pool (the
+    job row already holds the full traceback);
+  - ``AdapterError`` defines ``__reduce__`` and survives pickling;
+  - ``JobRunner.submit()`` replaces a pool that really is broken (a
+    worker killed by the OOM killer or by a cancel's SIGTERM) and runs
+    the job, instead of answering 500 until the next restart. A job that
+    was still waiting in the pool when it broke is marked ``failed`` with
+    an error saying to resubmit, not left ``queued``.
+
 - **The MAP fit is saved as a readable CSV, at full precision.**
   ``radvel fit`` writes ``<run>_map_params.csv`` beside the posterior
   pickle: one row per parameter in the fitting basis (``param``,

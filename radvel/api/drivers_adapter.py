@@ -45,6 +45,14 @@ class AdapterError(Exception):
     status_code: int = 500
     traceback_id: Optional[str] = None
 
+    def __reduce__(self):
+        # The dataclass __init__ leaves Exception.args empty, so the default
+        # pickle calls AdapterError() with no arguments and fails.
+        return (
+            type(self),
+            (self.error_type, self.message, self.status_code, self.traceback_id),
+        )
+
 
 def _build_args(record: RunRecord, **extra: Any) -> argparse.Namespace:
     """Build an argparse namespace mirroring the CLI subcommand."""

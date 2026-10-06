@@ -30,6 +30,7 @@ import signal
 import sqlite3
 import threading
 from concurrent.futures import ProcessPoolExecutor, Future
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -356,13 +357,28 @@ class JobRunner:
         the worker runs.
         """
         row = self.registry.submit(run_id, kind, params)
-        future = self.pool.submit(_worker_entrypoint, worker, row.job_id,
-                                  run_id, json.dumps(params),
-                                  str(self.registry.db_path))
+        args = (_worker_entrypoint, worker, row.job_id, run_id,
+                json.dumps(params), str(self.registry.db_path))
+        try:
+            future = self.pool.submit(*args)
+        except BrokenProcessPool:
+            # A ProcessPoolExecutor never recovers once a worker has died
+            # (OOM kill, a cancel's SIGTERM): every later submit raises
+            # this, for the life of the process. Replace it and carry on.
+            self._replace_pool()
+            future = self.pool.submit(*args)
         future.add_done_callback(lambda f, jid=row.job_id: self._on_done(jid, f))
         with self._lock:
             self._futures[row.job_id] = future
         return row
+
+    def _replace_pool(self) -> None:
+        with self._lock:
+            broken = self.pool
+            self.pool = ProcessPoolExecutor(
+                max_workers=self.registry.settings.workers
+            )
+        broken.shutdown(wait=False, cancel_futures=True)
 
     def cancel(self, job_id: str) -> JobRow:
         """Issue SIGTERM to the running worker. Idempotent."""
@@ -396,6 +412,15 @@ class JobRunner:
                     self.registry.mark_finished(
                         job_id, state="failed", error=repr(exc)
                     )
+                elif row.state == "queued":
+                    # Still waiting in the pool when the pool broke: no
+                    # worker will ever take it.
+                    self.registry.mark_finished(
+                        job_id, state="failed",
+                        error="queued but never started (the worker pool "
+                              "broke before it was dispatched); resubmit "
+                              "if still wanted",
+                    )
             except JobNotFound:
                 pass
 
@@ -423,6 +448,11 @@ def _worker_entrypoint(worker: Worker, job_id: str, run_id: str,
             error=("{}: {}\n{}".format(type(exc).__name__, exc,
                                        _tb.format_exc()))[:8000]
         )
-        raise
+        # Not a bare `raise`: the parent must unpickle whatever leaves this
+        # process, and an exception it cannot rebuild breaks the whole pool
+        # for every later job. The row above already holds the real error.
+        raise RuntimeError(
+            "{}: {}".format(type(exc).__name__, exc)
+        ) from None
     sub_registry.mark_finished(job_id, state="succeeded")
     return result
