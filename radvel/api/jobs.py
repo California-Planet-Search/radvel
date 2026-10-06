@@ -1,7 +1,7 @@
 """SQLite-backed job registry + ProcessPoolExecutor for long-running ops.
 
-A *job* is one execution of a long-running pipeline step (``mcmc`` or
-``ns``) for a specific run. The state machine is:
+A *job* is one execution of a long-running pipeline step (``mcmc``,
+``ns``, or a kind registered by an extension package) for a specific run. The state machine is:
 
 ::
 
@@ -57,6 +57,27 @@ CREATE TABLE IF NOT EXISTS jobs (
 CREATE INDEX IF NOT EXISTS jobs_run_id_idx ON jobs(run_id);
 CREATE INDEX IF NOT EXISTS jobs_state_idx  ON jobs(state);
 """
+
+
+# Job kinds the registry accepts. Extension packages (e.g. rvsearch) add
+# their own via :func:`register_job_kind` before submitting.
+JOB_KINDS = {"mcmc", "ns"}
+
+
+def register_job_kind(kind: str) -> None:
+    """Allow ``kind`` in :meth:`JobRegistry.submit`. Idempotent."""
+    if not kind or not kind.replace("_", "").isalnum():
+        raise ValueError("job kind must be alphanumeric/underscore; got {!r}".format(kind))
+    JOB_KINDS.add(kind)
+
+
+def progress_filename(kind: str) -> str:
+    """Name of the per-run progress snapshot that ``GET /jobs/{id}`` reads.
+
+    ``mcmc`` and ``ns`` share ``mcmc_progress.json`` (historical name);
+    registered kinds get ``<kind>_progress.json``.
+    """
+    return "mcmc_progress.json" if kind in ("mcmc", "ns") else "{}_progress.json".format(kind)
 
 
 def make_job_id() -> str:
@@ -134,8 +155,9 @@ class JobRegistry:
         return conn
 
     def submit(self, run_id: str, kind: str, params: Dict[str, Any]) -> JobRow:
-        if kind not in {"mcmc", "ns"}:
-            raise ValueError("kind must be 'mcmc' or 'ns'; got {!r}".format(kind))
+        if kind not in JOB_KINDS:
+            raise ValueError("unknown job kind {!r}; known: {}".format(
+                kind, sorted(JOB_KINDS)))
         job_id = make_job_id()
         now = _now()
         # The active-job check and the INSERT live in the same locked
