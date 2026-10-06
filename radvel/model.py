@@ -249,7 +249,7 @@ class Vector(object):
                 extra_ind = self.indices[extra_param]
                 assert names[extra_ind] == 0, f"No index available for {extra_param} parameter. Please report this."
                 names[extra_ind] = extra_param
-        self.names = [i for i in names if type(i) == str]
+        self.names = [i for i in names if isinstance(i, str)]  # np.str_ subclasses str
 
     def vector_to_dict(self) -> None:
         for key in self.params.keys():
