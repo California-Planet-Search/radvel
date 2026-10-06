@@ -22,7 +22,8 @@ from radvel import basis as _basis
 
 JOB_STATES = ("queued", "running", "succeeded", "failed", "cancelled")
 JobState = Literal["queued", "running", "succeeded", "failed", "cancelled"]
-JobKind = Literal["mcmc", "ns"]
+# "mcmc", "ns", or a kind registered via radvel.api.jobs.register_job_kind.
+JobKind = str
 
 
 class ParameterIn(BaseModel):

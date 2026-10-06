@@ -1,7 +1,7 @@
 """SQLite-backed job registry + ProcessPoolExecutor for long-running ops.
 
-A *job* is one execution of a long-running pipeline step (``mcmc`` or
-``ns``) for a specific run. The state machine is:
+A *job* is one execution of a long-running pipeline step (``mcmc``,
+``ns``, or a kind registered by an extension package) for a specific run. The state machine is:
 
 ::
 
@@ -30,6 +30,7 @@ import signal
 import sqlite3
 import threading
 from concurrent.futures import ProcessPoolExecutor, Future
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -56,6 +57,27 @@ CREATE TABLE IF NOT EXISTS jobs (
 CREATE INDEX IF NOT EXISTS jobs_run_id_idx ON jobs(run_id);
 CREATE INDEX IF NOT EXISTS jobs_state_idx  ON jobs(state);
 """
+
+
+# Job kinds the registry accepts. Extension packages (e.g. rvsearch) add
+# their own via :func:`register_job_kind` before submitting.
+JOB_KINDS = {"mcmc", "ns"}
+
+
+def register_job_kind(kind: str) -> None:
+    """Allow ``kind`` in :meth:`JobRegistry.submit`. Idempotent."""
+    if not kind or not kind.replace("_", "").isalnum():
+        raise ValueError("job kind must be alphanumeric/underscore; got {!r}".format(kind))
+    JOB_KINDS.add(kind)
+
+
+def progress_filename(kind: str) -> str:
+    """Name of the per-run progress snapshot that ``GET /jobs/{id}`` reads.
+
+    ``mcmc`` and ``ns`` share ``mcmc_progress.json`` (historical name);
+    registered kinds get ``<kind>_progress.json``.
+    """
+    return "mcmc_progress.json" if kind in ("mcmc", "ns") else "{}_progress.json".format(kind)
 
 
 def make_job_id() -> str:
@@ -133,8 +155,9 @@ class JobRegistry:
         return conn
 
     def submit(self, run_id: str, kind: str, params: Dict[str, Any]) -> JobRow:
-        if kind not in {"mcmc", "ns"}:
-            raise ValueError("kind must be 'mcmc' or 'ns'; got {!r}".format(kind))
+        if kind not in JOB_KINDS:
+            raise ValueError("unknown job kind {!r}; known: {}".format(
+                kind, sorted(JOB_KINDS)))
         job_id = make_job_id()
         now = _now()
         # The active-job check and the INSERT live in the same locked
@@ -356,13 +379,28 @@ class JobRunner:
         the worker runs.
         """
         row = self.registry.submit(run_id, kind, params)
-        future = self.pool.submit(_worker_entrypoint, worker, row.job_id,
-                                  run_id, json.dumps(params),
-                                  str(self.registry.db_path))
+        args = (_worker_entrypoint, worker, row.job_id, run_id,
+                json.dumps(params), str(self.registry.db_path))
+        try:
+            future = self.pool.submit(*args)
+        except BrokenProcessPool:
+            # A ProcessPoolExecutor never recovers once a worker has died
+            # (OOM kill, a cancel's SIGTERM): every later submit raises
+            # this, for the life of the process. Replace it and carry on.
+            self._replace_pool()
+            future = self.pool.submit(*args)
         future.add_done_callback(lambda f, jid=row.job_id: self._on_done(jid, f))
         with self._lock:
             self._futures[row.job_id] = future
         return row
+
+    def _replace_pool(self) -> None:
+        with self._lock:
+            broken = self.pool
+            self.pool = ProcessPoolExecutor(
+                max_workers=self.registry.settings.workers
+            )
+        broken.shutdown(wait=False, cancel_futures=True)
 
     def cancel(self, job_id: str) -> JobRow:
         """Issue SIGTERM to the running worker. Idempotent."""
@@ -396,6 +434,15 @@ class JobRunner:
                     self.registry.mark_finished(
                         job_id, state="failed", error=repr(exc)
                     )
+                elif row.state == "queued":
+                    # Still waiting in the pool when the pool broke: no
+                    # worker will ever take it.
+                    self.registry.mark_finished(
+                        job_id, state="failed",
+                        error="queued but never started (the worker pool "
+                              "broke before it was dispatched); resubmit "
+                              "if still wanted",
+                    )
             except JobNotFound:
                 pass
 
@@ -423,6 +470,11 @@ def _worker_entrypoint(worker: Worker, job_id: str, run_id: str,
             error=("{}: {}\n{}".format(type(exc).__name__, exc,
                                        _tb.format_exc()))[:8000]
         )
-        raise
+        # Not a bare `raise`: the parent must unpickle whatever leaves this
+        # process, and an exception it cannot rebuild breaks the whole pool
+        # for every later job. The row above already holds the real error.
+        raise RuntimeError(
+            "{}: {}".format(type(exc).__name__, exc)
+        ) from None
     sub_registry.mark_finished(job_id, state="succeeded")
     return result

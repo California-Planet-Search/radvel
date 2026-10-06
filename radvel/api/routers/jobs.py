@@ -14,6 +14,7 @@ from radvel.api.jobs import (
     JobNotFound,
     JobRegistry,
     JobRunner,
+    progress_filename,
 )
 from radvel.api.progress import ProgressWriter
 from radvel.api.runs import RunNotFound, RunRegistry, is_valid_run_id
@@ -166,5 +167,5 @@ def _read_progress(row, run_registry: RunRegistry) -> dict:
         record = run_registry.get(row.run_id)
     except RunNotFound:
         return {}
-    progress_path = record.outputdir / "mcmc_progress.json"
+    progress_path = record.outputdir / progress_filename(row.kind)
     return ProgressWriter(progress_path).read()

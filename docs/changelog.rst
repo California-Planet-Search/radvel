@@ -1,6 +1,62 @@
 Changelog
 =========
 
+1.6.6 (2026-10-06)
+------------------
+
+- **Other packages can add job kinds to the HTTP service.**
+  ``radvel.api.extensions`` is the public surface: ``register_job_kind``,
+  ``worker_setup``, ``capture_output``, ``progress_path`` and friends. An
+  extension builds the app with ``create_app()``, registers its kinds,
+  mounts its own router, and submits through the shared runner, so its
+  jobs get the same SQLite rows, one-active-job-per-run guard,
+  cancellation and ``GET /jobs/{id}`` polling as MCMC. ``JobKind`` in the
+  schemas is now a plain string, and ``GET /jobs/{id}`` reads progress
+  from ``<kind>_progress.json`` for registered kinds (``mcmc`` and ``ns``
+  keep ``mcmc_progress.json``). RVsearch uses this to serve planet
+  searches from the same container.
+
+- **``numpy.str_`` parameter names are no longer dropped from
+  ``Vector.names``.** The ``type(i) == str`` filter discarded them
+  (they come from ``np.unique`` and ``CompositeLikelihood.extra_params``),
+  and MCMC then failed with an ``IndexError`` in ``name_vary_params``
+  (#451).
+
+- **One failed job no longer stops every later MCMC/NS job.** A worker
+  that failed re-raised its exception to the parent process.
+  ``AdapterError`` is a dataclass, so ``Exception.args`` is empty and
+  pickle rebuilds it by calling ``AdapterError()`` with no arguments,
+  which fails; ``concurrent.futures`` answers a result it cannot read by
+  marking the whole ``ProcessPoolExecutor`` broken, and a broken pool
+  never recovers. In production one fit that hit a NaN on 2026-09-30 was
+  followed by six days of ``500 Internal Server Error`` on every
+  ``POST /runs/{id}/mcmc`` (``BrokenProcessPool: A child process
+  terminated abruptly``) while ``/healthz`` reported ``ok``. Three
+  changes:
+
+  - the worker now raises a plain ``RuntimeError`` carrying the original
+    type and message, so nothing a driver raises can break the pool (the
+    job row already holds the full traceback);
+  - ``AdapterError`` defines ``__reduce__`` and survives pickling;
+  - ``JobRunner.submit()`` replaces a pool that really is broken (a
+    worker killed by the OOM killer or by a cancel's SIGTERM) and runs
+    the job, instead of answering 500 until the next restart. A job that
+    was still waiting in the pool when it broke is marked ``failed`` with
+    an error saying to resubmit, not left ``queued``.
+
+- **The MAP fit is saved as a readable CSV, at full precision.**
+  ``radvel fit`` writes ``<run>_map_params.csv`` beside the posterior
+  pickle: one row per parameter in the fitting basis (``param``,
+  ``value``, ``vary``), then ``logprob`` and ``time_base``. ``radvel
+  mcmc`` overwrites it with the maximum-likelihood refit that
+  ``sampling_postprocessing`` runs from the chain medians, so the file
+  always holds the run's best MAP point. Until now that point lived only
+  in the pickle (which needs ``radvel`` to read) and as ``maxparams``,
+  which are rounded to the uncertainty's significant figures; a model
+  evaluated from rounded values does not reproduce the fit's residuals.
+  Values are written with ``%.17g`` so a round-trip parser recovers each
+  double exactly.
+
 1.6.5 (2026-09-17)
 ------------------
 
