@@ -492,6 +492,20 @@ class TestModelCoverage:
         per_idx = vec.indices['per1']
         assert vec.vector[per_idx][2] == 0.01
 
+    def test_vector_names_keeps_numpy_str_keys(self):
+        """Vector.names keeps np.str_ keys (e.g. instrument names from np.unique)."""
+        params = radvel.Parameters(1, 'per tc secosw sesinw logk')
+        params['per1'] = radvel.Parameter(10.0)
+        params['tc1'] = radvel.Parameter(0.0)
+        params['secosw1'] = radvel.Parameter(0.0)
+        params['sesinw1'] = radvel.Parameter(0.0)
+        params['logk1'] = radvel.Parameter(1.5)
+        key = np.unique(np.array(['gamma_hires']))[0]
+        assert type(key) is not str
+        params[key] = radvel.Parameter(0.0)
+        vec = radvel.model.Vector(params)
+        assert 'gamma_hires' in vec.names
+
     def test_texlabel(self):
         """Test Parameters.tex_labels method."""
         params = radvel.Parameters(1, 'per tc secosw sesinw logk')
