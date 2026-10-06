@@ -1,6 +1,22 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+- **The MAP fit is saved as a readable CSV, at full precision.**
+  ``radvel fit`` writes ``<run>_map_params.csv`` beside the posterior
+  pickle: one row per parameter in the fitting basis (``param``,
+  ``value``, ``vary``), then ``logprob`` and ``time_base``. ``radvel
+  mcmc`` overwrites it with the maximum-likelihood refit that
+  ``sampling_postprocessing`` runs from the chain medians, so the file
+  always holds the run's best MAP point. Until now that point lived only
+  in the pickle (which needs ``radvel`` to read) and as ``maxparams``,
+  which are rounded to the uncertainty's significant figures; a model
+  evaluated from rounded values does not reproduce the fit's residuals.
+  Values are written with ``%.17g`` so a round-trip parser recovers each
+  double exactly.
+
 1.6.5 (2026-09-17)
 ------------------
 

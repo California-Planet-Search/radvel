@@ -1,3 +1,4 @@
+import os
 import sys
 import copy
 import time
@@ -635,3 +636,37 @@ def test_name_vary_params():
     pnames = like.name_vary_params()
     names_from_params = [k for k in like.params.keys() if like.params[k].vary]
     assert sorted(names_from_params) == sorted(pnames)
+
+
+def test_map_params_file():
+    """``fit`` writes the MAP point, exactly, as a CSV any tool can read, and
+    ``mcmc`` overwrites it with the post-sampling refit."""
+    import pandas as pd
+
+    args = _args()
+    args.setupfn = 'example_planets/epic203771098.py'
+    radvel.driver.fit(args)
+
+    conf_base = os.path.basename(args.setupfn).split('.')[0]
+    table = pd.read_csv(
+        os.path.join(args.outputdir, '{}_map_params.csv'.format(conf_base)), float_precision='round_trip'
+    )
+    post = radvel.posterior.load(os.path.join(args.outputdir, '{}_post_obj.pkl'.format(conf_base)))
+    values = dict(zip(table['param'], table['value']))
+    for name, par in post.params.items():
+        assert values[name] == par.value
+    assert values['logprob'] == post.logprob()
+    assert values['time_base'] == post.likelihood.model.time_base
+    assert set(table.columns) == {'param', 'value', 'vary'}
+
+    # mcmc replaces it with the post-sampling maximum-likelihood refit.
+    args.save = False
+    radvel.driver.mcmc(args)
+    table = pd.read_csv(
+        os.path.join(args.outputdir, '{}_map_params.csv'.format(conf_base)), float_precision='round_trip'
+    )
+    post = radvel.posterior.load(os.path.join(args.outputdir, '{}_post_obj.pkl'.format(conf_base)))
+    values = dict(zip(table['param'], table['value']))
+    for name, par in post.params.items():
+        assert values[name] == par.value
+    assert values['logprob'] == post.logprob()
