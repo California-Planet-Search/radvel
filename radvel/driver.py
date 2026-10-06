@@ -155,6 +155,7 @@ def fit(args: ArgumentParser) -> None:
     postfile = os.path.join(args.outputdir,
                             '{}_post_obj.pkl'.format(conf_base))
     post.writeto(postfile)
+    save_map_params(post, os.path.join(args.outputdir, '{}_map_params.csv'.format(conf_base)))
 
     savestate = {'run': True,
                  'postfile': os.path.relpath(postfile)}
@@ -220,6 +221,8 @@ def mcmc(args: ArgumentParser) -> None:
     postfile = os.path.join(args.outputdir,
                             '{}_post_obj.pkl'.format(conf_base))
     post.writeto(postfile)
+    # The post-sampling refit replaces the pre-MCMC MAP point.
+    save_map_params(post, os.path.join(args.outputdir, '{}_map_params.csv'.format(conf_base)))
 
     csvfn = os.path.join(args.outputdir, conf_base+'_chains.csv.bz2')
     chains.to_csv(csvfn, compression='bz2')
@@ -250,6 +253,34 @@ def mcmc(args: ArgumentParser) -> None:
     save_status(statfile, 'mcmc', savestate)
 
     statevars.reset()
+
+
+def save_map_params(post: Posterior, path: str) -> None:
+    """Write the posterior's current (MAP) parameters to a small CSV.
+
+    One row per parameter in the FITTING basis, at full precision, with
+    whether it varied; then ``logprob`` (the posterior's log-probability at
+    these values) and ``time_base`` (the epoch the trend terms are referred
+    to). Unlike ``post.maxparams`` these are not rounded to the uncertainty's
+    significant figures, so a model evaluated from them reproduces the fit's
+    residuals exactly (read them back with a round-trip parser, e.g. Python's
+    ``float`` or ``pd.read_csv(..., float_precision='round_trip')``), and
+    unlike the pickle any tool can read them.
+
+    Written by ``fit`` (the MAP fit) and overwritten by ``mcmc`` with the
+    maximum-likelihood refit that ``sampling_postprocessing`` runs from the
+    chain medians, so the file always holds the run's best MAP point.
+    """
+    rows = [
+        (name, float(par.value), bool(par.vary))
+        for name, par in post.params.items()
+    ]
+    rows.append(('logprob', float(post.logprob()), False))
+    time_base = getattr(post.likelihood.model, 'time_base', None)
+    if time_base is not None:
+        rows.append(('time_base', float(time_base), False))
+    # '%.17g' round-trips a double exactly; pandas' default drops the last digit.
+    pd.DataFrame(rows, columns=['param', 'value', 'vary']).to_csv(path, index=False, float_format='%.17g')
 
 
 def sampling_postprocessing(
