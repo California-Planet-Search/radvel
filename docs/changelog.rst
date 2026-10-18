@@ -1,8 +1,8 @@
 Changelog
 =========
 
-Unreleased
-----------
+1.6.7 (2026-10-18)
+------------------
 
 - **Processes forked by a job now die of SIGTERM.** The job worker's
   SIGTERM handler, which turns SIGTERM into ``SystemExit`` so a cancel can
