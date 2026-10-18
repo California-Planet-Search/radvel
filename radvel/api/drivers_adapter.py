@@ -364,9 +364,25 @@ def _resolve_record(run_id: str) -> RunRecord:
 
 
 def _install_sigterm_handler() -> None:
-    """Translate SIGTERM into SystemExit so JobRunner.cancel can interrupt."""
+    """Translate SIGTERM into SystemExit so JobRunner.cancel can interrupt.
+
+    Only in the process that installs it. A forked child inherits Python
+    signal handlers, and RVsearch and multi-ensemble MCMC fork
+    ``multiprocessing`` workers from here. ``Pool.terminate()`` stops those
+    with SIGTERM and expects them to die on the spot; with this handler they
+    raised SystemExit instead, unwound through whatever they held (queue
+    locks included), and could hang on the way out. In a child the handler
+    puts back the default action and re-sends the signal, so the child dies
+    of SIGTERM as multiprocessing expects.
+    """
+    installer = os.getpid()
+
     def _handler(signum, frame):
-        raise SystemExit(128 + signum)
+        if os.getpid() == installer:
+            raise SystemExit(128 + signum)
+        signal.signal(signum, signal.SIG_DFL)
+        os.kill(os.getpid(), signum)
+
     signal.signal(signal.SIGTERM, _handler)
 
 
