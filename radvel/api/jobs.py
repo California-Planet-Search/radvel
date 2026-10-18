@@ -384,12 +384,20 @@ def _pgid(pid: int) -> Optional[int]:
         return None
 
 
-def _group_members(pgid: int) -> List[int]:
-    """Live processes in process group ``pgid``. Zombies are left out."""
+def _group_members(pgid: int) -> Optional[List[int]]:
+    """Live processes in process group ``pgid``, or None if it could not look.
+
+    Zombies are left out. None is not an empty group: a caller must not
+    leave a group alone because it could not see into it.
+    """
     members: List[int] = []
     proc = Path("/proc")
     if (proc / "self" / "stat").exists():
-        for entry in proc.iterdir():
+        try:
+            entries = list(proc.iterdir())
+        except OSError:  # out of file descriptors, say
+            return None
+        for entry in entries:
             if not entry.name.isdigit():
                 continue
             try:
@@ -405,9 +413,9 @@ def _group_members(pgid: int) -> List[int]:
     try:  # no /proc (macOS)
         out = subprocess.run(
             ["ps", "-A", "-o", "pid=", "-o", "pgid=", "-o", "stat="],
-            capture_output=True, text=True, timeout=10).stdout
+            capture_output=True, text=True, timeout=10, check=True).stdout
     except (OSError, subprocess.SubprocessError):
-        return members
+        return None
     for line in out.splitlines():
         fields = line.split()
         if (len(fields) == 3 and fields[0].isdigit() and fields[1].isdigit()
@@ -442,6 +450,12 @@ def _exit_status(process: Any) -> Tuple[bool, Optional[int]]:
     if info.si_code == os.CLD_EXITED:
         return True, info.si_status
     return True, -info.si_status
+
+
+def _group_text(others: Optional[int]) -> str:
+    if others is None:  # the group could not be listed
+        return "the rest of its process group"
+    return "{} other process(es) in its process group".format(others)
 
 
 def _describe_exit(code: Optional[int]) -> str:
@@ -500,6 +514,10 @@ class JobRunner:
         self._futures: Dict[str, Future] = {}
         self._queue: Deque[_Job] = deque()
         self._running: Dict[str, _Job] = {}
+        # Rows to fail that the database refused: job id -> error text.
+        # Monitor thread only (or shutdown, once that thread has stopped).
+        self._repairs: Dict[str, str] = {}
+        self._repairs_tried_at = float("-inf")  # time.monotonic()
         self._lock = threading.Lock()
         self._wake = threading.Condition(self._lock)
         self._closed = False
@@ -640,11 +658,13 @@ class JobRunner:
                         # One job's failure must not stop the others
                         # being checked.
                         logger.exception("checking job %s failed", job.job_id)
+                self._retry_repairs()
                 with self._wake:
                     if self._closed:
                         return
                     if not self._has_work():
-                        self._wake.wait(_POLL_S if self._running else None)
+                        busy = self._running or self._repairs
+                        self._wake.wait(_POLL_S if busy else None)
             except Exception:
                 # A dead monitor thread would leave every job queued for
                 # the life of the process.
@@ -671,9 +691,8 @@ class JobRunner:
             try:
                 process.start()
             except Exception as exc:
-                self.registry.mark_finished(
-                    job.job_id, state="failed",
-                    error="could not start the job process: {!r}".format(exc))
+                self._fail_row(job.job_id,
+                               "could not start the job process: {!r}".format(exc))
                 job.future.set_exception(exc)
                 self._futures.pop(job.job_id, None)
                 continue
@@ -701,19 +720,18 @@ class JobRunner:
             if job.recorded_result:
                 logger.warning(
                     "job %s recorded its result, but its process (pid %d) "
-                    "was still running %gs later; killed it and %d other "
-                    "process(es) in its process group", job.job_id,
-                    job.process.pid, self.registry.settings.cancel_grace_s,
-                    others)
+                    "was still running %gs later; killed it along with %s",
+                    job.job_id, job.process.pid,
+                    self.registry.settings.cancel_grace_s, _group_text(others))
                 return
             self.registry.amend_error(
                 job.job_id, state="cancelled",
                 error="cancelled by client; the job process (pid {}) was "
                       "still running {:g}s after SIGTERM, so it was killed "
-                      "with SIGKILL along with {} other process(es) in its "
-                      "process group".format(
+                      "with SIGKILL along with {}".format(
                           job.process.pid,
-                          self.registry.settings.cancel_grace_s, others))
+                          self.registry.settings.cancel_grace_s,
+                          _group_text(others)))
 
     def _check_row(self, job: _Job) -> None:
         """Act on a change another process made to a live job's row.
@@ -740,39 +758,44 @@ class JobRunner:
             job.recorded_result = True
             job.kill_at = now + self.registry.settings.cancel_grace_s
 
-    def _kill(self, job: _Job) -> int:
-        """SIGKILL a job's process group. Returns how many others it held."""
+    def _kill(self, job: _Job) -> Optional[int]:
+        """SIGKILL a job's process group.
+
+        Returns how many other processes the group held, or None if they
+        could not be listed. ``killed`` is set only once the signal is
+        sent, so a kill that fails is tried again on the next pass.
+        """
         pid = job.process.pid
-        job.killed = True
         if not job.leads_group:  # it never got as far as leading a group
             _signal(pid, signal.SIGKILL)
+            job.killed = True
             return 0
-        others = [p for p in _group_members(pid) if p != pid]
+        members = _group_members(pid)
         _kill_group(pid)
-        return len(others)
+        job.killed = True
+        if members is None:
+            return None
+        return len([p for p in members if p != pid])
 
     def _finish(self, job: _Job, code: Optional[int]) -> None:
         """Clear up after an exited job process, then reap it.
 
-        The slot is freed and the future resolved even if the clean-up or
-        the database fails; the next startup repairs a row left behind.
+        One step failing does not skip the next. The slot is freed and the
+        future resolved whatever happens, and a row the database would not
+        fail is retried (see :meth:`_fail_row`).
         """
         try:
             try:
                 self._clear_group(job)
-            finally:
-                job.process.join()
+            except Exception:
+                logger.exception("clearing up after job %s failed", job.job_id)
+            job.process.join()
             if code is None:
                 code = job.process.exitcode
-            try:
-                state = self.registry.get(job.job_id).state
-            except JobNotFound:
-                state = None
-            if state in ("queued", "running"):
-                # The process ended without recording a result: killed
-                # (OOM), os._exit, or a crash before it got going.
-                self.registry.mark_finished(job.job_id, state="failed",
-                                            error=_describe_exit(code))
+            # A row still queued or running means the process ended without
+            # recording a result: killed (OOM), os._exit, or a crash before
+            # it got going. mark_finished leaves any other row alone.
+            self._fail_row(job.job_id, _describe_exit(code))
         finally:
             with self._wake:
                 self._running.pop(job.job_id, None)
@@ -793,10 +816,45 @@ class JobRunner:
         """
         pid = job.process.pid
         leftover = _group_members(pid)
-        if leftover:
+        if leftover is None:
+            # Could not look, so kill it anyway: killing an empty group
+            # only fails, and _kill_group ignores that.
+            _kill_group(pid)
+            logger.warning("could not list what job %s left running; killed "
+                           "its process group anyway", job.job_id)
+        elif leftover:
             _kill_group(pid)
             logger.warning("job %s left %d process(es) running; killed them",
                            job.job_id, len(leftover))
+
+    def _fail_row(self, job_id: str, error: str) -> None:
+        """Fail a job's row if it is still queued or running.
+
+        If the database refuses (locked past its timeout, say), the row is
+        kept and retried by :meth:`_retry_repairs`. Left ``running``, it
+        would make every resubmit of its run fail as already active. A row
+        still waiting when the service stops is failed by the next startup
+        (:meth:`JobRegistry.reconcile_orphaned`).
+        """
+        try:
+            self.registry.mark_finished(job_id, state="failed", error=error)
+        except Exception:
+            logger.exception("could not fail job %s; will retry", job_id)
+            self._repairs[job_id] = error
+
+    def _retry_repairs(self) -> None:
+        """Retry the rows :meth:`_fail_row` could not fail, once a second."""
+        now = time.monotonic()
+        if not self._repairs or now - self._repairs_tried_at < _ROW_POLL_S:
+            return
+        self._repairs_tried_at = now
+        for job_id, error in list(self._repairs.items()):
+            try:
+                self.registry.mark_finished(job_id, state="failed", error=error)
+            except Exception:
+                continue  # logged when it first failed
+            del self._repairs[job_id]
+            logger.info("failed job %s after an earlier database error", job_id)
 
 
 def _watch_parent(parent_pid: int, registry: JobRegistry, job_id: str) -> None:
