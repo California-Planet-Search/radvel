@@ -31,11 +31,11 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     # How many jobs run at once; the rest wait their turn.
-    workers: int = 1
+    workers: int = Field(default=1, ge=1)
     request_timeout_s: int = 1800
     # Seconds a cancelled job's process gets to stop after SIGTERM before it
     # and every process it started are SIGKILLed.
-    cancel_grace_s: float = 30.0
+    cancel_grace_s: float = Field(default=30.0, ge=0)
     max_upload_bytes: int = 50_000_000
     allow_py_upload: bool = False
     enable_ui: bool = True

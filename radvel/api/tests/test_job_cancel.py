@@ -179,10 +179,11 @@ def test_a_job_submitted_after_a_cancel_still_runs(runner, tmp_path):
                         worker=_runs_until_cancelled)
     _read_pid(pidfile)
     _wait_state(runner, job.job_id, {"running"})
+    future = runner._futures[job.job_id]
 
     runner.cancel(job.job_id)
     assert runner.registry.get(job.job_id).state == "cancelled"
-    runner._futures[job.job_id].exception(timeout=10)  # the worker stopped
+    future.result(timeout=10)  # the worker stopped
 
     after = runner.submit("run-after", "mcmc", {}, worker=_succeeds)
 
@@ -234,6 +235,7 @@ def test_a_job_cancelled_while_it_waits_for_a_worker_never_runs(runner, tmp_path
     marker = tmp_path / "ran"
     first = runner.submit("run-first", "mcmc", {"pidfile": first_pidfile},
                           worker=_runs_until_cancelled)
+    first_future = runner._futures[first.job_id]
     _read_pid(first_pidfile)
     waiting = runner.submit("run-waiting", "mcmc", {"marker": str(marker)},
                             worker=_leaves_a_marker)
@@ -241,7 +243,7 @@ def test_a_job_cancelled_while_it_waits_for_a_worker_never_runs(runner, tmp_path
 
     runner.cancel(waiting.job_id)
     runner.cancel(first.job_id)
-    runner._futures[first.job_id].exception(timeout=15)  # first job's process is gone
+    first_future.result(timeout=15)  # first job's process is gone
     after = runner.submit("run-after", "mcmc", {}, worker=_succeeds)
     assert _wait_terminal(runner, after.job_id).state == "succeeded"
 
@@ -280,3 +282,110 @@ def test_killing_one_job_leaves_the_job_beside_it_running(make_runner, tmp_path)
     finally:
         for pid in (child_pid, stuck_pid, beside_pid):
             _kill_quietly(pid)
+
+
+def _wait_error(runner, job_id, text, timeout=10.0):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        row = runner.registry.get(job_id)
+        if text in (row.error or ""):
+            return row
+        time.sleep(0.05)
+    return row
+
+
+def test_a_cancel_sent_to_another_api_process_still_stops_the_job(make_runner, tmp_path):
+    """``radvel serve --workers 2`` runs two API processes on one jobs database.
+
+    A ``DELETE /jobs/{id}`` can land on either. The one that did not start
+    the job has no handle on its process, so the one that did has to notice
+    the cancelled row and stop it.
+    """
+    owner, other = make_runner(workers=1), make_runner(workers=1)
+    pidfile, childfile = str(tmp_path / "worker.pid"), str(tmp_path / "child.pid")
+    job = owner.submit("run-elsewhere", "mcmc",
+                       {"pidfile": pidfile, "childfile": childfile},
+                       worker=_swallows_sigterm)
+    worker_pid, child_pid = _read_pid(pidfile), _read_pid(childfile)
+    _wait_state(owner, job.job_id, {"running"})
+    try:
+        assert other.cancel(job.job_id).state == "cancelled"
+
+        assert _wait_gone(worker_pid, timeout=15), \
+            "the job ran on after a cancel sent to the other API process"
+        assert _wait_gone(child_pid, timeout=5), "the job's child survived the cancel"
+    finally:
+        for pid in (child_pid, worker_pid):
+            _kill_quietly(pid)
+
+    row = _wait_error(owner, job.job_id, "killed")
+    assert row.state == "cancelled"
+    assert "killed" in (row.error or ""), row.error
+
+
+def test_a_job_whose_row_was_cancelled_before_it_started_never_runs(settings_env, tmp_path):
+    """Only the row says the job was cancelled: another API process did it.
+
+    The job process must check the row when it claims it, and not run.
+    """
+    import json
+    import multiprocessing
+
+    from radvel.api.config import get_settings
+    from radvel.api.jobs import JobRegistry, _worker_entrypoint
+
+    registry = JobRegistry(settings=get_settings())
+    marker = tmp_path / "ran"
+    params = {"marker": str(marker)}
+    row = registry.submit("run-pre-cancelled", "mcmc", params)
+    registry.mark_finished(row.job_id, state="cancelled", error="cancelled by client")
+
+    process = multiprocessing.get_context("spawn").Process(
+        target=_worker_entrypoint,
+        args=(_leaves_a_marker, row.job_id, row.run_id, json.dumps(params),
+              str(registry.db_path), os.getpid()))
+    process.start()
+    process.join(60)
+    try:
+        assert process.exitcode == 0
+    finally:
+        if process.is_alive():
+            process.kill()
+            process.join()
+
+    assert not marker.exists(), "a cancelled job ran anyway"
+    row = registry.get(row.job_id)
+    assert (row.state, row.error) == ("cancelled", "cancelled by client")
+
+
+def test_a_kill_reaches_every_process_in_the_job_group(make_runner, tmp_path):
+    """The kill itself must reach the job's children, not the clean-up after it.
+
+    When the job ends, the runner also kills whatever is left in its group,
+    and that hides a kill that only reached the job process.
+    """
+    from concurrent.futures import Future
+
+    from radvel.api.jobs import _Job
+
+    runner = make_runner(workers=1)
+    childfile = str(tmp_path / "child.pid")
+    tmp = shlex.quote(childfile + ".tmp")
+    leader = subprocess.Popen(
+        ["sh", "-c", "sleep 300 & echo $! > {} && mv {} {}; wait".format(
+            tmp, tmp, shlex.quote(childfile))],
+        start_new_session=True)
+    child_pid = None
+    try:
+        child_pid = _read_pid(childfile)
+        job = _Job(job_id="j-kill", args=(), future=Future(), process=leader,
+                   leads_group=True)
+
+        assert runner._kill(job) == 1
+
+        assert _wait_gone(child_pid, timeout=5), "the kill missed the job's child"
+    finally:
+        leader.kill()
+        leader.wait()
+        if child_pid is not None:
+            _kill_quietly(child_pid)

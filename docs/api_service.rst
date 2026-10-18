@@ -189,7 +189,24 @@ once and sends the job process SIGTERM. If it is still running
 ``RADVEL_API_CANCEL_GRACE_S`` seconds later (default 30), its whole
 process group is killed with SIGKILL and the job's ``error`` says so.
 Other jobs carry on. A job cancelled while it waits never starts. Any
-process a job leaves behind when it ends is killed too.
+process a job leaves behind when it ends is killed too, and so is a job
+process still running ``RADVEL_API_CANCEL_GRACE_S`` seconds after it
+recorded its result (stuck at exit on a thread or a pool, say), so it
+cannot hold its slot. A process the job starts in a new session
+(``setsid``, ``start_new_session=True``) leaves its group, and none of
+this reaches it.
+
+Run one uvicorn worker (``radvel serve --workers 1``, the default) and
+set ``RADVEL_API_WORKERS`` for more concurrent jobs. Each uvicorn worker
+runs its own job runner on the same database, so ``--workers N`` lets N
+times as many jobs run at once, and a worker that restarts fails its
+siblings' queued jobs. A cancel still works from any of them: the one
+that started the job sees the row turn ``cancelled`` and stops it.
+
+If the service shuts down while jobs run, they are marked ``failed``
+(not ``cancelled``) with an error saying to resubmit, and their
+processes are stopped. Jobs still waiting stay ``queued`` until the next
+startup fails them.
 
 A job process stops itself if the API process that started it dies, and
 fails its row. If the host crashes mid-job, startup runs a

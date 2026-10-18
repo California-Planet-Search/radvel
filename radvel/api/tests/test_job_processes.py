@@ -18,8 +18,9 @@ from pathlib import Path
 import pytest
 
 from radvel.api.tests.test_job_cancel import (
-    _kill_quietly, _orphan_a_sleeper, _read_pid, _wait_gone, _wait_state,
-    _wait_terminal, _waits_for_release, _write_pid,
+    _kill_quietly, _orphan_a_sleeper, _read_pid, _runs_until_cancelled,
+    _succeeds, _swallows_sigterm, _wait_gone, _wait_state, _wait_terminal,
+    _waits_for_release, _write_pid,
 )
 
 
@@ -170,3 +171,107 @@ def test_jobs_stop_when_the_api_process_dies_and_startup_fails_the_rest(
     row = registry.get(queued_id)
     assert row.state == "failed"
     assert "never started" in (row.error or ""), row.error
+
+
+def _hangs_after_recording_its_result(run_id, params_json):
+    """Returns, so the job records ``succeeded``, but the process never exits.
+
+    A process waits for its non-daemon threads before it exits, as it does
+    for a multiprocessing pool or queue left to its exit handlers.
+    """
+    import json
+    import threading
+
+    _write_pid(json.loads(params_json)["pidfile"], os.getpid())
+    threading.Thread(target=time.sleep, args=(300,), daemon=False).start()
+    return {"ok": True}
+
+
+def _reports_its_logging(run_id, params_json):
+    import json
+    import logging
+
+    root = logging.getLogger()
+    Path(json.loads(params_json)["out"]).write_text(json.dumps(
+        {"level": root.level, "handlers": len(root.handlers)}))
+    return {"ok": True}
+
+
+def test_a_job_that_never_exits_after_its_result_is_killed_and_frees_its_slot(
+        make_runner, tmp_path):
+    runner = make_runner(workers=1)
+    pidfile = str(tmp_path / "worker.pid")
+    stuck = runner.submit("run-stuck", "mcmc", {"pidfile": pidfile},
+                          worker=_hangs_after_recording_its_result)
+    after = runner.submit("run-after", "mcmc", {}, worker=_succeeds)
+    pid = _read_pid(pidfile)
+    try:
+        assert _wait_terminal(runner, stuck.job_id).state == "succeeded"
+
+        assert _wait_gone(pid, timeout=15), \
+            "a job process that had recorded its result was left running"
+    finally:
+        _kill_quietly(pid)
+
+    assert _wait_terminal(runner, after.job_id, timeout=30).state == "succeeded", \
+        "the next job never got the slot"
+    assert runner.registry.get(stuck.job_id).state == "succeeded"
+
+
+def test_shutdown_fails_running_jobs_kills_them_and_leaves_waiting_jobs_queued(
+        make_runner, tmp_path):
+    """A deploy is not a cancel: the client should see failed, and resubmit."""
+    runner = make_runner(workers=2)
+    polite_pid = str(tmp_path / "polite.pid")
+    stuck_pid, stuck_child = str(tmp_path / "stuck.pid"), str(tmp_path / "child.pid")
+    polite = runner.submit("run-polite", "mcmc", {"pidfile": polite_pid},
+                           worker=_runs_until_cancelled)
+    stuck = runner.submit("run-stuck", "mcmc",
+                          {"pidfile": stuck_pid, "childfile": stuck_child},
+                          worker=_swallows_sigterm)
+    waiting = runner.submit("run-waiting", "mcmc", {}, worker=_succeeds)
+    pids = [_read_pid(polite_pid), _read_pid(stuck_pid), _read_pid(stuck_child)]
+    _wait_state(runner, polite.job_id, {"running"})
+    _wait_state(runner, stuck.job_id, {"running"})
+    try:
+        started = time.monotonic()
+        runner.shutdown()
+        took = time.monotonic() - started
+
+        assert took < 10, "shutdown took {:.1f}s".format(took)
+        for pid in pids:
+            assert _wait_gone(pid, timeout=5), "pid {} outlived shutdown".format(pid)
+    finally:
+        for pid in pids:
+            _kill_quietly(pid)
+
+    for job in (polite, stuck):
+        row = runner.registry.get(job.job_id)
+        assert row.state == "failed", (row.state, row.error)
+        assert "shut down" in (row.error or ""), row.error
+    assert runner.registry.get(waiting.job_id).state == "queued"
+
+
+def test_job_processes_log_at_the_configured_level(make_runner, tmp_path, monkeypatch):
+    import json
+
+    monkeypatch.setenv("RADVEL_API_LOG_LEVEL", "DEBUG")
+    runner = make_runner(workers=1)
+    out = tmp_path / "logging.json"
+    job = runner.submit("run-logs", "mcmc", {"out": str(out)},
+                        worker=_reports_its_logging)
+
+    assert _wait_terminal(runner, job.job_id).state == "succeeded"
+    seen = json.loads(out.read_text())
+    assert seen["level"] == 10, seen
+    assert seen["handlers"] >= 1, seen
+
+
+@pytest.mark.parametrize("field, value", [("workers", 0), ("cancel_grace_s", -1)])
+def test_settings_refuse_values_the_runner_cannot_work_with(field, value):
+    from pydantic import ValidationError
+
+    from radvel.api.config import Settings
+
+    with pytest.raises(ValidationError):
+        Settings(**{field: value})

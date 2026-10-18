@@ -236,7 +236,10 @@ descriptive titles without star name [False]'''
     psr_serve.add_argument('--host', default='127.0.0.1', help='Bind address (default: 127.0.0.1)')
     psr_serve.add_argument('--port', default=8000, type=int, help='Listen port (default: 8000)')
     psr_serve.add_argument('--workers', default=1, type=int,
-                           help='Number of uvicorn worker processes (default: 1)')
+                           help='Number of uvicorn worker processes (default: 1). '
+                                'Keep 1: each runs its own job runner, so jobs '
+                                'that run at once multiply. Use RADVEL_API_WORKERS '
+                                'for more concurrent jobs')
     psr_serve.add_argument('--reload', action='store_true',
                            help='Enable hot-reload (development only; do NOT use in production)')
     psr_serve.set_defaults(func=_serve)

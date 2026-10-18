@@ -61,6 +61,9 @@ logger = logging.getLogger(__name__)
 # How often the runner checks its job processes, and a job process its parent.
 _POLL_S = 0.1
 _PARENT_POLL_S = 0.5
+# How often the runner reads a running job's row, for changes made by
+# another process sharing the database.
+_ROW_POLL_S = 1.0
 # The most a service shutdown waits between SIGTERM and SIGKILL.
 _SHUTDOWN_GRACE_S = 5.0
 
@@ -475,6 +478,8 @@ class _Job:
     cancel_requested: bool = False
     kill_at: Optional[float] = None  # time.monotonic() to SIGKILL at
     killed: bool = False
+    row_checked_at: float = float("-inf")  # time.monotonic() of last read
+    recorded_result: bool = False  # its row says it finished, yet it runs
 
 
 class JobRunner:
@@ -505,13 +510,13 @@ class JobRunner:
     def shutdown(self, wait: bool = False) -> None:
         """Stop every job process, then return. Idempotent.
 
-        Running jobs get SIGTERM, then SIGKILL for their whole process
-        group if they are still running a few seconds later; otherwise
-        the service could not exit while a fit ran. Jobs still waiting
-        never start, and stay ``queued`` until the next startup fails
-        them (see :meth:`JobRegistry.reconcile_orphaned`). ``wait`` is
-        kept for compatibility: shutdown always waits for the job
-        processes to go.
+        Running jobs are marked ``failed`` and get SIGTERM, then SIGKILL
+        for their whole process group if they are still running a few
+        seconds later; otherwise the service could not exit while a fit
+        ran. Jobs still waiting never start, and stay ``queued`` until
+        the next startup fails them (see
+        :meth:`JobRegistry.reconcile_orphaned`). ``wait`` is kept for
+        compatibility: shutdown always waits for the job processes to go.
         """
         with self._wake:
             if self._closed:
@@ -525,20 +530,33 @@ class JobRunner:
             job.future.cancel()
         running = list(self._running.values())
         for job in running:
+            # Fail the row before the signal. The job turns SIGTERM into a
+            # cancel of its own, and a client that sees "cancelled" will
+            # not resubmit a fit the service dropped.
+            try:
+                self.registry.mark_finished(
+                    job.job_id, state="failed",
+                    error="the API service shut down while this job was "
+                          "running; resubmit if still wanted")
+            except Exception:
+                logger.exception("could not fail job %s at shutdown",
+                                 job.job_id)
             _signal(job.process.pid, signal.SIGTERM)
         deadline = time.monotonic() + min(
             self.registry.settings.cancel_grace_s, _SHUTDOWN_GRACE_S)
         while running:
             for job in list(running):
-                self._note_group(job)
-                exited, code = _exit_status(job.process)
-                if exited:
-                    running.remove(job)
-                    self._finish(job, code, error=(
-                        "the API service shut down while this job was "
-                        "running; resubmit if still wanted"))
-                elif not job.killed and time.monotonic() >= deadline:
-                    self._kill(job)
+                try:
+                    self._note_group(job)
+                    exited, code = _exit_status(job.process)
+                    if exited:
+                        running.remove(job)
+                        self._finish(job, code)
+                    elif not job.killed and time.monotonic() >= deadline:
+                        self._kill(job)
+                except Exception:
+                    logger.exception("stopping job %s at shutdown failed",
+                                     job.job_id)
             if running:
                 time.sleep(_POLL_S)
 
@@ -576,6 +594,10 @@ class JobRunner:
         worker swallowed its SIGTERM (it landed inside a multiprocessing
         finalizer) and ran for almost four more hours under a row that
         said ``cancelled``.
+
+        A job running under another API process sharing the database is
+        only marked here; the runner that started it sees the row and
+        stops it.
         """
         current = self.registry.get(job_id)
         if current.state in {"succeeded", "failed", "cancelled"}:
@@ -597,6 +619,7 @@ class JobRunner:
                 for queued in waiting:
                     self._queue.remove(queued)
                     queued.future.cancel()
+                    self._futures.pop(job_id, None)
         return row
 
     # The methods below run on the monitor thread, or in shutdown() once
@@ -611,7 +634,12 @@ class JobRunner:
                     self._start_waiting_jobs()
                     running = list(self._running.values())
                 for job in running:
-                    self._check(job)
+                    try:
+                        self._check(job)
+                    except Exception:
+                        # One job's failure must not stop the others
+                        # being checked.
+                        logger.exception("checking job %s failed", job.job_id)
                 with self._wake:
                     if self._closed:
                         return
@@ -647,6 +675,7 @@ class JobRunner:
                     job.job_id, state="failed",
                     error="could not start the job process: {!r}".format(exc))
                 job.future.set_exception(exc)
+                self._futures.pop(job.job_id, None)
                 continue
             job.process = process
             self._running[job.job_id] = job
@@ -661,12 +690,22 @@ class JobRunner:
         if exited:
             self._finish(job, code)
             return
+        if not job.cancel_requested and job.kill_at is None:
+            self._check_row(job)
         if job.cancel_requested and job.kill_at is None:
             _signal(job.process.pid, signal.SIGTERM)
             job.kill_at = time.monotonic() + self.registry.settings.cancel_grace_s
         elif (job.kill_at is not None and not job.killed
               and time.monotonic() >= job.kill_at):
             others = self._kill(job)
+            if job.recorded_result:
+                logger.warning(
+                    "job %s recorded its result, but its process (pid %d) "
+                    "was still running %gs later; killed it and %d other "
+                    "process(es) in its process group", job.job_id,
+                    job.process.pid, self.registry.settings.cancel_grace_s,
+                    others)
+                return
             self.registry.amend_error(
                 job.job_id, state="cancelled",
                 error="cancelled by client; the job process (pid {}) was "
@@ -675,6 +714,31 @@ class JobRunner:
                       "process group".format(
                           job.process.pid,
                           self.registry.settings.cancel_grace_s, others))
+
+    def _check_row(self, job: _Job) -> None:
+        """Act on a change another process made to a live job's row.
+
+        Under ``radvel serve --workers N`` a cancel can reach an API
+        process that did not start the job, and all it can do is mark the
+        row; the runner that owns the process stops it here. A row with a
+        result means the job is done, so its process gets
+        ``cancel_grace_s`` to exit and is then killed. One stuck at exit,
+        waiting on a thread or a pool, would otherwise hold its slot for
+        good.
+        """
+        now = time.monotonic()
+        if now - job.row_checked_at < _ROW_POLL_S:
+            return
+        job.row_checked_at = now
+        try:
+            state = self.registry.get(job.job_id).state
+        except JobNotFound:
+            return
+        if state == "cancelled":
+            job.cancel_requested = True
+        elif state in ("succeeded", "failed"):
+            job.recorded_result = True
+            job.kill_at = now + self.registry.settings.cancel_grace_s
 
     def _kill(self, job: _Job) -> int:
         """SIGKILL a job's process group. Returns how many others it held."""
@@ -687,36 +751,52 @@ class JobRunner:
         _kill_group(pid)
         return len(others)
 
-    def _finish(self, job: _Job, code: Optional[int],
-                error: Optional[str] = None) -> None:
-        """Clear up after an exited job process, then reap it."""
-        pid = job.process.pid
-        if job.leads_group:
-            # Whatever is still in the group was started by the job and
-            # outlived it, like the child left on 2026-10-17 stuck on a
-            # dead pool's lock. The leader is not reaped yet, so its group
-            # id cannot have been handed to anything else.
-            leftover = _group_members(pid)
-            if leftover:
-                _kill_group(pid)
-                logger.warning("job %s left %d process(es) running; killed them",
-                               job.job_id, len(leftover))
-        job.process.join()
-        if code is None:
-            code = job.process.exitcode
+    def _finish(self, job: _Job, code: Optional[int]) -> None:
+        """Clear up after an exited job process, then reap it.
+
+        The slot is freed and the future resolved even if the clean-up or
+        the database fails; the next startup repairs a row left behind.
+        """
         try:
-            state = self.registry.get(job.job_id).state
-        except JobNotFound:
-            state = None
-        if state in ("queued", "running"):
-            # The process ended without recording a result: killed (OOM),
-            # os._exit, or a crash before it got going.
-            self.registry.mark_finished(job.job_id, state="failed",
-                                        error=error or _describe_exit(code))
-        with self._wake:
-            self._running.pop(job.job_id, None)
-            self._wake.notify_all()
-        job.future.set_result(code)
+            try:
+                self._clear_group(job)
+            finally:
+                job.process.join()
+            if code is None:
+                code = job.process.exitcode
+            try:
+                state = self.registry.get(job.job_id).state
+            except JobNotFound:
+                state = None
+            if state in ("queued", "running"):
+                # The process ended without recording a result: killed
+                # (OOM), os._exit, or a crash before it got going.
+                self.registry.mark_finished(job.job_id, state="failed",
+                                            error=_describe_exit(code))
+        finally:
+            with self._wake:
+                self._running.pop(job.job_id, None)
+                self._futures.pop(job.job_id, None)
+                self._wake.notify_all()
+            if not job.future.done():
+                job.future.set_result(code)
+
+    def _clear_group(self, job: _Job) -> None:
+        """Kill what the job started that outlived it.
+
+        Like the child left on 2026-10-17, stuck on a dead pool's lock.
+        This does not need to know the job led its group: while any
+        process is in group ``pid``, that id cannot be handed to a new
+        process, and an empty group has nothing to kill. The leader may
+        already be reaped here, since ``Process.start()`` reaps finished
+        siblings, so ``leads_group`` can be wrong.
+        """
+        pid = job.process.pid
+        leftover = _group_members(pid)
+        if leftover:
+            _kill_group(pid)
+            logger.warning("job %s left %d process(es) running; killed them",
+                           job.job_id, len(leftover))
 
 
 def _watch_parent(parent_pid: int, registry: JobRegistry, job_id: str) -> None:
@@ -756,6 +836,8 @@ def _worker_entrypoint(worker: Worker, job_id: str, run_id: str,
         pass  # still stoppable on its own; the runner checks before killpg
     settings = get_settings()
     settings = settings.model_copy(update={"db_path": Path(db_path)})
+    # A spawned process starts with logging unconfigured.
+    logging.basicConfig(level=settings.log_level)
     sub_registry = JobRegistry(settings=settings)
     _watch_parent(parent_pid, sub_registry, job_id)
     host = os.uname().nodename if hasattr(os, "uname") else ""

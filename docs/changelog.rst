@@ -41,6 +41,25 @@ Unreleased
   ``Future.cancel()`` cannot stop them. A worker now claims a job only if
   its row is still ``queued``.
 
+- **A job stuck at exit no longer holds its slot.** A job process that
+  recorded its result but never exited (waiting at exit on a thread or a
+  ``multiprocessing`` pool) kept its slot, and with the default one
+  worker every later job stayed ``queued``. It is now killed
+  ``RADVEL_API_CANCEL_GRACE_S`` after its row shows the result.
+
+- **A cancel reaches a job started by another uvicorn worker.** Under
+  ``radvel serve --workers N`` the worker that started a job now watches
+  its row and stops it when another worker marks it ``cancelled``. One
+  uvicorn worker is still the recommended setup; see the API docs.
+
+- **A shutdown is no longer reported as a cancel.** Jobs running when the
+  service stops end ``failed`` with "the API service shut down ...;
+  resubmit if still wanted", not ``cancelled: SIGTERM received``.
+
+- Job processes now log at ``RADVEL_API_LOG_LEVEL``. ``RADVEL_API_WORKERS``
+  below 1 (which left every job ``queued``) and a negative
+  ``RADVEL_API_CANCEL_GRACE_S`` are now refused at startup.
+
 1.6.6 (2026-10-06)
 ------------------
 
