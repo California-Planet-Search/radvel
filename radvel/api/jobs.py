@@ -64,6 +64,7 @@ _PARENT_POLL_S = 0.5
 # How often the runner reads a running job's row, for changes made by
 # another process sharing the database.
 _ROW_POLL_S = 1.0
+_REPAIR_WARN_EVERY = 60  # failed retries of a row between warnings
 # The most a service shutdown waits between SIGTERM and SIGKILL.
 _SHUTDOWN_GRACE_S = 5.0
 
@@ -401,13 +402,20 @@ def _group_members(pgid: int) -> Optional[List[int]]:
             if not entry.name.isdigit():
                 continue
             try:
-                stat = (entry / "stat").read_text()
-            except OSError:
+                stat = (entry / "stat").read_bytes()
+            except (FileNotFoundError, ProcessLookupError):
                 continue  # exited while we looked
-            # The command name may hold spaces or ')', so split after the
-            # last ')': the fields there are state, ppid, then pgrp.
-            fields = stat.rsplit(")", 1)[1].split()
-            if fields[0] != "Z" and int(fields[2]) == pgid:
+            except OSError:  # out of file descriptors, say
+                return None
+            # The command name may hold spaces, ')' or bytes that are not
+            # UTF-8 (the kernel cuts it at 15 bytes), so split the raw line
+            # after the last ')': the fields there are state, ppid, then pgrp.
+            try:
+                fields = stat.rsplit(b")", 1)[1].split()
+                state, pgrp = fields[0], int(fields[2])
+            except (IndexError, ValueError):
+                return None
+            if state != b"Z" and pgrp == pgid:
                 members.append(int(entry.name))
         return members
     try:  # no /proc (macOS)
@@ -518,6 +526,7 @@ class JobRunner:
         # Monitor thread only (or shutdown, once that thread has stopped).
         self._repairs: Dict[str, str] = {}
         self._repairs_tried_at = float("-inf")  # time.monotonic()
+        self._repair_tries = 0  # failed retry passes in a row
         self._lock = threading.Lock()
         self._wake = threading.Condition(self._lock)
         self._closed = False
@@ -577,6 +586,12 @@ class JobRunner:
                                      job.job_id)
             if running:
                 time.sleep(_POLL_S)
+        # The monitor has stopped, so this is the last chance to fail a row
+        # it could not; one left running blocks its run until a restart.
+        self._retry_repairs(now=True)
+        for job_id in sorted(self._repairs):
+            logger.warning("could not fail job %s before shutting down; the "
+                           "next startup will fail it", job_id)
 
     def submit(self, run_id: str, kind: str, params: Dict[str, Any],
                worker: Worker) -> JobRow:
@@ -770,7 +785,12 @@ class JobRunner:
             _signal(pid, signal.SIGKILL)
             job.killed = True
             return 0
-        members = _group_members(pid)
+        try:
+            members = _group_members(pid)
+        except Exception:  # must not stop the kill
+            logger.exception("could not list the process group of job %s",
+                             job.job_id)
+            members = None
         _kill_group(pid)
         job.killed = True
         if members is None:
@@ -815,7 +835,12 @@ class JobRunner:
         siblings, so ``leads_group`` can be wrong.
         """
         pid = job.process.pid
-        leftover = _group_members(pid)
+        try:
+            leftover = _group_members(pid)
+        except Exception:  # must not stop the clear-up
+            logger.exception("could not list the process group of job %s",
+                             job.job_id)
+            leftover = None
         if leftover is None:
             # Could not look, so kill it anyway: killing an empty group
             # only fails, and _kill_group ignores that.
@@ -831,9 +856,10 @@ class JobRunner:
         """Fail a job's row if it is still queued or running.
 
         If the database refuses (locked past its timeout, say), the row is
-        kept and retried by :meth:`_retry_repairs`. Left ``running``, it
-        would make every resubmit of its run fail as already active. A row
-        still waiting when the service stops is failed by the next startup
+        kept and retried by :meth:`_retry_repairs`, last of all by
+        :meth:`shutdown`. Left ``running``, it would make every resubmit of
+        its run fail as already active. One that still will not fail when
+        the service stops is failed by the next startup
         (:meth:`JobRegistry.reconcile_orphaned`).
         """
         try:
@@ -842,12 +868,19 @@ class JobRunner:
             logger.exception("could not fail job %s; will retry", job_id)
             self._repairs[job_id] = error
 
-    def _retry_repairs(self) -> None:
-        """Retry the rows :meth:`_fail_row` could not fail, once a second."""
-        now = time.monotonic()
-        if not self._repairs or now - self._repairs_tried_at < _ROW_POLL_S:
+    def _retry_repairs(self, now: bool = False) -> None:
+        """Retry the rows :meth:`_fail_row` could not fail.
+
+        The first retry is on the monitor's next pass, then at most once a
+        second, or straight away if ``now``. While any row still will not
+        fail, a warning is logged every ``_REPAIR_WARN_EVERY`` tries.
+        """
+        if not self._repairs:
             return
-        self._repairs_tried_at = now
+        tried_at = time.monotonic()
+        if not now and tried_at - self._repairs_tried_at < _ROW_POLL_S:
+            return
+        self._repairs_tried_at = tried_at
         for job_id, error in list(self._repairs.items()):
             try:
                 self.registry.mark_finished(job_id, state="failed", error=error)
@@ -855,6 +888,14 @@ class JobRunner:
                 continue  # logged when it first failed
             del self._repairs[job_id]
             logger.info("failed job %s after an earlier database error", job_id)
+        if not self._repairs:
+            self._repair_tries = 0
+            return
+        self._repair_tries += 1
+        if self._repair_tries % _REPAIR_WARN_EVERY == 0:
+            logger.warning("%d job row(s) still not failed after %d tries: %s",
+                           len(self._repairs), self._repair_tries,
+                           ", ".join(sorted(self._repairs)))
 
 
 def _watch_parent(parent_pid: int, registry: JobRegistry, job_id: str) -> None:

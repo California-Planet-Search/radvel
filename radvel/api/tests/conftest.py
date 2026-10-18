@@ -38,9 +38,9 @@ def make_runner(settings_env, monkeypatch):
 
     runners = []
 
-    def make(workers: int = 1):
+    def make(workers: int = 1, cancel_grace_s: float = 1):
         monkeypatch.setenv("RADVEL_API_WORKERS", str(workers))
-        monkeypatch.setenv("RADVEL_API_CANCEL_GRACE_S", "1")
+        monkeypatch.setenv("RADVEL_API_CANCEL_GRACE_S", str(cancel_grace_s))
         get_settings.cache_clear()
         runner = JobRunner(JobRegistry(settings=get_settings()))
         runners.append(runner)
