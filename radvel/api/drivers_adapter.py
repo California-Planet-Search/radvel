@@ -371,7 +371,7 @@ def _install_sigterm_handler() -> None:
 
 
 def _run_mcmc_worker(run_id: str, params_json: str) -> Dict[str, Any]:
-    """ProcessPool worker for ``POST /runs/{id}/mcmc``.
+    """Job worker for ``POST /runs/{id}/mcmc``.
 
     Receives only JSON-serialisable arguments because it runs in a fresh
     child process. Writes outputs identically to ``radvel.driver.mcmc``
@@ -426,7 +426,7 @@ def _run_mcmc_worker(run_id: str, params_json: str) -> Dict[str, Any]:
 
 
 def _run_ns_worker(run_id: str, params_json: str) -> Dict[str, Any]:
-    """ProcessPool worker for ``POST /runs/{id}/ns``."""
+    """Job worker for ``POST /runs/{id}/ns``."""
     _install_sigterm_handler()
     record = _resolve_record(run_id)
     params = json.loads(params_json)

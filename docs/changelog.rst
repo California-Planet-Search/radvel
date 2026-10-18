@@ -10,9 +10,24 @@ Unreleased
   arrived while a ``multiprocessing`` finalizer was joining the search's
   worker pool, which prints "Exception ignored" and carries on) and ran
   for almost four more hours under a ``cancelled`` row, leaving a child
-  process stuck on a dead queue lock. The cancel now SIGKILLs the worker
-  and its child processes if it is still on the job after
-  ``RADVEL_API_CANCEL_GRACE_S`` (default 30 s), and replaces the pool.
+  process stuck on a dead queue lock. The cancel now SIGKILLs the job and
+  every process it started if it is still running after
+  ``RADVEL_API_CANCEL_GRACE_S`` (default 30 s).
+
+- **Each job runs in a process of its own.** Jobs shared a
+  ``ProcessPoolExecutor``, where killing one worker breaks the pool and
+  fails every other job in it: with ``RADVEL_API_WORKERS=8``, one stuck
+  cancel would have taken seven fits down with it. Now each job process
+  leads its own process group, so a kill reaches everything that job
+  started and nothing else, and any process a job leaves behind when it
+  ends is killed too. ``RADVEL_API_WORKERS`` still caps how many run at
+  once. Job processes start with ``spawn`` (the API process has threads)
+  and are not daemonic, so a job can start its own ``multiprocessing``
+  pool. Extension workers must be importable by a fresh interpreter.
+
+- **A job no longer outlives the API process.** A job process now watches
+  its parent; if the API process dies, it fails its row and stops itself
+  and its children instead of running on untracked.
 
 - **A successful cancel no longer stops every later job.** The cancelled
   worker's ``SystemExit`` came back to the parent as the future's

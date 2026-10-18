@@ -14,9 +14,10 @@ Its endpoints submit through the shared runner
 (``request.app.state.job_runner.submit(run_id, "search", params, worker=fn)``)
 so they get the same SQLite job rows, one-active-job-per-run guard,
 cancellation, and ``GET /jobs/{id}`` polling as MCMC. ``fn`` must be a
-module-level function ``(run_id, params_json) -> dict`` (it runs in a
-child process). Inside it, use :func:`worker_setup` and
-:func:`capture_output`, and write progress snapshots to
+module-level function ``(run_id, params_json) -> dict`` in a module a
+fresh interpreter can import: each job runs in a process of its own,
+started with ``spawn``, which imports ``fn`` by name. Inside it, use
+:func:`worker_setup` and :func:`capture_output`, and write progress snapshots to
 :func:`progress_path` so ``GET /jobs/{id}`` returns them.
 """
 

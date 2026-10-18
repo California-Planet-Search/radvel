@@ -180,19 +180,22 @@ hours. State machine::
 Job state lives in SQLite at ``${RADVEL_API_DB_PATH}`` (default
 ``/data/jobs.db``) so the container can restart without losing
 records. ``GET /jobs/{id}`` exposes live MCMC convergence telemetry
-(:doc:`autocorrintro` covers the convergence quantities). ``DELETE
-/jobs/{id}`` marks the job ``cancelled`` at once and sends the worker
-SIGTERM. If the worker is still on the job ``RADVEL_API_CANCEL_GRACE_S``
-seconds later (default 30), it and its child processes are killed with
-SIGKILL and the job's ``error`` says so. Killing a worker replaces the
-process pool, so any other job in the old pool (one still queued behind
-it, or one running beside it when ``RADVEL_API_WORKERS`` > 1) fails and
-must be resubmitted. A job cancelled while it waits for a worker never
-starts.
+(:doc:`autocorrintro` covers the convergence quantities). Each job runs in a process of its own, and at most
+``RADVEL_API_WORKERS`` run at once; the rest wait in submission order.
+A job process leads its own process group, so everything it starts
+(the MCMC ensembles, an RVsearch pool) can be stopped with it, and
+nothing else is. ``DELETE /jobs/{id}`` marks the job ``cancelled`` at
+once and sends the job process SIGTERM. If it is still running
+``RADVEL_API_CANCEL_GRACE_S`` seconds later (default 30), its whole
+process group is killed with SIGKILL and the job's ``error`` says so.
+Other jobs carry on. A job cancelled while it waits never starts. Any
+process a job leaves behind when it ends is killed too.
 
-If the host crashes mid-job, startup runs a reconciliation pass that
-marks any stranded ``running`` rows as ``failed: process gone (likely
-container restart)`` so polling clients see a clean terminal state.
+A job process stops itself if the API process that started it dies, and
+fails its row. If the host crashes mid-job, startup runs a
+reconciliation pass that marks any stranded ``running`` rows as
+``failed: process gone (likely container restart)``, and any ``queued``
+rows as failed, so polling clients see a clean terminal state.
 
 Environment variables
 ---------------------
@@ -218,10 +221,10 @@ Environment variables
      - uvicorn port.
    * - ``RADVEL_API_WORKERS``
      - ``1``
-     - ProcessPool size for MCMC/NS.
+     - How many jobs (MCMC, NS, or an extension's) run at once.
    * - ``RADVEL_API_CANCEL_GRACE_S``
      - ``30``
-     - Seconds a cancelled job's worker gets after SIGTERM before it is killed.
+     - Seconds a cancelled job gets after SIGTERM before its processes are killed.
    * - ``RADVEL_API_ALLOW_PY_UPLOAD``
      - ``false``
      - Permit ``POST /runs/upload-py`` and ``userdefined`` priors. **Off by default** because it executes user-supplied Python.

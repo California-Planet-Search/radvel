@@ -6,11 +6,15 @@ On 2026-10-17 an RVsearch job was cancelled after 24 h. The row said
 on), so the search ran for almost four more hours, wrote all its outputs, and
 left one child process stuck on a dead queue lock. ``cancel()`` sent one
 signal and never looked again.
+
+Each job runs in its own process, leading its own process group, so a cancel
+that has to kill reaches everything the job started and nothing else.
 """
 
 from __future__ import annotations
 
 import os
+import shlex
 import signal
 import subprocess
 import time
@@ -43,10 +47,22 @@ def _runs_until_cancelled(run_id, params_json):
     return {"ok": True}
 
 
+def _orphan_a_sleeper(pidfile):
+    """Start ``sleep 300`` through a shell that exits at once.
+
+    The sleeper is reparented away from the job, so walking the job's
+    children cannot find it; it is still in the job's process group.
+    """
+    tmp = shlex.quote(pidfile + ".tmp")
+    subprocess.run(["sh", "-c", "sleep 300 >/dev/null 2>&1 & echo $! > {} && mv {} {}".format(
+        tmp, tmp, shlex.quote(pidfile))], check=True)
+
+
 def _swallows_sigterm(run_id, params_json):
     """The 2026-10-17 worker: SIGTERM becomes SystemExit, and something eats it.
 
-    It also starts a child process, as RVsearch and multi-ensemble MCMC do.
+    It also starts a child process, as RVsearch and multi-ensemble MCMC do,
+    and orphans one, as a crashed pool can.
     """
     import json
 
@@ -56,6 +72,8 @@ def _swallows_sigterm(run_id, params_json):
     _install_sigterm_handler()
     child = subprocess.Popen(["sleep", "300"])
     _write_pid(params["childfile"], child.pid)
+    if "orphanfile" in params:
+        _orphan_a_sleeper(params["orphanfile"])
     _write_pid(params["pidfile"], os.getpid())
     deadline = time.monotonic() + 120
     while time.monotonic() < deadline:
@@ -63,6 +81,20 @@ def _swallows_sigterm(run_id, params_json):
             time.sleep(0.05)
         except SystemExit:
             pass
+    return {"ok": True}
+
+
+def _waits_for_release(run_id, params_json):
+    """Run until the test creates the release file."""
+    import json
+
+    params = json.loads(params_json)
+    _write_pid(params["pidfile"], os.getpid())
+    deadline = time.monotonic() + 120
+    while not os.path.exists(params["release"]):
+        if time.monotonic() > deadline:
+            raise TimeoutError("never released")
+        time.sleep(0.05)
     return {"ok": True}
 
 
@@ -78,16 +110,8 @@ def _succeeds(run_id, params_json):
 
 
 @pytest.fixture
-def runner(settings_env, monkeypatch):
-    monkeypatch.setenv("RADVEL_API_WORKERS", "1")
-    monkeypatch.setenv("RADVEL_API_CANCEL_GRACE_S", "1")
-    from radvel.api.config import get_settings
-    from radvel.api.jobs import JobRegistry, JobRunner
-
-    get_settings.cache_clear()
-    job_runner = JobRunner(JobRegistry(settings=get_settings()))
-    yield job_runner
-    job_runner.shutdown(wait=False)
+def runner(make_runner):
+    return make_runner(workers=1)
 
 
 def _wait_state(runner, job_id, states, timeout=30.0):
@@ -149,11 +173,7 @@ def _kill_quietly(pid):
 
 
 def test_a_job_submitted_after_a_cancel_still_runs(runner, tmp_path):
-    """A cancel that works must not take the pool's dispatcher down with it.
-
-    The cancelled worker's ``SystemExit`` comes back as the future's
-    exception, and the done-callback runs on the executor's manager thread.
-    """
+    """A cancel that works must not stop the runner from starting later jobs."""
     pidfile = str(tmp_path / "worker.pid")
     job = runner.submit("run-cancelled", "mcmc", {"pidfile": pidfile},
                         worker=_runs_until_cancelled)
@@ -173,22 +193,26 @@ def test_a_job_submitted_after_a_cancel_still_runs(runner, tmp_path):
 
 def test_a_worker_that_swallows_sigterm_is_killed_with_its_children(runner, tmp_path):
     pidfile, childfile = str(tmp_path / "worker.pid"), str(tmp_path / "child.pid")
+    orphanfile = str(tmp_path / "orphan.pid")
     job = runner.submit("run-ghost", "mcmc",
-                        {"pidfile": pidfile, "childfile": childfile},
+                        {"pidfile": pidfile, "childfile": childfile,
+                         "orphanfile": orphanfile},
                         worker=_swallows_sigterm)
     worker_pid, child_pid = _read_pid(pidfile), _read_pid(childfile)
+    orphan_pid = _read_pid(orphanfile)
     _wait_state(runner, job.job_id, {"running"})
     try:
         row = runner.cancel(job.job_id)
         assert row.state == "cancelled"
 
         # Grace is 1 s in this test; the worker ignores SIGTERM, so it must
-        # be killed shortly after, and its child with it.
+        # be killed shortly after, with its child and the sleeper it orphaned.
         assert _wait_gone(worker_pid, timeout=15), "worker survived the cancel"
         assert _wait_gone(child_pid, timeout=5), "worker's child survived the cancel"
+        assert _wait_gone(orphan_pid, timeout=5), "the orphaned sleeper survived"
     finally:
-        _kill_quietly(child_pid)
-        _kill_quietly(worker_pid)
+        for pid in (orphan_pid, child_pid, worker_pid):
+            _kill_quietly(pid)
 
     deadline = time.monotonic() + 10
     while time.monotonic() < deadline:
@@ -198,34 +222,61 @@ def test_a_worker_that_swallows_sigterm_is_killed_with_its_children(runner, tmp_
         time.sleep(0.05)
     assert row.state == "cancelled"
     assert "killed" in (row.error or ""), row.error
-    assert "1 child" in row.error, row.error
+    assert "2 other process" in row.error, row.error
 
     after = runner.submit("run-after", "mcmc", {}, worker=_succeeds)
     assert _wait_terminal(runner, after.job_id).state == "succeeded"
 
 
 def test_a_job_cancelled_while_it_waits_for_a_worker_never_runs(runner, tmp_path):
-    """With one worker, the second job waits inside the executor's call queue.
-
-    ``Future.cancel()`` cannot stop it there (the executor already marked it
-    running), so only the row can tell the worker not to start it.
-    """
-    pidfile = str(tmp_path / "worker.pid")
+    """With one worker slot, the second job waits until the first is done."""
+    first_pidfile = str(tmp_path / "first.pid")
     marker = tmp_path / "ran"
-    first = runner.submit("run-first", "mcmc", {"pidfile": pidfile},
+    first = runner.submit("run-first", "mcmc", {"pidfile": first_pidfile},
                           worker=_runs_until_cancelled)
-    _read_pid(pidfile)
+    _read_pid(first_pidfile)
     waiting = runner.submit("run-waiting", "mcmc", {"marker": str(marker)},
                             worker=_leaves_a_marker)
     assert runner.registry.get(waiting.job_id).state == "queued"
-    deadline = time.monotonic() + 10
-    while not runner._futures[waiting.job_id].running():
-        assert time.monotonic() < deadline, "job never reached the call queue"
-        time.sleep(0.02)
 
     runner.cancel(waiting.job_id)
     runner.cancel(first.job_id)
-    runner._futures[waiting.job_id].exception(timeout=15)  # dispatched and done
+    runner._futures[first.job_id].exception(timeout=15)  # first job's process is gone
+    after = runner.submit("run-after", "mcmc", {}, worker=_succeeds)
+    assert _wait_terminal(runner, after.job_id).state == "succeeded"
 
     assert not marker.exists(), "a cancelled job ran anyway"
     assert runner.registry.get(waiting.job_id).state == "cancelled"
+
+
+def test_killing_one_job_leaves_the_job_beside_it_running(make_runner, tmp_path):
+    """With a shared worker pool, killing one worker broke the pool.
+
+    Every other job in it failed: on a service running 8 jobs at once, one
+    stuck cancel would have taken the other 7 down with it.
+    """
+    runner = make_runner(workers=2)
+    stuck_pidfile, childfile = str(tmp_path / "stuck.pid"), str(tmp_path / "child.pid")
+    beside_pidfile, release = str(tmp_path / "beside.pid"), str(tmp_path / "release")
+    stuck = runner.submit("run-stuck", "mcmc",
+                          {"pidfile": stuck_pidfile, "childfile": childfile},
+                          worker=_swallows_sigterm)
+    beside = runner.submit("run-beside", "mcmc",
+                           {"pidfile": beside_pidfile, "release": release},
+                           worker=_waits_for_release)
+    stuck_pid, child_pid = _read_pid(stuck_pidfile), _read_pid(childfile)
+    beside_pid = _read_pid(beside_pidfile)
+    _wait_state(runner, beside.job_id, {"running"})
+    try:
+        runner.cancel(stuck.job_id)
+        assert _wait_gone(stuck_pid, timeout=15), "the stuck job survived the cancel"
+        assert _wait_gone(child_pid, timeout=5)
+        time.sleep(0.5)  # time for any collateral kill to land
+
+        assert not _gone(beside_pid), "killing one job killed the job beside it"
+        assert runner.registry.get(beside.job_id).state == "running"
+        Path(release).touch()
+        assert _wait_terminal(runner, beside.job_id).state == "succeeded"
+    finally:
+        for pid in (child_pid, stuck_pid, beside_pid):
+            _kill_quietly(pid)
