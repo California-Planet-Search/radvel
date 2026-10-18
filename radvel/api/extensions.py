@@ -50,7 +50,12 @@ __all__ = [
 
 
 def worker_setup(run_id: str) -> RunRecord:
-    """Call first inside a job worker: makes SIGTERM cancellable, returns the run."""
+    """Call first inside a job worker: makes SIGTERM cancellable, returns the run.
+
+    Only this process raises ``SystemExit`` on SIGTERM. Processes it forks
+    die of SIGTERM as soon as they next run Python code, with no Python
+    cleanup (no ``finally`` blocks or ``atexit`` handlers).
+    """
     _install_sigterm_handler()
     return _resolve_record(run_id)
 
