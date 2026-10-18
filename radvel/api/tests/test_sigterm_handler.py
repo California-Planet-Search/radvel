@@ -2,9 +2,9 @@
 
 A forked child inherits Python signal handlers. RVsearch and multi-ensemble
 MCMC fork ``multiprocessing`` workers from inside an API worker, and
-``Pool.terminate()`` stops them with SIGTERM, expecting them to die on the
-spot. With the inherited handler they raised SystemExit instead and unwound
-through whatever they were doing, queue locks included.
+``Pool.terminate()`` stops them with SIGTERM, expecting them to die. With
+the inherited handler they raised SystemExit instead, and where CPython
+drops the exception (an at-fork hook, a finalizer) the child carried on.
 """
 
 from __future__ import annotations

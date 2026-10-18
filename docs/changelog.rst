@@ -7,11 +7,12 @@ Unreleased
 - **Processes forked by a job now die of SIGTERM.** The job worker's
   SIGTERM handler, which turns SIGTERM into ``SystemExit`` so a cancel can
   interrupt it, was inherited by every process the job forked: RVsearch's
-  ``multiprocessing`` pool workers and multi-ensemble MCMC. When
-  ``Pool.terminate()`` sent them SIGTERM they raised ``SystemExit``
-  instead of dying, and unwound through whatever they held, queue locks
-  included. The handler now raises only in the process that installed it;
-  anywhere else it restores the default action and re-sends the signal.
+  ``multiprocessing`` pool workers and multi-ensemble MCMC. A child sent
+  SIGTERM raised ``SystemExit`` instead of dying. Where that happened in
+  code whose exceptions CPython prints and drops, such as an at-fork hook
+  or a finalizer, the child lived on. The handler now raises only in the
+  process that installed it; anywhere else it restores the default action
+  and re-sends the signal.
 
 1.6.6 (2026-10-06)
 ------------------

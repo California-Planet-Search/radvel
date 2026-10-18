@@ -369,11 +369,11 @@ def _install_sigterm_handler() -> None:
     Only in the process that installs it. A forked child inherits Python
     signal handlers, and RVsearch and multi-ensemble MCMC fork
     ``multiprocessing`` workers from here. ``Pool.terminate()`` stops those
-    with SIGTERM and expects them to die on the spot; with this handler they
-    raised SystemExit instead, unwound through whatever they held (queue
-    locks included), and could hang on the way out. In a child the handler
+    with SIGTERM and expects them to die. With this handler they raised
+    SystemExit instead, and where CPython prints and drops the exception (an
+    at-fork hook, a finalizer) the child carried on. In a child the handler
     puts back the default action and re-sends the signal, so the child dies
-    of SIGTERM as multiprocessing expects.
+    of SIGTERM as soon as the interpreter next runs Python code.
     """
     installer = os.getpid()
 
