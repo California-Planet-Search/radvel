@@ -27,6 +27,31 @@ def settings_env(tmp_path: Path, monkeypatch):
 
 
 @pytest.fixture
+def make_runner(settings_env, monkeypatch):
+    """Build JobRunners with ``workers`` slots and a 1 s cancel grace.
+
+    Every runner made here is shut down after the test, so no job process
+    outlives it.
+    """
+    from radvel.api.config import get_settings
+    from radvel.api.jobs import JobRegistry, JobRunner
+
+    runners = []
+
+    def make(workers: int = 1, cancel_grace_s: float = 1):
+        monkeypatch.setenv("RADVEL_API_WORKERS", str(workers))
+        monkeypatch.setenv("RADVEL_API_CANCEL_GRACE_S", str(cancel_grace_s))
+        get_settings.cache_clear()
+        runner = JobRunner(JobRegistry(settings=get_settings()))
+        runners.append(runner)
+        return runner
+
+    yield make
+    for runner in runners:
+        runner.shutdown(wait=False)
+
+
+@pytest.fixture
 def client(settings_env):
     """A TestClient that runs the FastAPI lifespan event.
 

@@ -14,6 +14,62 @@ Unreleased
   process that installed it; anywhere else it restores the default action
   and re-sends the signal.
 
+- **Cancelling a job now stops it.** ``DELETE /jobs/{id}`` sent SIGTERM
+  once and marked the row ``cancelled`` without checking that the worker
+  stopped. On 2026-10-17 an RVsearch worker swallowed that SIGTERM (it
+  arrived while a ``multiprocessing`` finalizer was joining the search's
+  worker pool, which prints "Exception ignored" and carries on) and ran
+  for almost four more hours under a ``cancelled`` row, leaving a child
+  process stuck on a dead queue lock. The cancel now SIGKILLs the job and
+  every process it started if it is still running after
+  ``RADVEL_API_CANCEL_GRACE_S`` (default 30 s).
+
+- **Each job runs in a process of its own.** Jobs shared a
+  ``ProcessPoolExecutor``, where killing one worker breaks the pool and
+  fails every other job in it: with ``RADVEL_API_WORKERS=8``, one stuck
+  cancel would have taken seven fits down with it. Now each job process
+  leads its own process group, so a kill reaches everything that job
+  started and nothing else, and any process a job leaves behind when it
+  ends is killed too. ``RADVEL_API_WORKERS`` still caps how many run at
+  once. Job processes start with ``spawn`` (the API process has threads)
+  and are not daemonic, so a job can start its own ``multiprocessing``
+  pool. Extension workers must be importable by a fresh interpreter.
+
+- **A job no longer outlives the API process.** A job process now watches
+  its parent; if the API process dies, it fails its row and stops itself
+  and its children instead of running on untracked.
+
+- **A successful cancel no longer stops every later job.** The cancelled
+  worker's ``SystemExit`` came back to the parent as the future's
+  exception, and the done-callback re-raised it on the executor's manager
+  thread, which ``concurrent.futures`` does not protect against
+  ``BaseException``. That thread ended, and every job submitted after it
+  stayed ``queued`` for the life of the process.
+
+- **A job cancelled while it waits for a worker no longer runs anyway.**
+  ``ProcessPoolExecutor`` marks the jobs in its call queue as running, so
+  ``Future.cancel()`` cannot stop them. A worker now claims a job only if
+  its row is still ``queued``.
+
+- **A job stuck at exit no longer holds its slot.** A job process that
+  recorded its result but never exited (waiting at exit on a thread or a
+  ``multiprocessing`` pool) kept its slot, and with the default one
+  worker every later job stayed ``queued``. It is now killed
+  ``RADVEL_API_CANCEL_GRACE_S`` after its row shows the result.
+
+- **A cancel reaches a job started by another uvicorn worker.** Under
+  ``radvel serve --workers N`` the worker that started a job now watches
+  its row and stops it when another worker marks it ``cancelled``. One
+  uvicorn worker is still the recommended setup; see the API docs.
+
+- **A shutdown is no longer reported as a cancel.** Jobs running when the
+  service stops end ``failed`` with "the API service shut down ...;
+  resubmit if still wanted", not ``cancelled: SIGTERM received``.
+
+- Job processes now log at ``RADVEL_API_LOG_LEVEL``. ``RADVEL_API_WORKERS``
+  below 1 (which left every job ``queued``) and a negative
+  ``RADVEL_API_CANCEL_GRACE_S`` are now refused at startup.
+
 1.6.6 (2026-10-06)
 ------------------
 
