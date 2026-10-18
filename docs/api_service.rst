@@ -181,8 +181,14 @@ Job state lives in SQLite at ``${RADVEL_API_DB_PATH}`` (default
 ``/data/jobs.db``) so the container can restart without losing
 records. ``GET /jobs/{id}`` exposes live MCMC convergence telemetry
 (:doc:`autocorrintro` covers the convergence quantities). ``DELETE
-/jobs/{id}`` issues SIGTERM to the worker; the job reaches
-``cancelled`` within a few seconds.
+/jobs/{id}`` marks the job ``cancelled`` at once and sends the worker
+SIGTERM. If the worker is still on the job ``RADVEL_API_CANCEL_GRACE_S``
+seconds later (default 30), it and its child processes are killed with
+SIGKILL and the job's ``error`` says so. Killing a worker replaces the
+process pool, so any other job in the old pool (one still queued behind
+it, or one running beside it when ``RADVEL_API_WORKERS`` > 1) fails and
+must be resubmitted. A job cancelled while it waits for a worker never
+starts.
 
 If the host crashes mid-job, startup runs a reconciliation pass that
 marks any stranded ``running`` rows as ``failed: process gone (likely
@@ -213,6 +219,9 @@ Environment variables
    * - ``RADVEL_API_WORKERS``
      - ``1``
      - ProcessPool size for MCMC/NS.
+   * - ``RADVEL_API_CANCEL_GRACE_S``
+     - ``30``
+     - Seconds a cancelled job's worker gets after SIGTERM before it is killed.
    * - ``RADVEL_API_ALLOW_PY_UPLOAD``
      - ``false``
      - Permit ``POST /runs/upload-py`` and ``userdefined`` priors. **Off by default** because it executes user-supplied Python.

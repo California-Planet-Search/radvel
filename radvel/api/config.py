@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     port: int = 8000
     workers: int = 1
     request_timeout_s: int = 1800
+    # Seconds a cancelled job's worker gets to stop after SIGTERM before it
+    # and its child processes are SIGKILLed.
+    cancel_grace_s: float = 30.0
     max_upload_bytes: int = 50_000_000
     allow_py_upload: bool = False
     enable_ui: bool = True

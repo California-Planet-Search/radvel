@@ -28,8 +28,10 @@ import os
 import secrets
 import signal
 import sqlite3
+import subprocess
 import threading
 from concurrent.futures import ProcessPoolExecutor, Future
+from concurrent.futures import wait as wait_futures
 from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 from pathlib import Path
@@ -225,12 +227,28 @@ class JobRegistry:
                 return _row_to_job(row)
         return None
 
-    def mark_running(self, job_id: str, pid: int, host: str) -> None:
+    def mark_running(self, job_id: str, pid: int, host: str) -> bool:
+        """Claim a queued row for a worker. False means do not run it.
+
+        Only a ``queued`` row can start. A job cancelled while it waited
+        inside the executor's call queue is already ``cancelled`` by the
+        time a worker reaches it, and ``Future.cancel()`` could not stop it
+        there, because the executor marks those futures running.
+        """
+        with self._lock, self._connect() as conn:
+            cur = conn.execute(
+                "UPDATE jobs SET state='running', pid=?, host=?, started_at=? "
+                "WHERE job_id=? AND state='queued'",
+                (pid, host, _iso(_now()), job_id),
+            )
+            return cur.rowcount == 1
+
+    def amend_error(self, job_id: str, *, state: str, error: str) -> None:
+        """Replace the error text of a row that is still in ``state``."""
         with self._lock, self._connect() as conn:
             conn.execute(
-                "UPDATE jobs SET state='running', pid=?, host=?, started_at=? "
-                "WHERE job_id=?",
-                (pid, host, _iso(_now()), job_id),
+                "UPDATE jobs SET error=? WHERE job_id=? AND state=?",
+                (error, job_id, state),
             )
 
     def mark_finished(self, job_id: str, *, state: str,
@@ -319,6 +337,59 @@ def _pid_alive(pid: int) -> bool:
         return False
 
 
+def _sigkill(pid: int) -> bool:
+    try:
+        os.kill(pid, signal.SIGKILL)
+        return True
+    except (ProcessLookupError, PermissionError):
+        return False
+
+
+def _parent_pids() -> Dict[int, int]:
+    """Map pid to parent pid for every visible process."""
+    table: Dict[int, int] = {}
+    proc = Path("/proc")
+    if (proc / "self" / "stat").exists():
+        for entry in proc.iterdir():
+            if not entry.name.isdigit():
+                continue
+            try:
+                stat = (entry / "stat").read_text()
+            except OSError:
+                continue  # exited while we looked
+            # The command name may hold spaces or ')', so split after the
+            # last ')': the fields there are state, then ppid.
+            table[int(entry.name)] = int(stat.rsplit(")", 1)[1].split()[1])
+        return table
+    try:  # no /proc (macOS)
+        out = subprocess.run(["ps", "-A", "-o", "pid=", "-o", "ppid="],
+                             capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return table
+    for line in out.splitlines():
+        fields = line.split()
+        if len(fields) == 2 and fields[0].isdigit() and fields[1].isdigit():
+            table[int(fields[0])] = int(fields[1])
+    return table
+
+
+def _process_tree(root: int) -> List[int]:
+    """``root`` followed by all its descendants.
+
+    Taken before anything is killed: once ``root`` dies its children are
+    reparented and can no longer be traced back to it.
+    """
+    children: Dict[int, List[int]] = {}
+    for pid, ppid in _parent_pids().items():
+        children.setdefault(ppid, []).append(pid)
+    tree, frontier = [root], [root]
+    while frontier:
+        frontier = [c for p in frontier for c in children.get(p, ())
+                    if c not in tree]
+        tree.extend(frontier)
+    return tree
+
+
 # ---- runner --------------------------------------------------------------
 
 
@@ -339,6 +410,7 @@ class JobRunner:
         self.pool = ProcessPoolExecutor(max_workers=registry.settings.workers)
         self._futures: Dict[str, Future] = {}
         self._lock = threading.Lock()
+        self._closed = False
 
     def shutdown(self, wait: bool = False) -> None:
         """SIGTERM running workers, then close the pool.
@@ -347,6 +419,7 @@ class JobRunner:
         cannot interrupt a worker that is mid-MCMC — the test (or container)
         process then hangs at exit waiting on the non-daemon child.
         """
+        self._closed = True
         host = os.uname().nodename if hasattr(os, "uname") else ""
         for row in self.registry.list(state="running"):
             if row.pid and (row.host or "") == host:
@@ -403,30 +476,95 @@ class JobRunner:
         broken.shutdown(wait=False, cancel_futures=True)
 
     def cancel(self, job_id: str) -> JobRow:
-        """Issue SIGTERM to the running worker. Idempotent."""
-        try:
-            current = self.registry.get(job_id)
-        except JobNotFound:
-            raise
+        """Cancel a job and make sure its worker stops. Idempotent.
+
+        The row turns ``cancelled`` at once, which is what clients poll
+        for. A running worker gets SIGTERM. If it is still on this job
+        ``cancel_grace_s`` later, it and every process under it are
+        SIGKILLed: on 2026-10-17 an RVsearch worker swallowed its SIGTERM
+        (it landed inside a multiprocessing finalizer) and ran for almost
+        four more hours under a row that said ``cancelled``.
+        """
+        current = self.registry.get(job_id)
         if current.state in {"succeeded", "failed", "cancelled"}:
             return current
-        with self._lock:
-            future = self._futures.get(job_id)
-        if current.pid:
-            try:
-                os.kill(current.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-        if future is not None:
-            future.cancel()
+        # Mark the row before reading the pid. A worker that has not
+        # claimed the row yet will now find it cancelled and skip the job;
+        # one that already claimed it wrote its pid, which the re-read
+        # below sees. Either way no worker runs it unsignalled.
         self.registry.mark_finished(job_id, state="cancelled",
                                     error="cancelled by client")
-        return self.registry.get(job_id)
+        row = self.registry.get(job_id)
+        if row.state != "cancelled":
+            return row  # finished on its own just before the cancel
+        with self._lock:
+            future = self._futures.get(job_id)
+        if future is not None:
+            future.cancel()  # only helps while it is still in the pool's backlog
+        # A done future means the pool worker has moved on, possibly to
+        # another job, so its pid is no longer this job's to signal.
+        if row.pid and (future is None or not future.done()):
+            try:
+                os.kill(row.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            else:
+                if future is not None:
+                    threading.Thread(
+                        target=self._kill_if_still_running,
+                        args=(job_id, row.pid, future),
+                        name="radvel-cancel-{}".format(job_id),
+                        daemon=True,
+                    ).start()
+        return row
+
+    def _kill_if_still_running(self, job_id: str, pid: int,
+                               future: Future) -> None:
+        """After the grace period, SIGKILL a worker that ignored SIGTERM.
+
+        The future is the test of "still on this job", not the pid: pool
+        workers outlive their jobs, so a live pid proves nothing, but the
+        future stays pending until the worker hands this job back.
+
+        Killing a worker breaks its pool. A fresh pool goes in first, so
+        new submits never land in the broken one. Any other job still in
+        the old pool (running, with ``workers > 1``, or queued behind the
+        stuck one) fails with a "pool broke" error, as on any worker death.
+        """
+        grace = self.registry.settings.cancel_grace_s
+        wait_futures([future], timeout=grace)
+        if future.done() or self._closed:
+            return
+        tree = _process_tree(pid)
+        with self._lock:
+            old: Optional[ProcessPoolExecutor] = self.pool
+            if pid in (getattr(old, "_processes", None) or {}):
+                self.pool = ProcessPoolExecutor(
+                    max_workers=self.registry.settings.workers
+                )
+            else:
+                old = None  # that pool was already replaced
+        killed = [p for p in tree if _sigkill(p)]
+        if old is not None:
+            old.shutdown(wait=False, cancel_futures=True)
+        self.registry.amend_error(
+            job_id, state="cancelled",
+            error="cancelled by client; the worker (pid {}) was still on the "
+                  "job {:g}s after SIGTERM, so it was killed with SIGKILL "
+                  "along with {} child process(es)".format(
+                      pid, grace, max(len(killed) - 1, 0)),
+        )
 
     def _on_done(self, job_id: str, future: Future) -> None:
+        # BaseException, not Exception: a cancelled worker sends back the
+        # SystemExit its SIGTERM handler raised. This callback runs on the
+        # executor's manager thread, and Future._invoke_callbacks only
+        # catches Exception, so a SystemExit escaping here ends that
+        # thread. Nothing dispatches after that: every later job stays
+        # queued for the life of the process.
         try:
             future.result()
-        except Exception as exc:
+        except BaseException as exc:
             # Worker exits with state already persisted; only log here.
             try:
                 row = self.registry.get(job_id)
@@ -456,7 +594,8 @@ def _worker_entrypoint(worker: Worker, job_id: str, run_id: str,
     settings = settings.model_copy(update={"db_path": Path(db_path)})
     sub_registry = JobRegistry(settings=settings)
     host = os.uname().nodename if hasattr(os, "uname") else ""
-    sub_registry.mark_running(job_id, pid=os.getpid(), host=host)
+    if not sub_registry.mark_running(job_id, pid=os.getpid(), host=host):
+        return {}  # cancelled (or failed) before a worker reached it
     try:
         result = worker(run_id, params_json)
     except SystemExit:

@@ -1,6 +1,31 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+- **Cancelling a job now stops it.** ``DELETE /jobs/{id}`` sent SIGTERM
+  once and marked the row ``cancelled`` without checking that the worker
+  stopped. On 2026-10-17 an RVsearch worker swallowed that SIGTERM (it
+  arrived while a ``multiprocessing`` finalizer was joining the search's
+  worker pool, which prints "Exception ignored" and carries on) and ran
+  for almost four more hours under a ``cancelled`` row, leaving a child
+  process stuck on a dead queue lock. The cancel now SIGKILLs the worker
+  and its child processes if it is still on the job after
+  ``RADVEL_API_CANCEL_GRACE_S`` (default 30 s), and replaces the pool.
+
+- **A successful cancel no longer stops every later job.** The cancelled
+  worker's ``SystemExit`` came back to the parent as the future's
+  exception, and the done-callback re-raised it on the executor's manager
+  thread, which ``concurrent.futures`` does not protect against
+  ``BaseException``. That thread ended, and every job submitted after it
+  stayed ``queued`` for the life of the process.
+
+- **A job cancelled while it waits for a worker no longer runs anyway.**
+  ``ProcessPoolExecutor`` marks the jobs in its call queue as running, so
+  ``Future.cancel()`` cannot stop them. A worker now claims a job only if
+  its row is still ``queued``.
+
 1.6.6 (2026-10-06)
 ------------------
 
