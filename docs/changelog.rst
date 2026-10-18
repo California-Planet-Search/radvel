@@ -4,6 +4,16 @@ Changelog
 Unreleased
 ----------
 
+- **Processes forked by a job now die of SIGTERM.** The job worker's
+  SIGTERM handler, which turns SIGTERM into ``SystemExit`` so a cancel can
+  interrupt it, was inherited by every process the job forked: RVsearch's
+  ``multiprocessing`` pool workers and multi-ensemble MCMC. A child sent
+  SIGTERM raised ``SystemExit`` instead of dying. Where that happened in
+  code whose exceptions CPython prints and drops, such as an at-fork hook
+  or a finalizer, the child lived on. The handler now raises only in the
+  process that installed it; anywhere else it restores the default action
+  and re-sends the signal.
+
 - **Cancelling a job now stops it.** ``DELETE /jobs/{id}`` sent SIGTERM
   once and marked the row ``cancelled`` without checking that the worker
   stopped. On 2026-10-17 an RVsearch worker swallowed that SIGTERM (it
