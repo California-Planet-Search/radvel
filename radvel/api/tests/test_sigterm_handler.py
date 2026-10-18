@@ -120,6 +120,9 @@ def _install_then_fork_and_report(conn):
         grandchild.terminate()
         grandchild.join(timeout=10)
         conn.send(grandchild.exitcode)
+    except BaseException as exc:
+        conn.send(repr(exc))  # so the test says why, not a bare EOFError
+        raise
     finally:
         if grandchild.is_alive():
             grandchild.kill()
@@ -128,15 +131,15 @@ def _install_then_fork_and_report(conn):
 
 
 def test_handler_installed_in_a_forked_worker():
-    """The production shape: the API process imports, a forked worker installs.
+    """The handler is installed in a forked worker, not where it was imported.
 
-    The installing process is then neither the one that imported the module
-    nor the pytest process. The worker must still get SystemExit (exit 143),
-    and the child it forks must die of SIGTERM (-15).
+    The installing process is not the one that imported the module (the
+    pytest process). The worker must still get SystemExit (exit 143), and
+    the child it forks must die of SIGTERM (-15).
     """
-    # Import here, in the parent, so the module is loaded before the fork as
-    # it is in the API process. A pid captured at import time would then be
-    # the parent's, not the worker's.
+    # Import here, in the parent, so the module is loaded before the fork.
+    # A pid captured at import time would then be the parent's, not the
+    # worker's.
     import radvel.api.drivers_adapter  # noqa: F401
 
     ctx = mp.get_context("fork")
@@ -146,7 +149,9 @@ def test_handler_installed_in_a_forked_worker():
     child_conn.close()
     try:
         assert parent_conn.poll(30), "worker never reported"
-        assert parent_conn.recv() == -signal.SIGTERM, "grandchild did not die of SIGTERM"
+        got = parent_conn.recv()
+        assert got == -signal.SIGTERM, (
+            "grandchild did not die of SIGTERM: {!r}".format(got))
         os.kill(worker.pid, signal.SIGTERM)
         worker.join(timeout=10)
         assert worker.exitcode == 128 + signal.SIGTERM
@@ -195,5 +200,7 @@ def test_pool_terminate_kills_busy_workers(handler_installed, tmp_path):
         for w in workers:
             if w.is_alive():
                 w.kill()
-        if stopper is not None:
-            stopper.join(timeout=5)
+        if stopper is None:  # failed early: stop the pool, or it forks replacements
+            stopper = threading.Thread(target=_stop_pool, args=(pool,), daemon=True)
+            stopper.start()
+        stopper.join(timeout=5)
