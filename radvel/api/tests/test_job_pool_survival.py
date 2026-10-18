@@ -1,4 +1,4 @@
-"""The worker pool must outlive the jobs it runs.
+"""The job runner must outlive the jobs it runs.
 
 On 2026-09-30 one MCMC job failed in production with a NaN in the driver.
 Every MCMC submitted after it -- for six days, for every user -- answered
@@ -8,8 +8,9 @@ terminated. The worker re-raised an ``AdapterError``; that exception could not
 be rebuilt in the parent, and ``concurrent.futures`` answers an unreadable
 result by declaring the whole pool broken, permanently.
 
-A ``ProcessPoolExecutor`` never recovers from that state, so a job runner that
-keeps one for the life of the process has to replace it.
+A ``ProcessPoolExecutor`` never recovers from that state. The runner now
+starts a process of its own for each job, so there is no pool left to break;
+these tests hold it to that.
 """
 
 from __future__ import annotations
@@ -59,15 +60,8 @@ def _dies_after_a_moment(run_id, params_json):
 
 
 @pytest.fixture
-def runner(settings_env, monkeypatch):
-    monkeypatch.setenv("RADVEL_API_WORKERS", "1")
-    from radvel.api.config import get_settings
-    from radvel.api.jobs import JobRegistry, JobRunner
-
-    get_settings.cache_clear()
-    job_runner = JobRunner(JobRegistry(settings=get_settings()))
-    yield job_runner
-    job_runner.shutdown(wait=False)
+def runner(make_runner):
+    return make_runner(workers=1)
 
 
 def _wait_terminal(runner, job_id, timeout=30.0):
@@ -98,51 +92,43 @@ def test_adapter_error_survives_pickling():
     assert rebuilt == original
 
 
-def test_a_job_that_fails_with_adapter_error_leaves_the_pool_usable(runner):
+def test_a_job_that_fails_with_adapter_error_leaves_the_runner_usable(runner):
     """The production regression: one failed MCMC must not end all later ones."""
-    pool = runner.pool
     failed = runner.submit("run-fails", "mcmc", {}, worker=_raises_adapter_error)
     assert _wait_terminal(runner, failed.job_id).state == "failed"
 
     after = runner.submit("run-after", "mcmc", {}, worker=_succeeds)
 
     assert _wait_terminal(runner, after.job_id).state == "succeeded"
-    # Replacing a broken pool would also pass the line above, and would kill
-    # every other fit running in it. A failed job must not break it at all.
-    assert runner.pool is pool
 
-
-def test_a_job_that_fails_with_an_unpicklable_exception_leaves_the_pool_usable(runner):
-    """Drivers raise whatever they raise; the pool cannot depend on its shape."""
-    pool = runner.pool
+def test_a_job_that_fails_with_an_unpicklable_exception_leaves_the_runner_usable(runner):
+    """Drivers raise whatever they raise; the runner cannot depend on its shape."""
     failed = runner.submit("run-fails", "mcmc", {}, worker=_raises_unpicklable)
     assert _wait_terminal(runner, failed.job_id).state == "failed"
 
     after = runner.submit("run-after", "mcmc", {}, worker=_succeeds)
 
     assert _wait_terminal(runner, after.job_id).state == "succeeded"
-    # Replacing a broken pool would also pass the line above, and would kill
-    # every other fit running in it. A failed job must not break it at all.
-    assert runner.pool is pool
-
 
 def test_a_job_submitted_after_a_worker_process_dies_still_runs(runner):
-    """A killed worker (OOM, a stray signal) really does break the pool."""
+    """A killed worker (OOM, a stray signal) broke the shared pool."""
     died = runner.submit("run-dies", "mcmc", {}, worker=_dies_after_a_moment)
-    assert _wait_terminal(runner, died.job_id).state == "failed"
+    row = _wait_terminal(runner, died.job_id)
+    assert row.state == "failed"
+    assert "exited with code 1" in (row.error or ""), row.error
 
     after = runner.submit("run-after", "mcmc", {}, worker=_succeeds)
 
     assert _wait_terminal(runner, after.job_id).state == "succeeded"
 
 
-def test_a_job_waiting_in_the_pool_when_it_breaks_is_failed_not_left_queued(runner):
-    """With one worker the second job is still waiting when the first dies."""
+def test_a_job_waiting_when_the_one_before_it_dies_still_runs(runner):
+    """With one worker the second job is still waiting when the first dies.
+
+    The shared pool failed it, telling the client to resubmit.
+    """
     died = runner.submit("run-dies", "mcmc", {}, worker=_dies_after_a_moment)
     waiting = runner.submit("run-waiting", "mcmc", {}, worker=_succeeds)
     _wait_terminal(runner, died.job_id)
 
-    row = _wait_terminal(runner, waiting.job_id)
-
-    assert row.state == "failed"
-    assert "resubmit" in (row.error or "").lower()
+    assert _wait_terminal(runner, waiting.job_id).state == "succeeded"

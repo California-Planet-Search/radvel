@@ -364,14 +364,30 @@ def _resolve_record(run_id: str) -> RunRecord:
 
 
 def _install_sigterm_handler() -> None:
-    """Translate SIGTERM into SystemExit so JobRunner.cancel can interrupt."""
+    """Translate SIGTERM into SystemExit so JobRunner.cancel can interrupt.
+
+    Only in the process that installs it. A forked child inherits Python
+    signal handlers, and RVsearch and multi-ensemble MCMC fork
+    ``multiprocessing`` workers from here. ``Pool.terminate()`` stops those
+    with SIGTERM and expects them to die. With this handler they raised
+    SystemExit instead, and where CPython prints and drops the exception (an
+    at-fork hook, a finalizer) the child carried on. In a child the handler
+    puts back the default action and re-sends the signal, so the child dies
+    of SIGTERM as soon as the interpreter next runs Python code.
+    """
+    installer = os.getpid()
+
     def _handler(signum, frame):
-        raise SystemExit(128 + signum)
+        if os.getpid() == installer:
+            raise SystemExit(128 + signum)
+        signal.signal(signum, signal.SIG_DFL)
+        os.kill(os.getpid(), signum)
+
     signal.signal(signal.SIGTERM, _handler)
 
 
 def _run_mcmc_worker(run_id: str, params_json: str) -> Dict[str, Any]:
-    """ProcessPool worker for ``POST /runs/{id}/mcmc``.
+    """Job worker for ``POST /runs/{id}/mcmc``.
 
     Receives only JSON-serialisable arguments because it runs in a fresh
     child process. Writes outputs identically to ``radvel.driver.mcmc``
@@ -426,7 +442,7 @@ def _run_mcmc_worker(run_id: str, params_json: str) -> Dict[str, Any]:
 
 
 def _run_ns_worker(run_id: str, params_json: str) -> Dict[str, Any]:
-    """ProcessPool worker for ``POST /runs/{id}/ns``."""
+    """Job worker for ``POST /runs/{id}/ns``."""
     _install_sigterm_handler()
     record = _resolve_record(run_id)
     params = json.loads(params_json)

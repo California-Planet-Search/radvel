@@ -14,9 +14,10 @@ Its endpoints submit through the shared runner
 (``request.app.state.job_runner.submit(run_id, "search", params, worker=fn)``)
 so they get the same SQLite job rows, one-active-job-per-run guard,
 cancellation, and ``GET /jobs/{id}`` polling as MCMC. ``fn`` must be a
-module-level function ``(run_id, params_json) -> dict`` (it runs in a
-child process). Inside it, use :func:`worker_setup` and
-:func:`capture_output`, and write progress snapshots to
+module-level function ``(run_id, params_json) -> dict`` in a module a
+fresh interpreter can import: each job runs in a process of its own,
+started with ``spawn``, which imports ``fn`` by name. Inside it, use
+:func:`worker_setup` and :func:`capture_output`, and write progress snapshots to
 :func:`progress_path` so ``GET /jobs/{id}`` returns them.
 """
 
@@ -50,7 +51,12 @@ __all__ = [
 
 
 def worker_setup(run_id: str) -> RunRecord:
-    """Call first inside a job worker: makes SIGTERM cancellable, returns the run."""
+    """Call first inside a job worker: makes SIGTERM cancellable, returns the run.
+
+    Only this process raises ``SystemExit`` on SIGTERM. Processes it forks
+    die of SIGTERM as soon as they next run Python code, with no Python
+    cleanup (no ``finally`` blocks or ``atexit`` handlers).
+    """
     _install_sigterm_handler()
     return _resolve_record(run_id)
 
