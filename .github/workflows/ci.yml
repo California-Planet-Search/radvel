@@ -17,7 +17,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -76,7 +76,7 @@ jobs:
   api-test:
     needs: test
     if: github.event_name != 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
@@ -107,7 +107,7 @@ jobs:
   docker-smoke:
     needs: test
     if: github.event_name != 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
 
@@ -168,7 +168,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14, windows-latest]
+        os: [ubuntu-24.04, macos-14, windows-latest]
 
     steps:
     - uses: actions/checkout@v4
@@ -207,7 +207,7 @@ jobs:
   build-sdist:
     needs: test
     if: github.event_name == 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
@@ -225,7 +225,7 @@ jobs:
   publish:
     needs: [build-wheels, build-sdist]
     if: github.event_name == 'release'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: pypi
     permissions:
       id-token: write
