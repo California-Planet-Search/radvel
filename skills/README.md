@@ -12,5 +12,6 @@ Both were checked against radvel 1.6.7 by running agents on bundled example data
 From the Orrery registry (https://orrery.science/install), or copy the folders into your skills directory:
 
 ```bash
+mkdir -p ~/.claude/skills
 cp -r skills/fitting-rvs-with-radvel skills/writing-radvel-setup-files ~/.claude/skills/
 ```

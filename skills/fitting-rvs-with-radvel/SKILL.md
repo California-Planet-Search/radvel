@@ -34,7 +34,7 @@ radvel report -s star.py                      # <dir>/<starname>_results.pdf
 
 - `plot` writes PDFs only.
 - `derive` prints no values: read `<dir>/<name>_derived_quantiles.csv`. `mpsini` is in Earth masses, `a` in AU.
-- MCMC summaries (`_post_summary.csv`, chains) are in the fitting basis. Get e from the chains: `e = secosw**2 + sesinw**2`. `radvel table -t params` and `report` give e and w, but in 1.6.7 they crash with "assignment destination is read-only" when a w posterior sits beyond 90 degrees.
+- MCMC summaries (`_post_summary.csv`, chains) are in the fitting basis. In a `secosw sesinw` basis with both varying, get e from the chains: `e = secosw**2 + sesinw**2`. Fixed parameters are not in the chains (a circular fit has neither column). `radvel table -t params` and `report` give e and w, but in 1.6.7 they crash with "assignment destination is read-only" when a w posterior sits beyond 90 degrees.
 - `fit`'s "Final loglikelihood" includes the priors. To compare fits with different priors, load `<dir>/<name>_post_obj.pkl` and use `post.likelihood.logprob()`.
 
 ## MCMC
@@ -61,5 +61,5 @@ docker run --rm --name radvel-mystar --user "$(id -u):$(id -g)" -e HOME=/tmp \
 
 - Jitter well above the errors means a missing signal: periodogram the residuals.
 - P and tc fixed from transits: refit with tc free. If lnL improves by more than about 5, the ephemeris and RVs disagree. Stop. Report both fits and the offset, and quote no mass until the Tc and time system (BJD vs BJD-2450000, `bjd0`) are checked.
-- `radvel fit` prints tc minus time_base; the CSVs in `-d` hold absolute times.
+- `radvel fit` prints `tc`/`tp` minus time_base when they are above 1e6 (full BJD) and unchanged otherwise. The CSVs in `-d` hold the values in your input time system.
 - Circular orbits are a choice. Say so, or fit `secosw`/`sesinw`.

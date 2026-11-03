@@ -17,9 +17,9 @@ A setup file is a Python module. radvel imports it and reads its globals. Workin
 | `instnames` | yes | each must equal a value in `data.tel`, else "No data found for instrument" |
 | `fitting_basis` | yes | one of `radvel.basis.BASIS_NAMES` |
 | `params` | yes | a `radvel.Parameters` **already in** `fitting_basis` |
-| `data` | yes | DataFrame with exactly `time, mnvel, errvel, tel`; velocities in m/s |
+| `data` | yes | DataFrame with at least `time, mnvel, errvel, tel`; velocities in m/s. Keep extra columns `--decorr` needs (`decorr_vars`) |
 | `priors` | yes | list, may be empty |
-| `time_base` | no | epoch for `dvdt`/`curv`; default mid-baseline |
+| `time_base` | yes | epoch for `dvdt`/`curv`; missing gives AttributeError. Use `time_base = 0.5 * (data.time.min() + data.time.max())` |
 | `bjd0` | no | **plot axis offset only**. Converts nothing |
 | `planet_letters` | no | `{1: 'b', 2: 'c'}` |
 | `stellar` | for `derive` | `dict(mstar=, mstar_err=)` in Msun; without it masses are nan |
@@ -27,7 +27,7 @@ A setup file is a Python module. radvel imports it and reads its globals. Workin
 
 Every instrument needs `params['gamma_<inst>']` and `params['jit_<inst>']`. Jitter is `jit_`, linear, never `logjit`. `dvdt` and `curv` always exist: set them `vary=False` unless you fit a trend.
 
-Rename columns yourself and keep only those four: bundled `epic203771098.csv` has `t, vel, errvel` and no `tel`; `164922_fixed.txt` is whitespace-separated (`sep=r'\s+'`) with an extra `svalue` column. Read data relative to the setup file, `os.path.dirname(os.path.abspath(__file__))`, or `radvel.DATADIR` for bundled examples.
+Rename columns yourself: bundled `epic203771098.csv` has `t, vel, errvel` and no `tel`; `164922_fixed.txt` is whitespace-separated (`sep=r'\s+'`) with an extra `svalue` column. Read data relative to the setup file, `os.path.dirname(os.path.abspath(__file__))`, or `radvel.DATADIR` for bundled examples.
 
 Instrument names may contain hyphens (`harps-n`). CPS files code Keck/HIRES before its Aug 2004 upgrade as `k`, after as `j`, and APF as `a`. Other unlabeled codes: identify them from each code's time range and say so.
 
@@ -47,7 +47,7 @@ Default to `per tc secosw sesinw k` with no prior on `k`. A flat K that may go n
 
 Circular: `secosw1`, `sesinw1` = 0, `vary=False`. Say so in the results.
 
-Faster fit: `gamma_<inst> = radvel.Parameter(0., vary=False, linear=True)` marginalizes gamma analytically.
+Faster fit, non-GP likelihoods only: `gamma_<inst> = radvel.Parameter(0., vary=False, linear=True)` marginalizes gamma analytically. With a GP this would fix gamma at 0, so leave gamma varying.
 
 ## Time system
 
@@ -57,7 +57,7 @@ Shift one side, then set `bjd0` to whatever offset remains so plot axes read rig
 
 ## Priors
 
-`radvel.prior.Gaussian(name, mu, sigma)`, `.HardBounds(name, lo, hi)`, `.Jeffreys(name, lo, hi)`. A prior on a `vary=False` parameter does nothing: transit P and tc are either fixed or free with a Gaussian prior, not both.
+`radvel.prior.Gaussian(name, mu, sigma)`, `.HardBounds(name, lo, hi)`, `.Jeffreys(name, lo, hi)`. Priors on `vary=False` parameters still count: a Gaussian adds a constant and constrains nothing, and a HardBounds that excludes the fixed value makes the posterior -inf. Transit P and tc are either fixed or free with a Gaussian prior, not both.
 
 After `radvel fit`, check that no parameter sits on a HardBounds edge. Jitter at its cap means the bound is too tight or a signal is missing. Set jitter caps well above each instrument's RV rms, not near the errors.
 
