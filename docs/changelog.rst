@@ -4,7 +4,7 @@ Changelog
 Unreleased
 ----------
 
-- Retain the optimizer's returned point and update linear offsets when fitting a posterior. (#PRNUM)
+- Retain the optimizer's returned point and update linear offsets when fitting a posterior. (#466)
 
 1.6.7 (2026-10-18)
 ------------------
