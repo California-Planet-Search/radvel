@@ -461,12 +461,17 @@ def ic_compare(args: ArgumentParser) -> None:
     ipost = copy.deepcopy(post)
 
     if args.simple:
-        statsdictlist += radvel.fitting.model_comp(ipost, params=[], verbose=args.verbose)
+        statsdictlist += radvel.fitting.model_comp(
+            ipost, params=[], mc_list=[], verbose=args.verbose,
+        )
     else:
         if hasattr(args, 'fixjitter') and args.fixjitter:
             for param in ipost.params:
-                if len(param) >= 3 and param[0:3] == 'jit':
+                if param.startswith('jit'):
                     ipost.params[param].vary = False
+                    ipost.vector.vector[ipost.vector.indices[param], 1] = False
+            ipost.list_vary_params()
+            ipost.likelihood.list_vary_params()
 
         for compareparam in compareparams:
             assert compareparam in choices, \
@@ -474,7 +479,9 @@ def ic_compare(args: ArgumentParser) -> None:
                 + " ".join(choices)
             paramlist.append(compareparam)
             if hasattr(args, 'mixed') and not args.mixed:
-                statsdictlist += radvel.fitting.model_comp(ipost, params=[compareparam], verbose=args.verbose)
+                statsdictlist += radvel.fitting.model_comp(
+                    ipost, params=[compareparam], mc_list=[], verbose=args.verbose,
+                )
         if hasattr(args, 'mixed') and not args.mixed:
             new_statsdictlist = []
             for dicti in statsdictlist:
@@ -489,7 +496,9 @@ def ic_compare(args: ArgumentParser) -> None:
             statsdictlist = new_statsdictlist
 
         if not hasattr(args, 'mixed') or (hasattr(args, 'mixed') and args.mixed):
-            statsdictlist += radvel.fitting.model_comp(ipost, params=paramlist, verbose=args.verbose)
+            statsdictlist += radvel.fitting.model_comp(
+                ipost, params=paramlist, mc_list=[], verbose=args.verbose,
+            )
 
     savestate = {'ic': statsdictlist}
     save_status(statfile, 'ic_compare', savestate)
