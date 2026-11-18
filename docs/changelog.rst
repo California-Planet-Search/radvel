@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+- Keep the input parameter basis unchanged when converting orbital parameters. (#PRNUM)
+
 1.6.7 (2026-10-18)
 ------------------
 
