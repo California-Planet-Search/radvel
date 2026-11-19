@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+- Preserve planet labels supplied by dict and JSON setups in model output. (#465)
+
 1.6.7 (2026-10-18)
 ------------------
 
