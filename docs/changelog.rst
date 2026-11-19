@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+- Honor ``radvel ic --fixjitter`` by keeping jitter at the nominal fit value during model comparisons. (#467)
+
 1.6.7 (2026-10-18)
 ------------------
 
