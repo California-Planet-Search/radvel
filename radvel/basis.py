@@ -609,9 +609,6 @@ class Basis(object):
                     _delpar('w')
                     _delpar('k')
 
-                # basis_name = newbasis
-                self.params = newbasis.split()
-
             if newbasis == 'per tc secosw sesinw k':
                 per = _getpar('per')
                 e = _getpar('e')
@@ -632,9 +629,6 @@ class Basis(object):
                     _delpar('tp')
                     _delpar('e')
                     _delpar('w')
-
-                self.name = newbasis
-                self.params = newbasis.split()
 
             if newbasis == 'logper tc secosw sesinw k':
                 per = _getpar('per')
@@ -658,9 +652,6 @@ class Basis(object):
                     _delpar('tp')
                     _delpar('e')
                     _delpar('w')
-
-                self.name = newbasis
-                self.params = newbasis.split()
 
             if newbasis == 'logper tc secosw sesinw logk':
                 per = _getpar('per')
@@ -686,9 +677,6 @@ class Basis(object):
                     _delpar('w')
                     _delpar('k')
 
-                self.name = newbasis
-                self.params = newbasis.split()
-
             if newbasis == 'per tc ecosw esinw k':
                 per = _getpar('per')
                 e = _getpar('e')
@@ -710,9 +698,6 @@ class Basis(object):
                     _delpar('e')
                     _delpar('w')
 
-                self.name = newbasis
-                self.params = newbasis.split()
-
             if newbasis == 'logper tp e w logk':
                 per = _getpar('per')
                 e = _getpar('e')
@@ -732,9 +717,6 @@ class Basis(object):
                 if not kwargs.get('keep', True):
                     _delpar('per')
                     _delpar('k')
-
-                self.name = newbasis
-                self.params = newbasis.split()
 
         with warnings.catch_warnings():
             warnings.filterwarnings(
