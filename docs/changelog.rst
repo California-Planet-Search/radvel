@@ -1,6 +1,11 @@
 Changelog
 =========
 
+Unreleased
+----------
+
+- Sort celerite observations before initializing the kernel so it uses the same time order as the RVs. (#468)
+
 1.6.7 (2026-10-18)
 ------------------
 
