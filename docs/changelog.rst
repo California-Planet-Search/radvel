@@ -4,6 +4,7 @@ Changelog
 Unreleased
 ----------
 
+- Keep the input parameter basis unchanged when converting orbital parameters. (#464)
 - Retain the optimizer's returned point and update linear offsets when fitting a posterior. (#466)
 
 1.6.7 (2026-10-18)
