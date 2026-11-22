@@ -136,7 +136,6 @@ def model_comp(
             np.round(fitpost.likelihood.aic(), 2),
             'Aikaike information (small sample corrected) criterion'
         )
-        num_planets = fitpost.likelihood.model.num_planets
         freepar = []
         eparams = fitpost.vector.params.basis.get_eparams()
         circparams = fitpost.vector.params.basis.get_circparams()
@@ -144,17 +143,15 @@ def model_comp(
         leparam = len(eparam)
         circparam = circparams[-1]
         lcparam = len(circparam)
-        planet_letters = fitpost.likelihood.vector.params.planet_letters
-        if planet_letters is None:
-            planet_letters = [ALPHABET[i] for i in range(num_planets+1)]
+        letter = fitpost.likelihood.vector.params.planet_letter
         jitterchecked = False
         for pari in fitpost.vector.names:
             if (len(pari) >= lcparam) and (pari[0:lcparam] == circparam) \
                     and fitpost.vector.vector[fitpost.vector.indices[pari]][1]:
-                freepar.append('$K_{'+planet_letters[int(pari[lcparam+0:])]+'}$')
+                freepar.append('$K_{'+letter(pari[lcparam+0:])+'}$')
             if (len(pari) >= leparam) and (pari[0:leparam] == eparam) \
                     and fitpost.vector.vector[fitpost.vector.indices[pari]][1]:
-                freepar.append('$e_{'+planet_letters[int(pari[leparam+0:])]+'}$')
+                freepar.append('$e_{'+letter(pari[leparam+0:])+'}$')
             if (pari == 'dvdt') \
                     and fitpost.vector.vector[fitpost.vector.indices[pari]][1]:
                 freepar.append(r'$\dot{\gamma}$')
