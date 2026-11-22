@@ -35,13 +35,15 @@ def maxlike_fitting(post: Posterior, verbose: bool =True, method: str='Powell') 
         print("Performing maximum a posteriori fit...")
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=RuntimeWarning, message="invalid value encountered")
-        _ = scipy.optimize.minimize(
+        result = scipy.optimize.minimize(
             post.neglogprob_array, post.get_vary_params(), method=method,
             options=dict(maxiter=200, maxfev=100000, xtol=1e-8))
+        # Reevaluate the returned point to update any solved linear offsets.
+        logprob = post.logprob_array(result.x)
     post.vector.vector_to_dict()
 
     if verbose:
-        print("Final loglikelihood = %f" % post.logprob())
+        print("Final loglikelihood = %f" % logprob)
         print("Best-fit parameters:")
         print(post)
 

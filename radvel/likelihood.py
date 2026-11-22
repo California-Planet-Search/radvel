@@ -606,21 +606,20 @@ class CeleriteLikelihood(GPLikelihood):
 
     def __init__(self, model: RVModel, t: np.ndarray, vel: np.ndarray, errvel: np.ndarray, hnames: list[str], suffix: str = '', **kwargs) -> None:
 
+        # The kernel retains the times it receives during initialization.
+        times = np.asarray(t)
+        order = np.argsort(times)
         super(CeleriteLikelihood, self).__init__(
-            model, t, vel, errvel, hnames,
-            suffix=suffix, kernel_name='Celerite'
+            model, times[order], np.asarray(vel)[order], np.asarray(errvel)[order],
+            hnames, suffix=suffix, kernel_name='Celerite'
         )
-
-        # Sort inputs in time order. Required for celerite calculations.
-        order = np.argsort(self.x)
-        self.x = self.x[order]
-        self.y = self.y[order]
-        self.yerr = self.yerr[order]
-        self.N = len(self.x)
 
     def logprob(self) -> float:
 
         self.update_kernel_params()
+        # Posteriors saved by older versions can have unsorted kernel times.
+        if self.kernel.x is not self.x:
+            self.kernel.compute_distances(self.x, self.x)
 
         try:
             solver = self.kernel.compute_covmatrix(self.errorbars())

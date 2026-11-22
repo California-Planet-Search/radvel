@@ -4,7 +4,10 @@ Changelog
 Unreleased
 ----------
 
+- Keep the input parameter basis unchanged when converting orbital parameters. (#464)
 - Preserve planet labels supplied by dict and JSON setups in model output. (#465)
+- Retain the optimizer's returned point and update linear offsets when fitting a posterior. (#466)
+- Sort celerite observations before initializing the kernel so it uses the same time order as the RVs. (#468)
 
 1.6.7 (2026-10-18)
 ------------------
