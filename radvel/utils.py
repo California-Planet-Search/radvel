@@ -116,7 +116,7 @@ def _namespace_from_dict(config):
     P.bjd0 = float(config.get('bjd0', 0.0))
 
     planet_letters = config.get('planet_letters')
-    if planet_letters is not None:
+    if planet_letters:
         planet_letters = {int(k): v for k, v in planet_letters.items()}
         P.planet_letters = planet_letters
 
@@ -136,11 +136,11 @@ def _namespace_from_dict(config):
     params_in = config['params']
     if isinstance(params_in, radvel.Parameters):
         params_obj = params_in
-        if planet_letters is not None:
+        if planet_letters:
             params_obj = radvel.basis._copy_params(params_in)
     else:
         params_obj = _build_parameters(params_in, P.nplanets, any_basis)
-    if planet_letters is not None:
+    if planet_letters:
         params_obj.planet_letters = planet_letters
     if str(params_obj.basis) != "Basis Object <{}>".format(P.fitting_basis):
         params_obj = params_obj.basis.to_any_basis(params_obj, P.fitting_basis)

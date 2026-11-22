@@ -176,11 +176,13 @@ should have only integers as keys."""
 
     def _planet_texlabel(self, parameter: str, num_planet: int) -> str:
         pname = texdict.get(parameter, parameter)
-        if self.planet_letters is not None:
-            lett_planet = self.planet_letters[int(num_planet)]
-        else:
-            lett_planet = chr(int(num_planet)+97)
-        return '$%s_{%s}$' % (pname, lett_planet)
+        return '$%s_{%s}$' % (pname, self.planet_letter(num_planet))
+
+    def planet_letter(self, num_planet: int) -> str:
+        """Letter for a planet: the configured one, else the default
+        (b, c, ...) if ``planet_letters`` is unset or lacks that planet."""
+        letters = self.planet_letters or {}
+        return letters.get(int(num_planet), chr(int(num_planet)+97))
 
 
 if __name__ == "__main__":
